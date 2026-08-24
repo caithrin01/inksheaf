@@ -1,0 +1,333 @@
+---
+// inksheaf — private beta page. Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
+---
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inksheaf — your Substack, printed and bound</title>
+<meta name="description" content="Inksheaf turns a Substack publication into a printed quarterly or annual edition. 6×9, perfect bound, mailed to your readers. Private beta, US delivery." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper:#f7f2e8; --ink:#221d16; --rubric:#a63a2b; --rule:rgba(34,29,22,.22);
+  --faint:rgba(34,29,22,.60); --card:#fbf8f1;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#181511; --ink:#e9e2d3; --rubric:#d0604e; --rule:rgba(233,226,211,.24);
+         --faint:rgba(233,226,211,.62); --card:#1f1b16; }
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Source Serif 4", Georgia, serif;
+  font-optical-sizing:auto; line-height:1.55; font-size:1.075rem;
+  background-image:radial-gradient(rgba(34,29,22,.028) 1px, transparent 1px);
+  background-size:5px 5px;
+}
+.page{max-width:37rem; margin:0 auto; padding:0 1.25rem 6rem}
+.folio{
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:1.1rem 0 .8rem; border-bottom:1px solid var(--rule);
+  font-family:ui-sans-serif,system-ui,sans-serif; font-size:.72rem;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+}
+.folio b{color:var(--ink); font-weight:600; letter-spacing:.18em}
+h1{
+  font-size:clamp(2.6rem,7.5vw,3.9rem); font-weight:560; line-height:1.06;
+  letter-spacing:-.015em; margin:4.2rem 0 1.6rem; text-wrap:balance;
+}
+h1 .amp{color:var(--rubric)}
+.lede{font-size:1.18rem; line-height:1.6}
+p+p{margin-top:1rem}
+.section{margin-top:4.2rem}
+.kicker{
+  font-family:ui-sans-serif,system-ui,sans-serif; font-size:.72rem; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--rubric); margin-bottom:1rem;
+}
+.kicker::after{content:""; display:block; width:2.4rem; border-bottom:2px solid var(--rubric); margin-top:.5rem}
+ol.how{list-style:none; counter-reset:n; margin-top:1.4rem}
+ol.how li{counter-increment:n; position:relative; padding:0 0 1.15rem 3rem}
+ol.how li::before{
+  content:counter(n); position:absolute; left:0; top:.05rem;
+  font-size:1.5rem; font-weight:560; color:var(--rubric); font-variant-numeric:oldstyle-nums;
+}
+ol.how li+li{border-top:1px solid var(--rule); padding-top:1.15rem}
+/* the specimen: a miniature book page instead of a product screenshot */
+.specimen{
+  margin:2rem auto 0; max-width:21rem; aspect-ratio:6/9; background:var(--card);
+  border:1px solid var(--rule); border-radius:2px 6px 6px 2px;
+  box-shadow:6px 8px 0 -2px rgba(34,29,22,.10), inset 3px 0 0 rgba(34,29,22,.06);
+  padding:1.5rem 1.4rem 1.1rem; display:flex; flex-direction:column; font-size:.62rem;
+  transform:rotate(-.6deg);
+}
+.spec-running{display:flex; justify-content:space-between; color:var(--faint);
+  letter-spacing:.12em; text-transform:uppercase; font-size:.5rem; padding-bottom:.55rem;
+  border-bottom:1px solid var(--rule)}
+.spec-title{font-size:1.02rem; font-weight:560; margin:1.15rem 0 .1rem; line-height:1.2}
+.spec-byline{color:var(--rubric); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase}
+.spec-body{margin-top:.7rem; color:var(--faint); flex:1; overflow:hidden}
+.spec-body p{margin-top:.45rem; text-align:justify; hyphens:auto}
+.spec-body p:first-child::first-letter{
+  color:var(--rubric); font-size:2.1em; float:left; line-height:.85; padding-right:.12em; font-weight:560;
+}
+.spec-folio{text-align:center; color:var(--faint); font-size:.52rem; padding-top:.5rem}
+table.spec{width:100%; border-collapse:collapse; margin-top:1.3rem; font-size:.98rem}
+table.spec td{padding:.5rem 0; border-bottom:1px solid var(--rule); vertical-align:top}
+table.spec td:first-child{color:var(--faint); width:38%; padding-right:1rem}
+/* form */
+.beta{margin-top:4.2rem; border:1.5px solid var(--ink); background:var(--card);
+  padding:1.8rem 1.6rem 1.6rem; border-radius:2px; box-shadow:5px 6px 0 -1px rgba(34,29,22,.12)}
+.steps{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.7rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--faint); margin-bottom:1.2rem}
+.steps b{color:var(--rubric)}
+label{display:block; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.8rem;
+  font-weight:600; margin:1.05rem 0 .35rem}
+input[type=url],input[type=text],input[type=email],input[type=number],select{
+  width:100%; padding:.6rem .65rem; font:inherit; font-size:1rem; color:var(--ink);
+  background:var(--paper); border:1px solid var(--rule); border-radius:2px;
+}
+input:focus,select:focus{outline:2px solid var(--rubric); outline-offset:1px; border-color:transparent}
+.radio-row{display:flex; flex-wrap:wrap; gap:.4rem}
+.radio-row label{margin:0; font-weight:400}
+.radio-row input{position:absolute; opacity:0; pointer-events:none}
+.radio-row span{display:inline-block; padding:.42rem .8rem; border:1px solid var(--rule);
+  border-radius:999px; cursor:pointer; font-size:.88rem; font-family:ui-sans-serif,system-ui,sans-serif}
+.radio-row input:checked+span{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.radio-row input:focus-visible+span{outline:2px solid var(--rubric); outline-offset:1px}
+button{
+  margin-top:1.4rem; width:100%; padding:.85rem 1rem; font:inherit; font-size:1.02rem; font-weight:600;
+  background:var(--rubric); color:#f7f2e8; border:0; border-radius:2px; cursor:pointer;
+}
+button:hover{filter:brightness(.93)}
+button.ghost{background:none; color:var(--faint); font-weight:400; font-size:.85rem; width:auto; padding:.4rem 0; margin-top:.5rem}
+.err{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.85rem; margin-top:.6rem; min-height:1.1em}
+.done{display:none}
+.done h3{font-size:1.5rem; font-weight:560; margin-bottom:.7rem}
+.hp{position:absolute; left:-6000px}
+footer{margin-top:5rem; padding-top:1.2rem; border-top:1px solid var(--rule);
+  font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; color:var(--faint); line-height:1.8}
+footer a{color:inherit}
+a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
+.step2,.step3{display:none}
+@media (prefers-reduced-motion: no-preference){
+  .reveal{animation:up .7s cubic-bezier(.2,.7,.2,1) both}
+  .reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.16s}
+  @keyframes up{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="folio"><b>inksheaf</b><span>private beta · printed in the US</span></header>
+
+  <main>
+    <h1 class="reveal">Your year of writing, bound <span class="amp">&amp;</span> mailed to your readers.</h1>
+    <p class="lede reveal">Inksheaf turns a Substack publication into a printed edition, quarterly or
+    annual. We pull your archive, typeset it as a 6×9 book with a table of contents, running
+    headers, footnotes and your own cover, and you approve every page before anything prints.
+    Your readers order copies from one link; printing and mailing are handled for you.</p>
+    <p class="reveal">The beta is five publications, US delivery, first books in readers' hands this
+    winter.</p>
+
+    <section class="section">
+      <div class="kicker">How it works</div>
+      <ol class="how">
+        <li>Paste your publication's URL below. Free posts come from your public archive; for
+        paywalled posts you upload Substack's own export, so no passwords change hands.</li>
+        <li>We typeset the issue and send you a proof PDF. You reorder, cut, add an editor's note,
+        then lock it.</li>
+        <li>Your readers order at your Inksheaf link. Each copy is printed on demand and mailed to
+        them. You can also sponsor copies for a founding-subscriber list you provide, with a hard
+        spending cap you set.</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <div class="kicker">The object</div>
+      <div class="specimen" aria-hidden="true">
+        <div class="spec-running"><span>The Examined Quarter</span><span>Winter 2026</span></div>
+        <div class="spec-title">What the Feed Cost Us</div>
+        <div class="spec-byline">December 4 · 2,140 words</div>
+        <div class="spec-body">
+          <p>Nobody decided that reading would become grazing; it happened one interface at a
+          time, and each interface was reasonable on its own terms.</p>
+          <p>The archive knows better. Laid end to end, a year of weekly essays runs to two
+          hundred pages, which is to say: a book, written by accident, waiting to be bound on
+          purpose.</p>
+        </div>
+        <div class="spec-folio">· 47 ·</div>
+      </div>
+      <table class="spec">
+        <tr><td>Trim</td><td>6 × 9 in, perfect bound</td></tr>
+        <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
+        <tr><td>Cover</td><td>Full colour, matte, your publication's own masthead and palette</td></tr>
+        <tr><td>Length</td><td>30–300 pages; a year of weekly essays is roughly 200</td></tr>
+        <tr><td>Apparatus</td><td>Contents with page numbers, running headers, footnotes kept as footnotes, bylines per article</td></tr>
+        <tr><td>Price</td><td>Published after we print the first copies; we quote measured costs, and there are none yet</td></tr>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="kicker">Who the beta is for</div>
+      <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
+      essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
+      person, not a pipeline, checks every page of your first issue.</p>
+    </section>
+
+    <section class="beta" id="beta">
+      <div class="kicker">Join the private beta</div>
+      <div class="steps">Step <b id="stepnum">1</b> of 3</div>
+      <form id="f" novalidate>
+        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" />
+
+        <div class="step1">
+          <label for="url">Your publication's URL</label>
+          <input type="url" id="url" name="publication_url" placeholder="https://yourname.substack.com" required />
+          <button type="button" data-next="2">Continue</button>
+        </div>
+
+        <div class="step2">
+          <label for="name">Your name</label>
+          <input type="text" id="name" name="name" required />
+          <label>Your role</label>
+          <div class="radio-row" role="radiogroup">
+            <label><input type="radio" name="role" value="owner" checked /><span>Owner</span></label>
+            <label><input type="radio" name="role" value="editor" /><span>Editor</span></label>
+            <label><input type="radio" name="role" value="other" /><span>Other</span></label>
+          </div>
+          <label>Archive</label>
+          <div class="radio-row">
+            <label><input type="radio" name="archive_type" value="free" /><span>Free</span></label>
+            <label><input type="radio" name="archive_type" value="paid" /><span>Paid</span></label>
+            <label><input type="radio" name="archive_type" value="mixed" /><span>Mixed</span></label>
+          </div>
+          <label for="frequency">Publishing frequency</label>
+          <select id="frequency" name="frequency">
+            <option value="">Choose…</option><option>daily</option><option>weekly</option>
+            <option>monthly</option><option>irregular</option>
+          </select>
+          <label for="ppy">Posts per year, roughly</label>
+          <input type="number" id="ppy" name="posts_per_year" min="1" max="2000" />
+          <label>Which edition would you want?</label>
+          <div class="radio-row">
+            <label><input type="radio" name="cadence_pref" value="quarterly" /><span>Quarterly</span></label>
+            <label><input type="radio" name="cadence_pref" value="annual" /><span>Annual</span></label>
+            <label><input type="radio" name="cadence_pref" value="both" /><span>Both</span></label>
+          </div>
+          <label for="subs">US subscribers, roughly</label>
+          <select id="subs" name="us_subscribers">
+            <option value="">Choose…</option><option>under 500</option><option>500–1,000</option>
+            <option>1,000–5,000</option><option>5,000–20,000</option><option>over 20,000</option>
+          </select>
+          <label for="orders">Reader orders you'd expect per issue</label>
+          <select id="orders" name="expected_orders">
+            <option value="">Choose…</option><option>under 10</option><option>10–50</option>
+            <option>50–200</option><option>over 200</option>
+          </select>
+          <label for="founding">Founding subscribers you might sponsor copies for</label>
+          <select id="founding" name="founding_count">
+            <option value="">Choose…</option><option>none</option><option>1–5</option>
+            <option>6–20</option><option>over 20</option>
+          </select>
+          <label for="price">Reader price that feels fair, before shipping</label>
+          <select id="price" name="price_range">
+            <option value="">Choose…</option><option>under $25</option><option>$25–40</option>
+            <option>$40–60</option><option>over $60</option>
+          </select>
+          <label>Would you do a 20-minute interview and share an export for a private pilot?</label>
+          <div class="radio-row">
+            <label><input type="radio" name="interview_ok" value="yes" /><span>Yes</span></label>
+            <label><input type="radio" name="interview_ok" value="no" /><span>No</span></label>
+          </div>
+          <label for="concern">Biggest concern</label>
+          <select id="concern" name="concern">
+            <option value="">Choose…</option><option>price</option><option>print quality</option>
+            <option>setup effort</option><option>rights</option><option>reader demand</option>
+          </select>
+          <button type="button" data-next="3">Continue</button>
+          <button type="button" class="ghost" data-back="1">Back</button>
+        </div>
+
+        <div class="step3">
+          <label for="email">Email for the beta</label>
+          <input type="email" id="email" name="email" required />
+          <button type="submit">Request a spot</button>
+          <button type="button" class="ghost" data-back="2">Back</button>
+        </div>
+        <div class="err" id="err" role="alert"></div>
+      </form>
+      <div class="done" id="done">
+        <h3>You're on the list.</h3>
+        <p>We reply to every signup within a few days. If you'd like to skip the queue, reply to
+        our email with a link to the one issue of your publication you'd most want on paper.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Inksheaf prints editions of Substack publications with their owners' permission. It is an
+    independent product, for Substack writers, and is not affiliated with or endorsed by Substack Inc.<br />
+    US delivery during the beta. Built by <a href="https://about.caithrin.com">Caithrin</a>.
+    · <a href="mailto:hello@inksheaf.com">hello@inksheaf.com</a>
+  </footer>
+</div>
+
+<script>
+const f = document.getElementById('f') as HTMLFormElement;
+const sid = Math.random().toString(36).slice(2,10);
+const seen = new Set();
+function beacon(ev: string){
+  if (seen.has(ev)) return; seen.add(ev);
+  navigator.sendBeacon?.('/api/event', new Blob(
+    [JSON.stringify({session:sid, event:ev})], {type:'application/json'}));
+}
+beacon('view');
+function show(n: number){
+  for (const k of [1,2,3]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
+  document.getElementById('stepnum')!.textContent = String(n);
+  document.getElementById('err')!.textContent = '';
+  if (n>1) beacon('step'+n);
+}
+show(1);
+f.addEventListener('click', (e)=>{
+  const t = e.target as HTMLElement;
+  const next = t.dataset?.next, back = t.dataset?.back;
+  if (back) return show(+back);
+  if (!next) return;
+  if (next==='2'){
+    const u = (f.elements.namedItem('publication_url') as HTMLInputElement).value.trim();
+    try { new URL(u.startsWith('http')?u:'https://'+u); } catch {
+      document.getElementById('err')!.textContent = 'That does not look like a URL.';
+      return;
+    }
+    if (!u.startsWith('http')) (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://'+u;
+  }
+  show(+next);
+});
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = (f.elements.namedItem('email') as HTMLInputElement).value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    document.getElementById('err')!.textContent = 'That email does not look right.';
+    return;
+  }
+  const data = Object.fromEntries(new FormData(f).entries());
+  const r = await fetch('/api/signup', {method:'POST',
+    headers:{'content-type':'application/json'}, body: JSON.stringify(data)});
+  if (r.ok){
+    beacon('signup');
+    (f as HTMLElement).style.display='none';
+    (document.querySelector('.steps') as HTMLElement).style.display='none';
+    document.getElementById('done')!.style.display='block';
+  } else {
+    document.getElementById('err')!.textContent = 'Something failed on our side. Email hello@inksheaf.com and we will add you by hand.';
+  }
+});
+</script>
+</body>
+</html>

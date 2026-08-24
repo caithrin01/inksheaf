@@ -1,0 +1,8 @@
+name = "inksheaf"
+compatibility_date = "2026-08-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inksheaf-beta"
+database_id = "c3f69796-7d28-4dd4-bc07-738b66b4d581"
