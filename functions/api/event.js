@@ -1,6 +1,8 @@
 // POST /api/event — funnel step counters. Stores event name + random session id only.
 const ALLOWED = new Set(["view","step2","step3","signup"]);
-export async function onRequestPost({ request, env }) {
+export async function onRequest({ request, env }) {
+  if (request.method !== "POST")
+    return new Response(null, { status: 405, headers: { allow: "POST" } });
   let body;
   try { body = await request.json(); } catch { return new Response(null, { status: 204 }); }
   const event = String(body.event || "");

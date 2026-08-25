@@ -8,6 +8,12 @@
 <title>Inksheaf — your Substack, printed and bound</title>
 <meta name="description" content="Inksheaf turns a Substack publication into a printed quarterly or annual edition. 6×9, perfect bound, mailed to your readers. Private beta, US delivery." />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:title" content="Inksheaf — your Substack, printed and bound" />
+<meta property="og:description" content="A printed quarterly or annual edition of your publication, 6×9 and perfect bound, mailed to your readers. Private beta, US delivery." />
+<meta property="og:image" content="https://inksheaf.pages.dev/og.png" />
+<meta property="og:url" content="https://inksheaf.pages.dev" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet" />
@@ -109,6 +115,10 @@ button.ghost{background:none; color:var(--faint); font-weight:400; font-size:.85
 .done{display:none}
 .done h3{font-size:1.5rem; font-weight:560; margin-bottom:.7rem}
 .hp{position:absolute; left:-6000px}
+dl.faq{margin-top:1.4rem}
+dl.faq dt{font-weight:600; font-size:1.02rem; margin-top:1.3rem}
+dl.faq dt::before{content:"Q. "; color:var(--rubric); font-weight:560}
+dl.faq dd{margin:.35rem 0 0; color:var(--faint)}
 footer{margin-top:5rem; padding-top:1.2rem; border-top:1px solid var(--rule);
   font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; color:var(--faint); line-height:1.8}
 footer a{color:inherit}
@@ -177,6 +187,38 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
       <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
       essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
       person, not a pipeline, checks every page of your first issue.</p>
+      <p>Three ways beta publications plan to use print: a founding-member perk, with sponsored
+      copies for top supporters under a budget cap you set; an annual readers buy from a link in
+      your footer or About page; and a door into the back catalog, so a new subscriber can meet
+      three years of writing as one bound volume instead of an infinite scroll.</p>
+    </section>
+
+    <section class="section">
+      <div class="kicker">Questions writers ask</div>
+      <dl class="faq">
+        <dt>What does it cost me?</dt>
+        <dd>Nothing during the beta. Readers pay for the copies they order.</dd>
+        <dt>What do I earn?</dt>
+        <dd>Beta publications set the reader price and the author's share with us, from measured
+        print and shipping costs. Nothing is promised before it is measured.</dd>
+        <dt>Who owns the writing?</dt>
+        <dd>You do. You grant permission to print and mail the copies your readers order, and you
+        can revoke it at any time; revoking stops sales of your editions.</dd>
+        <dt>How do paid posts get in without my password?</dt>
+        <dd>You upload the export Substack generates in your own dashboard (Settings → Exports).
+        Any subscriber files inside it are discarded unread; only the posts are kept.</dd>
+        <dt>What happens to images, tweets and embeds?</dt>
+        <dd>Every image is checked at its printed size before you lock the issue, and anything that
+        would print badly is flagged to you. Tweets, video and audio become printed cards with a QR
+        code to the original.</dd>
+        <dt>When do the first books exist?</dt>
+        <dd>The beta targets December printing, with books in readers' hands around New Year. Beta
+        publications hear every date change directly.</dd>
+        <dt>Where can I read more?</dt>
+        <dd>Write to <a href="mailto:hello@inksheaf.com">hello@inksheaf.com</a>; every message gets
+        an answer. The build is documented as it happens on
+        <a href="https://www.caithrin.com">caithrin.com</a>.</dd>
+      </dl>
     </section>
 
     <section class="beta" id="beta">
