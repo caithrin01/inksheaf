@@ -351,6 +351,16 @@ f.addEventListener('click', (e)=>{
   }
   show(+next);
 });
+f.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Enter') return;
+  const target = e.target as HTMLElement;
+  if (target.tagName === 'BUTTON' || target.tagName === 'SELECT') return;
+  const current = [1,2,3].find(k => (f.querySelector('.step'+k) as HTMLElement).style.display !== 'none');
+  if (current && current < 3){
+    e.preventDefault();
+    (f.querySelector('.step'+current+' [data-next]') as HTMLElement)?.click();
+  }
+});
 f.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const email = (f.elements.namedItem('email') as HTMLInputElement).value.trim();
