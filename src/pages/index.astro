@@ -1,5 +1,7 @@
 ---
-// inksheaf — private beta page. Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
+// inksheaf — private beta page, v2 (post CEO/design/UX review 2026-08-27).
+// Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
+// Demo numbers are REAL caithrin archive data (research.md §1a + live fetch 2026-08-27); renders labeled as renders.
 ---
 <html lang="en">
 <head>
@@ -19,75 +21,160 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet" />
 <style>
 :root{
-  --paper:#f7f2e8; --ink:#221d16; --rubric:#a63a2b; --rule:rgba(34,29,22,.22);
-  --faint:rgba(34,29,22,.60); --card:#fbf8f1;
+  --paper:#f6f1e6; --paper-deep:#efe8d8; --ink:#221d16; --rubric:#a63a2b;
+  --rule:rgba(34,29,22,.20); --faint:rgba(34,29,22,.58); --card:#fbf7ee;
+  --sheet-shadow: 0 1px 2px rgba(34,29,22,.08), 0 12px 28px -18px rgba(34,29,22,.35);
+  --press: 0 1px 0 rgba(255,255,255,.5);
+  --grain-opacity:.5;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --paper:#181511; --ink:#e9e2d3; --rubric:#d0604e; --rule:rgba(233,226,211,.24);
-         --faint:rgba(233,226,211,.62); --card:#1f1b16; }
+  :root{ --paper:#171410; --paper-deep:#120f0c; --ink:#e9e2d3; --rubric:#d0604e;
+    --rule:rgba(233,226,211,.22); --faint:rgba(233,226,211,.60); --card:#1e1a15;
+    --sheet-shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 30px -18px rgba(0,0,0,.8);
+    --press: 0 1px 0 rgba(0,0,0,.55);
+    --grain-opacity:.28; }
 }
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
 body{
-  background:var(--paper); color:var(--ink);
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,.35), transparent 55%),
+    linear-gradient(180deg, var(--paper) 0%, var(--paper-deep) 100%);
+  background-color:var(--paper);
+  color:var(--ink);
   font-family:"Source Serif 4", Georgia, serif;
   font-optical-sizing:auto; line-height:1.55; font-size:1.075rem;
-  background-image:radial-gradient(rgba(34,29,22,.028) 1px, transparent 1px);
-  background-size:5px 5px;
+  min-height:100vh; position:relative;
 }
-.page{max-width:37rem; margin:0 auto; padding:0 1.25rem 6rem}
+@media (prefers-color-scheme: dark){
+  body{background:
+    radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,.05), transparent 55%),
+    linear-gradient(180deg, var(--paper) 0%, var(--paper-deep) 100%);
+    background-color:var(--paper)}
+}
+/* paper grain: turbulence layer, fixed, never intercepting input */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:1;
+  opacity:var(--grain-opacity); mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark){ body::before{mix-blend-mode:screen; opacity:.1} }
+.page{max-width:39rem; margin:0 auto; padding:0 1.25rem 6rem; position:relative; z-index:2}
 .folio{
   display:flex; justify-content:space-between; align-items:baseline;
-  padding:1.1rem 0 .8rem; border-bottom:1px solid var(--rule);
+  padding:1.15rem 0 .85rem; border-bottom:1.5px solid var(--ink);
   font-family:ui-sans-serif,system-ui,sans-serif; font-size:.72rem;
   letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
 }
 .folio b{color:var(--ink); font-weight:600; letter-spacing:.18em}
 h1{
-  font-size:clamp(2.6rem,7.5vw,3.9rem); font-weight:560; line-height:1.06;
-  letter-spacing:-.015em; margin:4.2rem 0 1.6rem; text-wrap:balance;
+  font-size:clamp(2.7rem,7.8vw,4.1rem); font-weight:560; line-height:1.05;
+  letter-spacing:-.015em; margin:4rem 0 1.5rem; text-wrap:balance; text-shadow:var(--press);
 }
 h1 .amp{color:var(--rubric)}
-.lede{font-size:1.18rem; line-height:1.6}
+.lede{font-size:1.17rem; line-height:1.6}
 p+p{margin-top:1rem}
-.section{margin-top:4.2rem}
+.section{margin-top:4.6rem}
 .kicker{
   font-family:ui-sans-serif,system-ui,sans-serif; font-size:.72rem; font-weight:600;
-  letter-spacing:.16em; text-transform:uppercase; color:var(--rubric); margin-bottom:1rem;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--rubric); margin-bottom:1.1rem;
 }
 .kicker::after{content:""; display:block; width:2.4rem; border-bottom:2px solid var(--rubric); margin-top:.5rem}
+.note{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.74rem; color:var(--faint); letter-spacing:.04em}
+
+/* ---------- hero try-it ---------- */
+.tryit{margin-top:2.3rem; background:var(--card); border:1.5px solid var(--ink); border-radius:3px;
+  box-shadow:var(--sheet-shadow); padding:1.15rem 1.2rem 1.25rem}
+.tryit label{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; font-weight:600; display:block; margin-bottom:.45rem}
+.tryrow{display:flex; gap:.55rem; flex-wrap:wrap}
+.tryrow input{flex:1 1 14rem; padding:.7rem .7rem; font:inherit; font-size:1.02rem; color:var(--ink);
+  background:var(--paper); border:1px solid var(--rule); border-radius:2px}
+.tryrow input:focus{outline:2px solid var(--rubric); outline-offset:1px}
+.tryrow button{flex:0 0 auto; padding:.7rem 1.15rem; font:inherit; font-size:1rem; font-weight:600;
+  background:var(--rubric); color:#f7f2e8; border:0; border-radius:2px; cursor:pointer}
+.tryrow button:disabled{opacity:.55; cursor:wait}
+.tryhint{margin-top:.55rem}
+.tryerr{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.86rem; margin-top:.6rem; min-height:0}
+
+/* ---------- book objects ---------- */
+.bookstage{display:flex; gap:2.6rem; align-items:flex-end; justify-content:center; flex-wrap:wrap; margin:2.4rem 0 .8rem}
+.bookobj{position:relative; width:15.5rem; aspect-ratio:6/9; transform:rotate(-1.2deg)}
+.bookobj .cover{
+  position:absolute; inset:0; background:var(--card); border:1px solid var(--rule);
+  border-radius:2px 7px 7px 2px; display:flex; flex-direction:column; padding:1.5rem 1.2rem 1.1rem;
+  box-shadow: 0 2px 3px rgba(34,29,22,.18), 14px 22px 34px -16px rgba(34,29,22,.5),
+    inset 10px 0 14px -12px rgba(34,29,22,.55);
+}
+.bookobj .spinefold{position:absolute; top:0; bottom:0; left:0; width:14px; border-radius:2px 0 0 2px;
+  background:linear-gradient(90deg, rgba(34,29,22,.34), rgba(34,29,22,.05) 55%, rgba(255,255,255,.25) 75%, rgba(34,29,22,.12));
+  pointer-events:none}
+.bookobj .pageblock{position:absolute; top:5px; bottom:5px; right:-7px; width:7px;
+  background:repeating-linear-gradient(180deg, #fdfaf2 0 2px, #e7e0cf 2px 3px);
+  border-radius:0 2px 2px 0; box-shadow:2px 3px 6px -2px rgba(34,29,22,.4)}
+@media (prefers-color-scheme: dark){ .bookobj .pageblock{background:repeating-linear-gradient(180deg, #2a251e 0 2px, #1a1611 2px 3px)} }
+.cv-mast{font-weight:600; font-size:1.5rem; line-height:1.12; letter-spacing:-.01em; margin-top:.4rem; overflow-wrap:anywhere}
+.cv-rule{width:2.2rem; border-bottom:2.5px solid var(--rubric); margin:.7rem 0 .8rem}
+.cv-kind{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.62rem; letter-spacing:.22em; text-transform:uppercase; color:var(--rubric); font-weight:600}
+.cv-dates{font-size:.78rem; color:var(--faint); margin-top:.3rem}
+.cv-mid{flex:1}
+.cv-foot{border-top:1px solid var(--rule); padding-top:.55rem; display:flex; justify-content:space-between; align-items:baseline; gap:.5rem}
+.cv-pages{font-size:.72rem; color:var(--faint)}
+.cv-vol{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap}
+.spinetext{position:absolute; top:0; bottom:0; left:0; width:14px; display:flex; align-items:center; justify-content:center; pointer-events:none}
+.spinetext span{transform:rotate(90deg); white-space:nowrap; font-size:.5rem; letter-spacing:.2em; text-transform:uppercase; color:var(--faint)}
+/* open spread */
+.spread{width:21rem; max-width:100%; aspect-ratio:12/9; display:flex; position:relative; transform:rotate(.8deg);
+  filter:drop-shadow(0 16px 22px rgba(34,29,22,.35))}
+.spread .pg{flex:1; background:var(--card); border:1px solid var(--rule); padding:1.05rem .95rem .7rem;
+  display:flex; flex-direction:column; font-size:.56rem; color:var(--faint); overflow:hidden}
+.spread .pg.left{border-radius:5px 0 0 5px; box-shadow:inset -14px 0 16px -14px rgba(34,29,22,.5)}
+.spread .pg.right{border-radius:0 5px 5px 0; box-shadow:inset 14px 0 16px -14px rgba(34,29,22,.5)}
+.pg .run{display:flex; justify-content:space-between; letter-spacing:.14em; text-transform:uppercase; font-size:.45rem;
+  border-bottom:1px solid var(--rule); padding-bottom:.4rem; margin-bottom:.6rem}
+.pg h4{color:var(--ink); font-size:.92rem; font-weight:560; line-height:1.18; margin:.5rem 0 .15rem}
+.pg .by{color:var(--rubric); font-size:.5rem; letter-spacing:.1em; text-transform:uppercase}
+.pg p{margin-top:.4rem; text-align:justify; hyphens:auto; line-height:1.5}
+.pg p.dc::first-letter{color:var(--rubric); font-size:2.2em; float:left; line-height:.8; padding-right:.14em; font-weight:560}
+.pg .fol{margin-top:auto; text-align:center; font-size:.45rem; padding-top:.4rem}
+.toc-line{display:flex; align-items:baseline; gap:.35rem; margin-top:.45rem}
+.toc-line .t{color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:72%}
+.toc-line .dots{flex:1; border-bottom:1px dotted var(--rule); transform:translateY(-2px)}
+.toc-line .n{color:var(--faint)}
+
+/* ---------- preview result ---------- */
+.preview{display:none; margin-top:1.6rem}
+.preview.on{display:block}
+@media (prefers-reduced-motion: no-preference){
+  .preview.on{animation:pv .8s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes pv{from{opacity:0; transform:translateY(18px) scale(.985)}to{opacity:1; transform:none}}
+}
+.pv-grid{display:flex; gap:1.8rem; align-items:center; flex-wrap:wrap; margin-top:1.4rem}
+.pv-facts{flex:1 1 15rem}
+.pv-big{font-size:2.35rem; font-weight:560; line-height:1.1; text-wrap:balance; text-shadow:var(--press)}
+.pv-big b{color:var(--rubric); font-weight:560}
+.pv-sub{margin-top:.7rem; color:var(--faint)}
+.pv-cta{margin-top:1.2rem; display:inline-block; padding:.75rem 1.2rem; background:var(--ink); color:var(--paper);
+  border-radius:2px; text-decoration:none; font-weight:600; font-size:1rem; border:0; cursor:pointer; font-family:inherit}
+.pv-note{margin-top:.8rem}
+
+/* ---------- how/spec/faq ---------- */
 ol.how{list-style:none; counter-reset:n; margin-top:1.4rem}
-ol.how li{counter-increment:n; position:relative; padding:0 0 1.15rem 3rem}
-ol.how li::before{
-  content:counter(n); position:absolute; left:0; top:.05rem;
-  font-size:1.5rem; font-weight:560; color:var(--rubric); font-variant-numeric:oldstyle-nums;
-}
+ol.how li{counter-increment:n; position:relative; padding:0 0 1.15rem 3.1rem}
+ol.how li::before{content:counter(n); position:absolute; left:0; top:-.15rem;
+  font-size:2rem; font-weight:560; color:var(--rubric); font-variant-numeric:oldstyle-nums; text-shadow:var(--press)}
 ol.how li+li{border-top:1px solid var(--rule); padding-top:1.15rem}
-/* the specimen: a miniature book page instead of a product screenshot */
-.specimen{
-  margin:2rem auto 0; max-width:21rem; aspect-ratio:6/9; background:var(--card);
-  border:1px solid var(--rule); border-radius:2px 6px 6px 2px;
-  box-shadow:6px 8px 0 -2px rgba(34,29,22,.10), inset 3px 0 0 rgba(34,29,22,.06);
-  padding:1.5rem 1.4rem 1.1rem; display:flex; flex-direction:column; font-size:.62rem;
-  transform:rotate(-.6deg);
-}
-.spec-running{display:flex; justify-content:space-between; color:var(--faint);
-  letter-spacing:.12em; text-transform:uppercase; font-size:.5rem; padding-bottom:.55rem;
-  border-bottom:1px solid var(--rule)}
-.spec-title{font-size:1.02rem; font-weight:560; margin:1.15rem 0 .1rem; line-height:1.2}
-.spec-byline{color:var(--rubric); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase}
-.spec-body{margin-top:.7rem; color:var(--faint); flex:1; overflow:hidden}
-.spec-body p{margin-top:.45rem; text-align:justify; hyphens:auto}
-.spec-body p:first-child::first-letter{
-  color:var(--rubric); font-size:2.1em; float:left; line-height:.85; padding-right:.12em; font-weight:560;
-}
-.spec-folio{text-align:center; color:var(--faint); font-size:.52rem; padding-top:.5rem}
 table.spec{width:100%; border-collapse:collapse; margin-top:1.3rem; font-size:.98rem}
-table.spec td{padding:.5rem 0; border-bottom:1px solid var(--rule); vertical-align:top}
+table.spec td{padding:.55rem 0; border-bottom:1px solid var(--rule); vertical-align:top}
 table.spec td:first-child{color:var(--faint); width:38%; padding-right:1rem}
-/* form */
-.beta{margin-top:4.2rem; border:1.5px solid var(--ink); background:var(--card);
-  padding:1.8rem 1.6rem 1.6rem; border-radius:2px; box-shadow:5px 6px 0 -1px rgba(34,29,22,.12)}
+dl.faq{margin-top:.4rem}
+dl.faq dt{font-weight:600; font-size:1.02rem; padding-top:1.15rem; margin-top:1.15rem; border-top:1px solid var(--rule)}
+dl.faq dt:first-of-type{border-top:0; margin-top:.4rem}
+dl.faq dt::before{content:"Q. "; color:var(--rubric); font-weight:560}
+dl.faq dd{margin:.35rem 0 0; color:var(--faint)}
+
+/* ---------- form ---------- */
+.beta{margin-top:4.6rem; border:1.5px solid var(--ink); background:var(--card);
+  padding:1.8rem 1.6rem 1.6rem; border-radius:3px; box-shadow:var(--sheet-shadow)}
 .steps{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.7rem; letter-spacing:.12em;
   text-transform:uppercase; color:var(--faint); margin-bottom:1.2rem}
 .steps b{color:var(--rubric)}
@@ -95,9 +182,9 @@ label{display:block; font-family:ui-sans-serif,system-ui,sans-serif; font-size:.
   font-weight:600; margin:1.05rem 0 .35rem}
 input[type=url],input[type=text],input[type=email],input[type=number],select{
   width:100%; padding:.6rem .65rem; font:inherit; font-size:1rem; color:var(--ink);
-  background:var(--paper); border:1px solid var(--rule); border-radius:2px;
-}
+  background:var(--paper); border:1px solid var(--rule); border-radius:2px}
 input:focus,select:focus{outline:2px solid var(--rubric); outline-offset:1px; border-color:transparent}
+.prefilled{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; color:var(--faint); margin-top:.3rem}
 .radio-row{display:flex; flex-wrap:wrap; gap:.4rem}
 .radio-row label{margin:0; font-weight:400}
 .radio-row input{position:absolute; opacity:0; pointer-events:none}
@@ -105,30 +192,25 @@ input:focus,select:focus{outline:2px solid var(--rubric); outline-offset:1px; bo
   border-radius:999px; cursor:pointer; font-size:.88rem; font-family:ui-sans-serif,system-ui,sans-serif}
 .radio-row input:checked+span{background:var(--ink); color:var(--paper); border-color:var(--ink)}
 .radio-row input:focus-visible+span{outline:2px solid var(--rubric); outline-offset:1px}
-button{
-  margin-top:1.4rem; width:100%; padding:.85rem 1rem; font:inherit; font-size:1.02rem; font-weight:600;
-  background:var(--rubric); color:#f7f2e8; border:0; border-radius:2px; cursor:pointer;
-}
-button:hover{filter:brightness(.93)}
-button.ghost{background:none; color:var(--faint); font-weight:400; font-size:.85rem; width:auto; padding:.4rem 0; margin-top:.5rem}
+button.main{margin-top:1.4rem; width:100%; padding:.85rem 1rem; font:inherit; font-size:1.02rem; font-weight:600;
+  background:var(--rubric); color:#f7f2e8; border:0; border-radius:2px; cursor:pointer}
+button.main:hover{filter:brightness(.93)}
+button.ghost{background:none; color:var(--faint); font-weight:400; font-size:.85rem; width:auto; padding:.4rem 0; margin-top:.5rem; border:0; cursor:pointer; font-family:inherit}
 .err{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.85rem; margin-top:.6rem; min-height:1.1em}
 .done{display:none}
 .done h3{font-size:1.5rem; font-weight:560; margin-bottom:.7rem}
 .hp{position:absolute; left:-6000px}
-dl.faq{margin-top:1.4rem}
-dl.faq dt{font-weight:600; font-size:1.02rem; margin-top:1.3rem}
-dl.faq dt::before{content:"Q. "; color:var(--rubric); font-weight:560}
-dl.faq dd{margin:.35rem 0 0; color:var(--faint)}
-footer{margin-top:5rem; padding-top:1.2rem; border-top:1px solid var(--rule);
+footer{margin-top:5rem; padding-top:1.2rem; border-top:1.5px solid var(--ink);
   font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; color:var(--faint); line-height:1.8}
 footer a{color:inherit}
 a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
-.step2,.step3{display:none}
+.step1,.step2,.step3{display:none}
 @media (prefers-reduced-motion: no-preference){
   .reveal{animation:up .7s cubic-bezier(.2,.7,.2,1) both}
-  .reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.16s}
+  .reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.16s}.reveal:nth-child(4){animation-delay:.24s}
   @keyframes up{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
 }
+@media (max-width:560px){ .spread{transform:none} .bookobj{transform:none} }
 </style>
 </head>
 <body>
@@ -141,37 +223,84 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
     annual. We pull your archive, typeset it as a 6×9 book with a table of contents, running
     headers, footnotes and your own cover, and you approve every page before anything prints.
     Your readers order copies from one link; printing and mailing are handled for you.</p>
-    <p class="reveal">The beta is five publications, US delivery, first books in readers' hands this
-    winter.</p>
 
-    <section class="section">
-      <div class="kicker">How it works</div>
-      <ol class="how">
-        <li>Paste your publication's URL below. Free posts come from your public archive; for
-        paywalled posts you upload Substack's own export, so no passwords change hands.</li>
-        <li>We typeset the issue and send you a proof PDF. You reorder, cut, add an editor's note,
-        then lock it.</li>
-        <li>Your readers order at your Inksheaf link. Each copy is printed on demand and mailed to
-        them. You can also sponsor copies for a founding-subscriber list you provide, with a hard
-        spending cap you set.</li>
-      </ol>
+    <div class="tryit reveal" id="tryit">
+      <label for="tryurl">See your own book. Paste your publication's URL:</label>
+      <div class="tryrow">
+        <input type="url" id="tryurl" placeholder="https://yourname.substack.com" autocomplete="off" />
+        <button id="trybtn" type="button">Show my book</button>
+      </div>
+      <div class="tryhint note">Reads only your public archive. Nothing is stored except the numbers below.</div>
+      <div class="tryerr" id="tryerr" role="alert"></div>
+    </div>
+
+    <section class="preview" id="preview" aria-live="polite">
+      <div class="pv-grid">
+        <div class="bookobj" id="pvbook" aria-hidden="true">
+          <div class="cover">
+            <div class="cv-kind" id="pv-kind">Annual</div>
+            <div class="cv-mast" id="pv-mast"></div>
+            <div class="cv-rule"></div>
+            <div class="cv-dates" id="pv-dates"></div>
+            <div class="cv-mid"></div>
+            <div class="cv-foot"><span class="cv-pages" id="pv-cvpages"></span><span class="cv-vol">Inksheaf edition</span></div>
+          </div>
+          <div class="spinefold"></div>
+          <div class="spinetext"><span id="pv-spine"></span></div>
+          <div class="pageblock" id="pv-block"></div>
+        </div>
+        <div class="pv-facts">
+          <div class="pv-big" id="pv-big"></div>
+          <p class="pv-sub" id="pv-sub"></p>
+          <button class="pv-cta" id="pv-cta" type="button">Reserve a beta spot for this book</button>
+          <p class="pv-note note">Page count is an estimate from your public archive; the proof PDF is exact.</p>
+        </div>
+      </div>
     </section>
 
     <section class="section">
       <div class="kicker">The object</div>
-      <div class="specimen" aria-hidden="true">
-        <div class="spec-running"><span>The Examined Quarter</span><span>Winter 2026</span></div>
-        <div class="spec-title">What the Feed Cost Us</div>
-        <div class="spec-byline">December 4 · 2,140 words</div>
-        <div class="spec-body">
-          <p>Nobody decided that reading would become grazing; it happened one interface at a
-          time, and each interface was reasonable on its own terms.</p>
-          <p>The archive knows better. Laid end to end, a year of weekly essays runs to two
-          hundred pages, which is to say: a book, written by accident, waiting to be bound on
-          purpose.</p>
+      <p>One publication, typeset. The render below is built from the real archive of
+      <a href="https://www.caithrin.com">caithrin.com</a>: 23 essays and 46,336 words over
+      Dec 2025 to Aug 2026, an estimated 158 pages at 6×9.</p>
+      <div class="bookstage" aria-hidden="true">
+        <div class="bookobj">
+          <div class="cover">
+            <div class="cv-kind">Annual · 2026</div>
+            <div class="cv-mast">caithrin</div>
+            <div class="cv-rule"></div>
+            <div class="cv-dates">December 2025 – August 2026</div>
+            <div class="cv-mid"></div>
+            <div class="cv-foot"><span class="cv-pages">23 essays · est. 158 pages</span><span class="cv-vol">Inksheaf edition</span></div>
+          </div>
+          <div class="spinefold"></div>
+          <div class="spinetext"><span>caithrin · annual 2026</span></div>
+          <div class="pageblock"></div>
         </div>
-        <div class="spec-folio">· 47 ·</div>
+        <div class="spread">
+          <div class="pg left">
+            <div class="run"><span>caithrin</span><span>Contents</span></div>
+            <div class="toc-line"><span class="t">Fearmongering the Frontier</span><span class="dots"></span><span class="n">9</span></div>
+            <div class="toc-line"><span class="t">"Helpful Assistant", AI's Original Sin</span><span class="dots"></span><span class="n">21</span></div>
+            <div class="toc-line"><span class="t">China Writing &amp; Wall Dancing</span><span class="dots"></span><span class="n">31</span></div>
+            <div class="toc-line"><span class="t">so now we all love open models. now what?</span><span class="dots"></span><span class="n">38</span></div>
+            <div class="toc-line"><span class="t">First Steps: Pacific Compute</span><span class="dots"></span><span class="n">57</span></div>
+            <div class="toc-line"><span class="t">Card Counters of the Soul</span><span class="dots"></span><span class="n">64</span></div>
+            <div class="fol">· iv ·</div>
+          </div>
+          <div class="pg right">
+            <div class="run"><span>Annual 2026</span><span>9</span></div>
+            <h4>Fearmongering the Frontier</h4>
+            <div class="by">August 18 · 2,596 words</div>
+            <p class="dc">Typeset from the essay's opening pages: your prose, set at 10.5 on 15
+            with real footnotes, running headers and a folio, exactly as it prints.</p>
+            <p>Every article opens on its own page with title, date and byline.</p>
+            <div class="fol">· 9 ·</div>
+          </div>
+        </div>
       </div>
+      <p class="note">Typeset render of the design system, not a photograph. Photographs replace
+      this the day the first printed copy exists.</p>
       <table class="spec">
         <tr><td>Trim</td><td>6 × 9 in, perfect bound</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
@@ -180,6 +309,19 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <tr><td>Apparatus</td><td>Contents with page numbers, running headers, footnotes kept as footnotes, bylines per article</td></tr>
         <tr><td>Price</td><td>Published after we print the first copies; we quote measured costs, and there are none yet</td></tr>
       </table>
+    </section>
+
+    <section class="section">
+      <div class="kicker">How it works</div>
+      <ol class="how">
+        <li>Paste your publication's URL above. Free posts come from your public archive; for
+        paywalled posts you upload Substack's own export, so no passwords change hands.</li>
+        <li>We typeset the issue and send you a proof PDF. You reorder, cut, add an editor's note,
+        then lock it.</li>
+        <li>Your readers order at your Inksheaf link. Each copy is printed on demand and mailed to
+        them. You can also sponsor copies for a founding-subscriber list you provide, with a hard
+        spending cap you set.</li>
+      </ol>
     </section>
 
     <section class="section">
@@ -230,10 +372,11 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <div class="step1">
           <label for="url">Your publication's URL</label>
           <input type="url" id="url" name="publication_url" placeholder="https://yourname.substack.com" required />
-          <button type="button" data-next="2">Continue</button>
+          <button type="button" class="main" data-next="2">Continue</button>
         </div>
 
         <div class="step2">
+          <div class="prefilled" id="carried"></div>
           <label for="name">Your name</label>
           <input type="text" id="name" name="name" required />
           <label>Your role</label>
@@ -255,6 +398,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
           </select>
           <label for="ppy">Posts per year, roughly</label>
           <input type="number" id="ppy" name="posts_per_year" min="1" max="2000" />
+          <div class="prefilled" id="ppy-note"></div>
           <label>Which edition would you want?</label>
           <div class="radio-row">
             <label><input type="radio" name="cadence_pref" value="quarterly" /><span>Quarterly</span></label>
@@ -291,22 +435,23 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
             <option value="">Choose…</option><option>price</option><option>print quality</option>
             <option>setup effort</option><option>rights</option><option>reader demand</option>
           </select>
-          <button type="button" data-next="3">Continue</button>
+          <button type="button" class="main" data-next="3">Continue</button>
           <button type="button" class="ghost" data-back="1">Back</button>
         </div>
 
         <div class="step3">
           <label for="email">Email for the beta</label>
           <input type="email" id="email" name="email" required />
-          <button type="submit">Request a spot</button>
+          <button type="submit" class="main">Request a spot</button>
           <button type="button" class="ghost" data-back="2">Back</button>
         </div>
         <div class="err" id="err" role="alert"></div>
       </form>
       <div class="done" id="done">
         <h3>You're on the list.</h3>
-        <p>We reply to every signup within a few days. If you'd like to skip the queue, reply to
-        our email with a link to the one issue of your publication you'd most want on paper.</p>
+        <p>We reply to every signup within a few days with the beta timeline and, if your archive is
+        public, the first proof pages of your own edition. To skip the queue, reply with a link to
+        the one issue of your publication you'd most want on paper.</p>
       </div>
     </section>
   </main>
@@ -336,6 +481,82 @@ function show(n: number){
   if (n>1) beacon('step'+n);
 }
 show(1);
+
+/* ---------- live preview ---------- */
+const trybtn = document.getElementById('trybtn') as HTMLButtonElement;
+const tryurl = document.getElementById('tryurl') as HTMLInputElement;
+const tryerr = document.getElementById('tryerr')!;
+let previewData: any = null;
+
+async function runPreview(){
+  const raw = tryurl.value.trim();
+  if (!raw){ tryerr.textContent = 'Paste your publication URL first.'; return; }
+  tryerr.textContent = '';
+  trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
+  try {
+    const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
+    const d = await r.json();
+    if (!d.ok){ tryerr.textContent = d.message || 'Could not read that archive.'; return; }
+    previewData = d;
+    renderPreview(d);
+  } catch {
+    tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
+  } finally {
+    trybtn.disabled = false; trybtn.textContent = 'Show my book';
+  }
+}
+function renderPreview(d: any){
+  const months = Math.max(1, Math.round((Date.parse(d.to) - Date.parse(d.from)) / 2629800000));
+  const kind = months > 7 ? 'Annual' : 'Quarterly';
+  (document.getElementById('pv-kind') as HTMLElement).textContent = kind + ' · ' + d.to.slice(0,4);
+  (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
+  (document.getElementById('pv-dates') as HTMLElement).textContent = fmt(d.from) + ' – ' + fmt(d.to);
+  (document.getElementById('pv-cvpages') as HTMLElement).textContent =
+    d.posts + (d.capped ? '+' : '') + ' posts · est. ' + d.est_pages + ' pages';
+  (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
+  const block = document.getElementById('pv-block') as HTMLElement;
+  block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
+  (document.getElementById('pv-big') as HTMLElement).innerHTML =
+    'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
+  (document.getElementById('pv-sub') as HTMLElement).textContent =
+    d.posts + (d.capped ? '+' : '') + ' public posts, ' + d.words.toLocaleString('en-US') +
+    ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. Typeset at 6×9 with contents, running headers and your own cover.';
+  document.getElementById('preview')!.classList.add('on');
+  document.getElementById('preview')!.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function fmt(iso: string){
+  return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {month:'short', year:'numeric', timeZone:'UTC'});
+}
+trybtn.addEventListener('click', runPreview);
+tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); runPreview(); } });
+
+(document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
+  const d = previewData;
+  if (d){
+    (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://' + d.host;
+    const ppy = f.elements.namedItem('posts_per_year') as HTMLInputElement;
+    ppy.value = String(d.posts);
+    document.getElementById('ppy-note')!.textContent = 'Counted from your public archive; correct it if that looks wrong.';
+    const freq = d.posts >= 200 ? 'daily' : d.posts >= 40 ? 'weekly' : d.posts >= 10 ? 'monthly' : 'irregular';
+    (f.elements.namedItem('frequency') as HTMLSelectElement).value = freq;
+    document.getElementById('carried')!.textContent =
+      d.publication + ' · ' + d.est_pages + ' estimated pages. Two minutes of questions, then your email.';
+    show(2);
+  }
+  document.getElementById('beta')!.scrollIntoView({behavior:'smooth'});
+});
+
+/* ---------- funnel ---------- */
+f.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Enter') return;
+  const target = e.target as HTMLElement;
+  if (target.tagName === 'BUTTON' || target.tagName === 'SELECT') return;
+  const current = [1,2,3].find(k => (f.querySelector('.step'+k) as HTMLElement).style.display !== 'none');
+  if (current && current < 3){
+    e.preventDefault();
+    (f.querySelector('.step'+current+' [data-next]') as HTMLElement)?.click();
+  }
+});
 f.addEventListener('click', (e)=>{
   const t = e.target as HTMLElement;
   const next = t.dataset?.next, back = t.dataset?.back;
@@ -350,16 +571,6 @@ f.addEventListener('click', (e)=>{
     if (!u.startsWith('http')) (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://'+u;
   }
   show(+next);
-});
-f.addEventListener('keydown', (e)=>{
-  if (e.key !== 'Enter') return;
-  const target = e.target as HTMLElement;
-  if (target.tagName === 'BUTTON' || target.tagName === 'SELECT') return;
-  const current = [1,2,3].find(k => (f.querySelector('.step'+k) as HTMLElement).style.display !== 'none');
-  if (current && current < 3){
-    e.preventDefault();
-    (f.querySelector('.step'+current+' [data-next]') as HTMLElement)?.click();
-  }
 });
 f.addEventListener('submit', async (e)=>{
   e.preventDefault();
