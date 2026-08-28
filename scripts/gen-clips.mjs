@@ -8,7 +8,9 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 const KEY = process.env.OPENROUTER_API_KEY;
 if (!KEY) { console.error("OPENROUTER_API_KEY not set"); process.exit(2); }
 const H = { authorization: `Bearer ${KEY}`, "content-type": "application/json" };
-const shots = JSON.parse(readFileSync("assets/shots.json", "utf-8"));
+const only = process.argv.slice(2);
+const shots = JSON.parse(readFileSync("assets/shots.json", "utf-8"))
+  .filter(s => !only.length || only.includes(s.name));
 mkdirSync("assets/clips", { recursive: true });
 const log = [];
 
@@ -37,7 +39,7 @@ while (pending().length && Date.now() - t0 < 30 * 60_000) {
       if (d.status === "completed") {
         const url = (d.unsigned_urls || [])[0];
         if (url) {
-          const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
+          const buf = Buffer.from(await (await fetch(url, { headers: H })).arrayBuffer());
           writeFileSync(`assets/clips/${j.name}.mp4`, buf);
           j.bytes = buf.length;
           console.log(`DONE ${j.name}: ${buf.length} bytes`);
