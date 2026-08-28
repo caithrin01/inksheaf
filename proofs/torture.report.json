@@ -17,15 +17,16 @@
     }
   ],
   "deadImages": [
+    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif",
     "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fequation.png",
-    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdead-wide.png",
-    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif"
+    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdead-wide.png"
   ],
   "omittedPaid": 1,
   "podcastPosts": 1,
   "declineSignals": [],
   "kind": "essays",
   "mediaOnly": 1,
+  "included": 5,
   "parts": [],
   "rtlChars": 61,
   "cjkChars": 35,

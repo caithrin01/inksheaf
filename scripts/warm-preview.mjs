@@ -27,12 +27,13 @@ async function archive(host) {
     if (page.length && Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
   }
   const recent = posts.filter(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
-    && (p.type === "newsletter" || p.type === "podcast" || !p.type));
+    && (p.type === "newsletter" || !p.type));
   if (!recent.length) throw new Error("empty archive");
   const words = recent.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
   const dates = recent.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
+  const identity = await theme(host, recent[0]?.slug);
   return { host,
-    publication: pubName(recent, host),
+    publication: identity.publicationName || pubName(recent, host),
     posts: recent.length, capped: posts.length >= MAX_POSTS, words,
     est_pages: Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10)),
     from: new Date(dates[0]).toISOString().slice(0, 10),
@@ -40,17 +41,19 @@ async function archive(host) {
     titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
     sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
       d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
-    theme: await theme(host, recent[0]?.slug) };
+    theme: identity.theme };
 }
 
 // mirrors functions/api/preview.js fetchTheme; drift between the two is a bug
 async function theme(host, slug) {
-  if (!slug) return null;
+  if (!slug) return { theme: null, publicationName: null };
   try {
     const r = await fetch(`https://${host}/api/v1/posts/${encodeURIComponent(slug)}`, {
       headers: { accept: "application/json", "user-agent": "Mozilla/5.0 inksheaf-warm/1.0" } });
-    if (!r.ok) return null;
-    const tv = (await r.json())?.themeVariables || {};
+    if (!r.ok) return { theme: null, publicationName: null };
+    const post = await r.json();
+    const publicationName = publicationNameFromPost(post, host);
+    const tv = post?.themeVariables || {};
     const parse = c => {
       if (!c || typeof c !== "string") return null;
       const m = c.trim().match(/^#([0-9a-f]{6})$/i);
@@ -65,12 +68,25 @@ async function theme(host, slug) {
     const bg = parse(tv.cover_bg_color || tv.web_bg_color);
     let ink = parse(tv.cover_print_primary || tv.print_on_pop);
     if (bg && !ink) ink = lum(bg) < 0.45 ? [255, 255, 255] : [34, 29, 22];
-    if (!bg || !ink || contrast(bg, ink) < 3) return null;
-    return { cover_bg: hex(bg), cover_ink: hex(ink),
+    if (!bg || !ink || contrast(bg, ink) < 4.5) return { theme: null, publicationName };
+    return { publicationName, theme: { cover_bg: hex(bg), cover_ink: hex(ink),
       cover_ink2: lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b",
       accent: tv.color_theme_accent || tv.background_pop || null,
-      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null };
-  } catch { return null; }
+      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null } };
+  } catch { return { theme: null, publicationName: null }; }
+}
+
+function publicationNameFromPost(post, host) {
+  const pubs = [];
+  for (const byline of (post?.publishedBylines || []))
+    for (const user of (byline?.publicationUsers || []))
+      if (user?.publication?.name) pubs.push(user.publication);
+  const normalized = host.replace(/^www\./, "");
+  const matched = pubs.find(p => String(p.custom_domain || "").replace(/^www\./, "") === normalized)
+    || pubs.find(p => `${p.subdomain}.substack.com` === normalized)
+    || pubs.find(p => p.id === post?.publication_id)
+    || pubs[0];
+  return matched?.name ? String(matched.name).slice(0, 120) : null;
 }
 
 function pubName(recent, host) {

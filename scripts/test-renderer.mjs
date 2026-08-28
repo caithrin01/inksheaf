@@ -30,6 +30,7 @@ ok(report.rtlChars > 0 && report.cjkChars > 0, "rtl+cjk detected", JSON.stringif
 ok(report.declineSignals.length === 0, "no unexpected decline signals", JSON.stringify(report.declineSignals));
 ok(report.omittedPaid === 1, "paid omission counted");
 ok(report.deadImages.length === 3, "3 dead images detected", String(report.deadImages.length));
+ok(report.included === 5, "included article count is explicit", String(report.included));
 
 /* ---------- 3. content-shape assertions ---------- */
 ok((html.match(/class="tocrow"/g) || []).length === 5, "toc rows match articles");
@@ -39,6 +40,8 @@ ok(html.includes('class="verse'), "verse class applied");
 ok(html.includes('class="gifnote"'), "gif caption present");
 ok(html.includes('class="longurl"'), "longurl span present");
 ok(html.includes('class="opener"'), "opener drop-cap class present");
+ok(!html.includes('class="opener"icture'), "picture elements are not corrupted by paragraph matching");
+ok(/<p\b[^>]*class="[^"]*opener/.test(html), "opener class belongs to a paragraph");
 ok(html.includes('class="embedcard"'), "iframe became embedcard");
 ok(!/<iframe/.test(html), "no raw iframes remain");
 ok(!/<script/i.test(html.split("</style>")[1].split("<script>")[0] || ""), "no scripts inside body content");
@@ -139,7 +142,17 @@ const recipesReport = JSON.parse(readFileSync("proofs/recipes-test.report.json",
 ok(recipesReport.kind === "recipes", "recipes kind detected from tags", recipesReport.kind);
 ok(readFileSync("proofs/recipes-test.html", "utf-8").includes("3 recipes"), "cover foot says recipes");
 
-/* ---------- 4c. Selected volumes ---------- */
+/* ---------- 4c. production interior branch ---------- */
+execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
+  "--fixture", "proofs/recipes-fixture.json", "--print-interior", "--images-print",
+  "--out", "proofs/recipes-interior-test.html"], { stdio: "pipe" });
+const interiorHtml = readFileSync("proofs/recipes-interior-test.html", "utf-8");
+const beforeHalfTitle = (interiorHtml.split('<div class="fm halftitle">')[0] || "").split("<body")[1] || "";
+ok(!/class="cover"/.test(interiorHtml), "production interior omits the cover wrapper");
+ok(!/class="kind"|class="dates"|class="foot"/.test(beforeHalfTitle),
+  "production interior has no orphaned cover matter before the half-title", beforeHalfTitle.slice(-180));
+
+/* ---------- 4d. Selected volumes ---------- */
 execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
   "--fixture", "proofs/torture-fixture.json", "--top", "3", "--out", "proofs/selected-test.html"], { stdio: "pipe" });
 const selHtml = readFileSync("proofs/selected-test.html", "utf-8");

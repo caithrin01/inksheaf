@@ -15,7 +15,9 @@ const OUT = process.argv.includes("--out")
   : "proofs/book.html";
 
 const UA = { "user-agent": "Mozilla/5.0 inksheaf-proof/0.1", accept: "application/json" };
-const MODE = process.argv.includes("--images-print") ? "print" : "proof";
+const PRINT_INTERIOR = process.argv.includes("--print-interior");
+// A production interior must never silently use the smaller proof-image path.
+const MODE = (process.argv.includes("--images-print") || PRINT_INTERIOR) ? "print" : "proof";
 const NO_BRAND = process.argv.includes("--no-brand");
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
@@ -23,7 +25,6 @@ const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
 const TOP = argOf("--top") ? +argOf("--top") : null;
 const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
-const PRINT_INTERIOR = process.argv.includes("--print-interior");
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
@@ -97,7 +98,9 @@ const deduped = posts;
 const { mkdirSync: mkd, readFileSync: rdf, writeFileSync: wrf, existsSync: exf } = await import("node:fs");
 const CACHE = `proofs/.cache/${host}`;
 if (!FIXTURE) mkd(CACHE, { recursive: true });
-const cachePath = p2 => `${CACHE}/${p2.slug}--${Date.parse(p2.post_date)}.json`;
+// `post_date` does not change when an author corrects a published post. Cache against
+// `updated_at` when Substack provides it so a correction cannot remain stale forever.
+const cachePath = p2 => `${CACHE}/${p2.slug}--${Date.parse(p2.updated_at || p2.post_date)}.json`;
 const full = [];
 if (FIXTURE) full.push(...deduped.filter(p => p.body_html && p.body_html.length <= 2_000_000 ||
   (report.skips.push({ slug: p.slug, reason: p.body_html ? "body over 2MB" : "empty body" }), false)));
@@ -197,6 +200,12 @@ for (let i = full.length - 1; i >= 0; i--) {
   const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
   if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
 }
+report.included = full.length;
+if (!report.included) {
+  mkdirSync(OUT.split("/").slice(0, -1).join("/") || ".", { recursive: true });
+  writeFileSync(OUT.replace(/\.html$/, ".report.json"), JSON.stringify(report, null, 2));
+  throw new Error("No printable public posts remained after filtering; refusing to build an empty book");
+}
 
 /* excerpts + date-titled flags for navigable letters TOCs */
 for (const p2 of full) {
@@ -293,9 +302,9 @@ function clean(html, slug) {
   s = s.replaceAll('id="footnote-', `id="fn-${slug}-`)
        .replaceAll('href="#footnote-', `href="#fn-${slug}-`);
   // first real paragraph gets an explicit opener class; Paged.js drops :first-of-type::first-letter
-  s = s.replace(/<p(?![^>]*class=)([^>]*)>/, '<p class="opener"$1>');
+  s = s.replace(/<p\b(?![^>]*class=)([^>]*)>/, '<p class="opener"$1>');
   // verse: paragraphs with manual line breaks set ragged, unindented, unhyphenated
-  s = s.replace(/<p([^>]*)>((?:(?!<\/p>)[\s\S])*<br[\s\S]*?)<\/p>/gi,
+  s = s.replace(/<p\b([^>]*)>((?:(?!<\/p>)[\s\S])*<br[\s\S]*?)<\/p>/gi,
     (m, attrs, inner) => `<p${attrs.includes('class="') ? attrs.replace('class="', 'class="verse ') : attrs + ' class="verse"'}>${inner}</p>`);
   // bare long URLs in prose get an explicit breakable, left-set span
   s = s.replace(/(?<=>|\s)(https?:\/\/[^\s<>"]{35,})/g, '<span class="longurl">$1</span>');
@@ -423,7 +432,7 @@ const html = `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
-<title>${esc(pubName)} — ${year} Annual (Inksheaf proof)</title>
+<title>${esc(pubName)} — ${esc(volLabel)} (Inksheaf ${PRINT_INTERIOR ? "interior" : "proof"})</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet">
 ${B.fontsUrl ? `<link href="${B.fontsUrl}" rel="stylesheet">` : ""}
@@ -534,17 +543,18 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .apc-by{ font-size:8.5pt; color:var(--faint) }
 </style>
 </head>
-<body data-retrieval-failures="${report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length}">
+<body data-retrieval-failures="${report.skips.filter(k => /429|5\d\d|timeout|fetch|unreachable/i.test(k.reason)).length}">
 
 ${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : `<div class="cover">
   <div class="pubsrc">${esc(pubName)}</div>`}
+${PRINT_INTERIOR ? "" : `
   <div class="kind">${kindLabel}</div>
   <h1>${esc(pubName)}</h1>
   <div class="rule"></div>
   <div class="dates">${range}</div>
   ${coverPlate ? `<div class="coverplate"><img src="${coverPlate.path}" alt=""></div>` : ""}
   <div class="foot"><span>${full.length} ${noun}</span><span>${host.replace(/^www\./, "")}</span></div>
-${PRINT_INTERIOR ? "" : "</div>"}
+</div>`}
 
 <div class="fm halftitle">${esc(pubName)}</div>
 
@@ -557,7 +567,7 @@ ${PRINT_INTERIOR ? "" : "</div>"}
 <div class="fm about">
   <h3>About</h3>
   ${pubDesc ? `<p class="epigraph">${esc(pubDesc)}</p>` : ""}
-  ${(() => { const lost = report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length;
+  ${(() => { const lost = report.skips.filter(k => /429|5\d\d|timeout|fetch|unreachable/i.test(k.reason)).length;
      report.retrievalFailures = lost; return ""; })()}
   ${report.selection ? `<p>This volume holds the ${full.length} ${noun} readers responded to most,
   chosen by reactions from the ${report.selection.from} published at ${host.replace(/^www\./, "")}
@@ -569,10 +579,10 @@ ${PRINT_INTERIOR ? "" : "</div>"}
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
-  <p>Everything here was written for the screen and is reset for paper. Links print as
-  references. Video, audio and interactive embeds appear as cards that point to the online
-  edition.</p>
-  <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
+  <p>Everything here was written for the screen and is reset for paper. Linked text remains
+  readable in place. Some web-only embeds become printed source notes; media-only pieces remain
+  in the online edition.</p>
+  <div class="colophon">Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 
@@ -597,8 +607,8 @@ ${commentPicks.length ? `<div class="fm appendix">
   <h3>Get more</h3>
   <p><b>Read on.</b> New essays appear first at ${host.replace(/^www\./, "")}. A free subscription
   delivers each new piece by email, and the paid archive lives there too.</p>
-  <p><b>Order copies.</b> This edition, and each new quarterly or annual, can be ordered at the
-  publication's Inksheaf page. Gift copies ship to any US address.</p>
+  <p><b>Order copies.</b> The publication links readers to its Lulu listing. Lulu takes payment,
+  prints each copy on demand and ships to US addresses.</p>
   ${homeLinks.length ? `<div class="morelinks"><b>More from ${esc(pubName)}.</b> ${homeLinks.map(l =>
     `${esc(l.title || l.url)} (${esc(String(l.url || "").replace(/^https?:\/\//, "").split("?")[0].replace(/\/$/, "").slice(0, 60))})`).join(" · ")}</div>` : ""}
   <div class="qr">
@@ -652,8 +662,9 @@ async function worker() {
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${want.replace("proofs/", "")}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
-      htmlOut = htmlOut.replaceAll(`<img src="${u}"`,
-        `<div class="imgmissing">An image could not be retrieved for this proof.</div><img style="display:none" src="${u}"`);
+      const quoted = u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      htmlOut = htmlOut.replace(new RegExp(`<img src="${quoted}"[^>]*>`, "g"),
+        `<div class="imgmissing">An image could not be retrieved for this proof.</div>`);
     }
   }
 }

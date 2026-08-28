@@ -100,7 +100,12 @@ async function fetchArchive(host) {
     if (!resp.ok)
       return { ok: false, error: "not_substack", status: 502, upstream: resp.status,
         message: "Could not read an archive there. Is this a Substack publication URL?" };
-    const text = (await resp.text()).slice(0, MAX_BYTES);
+    let text;
+    try { text = await readLimitedText(resp); }
+    catch {
+      return { ok: false, error: "too_large", status: 502,
+        message: "That archive response is too large to preview safely. Join the beta and we will build it in the full pipeline." };
+    }
     let page;
     try { page = JSON.parse(text); } catch {
       return { ok: false, error: "not_substack", status: 502,
@@ -116,7 +121,7 @@ async function fetchArchive(host) {
   }
 
   const recent = posts.filter(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
-    && (p.type === "newsletter" || p.type === "podcast" || !p.type));
+    && (p.type === "newsletter" || !p.type));
   if (!recent.length)
     return { ok: false, error: "empty", status: 200,
       message: "The public archive there looks empty for the last year. Paid-only archives preview after you join the beta." };
@@ -125,9 +130,10 @@ async function fetchArchive(host) {
   const dates = recent.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
   const pages = Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10));
   const capped = posts.length >= MAX_POSTS;
+  const identity = await fetchIdentity(host, recent[0]?.slug);
   return { ok: true, data: {
     host,
-    publication: (recent[0].publishedBylines?.[0]?.name) || host.split(".")[0],
+    publication: identity.publicationName || pubName(recent, host),
     posts: recent.length, capped, words,
     est_pages: pages,
     from: new Date(dates[0]).toISOString().slice(0, 10),
@@ -135,14 +141,15 @@ async function fetchArchive(host) {
     titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
     sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
       d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
-    theme: await fetchTheme(host, recent[0]?.slug),
+    theme: identity.theme,
   } };
 }
 
 /* One guarded call to the newest post for the publication's own palette; the mirror moment
-   should wear THEIR colors. Failure returns null and the page keeps its default cover. */
-async function fetchTheme(host, slug) {
-  if (!slug) return null;
+   should wear THEIR colors. The same response carries the publication identity nested under the
+   byline; using that avoids putting an author's personal name on a differently named publication. */
+async function fetchIdentity(host, slug) {
+  if (!slug) return { theme: null, publicationName: null };
   try {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
@@ -151,17 +158,55 @@ async function fetchTheme(host, slug) {
       headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
     });
     clearTimeout(timer);
-    if (!r.ok) return null;
-    const tv = JSON.parse((await r.text()).slice(0, MAX_BYTES))?.themeVariables || {};
+    if (!r.ok) return { theme: null, publicationName: null };
+    const post = JSON.parse(await readLimitedText(r));
+    const publicationName = publicationNameFromPost(post, host);
+    const tv = post?.themeVariables || {};
     const bg = parseColor(tv.cover_bg_color || tv.web_bg_color);
     let ink = parseColor(tv.cover_print_primary || tv.print_on_pop);
     if (bg && !ink) ink = lum(bg) < 0.45 ? [255, 255, 255] : [34, 29, 22];
-    if (!bg || !ink || contrast(bg, ink) < 3) return null;
+    if (!bg || !ink || contrast(bg, ink) < 4.5)
+      return { theme: null, publicationName };
     const ink2 = lum(bg) < 0.45 ? [217, 217, 217] : [90, 85, 75];
-    return { cover_bg: hex(bg), cover_ink: hex(ink), cover_ink2: hex(ink2),
+    return { publicationName, theme: {
+      cover_bg: hex(bg), cover_ink: hex(ink), cover_ink2: hex(ink2),
       accent: tv.color_theme_accent || tv.background_pop || null,
-      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null };
-  } catch { return null; }
+      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null,
+    } };
+  } catch { return { theme: null, publicationName: null }; }
+}
+
+function publicationNameFromPost(post, host) {
+  const pubs = [];
+  for (const byline of (post?.publishedBylines || []))
+    for (const user of (byline?.publicationUsers || []))
+      if (user?.publication?.name) pubs.push(user.publication);
+  const normalized = host.replace(/^www\./, "");
+  const matched = pubs.find(p => String(p.custom_domain || "").replace(/^www\./, "") === normalized)
+    || pubs.find(p => `${p.subdomain}.substack.com` === normalized)
+    || pubs.find(p => p.id === post?.publication_id)
+    || pubs[0];
+  return matched?.name ? String(matched.name).slice(0, 120) : null;
+}
+
+async function readLimitedText(resp) {
+  const declared = Number(resp.headers.get("content-length") || 0);
+  if (declared > MAX_BYTES) throw new Error("response too large");
+  if (!resp.body?.getReader) throw new Error("streaming body unavailable");
+  const reader = resp.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BYTES) { await reader.cancel(); throw new Error("response too large"); }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { all.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(all);
 }
 function parseColor(c) {
   if (!c || typeof c !== "string") return null;

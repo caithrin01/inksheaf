@@ -69,7 +69,7 @@ body::before{
 .folio b{color:var(--ink); font-weight:600; letter-spacing:.18em}
 h1{
   font-size:clamp(2.7rem,7.8vw,4.1rem); font-weight:560; line-height:1.05;
-  letter-spacing:-.015em; margin:4rem 0 1.5rem; text-wrap:balance; text-shadow:var(--press);
+  letter-spacing:-.015em; margin:2.8rem 0 1.15rem; text-wrap:balance; text-shadow:var(--press);
 }
 h1 .amp{color:var(--rubric)}
 .lede{font-size:1.17rem; line-height:1.6}
@@ -238,6 +238,11 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
   @keyframes up{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
 }
 @media (max-width:560px){ .spread{transform:none} .bookobj{transform:none} }
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .preview .bookobj,.preview .pv-page,.preview .pv-price,.pv-page .toc-line{opacity:1;transform:none}
+}
 </style>
 </head>
 <body>
@@ -245,11 +250,9 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
   <header class="folio"><b>inksheaf</b><span>private beta · printed in the US</span></header>
 
   <main>
-    <h1 class="reveal">Your year of writing, bound <span class="amp">&amp;</span> mailed to your readers.</h1>
-    <p class="lede reveal">Inksheaf turns a Substack publication into a printed edition, quarterly or
-    annual. We pull your archive, typeset it as a 6×9 book with a table of contents, running
-    headers, footnotes and your own cover, and you approve every page before anything prints.
-    Your readers order copies from one link; printing and mailing are handled for you.</p>
+    <h1 class="reveal">See the book inside your archive.</h1>
+    <p class="lede reveal">Paste your Substack URL. Inksheaf sets your real essays as a 6×9 edition
+    in your publication's masthead and palette. You approve every page before anything prints.</p>
 
     <div class="tryit reveal" id="tryit">
       <label for="tryurl">See your own book. Paste your publication's URL:</label>
@@ -257,7 +260,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <input type="url" id="tryurl" placeholder="https://yourname.substack.com" autocomplete="off" />
         <button id="trybtn" type="button">Show my book</button>
       </div>
-      <div class="tryhint note">Reads only your public archive. Nothing is stored except the numbers below.</div>
+      <div class="tryhint note">Reads only your public archive. Preview numbers are cached for 24 hours; post bodies are not read or stored.</div>
       <div class="tryerr" id="tryerr" role="alert"></div>
     </div>
 
@@ -326,20 +329,19 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
             <h4>Fearmongering the Frontier</h4>
             <div class="by">August 18 · 2,596 words</div>
             <p class="dc">Typeset from the essay's opening pages: your prose, set at 10.5 on 15
-            with real footnotes, running headers and a folio, exactly as it prints.</p>
+            with article notes, running headers and a folio, exactly as it prints.</p>
             <p>Every article opens on its own page with title, date and byline.</p>
             <div class="fol">· 9 ·</div>
           </div>
         </div>
       </div>
-      <p class="note">Typeset render of the design system, not a photograph. Photographs replace
-      this the day the first printed copy exists.</p>
+      <p class="note">Typeset render of the design system, not a photograph.</p>
       <table class="spec">
         <tr><td>Trim</td><td>6 × 9 in, perfect bound</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
         <tr><td>Cover</td><td>Full colour, matte, your publication's own masthead and palette</td></tr>
         <tr><td>Length</td><td>30–300 pages; a year of weekly essays is roughly 200</td></tr>
-        <tr><td>Apparatus</td><td>Contents with page numbers, running headers, footnotes kept as footnotes, bylines per article</td></tr>
+        <tr><td>Apparatus</td><td>Contents with page numbers, running headers, article notes and bylines per article</td></tr>
         <tr><td>Price</td><td>Beta pricing is at cost: readers pay exactly what printing and shipping
         cost, and we add nothing. Measured on a real order: a 294-page collected edition landed for
         $16.58 including tax, mainland US</td></tr>
@@ -357,9 +359,8 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         paywalled posts you upload Substack's own export, so no passwords change hands.</li>
         <li>We typeset the issue and send you a proof PDF. You reorder, cut, add an editor's note,
         then lock it.</li>
-        <li>Your readers order at your Inksheaf link. Each copy is printed on demand and mailed to
-        them. You can also sponsor copies for a founding-subscriber list you provide, with a hard
-        spending cap you set.</li>
+        <li>Your readers order from one link to a private Lulu listing. Lulu prints each copy on
+        demand and mails it to the reader; Inksheaf does not handle their payment.</li>
       </ol>
     </section>
 
@@ -390,9 +391,9 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <dd>You upload the export Substack generates in your own dashboard (Settings → Exports).
         Any subscriber files inside it are discarded unread; only the posts are kept.</dd>
         <dt>What happens to images, tweets and embeds?</dt>
-        <dd>Every image is checked at its printed size before you lock the issue, and anything that
-        would print badly is flagged to you. Tweets, video and audio become printed cards with a QR
-        code to the original.</dd>
+        <dd>Missing images are flagged automatically and the print proof is checked by a person.
+        Web-only embeds are omitted or replaced with a printed source note. You see the result
+        before the issue is locked.</dd>
         <dt>When do the first books exist?</dt>
         <dd>The beta targets December printing, with books in readers' hands around New Year. Beta
         publications hear every date change directly.</dd>
@@ -417,20 +418,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 
         <div class="step2">
           <div class="prefilled" id="carried"></div>
-          <label for="name">Your name</label>
-          <input type="text" id="name" name="name" required />
-          <label>Which edition would you want?</label>
-          <div class="radio-row">
-            <label><input type="radio" name="cadence_pref" value="quarterly" /><span>Quarterly</span></label>
-            <label><input type="radio" name="cadence_pref" value="annual" checked /><span>Annual</span></label>
-            <label><input type="radio" name="cadence_pref" value="both" /><span>Both</span></label>
-          </div>
-          <label>Would you do a 20-minute interview and share an export for a private pilot?</label>
-          <div class="radio-row">
-            <label><input type="radio" name="interview_ok" value="yes" /><span>Yes</span></label>
-            <label><input type="radio" name="interview_ok" value="no" /><span>No</span></label>
-          </div>
-          <label for="email">Email for the beta</label>
+          <label for="email">Where should we send the first proof pages?</label>
           <input type="email" id="email" name="email" required />
           <input type="hidden" name="posts_per_year" id="ppy" />
           <input type="hidden" name="frequency" />
@@ -480,10 +468,9 @@ const trybtn = document.getElementById('trybtn') as HTMLButtonElement;
 const tryurl = document.getElementById('tryurl') as HTMLInputElement;
 const tryerr = document.getElementById('tryerr')!;
 let previewData: any = null;
-let retried = false;
 
-async function runPreview(){
-  const raw = tryurl.value.trim();
+async function runPreview(attempt = 0, originalRaw: string | null = null){
+  const raw = originalRaw ?? tryurl.value.trim();
   if (!raw){ tryerr.textContent = 'Paste your publication URL first.'; return; }
   tryerr.textContent = '';
   trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
@@ -491,18 +478,19 @@ async function runPreview(){
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
     const d = await r.json();
     if (!d.ok){
-      if (d.error === 'upstream_busy' && !retried){
-        retried = true;
-        for (let t = 20; t > 0; t--){
+      if (d.error === 'upstream_busy' && attempt === 0){
+        for (let t = 4; t > 0; t--){
+          if (tryurl.value.trim() !== raw) return;
           tryerr.textContent = 'Substack is rate-limiting us for a moment. Retrying in ' + t + 's…';
           await new Promise(res => setTimeout(res, 1000));
         }
         tryerr.textContent = '';
-        return runPreview();
+        return runPreview(1, raw);
       }
+      (f.elements.namedItem('publication_url') as HTMLInputElement).value =
+        raw.startsWith('http') ? raw : 'https://' + raw;
       tryerr.textContent = d.message || 'Could not read that archive.'; return;
     }
-    retried = false;
     previewData = d;
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
@@ -550,12 +538,12 @@ function renderPreview(d: any){
   }).join('');
   [...toc.querySelectorAll('.t')].forEach((el, i) => (el as HTMLElement).textContent = rows[i]);
 
-  /* honest at-cost price from the measured model (print $2 + 2.5c/page, MAIL $5.69) */
+  /* print estimate from the measured production-cost curve; shipping and tax stay separate */
   const pricePages = over ? Math.round(d.est_pages / 4) : d.est_pages;
-  const dollars = Math.round(2 + 0.025 * pricePages + 5.69);
+  const dollars = Math.round(2 + 0.025 * pricePages);
   (document.getElementById('pv-price') as HTMLElement).innerHTML =
-    'Printed and shipped: <b>about $' + dollars + (over ? ' a volume' : '') + '</b>' +
-    '<span class="sub">At cost during the beta. We add nothing.</span>';
+    'Estimated printing: <b>about $' + dollars + (over ? ' a volume' : '') + '</b>' +
+    '<span class="sub">Shipping and tax are calculated by Lulu. Inksheaf adds nothing during the beta.</span>';
 
   /* staged assembly: cover lands, then the spine thickens to their page count */
   const block = document.getElementById('pv-block') as HTMLElement;
@@ -580,7 +568,7 @@ function renderPreview(d: any){
 function fmt(iso: string){
   return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {month:'short', year:'numeric', timeZone:'UTC'});
 }
-trybtn.addEventListener('click', runPreview);
+trybtn.addEventListener('click', ()=>runPreview());
 tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); runPreview(); } });
 { /* a preview someone shares reproduces itself */
   const pub = new URLSearchParams(location.search).get('pub');
@@ -595,7 +583,7 @@ tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault
     (f.elements.namedItem('frequency') as HTMLInputElement).value =
       d.posts >= 200 ? 'daily' : d.posts >= 40 ? 'weekly' : d.posts >= 10 ? 'monthly' : 'irregular';
     document.getElementById('carried')!.textContent =
-      d.publication + ' · ' + d.est_pages + ' estimated pages. A name and an email, and you are in.';
+      d.publication + ' · ' + d.est_pages + ' estimated pages. Leave one email for the first proof pages.';
     show(2);
   }
   document.getElementById('beta')!.scrollIntoView({behavior:'smooth'});

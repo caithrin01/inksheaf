@@ -13,3 +13,8 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   session TEXT, event TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS preview_cache (
+  host TEXT PRIMARY KEY,
+  fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+  payload TEXT NOT NULL
+);

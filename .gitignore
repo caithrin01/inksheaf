@@ -34,3 +34,6 @@ proofs/pipe/**/*.pdf
 proofs/pipe/**/*.img
 proofs/pipe/**/*.html
 .playwright-cli/
+# video asset masters (regenerable via scripts/shoot-*)
+assets/
+.wrangler/
