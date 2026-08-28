@@ -7,6 +7,7 @@
 
 import { writeFileSync, mkdirSync } from "node:fs";
 import QRCode from "qrcode";
+import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
 const RAW = process.argv[2] || "https://www.caithrin.com";
 const OUT = process.argv.includes("--out")
@@ -15,6 +16,9 @@ const OUT = process.argv.includes("--out")
 
 const UA = { "user-agent": "Mozilla/5.0 inksheaf-proof/0.1", accept: "application/json" };
 const MODE = process.argv.includes("--images-print") ? "print" : "proof";
+const NO_BRAND = process.argv.includes("--no-brand");
+const BRAND_FILE = process.argv.includes("--brand-file")
+  ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
 
 /* ---------------- fetch ---------------- */
@@ -81,10 +85,32 @@ console.error(full.length, "bodies fetched");
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
-const pubName = (home.match(/property="og:site_name" content="([^"]+)"/) || [])[1]
+let pubName = (home.match(/property="og:site_name" content="([^"]+)"/) || [])[1]
   || full[0]?.publishedBylines?.[0]?.name || host.split(".")[0];
 let pubDesc = (home.match(/property="og:description" content="([^"]+)"/) || [])[1] || "";
 pubDesc = pubDesc.replace(/\s*Click to read.*$/i, "").trim();
+
+/* ---------- brand lift: the publication's own theme drives the book ---------- */
+let brand = null;
+if (BRAND_FILE) brand = JSON.parse((await import("node:fs")).readFileSync(BRAND_FILE, "utf-8"));
+else if (!NO_BRAND && !FIXTURE) {
+  try { brand = await extractBrand(host); }
+  catch (e) { console.error("brand lift failed, neutral design used:", String(e.message)); }
+}
+const B = {
+  accent: brand?.accent || "#a63a2b",
+  headingFont: brand?.heading_font || "Source Serif 4",
+  headingWeight: brand?.heading_weight || 560,
+  bodyFont: brand?.body_font || "Source Serif 4",
+  coverBg: (brand?.cover_usable && brand.cover_bg) || null,
+  coverInk: (brand?.cover_usable && brand.cover_print) || null,
+  coverInk2: (brand?.cover_usable && (brand.cover_print_secondary || brand.cover_print)) || null,
+  fontsUrl: brand?.fonts_css_url || null,
+};
+B.coverRule = B.coverBg && contrastHex(B.accent, B.coverBg) >= 3 ? B.accent : (B.coverInk || "#a63a2b");
+if (brand?.publication_name && brand.publication_name.trim()) pubName = brand.publication_name.trim();
+if (brand) report.brand = { accent: B.accent, headingFont: B.headingFont, bodyFont: B.bodyFont,
+  coverBg: B.coverBg, mappedFrom: brand.heading_font_mapped_from, warnings: brand.warnings };
 const byCount = {};
 for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCount[n] = (byCount[n] || 0) + 1; }
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
@@ -204,8 +230,10 @@ const html = `<!doctype html>
 <title>${esc(pubName)} — ${year} Annual (Inksheaf proof)</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet">
+${B.fontsUrl ? `<link href="${B.fontsUrl}" rel="stylesheet">` : ""}
 <style>
-:root{ --ink:#221d16; --rubric:#a63a2b; --faint:#6d675c; --rule:#d8d2c2; }
+:root{ --ink:#221d16; --rubric:${B.accent}; --faint:#6d675c; --rule:#d8d2c2;
+  --headfont:"${B.headingFont}"; --headweight:${B.headingWeight}; }
 @page{ size: 6in 9in; margin: 0.72in 0.62in 0.78in 0.62in; }
 @page chapter{
   margin: 0.72in 0.62in 0.78in 0.62in;
@@ -216,7 +244,7 @@ const html = `<!doctype html>
 @page cover{ margin: 0; }
 @page frontmatter{ margin: 0.72in 0.62in 0.78in 0.62in; }
 html{ font-size: 10.5pt }
-body{ font-family:"Source Serif 4", Georgia, serif; color:var(--ink); line-height:1.5;
+body{ font-family:"${B.bodyFont}", "Source Serif 4", Georgia, serif; color:var(--ink); line-height:1.5;
   font-optical-sizing:auto; margin:0 }
 .pubsrc{ string-set: pubname content(text); height:0; overflow:hidden; visibility:hidden }
 p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:none; orphans:2; widows:2 }
@@ -226,7 +254,7 @@ a{ color:inherit; text-decoration:none }
 img{ max-width:100%; height:auto; display:block; margin:.9em auto }
 figure{ margin:1em 0 } figcaption{ font-size:8.5pt; color:var(--faint); text-align:center; margin-top:.35em }
 blockquote{ margin:.9em 1.4em; font-size:9.8pt; color:#3a352c }
-h1,h2,h3,h4{ line-height:1.15; font-weight:560 }
+h1,h2,h3,h4{ line-height:1.15; font-weight:var(--headweight); font-family:var(--headfont), "Source Serif 4", serif }
 hr{ border:0; text-align:center; margin:1.2em 0 }
 hr::after{ content:"❦"; color:var(--rubric); font-size:10pt }
 ul,ol{ margin:.7em 0 .7em 1.5em; padding:0 }
@@ -243,14 +271,15 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   font-size:8.5pt; color:var(--faint); margin:.9em 0; word-break:break-all }
 
 /* ---------- front matter ---------- */
-.cover{ page: cover; height:100%; position:relative; background:#f6f1e6;
+.cover{ page: cover; height:100%; position:relative;
+  background:${B.coverBg || "#f6f1e6"}; color:${B.coverInk || "var(--ink)"};
   padding:1.1in .85in; box-sizing:border-box; break-after:page }
-.cover .kind{ font-size:9pt; letter-spacing:.3em; text-transform:uppercase; color:var(--rubric); font-weight:600 }
-.cover h1{ font-size:34pt; margin:.35in 0 0; letter-spacing:-.01em }
-.cover .rule{ width:.55in; border-bottom:3px solid var(--rubric); margin:.28in 0 }
-.cover .dates{ font-size:11pt; color:var(--faint) }
-.cover .foot{ position:absolute; bottom:.9in; left:.85in; right:.85in; border-top:1px solid var(--rule);
-  padding-top:.16in; display:flex; justify-content:space-between; font-size:8.5pt; color:var(--faint) }
+.cover .kind{ font-size:9pt; letter-spacing:.3em; text-transform:uppercase; color:${B.coverRule}; font-weight:600 }
+.cover h1{ font-size:34pt; margin:.35in 0 0; letter-spacing:-.01em; color:${B.coverInk || "inherit"} }
+.cover .rule{ width:.55in; border-bottom:3px solid ${B.coverRule}; margin:.28in 0 }
+.cover .dates{ font-size:11pt; color:${B.coverInk2 || "var(--faint)"} }
+.cover .foot{ position:absolute; bottom:.9in; left:.85in; right:.85in; border-top:1px solid ${B.coverInk2 || "var(--rule)"};
+  padding-top:.16in; display:flex; justify-content:space-between; font-size:8.5pt; color:${B.coverInk2 || "var(--faint)"} }
 .fm{ page: frontmatter; break-after:page }
 .halftitle{ text-align:center; padding-top:2.6in; font-size:15pt; letter-spacing:.04em }
 .titlepage{ text-align:center; padding-top:1.9in }
@@ -273,7 +302,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .article{ page: chapter; break-before:page }
 .arthead{ margin:0 0 1.1em; padding-top:.55in }
 .artnum{ font-size:30pt; color:var(--rubric); font-variant-numeric:oldstyle-nums; line-height:1 }
-.arttitle{ font-size:17pt; margin:.25em 0 0; string-set: arttitle content(text) }
+.arttitle{ font-size:17pt; margin:.25em 0 0; string-set: arttitle content(text); font-family:var(--headfont), "Source Serif 4", serif; font-weight:var(--headweight) }
 .artsub{ font-size:10.5pt; color:var(--faint); font-style:italic; margin:.4em 0 0; text-indent:0; text-align:left }
 .artmeta{ font-size:8pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
   margin-top:.7em; border-bottom:1px solid var(--rule); padding-bottom:.7em }
@@ -324,7 +353,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   references. Video, audio and interactive embeds appear as cards that point to the online
   edition.</p>
   <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated · Proof edition ·
-  © ${year} ${esc(author)}. All rights remain with the author.</div>
+  © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 
 <div class="fm toc">

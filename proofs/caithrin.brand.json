@@ -1,0 +1,29 @@
+{
+ "host": "www.caithrin.com",
+ "source": [
+  "themeVariables",
+  "preloads"
+ ],
+ "warnings": [],
+ "accent_raw": "#63543a",
+ "cover_bg": "#1D1E1D",
+ "cover_bg_secondary": "#2b2c2b",
+ "cover_print": "#ffffff",
+ "cover_print_secondary": "#d9d9d9",
+ "web_bg": "#1D1E1D",
+ "heading_stack": "'SF Pro Display', -apple-system, system-ui, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
+ "heading_weight": 700,
+ "publication_name": "caithrin",
+ "logo_url": "https://substackcdn.com/image/fetch/$s_!7lLD!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F782cdad5-d0b4-418e-a86e-9b5bd052fb08_1024x1024.png",
+ "cover_photo_url": "https://substack-post-media.s3.amazonaws.com/public/images/600bcc4b-9b0f-4e1d-962d-877c17cfe77e_1254x1254.png",
+ "copyright": "Caithrin Rintoul",
+ "body_stack": null,
+ "accent": "#63543a",
+ "accent_adjusted": false,
+ "heading_font": "Inter",
+ "heading_font_mapped_from": "SF Pro Display",
+ "body_font": "Source Serif 4",
+ "body_font_mapped_from": null,
+ "cover_usable": true,
+ "fonts_css_url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&display=swap"
+}

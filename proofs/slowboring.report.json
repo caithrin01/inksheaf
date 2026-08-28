@@ -1,11 +1,31 @@
 {
   "host": "www.slowboring.com",
   "listed": 423,
-  "skips": [],
+  "skips": [
+    {
+      "slug": "the-girlboss-was-never-a-feminist",
+      "reason": "429/5xx after retries https://www.slowboring.com/api/v1/posts/the-girlboss-was-never-a-feminist"
+    },
+    {
+      "slug": "america-needs-more-statues",
+      "reason": "429/5xx after retries https://www.slowboring.com/api/v1/posts/america-needs-more-statues"
+    }
+  ],
   "deadImages": [],
   "omittedPaid": 336,
   "podcastPosts": 23,
   "declineSignals": [],
+  "brand": {
+    "accent": "#039287",
+    "headingFont": "Source Serif 4",
+    "bodyFont": "Source Serif 4",
+    "coverBg": null,
+    "mappedFrom": "heavy_sans",
+    "warnings": [
+      "themeVariables unavailable: 429 https://www.slowboring.com/api/v1/archive?sort=new&offse",
+      "cover colors missing or low-contrast; neutral cover used"
+    ]
+  },
   "rtlChars": 1,
   "cjkChars": 0
 }

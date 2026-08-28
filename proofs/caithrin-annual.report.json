@@ -6,6 +6,14 @@
   "omittedPaid": 0,
   "podcastPosts": 0,
   "declineSignals": [],
+  "brand": {
+    "accent": "#63543a",
+    "headingFont": "Inter",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#1D1E1D",
+    "mappedFrom": "SF Pro Display",
+    "warnings": []
+  },
   "rtlChars": 0,
   "cjkChars": 1
 }
