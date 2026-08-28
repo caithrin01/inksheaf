@@ -1,12 +1,29 @@
 {
   "host": "fixture.invalid",
-  "listed": 2,
-  "skips": [],
+  "listed": 11,
+  "skips": [
+    {
+      "slug": "torture-1",
+      "reason": "duplicate slug"
+    },
+    {
+      "slug": "torture-empty",
+      "reason": "empty body"
+    },
+    {
+      "slug": "torture-4",
+      "reason": "title over 120 chars kept, check running head",
+      "kept": true
+    }
+  ],
   "deadImages": [
+    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdead-wide.png",
     "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif",
     "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fequation.png"
   ],
-  "omittedPaid": 0,
-  "podcastPosts": 0,
-  "declineSignals": []
+  "omittedPaid": 1,
+  "podcastPosts": 1,
+  "declineSignals": [],
+  "rtlChars": 61,
+  "cjkChars": 35
 }

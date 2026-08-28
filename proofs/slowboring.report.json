@@ -5,5 +5,7 @@
   "deadImages": [],
   "omittedPaid": 336,
   "podcastPosts": 23,
-  "declineSignals": []
+  "declineSignals": [],
+  "rtlChars": 1,
+  "cjkChars": 0
 }

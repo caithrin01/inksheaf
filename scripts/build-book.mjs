@@ -38,7 +38,7 @@ console.error(FIXTURE ? "using fixture " + FIXTURE : "fetching archive for " + h
 const listing = [];
 if (FIXTURE) {
   const fx = JSON.parse((await import("node:fs")).readFileSync(FIXTURE, "utf-8"));
-  listing.push(...fx.map(p => ({ ...p, audience: "everyone", type: "newsletter" })));
+  listing.push(...fx.map(p => ({ audience: "everyone", type: "newsletter", ...p })));
 }
 if (!FIXTURE)
 for (let offset = 0; ; offset += 25) {
@@ -61,9 +61,15 @@ const posts = listing
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
 console.error(listing.length, "listed;", posts.length, "printable;", report.omittedPaid, "paid omitted");
 
+const seenSlugs = new Set();
+const deduped = posts.filter(p => {
+  if (seenSlugs.has(p.slug)) { report.skips.push({ slug: p.slug, reason: "duplicate slug" }); return false; }
+  seenSlugs.add(p.slug); return true;
+});
 const full = [];
-if (FIXTURE) full.push(...posts);
-else for (const p of posts) {
+if (FIXTURE) full.push(...deduped.filter(p => p.body_html && p.body_html.length <= 2_000_000 ||
+  (report.skips.push({ slug: p.slug, reason: p.body_html ? "body over 2MB" : "empty body" }), false)));
+else for (const p of deduped) {
   try {
     const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
     if (d.body_html && d.body_html.length <= 2_000_000) full.push(d);
@@ -108,6 +114,8 @@ function clean(html, slug) {
   s = s.replace(/<p[^>]*>\s*<a[^>]*>(Leave a comment|Share|Subscribe now|Refer a friend|Give a gift subscription)<\/a>\s*<\/p>/gi, "");
   s = s.replace(/<a[^>]*>(Leave a comment|Subscribe now|Share this post|Refer a friend)<\/a>/gi, "");
   s = s.replace(/<img[^>]*(width="1"|height="1")[^>]*>/gi, "");
+  s = s.replace(/<div[^>]*class="[^"]*\bcomment[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "");
+  s = s.replace(/>\s*\[\{"type":[\s\S]*?\}\]\s*</g, "><");
   s = s.replace(/<source[^>]*>/gi, "");
   for (const re of KILL) s = s.replace(re, "");
   // iframes and embeds become source cards
@@ -128,6 +136,8 @@ function clean(html, slug) {
   // namespace footnote ids per article so links stay unique
   s = s.replaceAll('id="footnote-', `id="fn-${slug}-`)
        .replaceAll('href="#footnote-', `href="#fn-${slug}-`);
+  // first real paragraph gets an explicit opener class; Paged.js drops :first-of-type::first-letter
+  s = s.replace(/<p(?![^>]*class=)([^>]*)>/, '<p class="opener"$1>');
   // verse: paragraphs with manual line breaks set ragged, unindented, unhyphenated
   s = s.replace(/<p([^>]*)>((?:(?!<\/p>)[\s\S])*<br[\s\S]*?)<\/p>/gi,
     (m, attrs, inner) => `<p${attrs.includes('class="') ? attrs.replace('class="', 'class="verse ') : attrs + ' class="verse"'}>${inner}</p>`);
@@ -156,6 +166,8 @@ const kindLabel = spanMonths <= 4 ? `Quarterly · ${year}`
   : `Collected Essays · ${y0 === year ? year : y0 + "–" + year}`;
 const volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected Essays`;
 const totalWords = full.reduce((s, p) => s + (p.wordcount || 0), 0);
+for (const p2 of full) if ((p2.title || "").length > 120)
+  report.skips.push({ slug: p2.slug, reason: "title over 120 chars kept, check running head", kept: true });
 
 const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -175,6 +187,13 @@ const articles = full.map((p, i) => `
   <div class="artbody">${clean(p.body_html, p.slug)}</div>
 </section>`).join("\n");
 
+// script coverage: counts always reported; decline only when dominant
+const allBody = full.map(p2 => p2.body_html).join("");
+report.rtlChars = (allBody.match(/[\u0590-\u08FF]/g) || []).length;
+report.cjkChars = (allBody.match(/[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/g) || []).length;
+const totalChars = Math.max(1, allBody.length);
+if (report.rtlChars / totalChars > 0.3) report.declineSignals.push("rtl-dominant content");
+if (report.cjkChars / totalChars > 0.3) report.declineSignals.push("cjk-dominant content");
 const langs = {};
 for (const p2 of full) if (p2.language) langs[p2.language] = (langs[p2.language] || 0) + 1;
 const lang = Object.entries(langs).sort((a, b) => b[1] - a[1])[0]?.[0] || "en";
@@ -200,7 +219,7 @@ html{ font-size: 10.5pt }
 body{ font-family:"Source Serif 4", Georgia, serif; color:var(--ink); line-height:1.5;
   font-optical-sizing:auto; margin:0 }
 .pubsrc{ string-set: pubname content(text); height:0; overflow:hidden; visibility:hidden }
-p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:auto; orphans:2; widows:2; overflow-wrap:anywhere }
+p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:none; orphans:2; widows:2 }
 .artbody > p:first-of-type{ text-indent:0 }
 .about p, .getmore p{ text-indent:0 }
 a{ color:inherit; text-decoration:none }
@@ -211,7 +230,7 @@ h1,h2,h3,h4{ line-height:1.15; font-weight:560 }
 hr{ border:0; text-align:center; margin:1.2em 0 }
 hr::after{ content:"❦"; color:var(--rubric); font-size:10pt }
 ul,ol{ margin:.7em 0 .7em 1.5em; padding:0 }
-li{ margin:.2em 0; text-align:justify }
+li{ margin:.2em 0; text-align:justify; hyphens:none }
 pre{ font-size:8pt; background:#f4efe4; padding:.6em; overflow:hidden; white-space:pre-wrap; word-break:break-word }
 code{ font-size:8.5pt }
 p.verse{ text-align:left; text-indent:0; hyphens:none }
@@ -258,7 +277,8 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .artsub{ font-size:10.5pt; color:var(--faint); font-style:italic; margin:.4em 0 0; text-indent:0; text-align:left }
 .artmeta{ font-size:8pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
   margin-top:.7em; border-bottom:1px solid var(--rule); padding-bottom:.7em }
-.artbody > p:first-of-type::first-letter{ color:var(--rubric); font-size:3.1em; float:left;
+.artbody p.opener{ text-indent:0 }
+.artbody p.opener::first-letter{ color:var(--rubric); font-size:3.1em; float:left;
   line-height:.82; padding-right:.08em; font-weight:560 }
 .footnote-anchor, .fn{ color:var(--rubric); font-size:.72em; vertical-align:super }
 .footnote{ font-size:8.5pt; color:#3a352c }
