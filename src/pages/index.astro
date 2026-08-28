@@ -507,20 +507,25 @@ async function runPreview(){
 }
 function renderPreview(d: any){
   const months = Math.max(1, Math.round((Date.parse(d.to) - Date.parse(d.from)) / 2629800000));
-  const kind = months > 7 ? 'Annual' : 'Quarterly';
+  const kind = (months > 7 && d.est_pages <= 300) ? 'Annual' : 'Quarterly';
   (document.getElementById('pv-kind') as HTMLElement).textContent = kind + ' · ' + d.to.slice(0,4);
   (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
   (document.getElementById('pv-dates') as HTMLElement).textContent = fmt(d.from) + ' – ' + fmt(d.to);
-  (document.getElementById('pv-cvpages') as HTMLElement).textContent =
-    d.posts + (d.capped ? '+' : '') + ' posts · est. ' + d.est_pages + ' pages';
+  (document.getElementById('pv-cvpages') as HTMLElement).textContent = d.est_pages > 300
+    ? 'Vol. I of IV · est. ' + Math.round(d.est_pages/4) + ' pages'
+    : d.posts + (d.capped ? '+' : '') + ' posts · est. ' + d.est_pages + ' pages';
   (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
   const block = document.getElementById('pv-block') as HTMLElement;
   block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
-  (document.getElementById('pv-big') as HTMLElement).innerHTML =
-    'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
+  const over = d.est_pages > 300;
+  (document.getElementById('pv-big') as HTMLElement).innerHTML = over
+    ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
+    : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
   (document.getElementById('pv-sub') as HTMLElement).textContent =
     d.posts + (d.capped ? '+' : '') + ' public posts, ' + d.words.toLocaleString('en-US') +
-    ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. Typeset at 6×9 with contents, running headers and your own cover.';
+    ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' + (over
+    ? 'Too big for one binding, so it prints as quarterly volumes of about ' + Math.round(d.est_pages/4) + ' pages each.'
+    : 'Typeset at 6×9 with contents, running headers and your own cover.');
   document.getElementById('preview')!.classList.add('on');
   document.getElementById('preview')!.scrollIntoView({behavior:'smooth', block:'center'});
 }

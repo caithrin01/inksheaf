@@ -62,26 +62,41 @@ function parseHost(raw) {
 async function fetchArchive(host) {
   const posts = [];
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 3600 * 1000;
-  for (let offset = 0; offset < MAX_POSTS; offset += 50) {
+  let hops = 0;
+  for (let offset = 0; offset < MAX_POSTS; ) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
     let resp;
-    try {
-      resp = await fetch(`https://${host}:443/api/v1/archive?sort=new&offset=${offset}&limit=50`, {
-        redirect: "manual", signal: ctl.signal,
-        headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
-      });
-    } catch {
-      clearTimeout(timer);
-      return { ok: false, error: "unreachable", status: 502,
-        message: "Could not reach that publication. The signup below works without a preview." };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        resp = await fetch(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`, {
+          redirect: "manual", signal: ctl.signal,
+          headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
+        });
+      } catch {
+        clearTimeout(timer);
+        return { ok: false, error: "unreachable", status: 502,
+          message: "Could not reach that publication. The signup below works without a preview." };
+      }
+      if ((resp.status === 429 || resp.status >= 500) && attempt === 0) {
+        await new Promise(r => setTimeout(r, 1200));
+        continue;
+      }
+      break;
     }
     clearTimeout(timer);
-    if (resp.status >= 300 && resp.status < 400)
+    if (resp.status === 429)
+      return { ok: false, error: "upstream_busy", status: 503, upstream: 429,
+        message: "Substack is rate-limiting our reader for that publication right now. Try again in a minute, or sign up below and we will send your preview by email." };
+    if (resp.status >= 300 && resp.status < 400) {
+      const loc = resp.headers.get("location") || "";
+      const nextHost = parseHost(loc.startsWith("http") ? loc : `https://${host}${loc}`);
+      if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
       return { ok: false, error: "redirect", status: 502,
-        message: "That address redirects. Try the publication's final URL (its custom domain if it has one)." };
+        message: "That address redirects somewhere we could not follow. Try the publication's final URL." };
+    }
     if (!resp.ok)
-      return { ok: false, error: "not_substack", status: 502,
+      return { ok: false, error: "not_substack", status: 502, upstream: resp.status,
         message: "Could not read an archive there. Is this a Substack publication URL?" };
     const text = (await resp.text()).slice(0, MAX_BYTES);
     let page;
@@ -92,8 +107,9 @@ async function fetchArchive(host) {
     if (!Array.isArray(page))
       return { ok: false, error: "not_substack", status: 502,
         message: "That page did not answer like a Substack archive. Is this the publication's URL?" };
+    if (!page.length) break;
     posts.push(...page);
-    if (page.length < 50) break;
+    offset += page.length;
     if (page.length && Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
   }
 
@@ -116,6 +132,16 @@ async function fetchArchive(host) {
     to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
     titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
   } };
+}
+
+function pubName(recent, host) {
+  const names = {};
+  for (const p of recent) for (const b of (p.publishedBylines || []))
+    if (b?.name) names[b.name] = (names[b.name] || 0) + 1;
+  const distinct = Object.keys(names);
+  if (distinct.length === 1) return distinct[0];
+  const label = host.replace(/^www\./, "").split(".")[0];
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 const json = (body, status = 200, extra = {}) =>
