@@ -274,9 +274,9 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 <div class="fm about">
   <h3>About</h3>
   ${pubDesc ? `<p>${esc(pubDesc)}</p>` : ""}
-  <p>${esc(pubName)} is written by ${esc(author)} and published at ${host}. This volume collects
-  every public essay from ${range}: ${full.length} pieces, ${totalWords.toLocaleString("en-US")} words,
-  printed in the order they first appeared.</p>
+  <p>This volume collects every public essay published at ${host.replace(/^www\./, "")} from
+  ${range}${author !== pubName ? `, written by ${esc(author)}` : ""}: ${full.length} pieces,
+  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? "essay is" : "essays are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
   <p>Everything here was written for the screen and is reset here for paper. Links are kept as
