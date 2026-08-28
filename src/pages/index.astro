@@ -60,6 +60,7 @@ body::before{
 }
 @media (prefers-color-scheme: dark){ body::before{mix-blend-mode:screen; opacity:.1} }
 .page{max-width:39rem; margin:0 auto; padding:0 1.25rem 6rem; position:relative; z-index:2}
+main{position:relative}
 .folio{
   display:flex; justify-content:space-between; align-items:baseline;
   padding:1.15rem 0 .85rem; border-bottom:1.5px solid var(--ink);
@@ -95,6 +96,16 @@ p+p{margin-top:1rem}
 .tryrow button:disabled{opacity:.55; cursor:wait}
 .tryhint{margin-top:.55rem}
 .tryerr{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.86rem; margin-top:.6rem; min-height:0}
+
+/* ---------- hero wind: pages blowing behind the opening, washed to paper ---------- */
+.herowind{position:absolute; top:0; left:50%; transform:translateX(-50%); width:100vw; max-width:1600px;
+  height:30rem; overflow:hidden; pointer-events:none; z-index:-1;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%);
+  mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%)}
+.herowind video{width:100%; height:100%; object-fit:cover; opacity:.22; mix-blend-mode:multiply;
+  filter:saturate(.55) brightness(1.07) blur(1.5px)}
+@media (prefers-color-scheme: dark){ .herowind video{opacity:.14; mix-blend-mode:screen; filter:invert(1) saturate(.4)} }
+@media (prefers-reduced-motion: reduce){ .herowind{display:none} }
 
 /* ---------- the mark: one currentColor vector, both schemes ---------- */
 .mast{display:flex; align-items:center; gap:.55rem}
@@ -283,6 +294,10 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 </svg>inksheaf</b><span>private beta · printed in the US</span></header>
 
   <main>
+    <div class="herowind" aria-hidden="true">
+      <video src="/hero-pages.mp4" poster="/hero-pages-poster.jpg" autoplay muted loop playsinline
+        preload="metadata" width="1280" height="518"></video>
+    </div>
     <h1 class="reveal">See the book inside your archive.</h1>
     <p class="lede reveal">Paste your Substack URL. Inksheaf sets your real essays as a 6×9 edition
     in your publication's masthead and palette. You approve every page before anything prints.</p>
