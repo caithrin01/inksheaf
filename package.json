@@ -12,7 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.2.6"
+    "astro": "^7.2.6",
+    "qrcode": "^1.5.4"
   },
   "allowScripts": {
     "esbuild": true

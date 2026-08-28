@@ -121,7 +121,7 @@ async function fetchArchive(host) {
 
   const words = recent.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
   const dates = recent.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
-  const pages = Math.max(30, Math.round(words / 350 + recent.length * 0.8 + 8));
+  const pages = Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10));
   const capped = posts.length >= MAX_POSTS;
   return { ok: true, data: {
     host,

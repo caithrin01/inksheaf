@@ -34,7 +34,7 @@ async function archive(host) {
   return { host,
     publication: pubName(recent, host),
     posts: recent.length, capped: posts.length >= MAX_POSTS, words,
-    est_pages: Math.max(30, Math.round(words / 350 + recent.length * 0.8 + 8)),
+    est_pages: Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10)),
     from: new Date(dates[0]).toISOString().slice(0, 10),
     to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
     titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)) };
