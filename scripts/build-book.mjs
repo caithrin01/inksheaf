@@ -39,6 +39,7 @@ for (let offset = 0; ; offset += 25) {
   if (!Array.isArray(page) || !page.length) break;
   listing.push(...page);
   if (listing.length > 400) break;
+  await new Promise(r => setTimeout(r, 400));
 }
 const report = { host, listed: listing.length, skips: [], deadImages: [],
   omittedPaid: 0, podcastPosts: 0, declineSignals: [] };
@@ -70,7 +71,14 @@ const pubName = (home.match(/property="og:site_name" content="([^"]+)"/) || [])[
   || full[0]?.publishedBylines?.[0]?.name || host.split(".")[0];
 let pubDesc = (home.match(/property="og:description" content="([^"]+)"/) || [])[1] || "";
 pubDesc = pubDesc.replace(/\s*Click to read.*$/i, "").trim();
-const author = full[0]?.publishedBylines?.[0]?.name || pubName;
+const byCount = {};
+for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCount[n] = (byCount[n] || 0) + 1; }
+const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
+const multi = authors.length > 1;
+const author = authors[0] || pubName;
+const authorLine = multi
+  ? "Essays by " + authors.slice(0, 6).join(", ") + (authors.length > 6 ? ` and ${authors.length - 6} others` : "")
+  : author;
 
 /* ---------------- clean bodies ---------------- */
 const KILL = [
@@ -89,6 +97,8 @@ function clean(html, slug) {
        .replace(/<form[\s\S]*?<\/form>/gi, "");
   s = s.replace(/<div[^>]*class="[^"]*image-link-expand[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "");
   s = s.replace(/<button[\s\S]*?<\/button>/gi, "");
+  s = s.replace(/<p[^>]*>\s*<a[^>]*>(Leave a comment|Share|Subscribe now|Refer a friend|Give a gift subscription)<\/a>\s*<\/p>/gi, "");
+  s = s.replace(/<a[^>]*>(Leave a comment|Subscribe now|Share this post|Refer a friend)<\/a>/gi, "");
   s = s.replace(/<img[^>]*(width="1"|height="1")[^>]*>/gi, "");
   s = s.replace(/<source[^>]*>/gi, "");
   for (const re of KILL) s = s.replace(re, "");
@@ -139,8 +149,10 @@ const totalWords = full.reduce((s, p) => s + (p.wordcount || 0), 0);
 
 const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const tocRows = full.map((p, i) =>
-  `<div class="tocrow"><span class="toct"><a href="#art-${i}">${esc(p.title)}</a></span><span class="tocdots"></span><span class="tocn"><a href="#art-${i}"></a></span></div>`).join("\n");
+const tocRows = full.map((p, i) => {
+  const b = multi ? p.publishedBylines?.[0]?.name : null;
+  return `<div class="tocrow"><span class="toct"><a href="#art-${i}">${esc(p.title)}</a>${b ? `<span class="tocby"> · ${esc(b)}</span>` : ""}</span><span class="tocdots"></span><span class="tocn"><a href="#art-${i}"></a></span></div>`;
+}).join("\n");
 
 const articles = full.map((p, i) => `
 <section class="article" id="art-${i}">
@@ -148,7 +160,7 @@ const articles = full.map((p, i) => `
     <div class="artnum">${i + 1}</div>
     <h2 class="arttitle" data-title="${esc(p.title)}">${esc(p.title)}</h2>
     ${p.subtitle ? `<p class="artsub">${esc(p.subtitle)}</p>` : ""}
-    <div class="artmeta">${dayfmt(Date.parse(p.post_date))} · ${(p.wordcount || 0).toLocaleString("en-US")} words</div>
+    <div class="artmeta">${dayfmt(Date.parse(p.post_date))} · ${(p.wordcount || 0).toLocaleString("en-US")} words${(() => { const b = p.publishedBylines?.[0]?.name; return b && (multi || b !== author) ? " · by " + esc(b) : ""; })()}</div>
   </header>
   <div class="artbody">${clean(p.body_html, p.slug)}</div>
 </section>`).join("\n");
@@ -223,10 +235,12 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .about h3, .toc h3, .getmore h3{ font-size:9pt; letter-spacing:.26em; text-transform:uppercase;
   color:var(--rubric); font-weight:600; margin:0 0 .3in }
 .about p{ text-indent:0; margin-bottom:.6em }
+.about .epigraph{ color:var(--faint); font-size:11.5pt; margin:0 0 1.1em; padding-left:.8em; border-left:2.5px solid var(--rubric) }
 .about .colophon{ margin-top:1in; font-size:8.5pt; color:var(--faint); border-top:1px solid var(--rule); padding-top:.15in }
 .toc{ page: frontmatter }
 .tocrow{ display:flex; align-items:baseline; gap:.3em; margin:.42em 0; font-size:10pt }
 .toct{ max-width:78% }
+.tocby{ color:var(--faint); font-size:8.5pt }
 .tocdots{ flex:1; border-bottom:1px dotted #b9b19d; transform:translateY(-2px) }
 .tocn a::after{ content: target-counter(attr(href), page); font-variant-numeric:oldstyle-nums }
 /* ---------- articles ---------- */
@@ -267,21 +281,21 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 <div class="fm titlepage">
   <div class="t">${esc(pubName)}</div>
   <div class="s">${volLabel} · ${range}</div>
-  ${author !== pubName ? `<div class="a">${esc(author)}</div>` : ""}
+  ${(multi || author !== pubName) ? `<div class="a">${esc(authorLine)}</div>` : ""}
   <div class="imprint">Printed by Inksheaf</div>
 </div>
 
 <div class="fm about">
   <h3>About</h3>
-  ${pubDesc ? `<p>${esc(pubDesc)}</p>` : ""}
+  ${pubDesc ? `<p class="epigraph">${esc(pubDesc)}</p>` : ""}
   <p>This volume collects every public essay published at ${host.replace(/^www\./, "")} from
-  ${range}${author !== pubName ? `, written by ${esc(author)}` : ""}: ${full.length} pieces,
+  ${range}${author !== pubName ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} pieces,
   ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? "essay is" : "essays are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
-  <p>Everything here was written for the screen and is reset here for paper. Links are kept as
-  printed references; whatever could not survive the crossing to ink, video, audio, live
-  conversation, waits in the online edition.</p>
+  <p>Everything here was written for the screen and is reset for paper. Links print as
+  references. Video, audio and interactive embeds appear as cards that point to the online
+  edition.</p>
   <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated · Proof edition, not for sale ·
   © ${year} ${esc(author)}. All rights remain with the author.</div>
 </div>
@@ -295,8 +309,8 @@ ${articles}
 
 <div class="getmore">
   <h3>Get more</h3>
-  <p><b>Read on.</b> New essays appear first at ${host}. Subscribing there is free, delivers every
-  new piece by email, and is where the paid archive lives.</p>
+  <p><b>Read on.</b> New essays appear first at ${host.replace(/^www\./, "")}. A free subscription
+  delivers each new piece by email, and the paid archive lives there too.</p>
   <p><b>Order copies.</b> This edition, and each new quarterly or annual, can be ordered at the
   publication's Inksheaf page. Gift copies ship to any US address.</p>
   <div class="qr">
