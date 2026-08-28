@@ -1,24 +1,26 @@
 {
   "host": "razib.substack.com",
   "listed": 423,
-  "skips": [
-    {
-      "slug": "the-wolf-at-historys-door",
-      "reason": "429/5xx after retries https://razib.substack.com/api/v1/posts/the-wolf-at-historys-door"
-    },
-    {
-      "slug": "casting-out-the-wolf-in-our-midst",
-      "reason": "429/5xx after retries https://razib.substack.com/api/v1/posts/casting-out-the-wolf-in-our-midst"
-    },
-    {
-      "slug": "rkul-time-well-spent-05052022",
-      "reason": "429/5xx after retries https://razib.substack.com/api/v1/posts/rkul-time-well-spent-05052022"
-    }
-  ],
+  "skips": [],
   "deadImages": [],
   "omittedPaid": 331,
   "podcastPosts": 254,
   "declineSignals": [
     "podcast-first publication"
-  ]
+  ],
+  "brand": {
+    "accent": "#9a6600",
+    "headingFont": "Lora",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#FFFFFF",
+    "coverPlate": false,
+    "mappedFrom": null,
+    "warnings": []
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "parts": [],
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0
 }

@@ -492,7 +492,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .about .epigraph{ color:var(--faint); font-size:12.5pt; font-style:italic; text-align:center; margin:.2em 0 1.4em; padding:0 }
 .about .colophon{ margin-top:1in; font-size:8.5pt; color:var(--faint); border-top:1px solid var(--rule); padding-top:.15in }
 .toc{ page: frontmatter }
-.tocrow{ display:flex; align-items:baseline; gap:.3em; margin:.42em 0; font-size:10pt }
+.tocrow{ display:flex; align-items:flex-end; gap:.3em; margin:.42em 0; font-size:10pt }
 .toct{ max-width:78% }
 .tocby{ color:var(--faint); font-size:8.5pt }
 .tocdots{ flex:1; border-bottom:1px dotted #b9b19d; transform:translateY(-2px) }

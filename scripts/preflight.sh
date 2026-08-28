@@ -27,16 +27,16 @@ else say "fixtures: baseline recorded"; fi
 echo "$SUM  $(date +%F)" > proofs/fixtures.sha
 
 say "== books: lint + render freshness =="
-for html in proofs/caithrin-annual.html proofs/hcr.html proofs/slowboring.html proofs/caithrin-selected.html; do
+for html in proofs/caithrin-annual.html proofs/hcr.html proofs/slowboring.html proofs/caithrin-selected.html proofs/razib.html; do
   [ -f "$html" ] || continue
   base="${html%.html}"
   if node scripts/proof-lint.mjs "$html" >/dev/null 2>&1; then lint=ok; else lint=FAIL; FAIL=1; fi
   pdf=""
   for c in "${base}-proof.pdf" "${base/proofs\//proofs/}.pdf"; do [ -f "$c" ] && pdf="$c"; done
-  fresh="no-pdf"
+  fresh="NO-PDF(render before presenting)"
   if [ -n "$pdf" ]; then
     if [ "$pdf" -nt "$html" ]; then fresh="fresh"; else fresh="STALE(render before presenting)"; FAIL=1; fi
-  fi
+  else FAIL=1; fi
   pages=$(grep -c 'class="article" id="art-' "$html")
   say "$(basename "$html"): lint=$lint articles=$pages pdf=${pdf:-none} [$fresh]"
 done
