@@ -20,6 +20,7 @@ const NO_BRAND = process.argv.includes("--no-brand");
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
+const COVER_PHOTO = process.argv.includes("--cover-photo");
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
@@ -121,8 +122,26 @@ const B = {
 };
 B.coverRule = B.coverBg && contrastHex(B.accent, B.coverBg) >= 3 ? B.accent : (B.coverInk || "#a63a2b");
 if (brand?.publication_name && brand.publication_name.trim()) pubName = brand.publication_name.trim();
+let coverPlate = null;
+if (COVER_PHOTO && brand?.cover_photo_url) {
+  try {
+    const cfs = await import("node:fs"); const ccr = await import("node:crypto");
+    cfs.mkdirSync("proofs/.cache/img", { recursive: true });
+    const cu = brand.cover_photo_url;
+    const ch = ccr.createHash("sha1").update(cu).digest("hex").slice(0, 16);
+    const cpath = `proofs/.cache/img/${ch}-cover.png`;
+    if (!cfs.existsSync(cpath)) {
+      const cr = await fetch(cu, { headers: { "user-agent": UA["user-agent"] } });
+      if (!cr.ok) throw new Error(cr.status);
+      cfs.writeFileSync(cpath, Buffer.from(await cr.arrayBuffer()));
+    }
+    const dim = (cu.match(/_(\d+)x(\d+)\./) || []).slice(1).map(Number);
+    coverPlate = { path: cpath.replace("proofs/", ""), w: dim[0] || null, h: dim[1] || null };
+    if (dim[0] && dim[0] < 900) report.brand && (report.brand.warnings = [...(report.brand.warnings||[]), "cover photo under 900px; plate prints soft"]);
+  } catch (e) { console.error("cover photo unavailable:", String(e.message)); }
+}
 if (brand) report.brand = { accent: B.accent, headingFont: B.headingFont, bodyFont: B.bodyFont,
-  coverBg: B.coverBg, mappedFrom: brand.heading_font_mapped_from, warnings: brand.warnings };
+  coverBg: B.coverBg, coverPlate: !!coverPlate, mappedFrom: brand.heading_font_mapped_from, warnings: brand.warnings };
 const byCount = {};
 for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCount[n] = (byCount[n] || 0) + 1; }
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
@@ -393,6 +412,9 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .cover .kind{ font-size:9pt; letter-spacing:.3em; text-transform:uppercase; color:${B.coverRule}; font-weight:600 }
 .cover h1{ font-size:34pt; margin:.35in 0 0; letter-spacing:-.01em; color:${B.coverInk || "inherit"} }
 .cover .rule{ width:.55in; border-bottom:3px solid ${B.coverRule}; margin:.28in 0 }
+.cover .coverplate{ margin-top:.55in }
+.cover .coverplate img{ width:2.9in; height:2.9in; object-fit:cover; display:block;
+  border:1px solid ${B.coverInk2 || "var(--rule)"}; padding:.08in; background:transparent }
 .cover .dates{ font-size:11pt; color:${B.coverInk2 || "var(--faint)"} }
 .cover .foot{ position:absolute; bottom:.9in; left:.85in; right:.85in; border-top:1px solid ${B.coverInk2 || "var(--rule)"};
   padding-top:.16in; display:flex; justify-content:space-between; font-size:8.5pt; color:${B.coverInk2 || "var(--faint)"} }
@@ -451,6 +473,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   <h1>${esc(pubName)}</h1>
   <div class="rule"></div>
   <div class="dates">${range}</div>
+  ${coverPlate ? `<div class="coverplate"><img src="${coverPlate.path}" alt=""></div>` : ""}
   <div class="foot"><span>${full.length} ${noun}</span><span>${host.replace(/^www\./, "")}</span></div>
 </div>
 

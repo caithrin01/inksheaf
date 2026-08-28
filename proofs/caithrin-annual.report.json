@@ -11,6 +11,7 @@
     "headingFont": "Inter",
     "bodyFont": "Source Serif 4",
     "coverBg": "#1D1E1D",
+    "coverPlate": true,
     "mappedFrom": "SF Pro Display",
     "warnings": []
   },
