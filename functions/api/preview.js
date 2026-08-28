@@ -20,8 +20,10 @@ export async function onRequest({ request, env }) {
   const cached = await env.DB.prepare(
     "SELECT payload, fetched_at FROM preview_cache WHERE host = ?").bind(host).first()
     .catch(() => null);
-  if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000)
-    return json({ ok: true, cached: true, ...JSON.parse(cached.payload) });
+  if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
+    const pay = JSON.parse(cached.payload);
+    if (pay.sample) return json({ ok: true, cached: true, ...pay }); // old-shape rows refetch
+  }
 
   // Global rate cap, no IP involved.
   const minute = new Date().toISOString().slice(0, 16);
@@ -131,8 +133,49 @@ async function fetchArchive(host) {
     from: new Date(dates[0]).toISOString().slice(0, 10),
     to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
     titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
+    sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
+      d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
+    theme: await fetchTheme(host, recent[0]?.slug),
   } };
 }
+
+/* One guarded call to the newest post for the publication's own palette; the mirror moment
+   should wear THEIR colors. Failure returns null and the page keeps its default cover. */
+async function fetchTheme(host, slug) {
+  if (!slug) return null;
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+    const r = await fetch(`https://${host}/api/v1/posts/${encodeURIComponent(slug)}`, {
+      redirect: "manual", signal: ctl.signal,
+      headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
+    });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const tv = JSON.parse((await r.text()).slice(0, MAX_BYTES))?.themeVariables || {};
+    const bg = parseColor(tv.cover_bg_color || tv.web_bg_color);
+    let ink = parseColor(tv.cover_print_primary || tv.print_on_pop);
+    if (bg && !ink) ink = lum(bg) < 0.45 ? [255, 255, 255] : [34, 29, 22];
+    if (!bg || !ink || contrast(bg, ink) < 3) return null;
+    const ink2 = lum(bg) < 0.45 ? [217, 217, 217] : [90, 85, 75];
+    return { cover_bg: hex(bg), cover_ink: hex(ink), cover_ink2: hex(ink2),
+      accent: tv.color_theme_accent || tv.background_pop || null,
+      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null };
+  } catch { return null; }
+}
+function parseColor(c) {
+  if (!c || typeof c !== "string") return null;
+  const m = c.trim().match(/^#([0-9a-f]{6})$/i);
+  if (m) { const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  const rgb = c.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+}
+const lum = ([r, g, b]) => {
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+const contrast = (a, b) => { const [x, y] = [lum(a) + 0.05, lum(b) + 0.05]; return x > y ? x / y : y / x; };
+const hex = rgb => "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
 
 function pubName(recent, host) {
   const names = {};

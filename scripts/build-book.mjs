@@ -661,6 +661,10 @@ await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
 
 mkdirSync("proofs", { recursive: true });
 writeFileSync(OUT, htmlOut);
+{ // the printed span, from the posts actually included (consumers: pipeline copy/cover steps)
+  const ds = full.map(a => a.post_date || a.date).filter(Boolean).sort();
+  if (ds.length) report.dateRange = [String(ds[0]).slice(0, 10), String(ds[ds.length - 1]).slice(0, 10)];
+}
 writeFileSync(OUT.replace(/\.html$/, ".report.json"), JSON.stringify(report, null, 2));
 console.error("wrote", OUT, "articles:", full.length, "words:", totalWords,
   "| skips:", report.skips.length, "| dead images:", report.deadImages.length,

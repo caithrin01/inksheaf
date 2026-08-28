@@ -1,0 +1,73 @@
+{
+ "steps": {
+  "probe": {
+   "done": true,
+   "at": "2026-08-28T07:17:38.452Z",
+   "pubName": "caithrin",
+   "heroText": "though much is token, much abides.",
+   "copyright": "Caithrin Rintoul",
+   "coverPhoto": "https://substack-post-media.s3.amazonaws.com/public/images/600bcc4b-9b0f-4e1d-962d-877c17cfe77e_1254x1254.png",
+   "logo": "https://substackcdn.com/image/fetch/$s_!7lLD!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F782cdad5-d0b4-418e-a86e-9b5bd052fb08_1024x1024.png",
+   "newest": "2026-08-18",
+   "after": null,
+   "before": null
+  },
+  "build": {
+   "done": true,
+   "at": "2026-08-28T07:26:38.116Z",
+   "listed": 40,
+   "kind": "essays",
+   "retrievalFailures": 0
+  },
+  "render": {
+   "done": true,
+   "at": "2026-08-28T07:26:53.657Z",
+   "pages": 294,
+   "bytes": 11836402
+  },
+  "copy": {
+   "done": true,
+   "at": "2026-08-28T07:42:36.548Z",
+   "model": false
+  },
+  "sizegate": {
+   "done": true,
+   "at": "2026-08-28T07:43:03.845Z",
+   "bytes": 7644856,
+   "tier": [
+    900,
+    55
+   ]
+  },
+  "cover": {
+   "done": true,
+   "at": "2026-08-28T07:43:10.702Z",
+   "W": 934,
+   "H": 666,
+   "bytes": 4108151
+  },
+  "host": {
+   "done": true,
+   "at": "2026-08-28T07:43:36.144Z",
+   "interiorUrl": "https://inksheaf.pages.dev/i-682bc90dbd58.pdf",
+   "coverUrl": "https://inksheaf.pages.dev/c-2f531e7580e4.pdf"
+  },
+  "validate": {
+   "done": true,
+   "at": "2026-08-28T07:44:24.031Z",
+   "interiorId": 4510407,
+   "coverId": 4510408,
+   "interior": "NORMALIZED",
+   "cover": "NORMALIZED"
+  },
+  "quote": {
+   "done": true,
+   "at": "2026-08-28T07:44:24.375Z",
+   "print": "9.34",
+   "shipping": "5.69",
+   "total_excl_tax": "15.78",
+   "total_incl_tax": "16.58",
+   "currency": "USD"
+  }
+ }
+}

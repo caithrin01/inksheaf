@@ -28,3 +28,8 @@ node_modules/
 dist/
 .astro/
 proofs/.cache/
+# pipeline runtime artifacts (regenerable; hosted copies live on CF Pages)
+public/*.pdf
+proofs/pipe/**/*.pdf
+proofs/pipe/**/*.img
+proofs/pipe/**/*.html

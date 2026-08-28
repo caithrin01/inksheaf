@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "pipeline": "node scripts/pipeline.mjs"
   },
   "dependencies": {
     "astro": "^7.2.6",

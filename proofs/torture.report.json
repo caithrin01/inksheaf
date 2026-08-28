@@ -29,5 +29,9 @@
   "parts": [],
   "rtlChars": 61,
   "cjkChars": 35,
-  "retrievalFailures": 0
+  "retrievalFailures": 0,
+  "dateRange": [
+    "2026-08-01",
+    "2026-08-15"
+  ]
 }

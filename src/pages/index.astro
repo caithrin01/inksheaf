@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&display=swap" rel="stylesheet" />
-<style>
+<style is:global>
 :root{
   --paper:#f6f1e6; --paper-deep:#efe8d8; --ink:#221d16; --rubric:#a63a2b;
   --rule:rgba(34,29,22,.20); --faint:rgba(34,29,22,.58); --card:#fbf7ee;
@@ -95,6 +95,33 @@ p+p{margin-top:1rem}
 .tryrow button:disabled{opacity:.55; cursor:wait}
 .tryhint{margin-top:.55rem}
 .tryerr{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.86rem; margin-top:.6rem; min-height:0}
+
+/* ---------- preview magic: their page, their colors, staged assembly ---------- */
+.pv-page{width:12.5rem; aspect-ratio:6/9; background:var(--card); border:1px solid var(--rule);
+  border-radius:2px 5px 5px 2px; padding:.95rem .85rem .6rem; display:flex; flex-direction:column;
+  font-size:.62rem; line-height:1.5; box-shadow:0 2px 3px rgba(34,29,22,.14), 10px 16px 26px -14px rgba(34,29,22,.4);
+  transform:rotate(.8deg)}
+.pv-page .run{display:flex; justify-content:space-between; letter-spacing:.14em; text-transform:uppercase;
+  font-size:.45rem; color:var(--faint); border-bottom:1px solid var(--rule); padding-bottom:.4rem; margin-bottom:.55rem}
+.pv-page .fol{margin-top:auto; text-align:center; font-size:.45rem; color:var(--faint); padding-top:.4rem}
+.pv-page .toc-line{opacity:0; transform:translateY(4px); transition:opacity .35s, transform .35s}
+.preview.on .pv-page .toc-line{opacity:1; transform:none}
+#pvbook.branded .cover{background:var(--pvbg); border-color:rgba(0,0,0,.15)}
+#pvbook.branded .cv-mast{color:var(--pvink); font-family:var(--pvfont, inherit)}
+#pvbook.branded .cv-kind{color:var(--pvink2)}
+#pvbook.branded .cv-rule{border-color:var(--pvink)}
+#pvbook.branded .cv-dates,#pvbook.branded .cv-pages,#pvbook.branded .cv-vol{color:var(--pvink2)}
+#pvbook.branded .cv-foot{border-color:var(--pvink2)}
+#pvbook.branded .spinetext span{color:var(--pvink2)}
+.preview .bookobj{opacity:0; transform:translateY(16px) rotate(-1.2deg); transition:opacity .55s, transform .55s}
+.preview.on .bookobj{opacity:1; transform:translateY(0) rotate(-1.2deg)}
+.preview .pv-page{opacity:0; transition:opacity .5s .3s, transform .5s .3s}
+.preview.on .pv-page{opacity:1; transform:rotate(.8deg)}
+.bookobj .pageblock{transition:width .9s ease-out .35s}
+.pv-price{margin-top:1rem; opacity:0; transform:scale(.95); transition:opacity .4s 1.05s, transform .4s 1.05s}
+.preview.on .pv-price{opacity:1; transform:none}
+.pv-price b{font-size:1.35rem; font-weight:640}
+.pv-price .sub{display:block; font-size:.8rem; color:var(--faint); margin-top:.15rem}
 
 /* ---------- book objects ---------- */
 .bookstage{display:flex; gap:2.6rem; align-items:flex-end; justify-content:center; flex-wrap:wrap; margin:2.4rem 0 .8rem}
@@ -249,9 +276,15 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
           <div class="spinetext"><span id="pv-spine"></span></div>
           <div class="pageblock" id="pv-block"></div>
         </div>
+        <div class="pv-page" id="pv-page" aria-hidden="true">
+          <div class="run"><span id="pv-runname"></span><span>Contents</span></div>
+          <div id="pv-toc"></div>
+          <div class="fol">&middot; iv &middot;</div>
+        </div>
         <div class="pv-facts">
           <div class="pv-big" id="pv-big"></div>
           <p class="pv-sub" id="pv-sub"></p>
+          <div class="pv-price" id="pv-price"></div>
           <button class="pv-cta" id="pv-cta" type="button">Reserve a beta spot for this book</button>
           <p class="pv-note note">Page count is an estimate from your public archive; the proof PDF is exact.</p>
         </div>
@@ -372,7 +405,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 
     <section class="beta" id="beta">
       <div class="kicker">Join the private beta</div>
-      <div class="steps">Step <b id="stepnum">1</b> of 3</div>
+      <div class="steps">Step <b id="stepnum">1</b> of 2</div>
       <form id="f" novalidate>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" />
 
@@ -386,72 +419,25 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
           <div class="prefilled" id="carried"></div>
           <label for="name">Your name</label>
           <input type="text" id="name" name="name" required />
-          <label>Your role</label>
-          <div class="radio-row" role="radiogroup">
-            <label><input type="radio" name="role" value="owner" checked /><span>Owner</span></label>
-            <label><input type="radio" name="role" value="editor" /><span>Editor</span></label>
-            <label><input type="radio" name="role" value="other" /><span>Other</span></label>
-          </div>
-          <label>Archive</label>
-          <div class="radio-row">
-            <label><input type="radio" name="archive_type" value="free" /><span>Free</span></label>
-            <label><input type="radio" name="archive_type" value="paid" /><span>Paid</span></label>
-            <label><input type="radio" name="archive_type" value="mixed" /><span>Mixed</span></label>
-          </div>
-          <label for="frequency">Publishing frequency</label>
-          <select id="frequency" name="frequency">
-            <option value="">Choose…</option><option>daily</option><option>weekly</option>
-            <option>monthly</option><option>irregular</option>
-          </select>
-          <label for="ppy">Posts per year, roughly</label>
-          <input type="number" id="ppy" name="posts_per_year" min="1" max="2000" />
-          <div class="prefilled" id="ppy-note"></div>
           <label>Which edition would you want?</label>
           <div class="radio-row">
             <label><input type="radio" name="cadence_pref" value="quarterly" /><span>Quarterly</span></label>
-            <label><input type="radio" name="cadence_pref" value="annual" /><span>Annual</span></label>
+            <label><input type="radio" name="cadence_pref" value="annual" checked /><span>Annual</span></label>
             <label><input type="radio" name="cadence_pref" value="both" /><span>Both</span></label>
           </div>
-          <label for="subs">US subscribers, roughly</label>
-          <select id="subs" name="us_subscribers">
-            <option value="">Choose…</option><option>under 500</option><option>500–1,000</option>
-            <option>1,000–5,000</option><option>5,000–20,000</option><option>over 20,000</option>
-          </select>
-          <label for="orders">Reader orders you'd expect per issue</label>
-          <select id="orders" name="expected_orders">
-            <option value="">Choose…</option><option>under 10</option><option>10–50</option>
-            <option>50–200</option><option>over 200</option>
-          </select>
-          <label for="founding">Founding subscribers you might sponsor copies for</label>
-          <select id="founding" name="founding_count">
-            <option value="">Choose…</option><option>none</option><option>1–5</option>
-            <option>6–20</option><option>over 20</option>
-          </select>
-          <label for="price">Reader price that feels fair, before shipping</label>
-          <select id="price" name="price_range">
-            <option value="">Choose…</option><option>under $25</option><option>$25–40</option>
-            <option>$40–60</option><option>over $60</option>
-          </select>
           <label>Would you do a 20-minute interview and share an export for a private pilot?</label>
           <div class="radio-row">
             <label><input type="radio" name="interview_ok" value="yes" /><span>Yes</span></label>
             <label><input type="radio" name="interview_ok" value="no" /><span>No</span></label>
           </div>
-          <label for="concern">Biggest concern</label>
-          <select id="concern" name="concern">
-            <option value="">Choose…</option><option>price</option><option>print quality</option>
-            <option>setup effort</option><option>rights</option><option>reader demand</option>
-          </select>
-          <button type="button" class="main" data-next="3">Continue</button>
+          <label for="email">Email for the beta</label>
+          <input type="email" id="email" name="email" required />
+          <input type="hidden" name="posts_per_year" id="ppy" />
+          <input type="hidden" name="frequency" />
+          <button type="submit" class="main">Request a spot</button>
           <button type="button" class="ghost" data-back="1">Back</button>
         </div>
 
-        <div class="step3">
-          <label for="email">Email for the beta</label>
-          <input type="email" id="email" name="email" required />
-          <button type="submit" class="main">Request a spot</button>
-          <button type="button" class="ghost" data-back="2">Back</button>
-        </div>
         <div class="err" id="err" role="alert"></div>
       </form>
       <div class="done" id="done">
@@ -482,7 +468,7 @@ function beacon(ev: string){
 }
 beacon('view');
 function show(n: number){
-  for (const k of [1,2,3]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
+  for (const k of [1,2]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
   document.getElementById('stepnum')!.textContent = String(n);
   document.getElementById('err')!.textContent = '';
   if (n>1) beacon('step'+n);
@@ -494,6 +480,7 @@ const trybtn = document.getElementById('trybtn') as HTMLButtonElement;
 const tryurl = document.getElementById('tryurl') as HTMLInputElement;
 const tryerr = document.getElementById('tryerr')!;
 let previewData: any = null;
+let retried = false;
 
 async function runPreview(){
   const raw = tryurl.value.trim();
@@ -503,9 +490,22 @@ async function runPreview(){
   try {
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
     const d = await r.json();
-    if (!d.ok){ tryerr.textContent = d.message || 'Could not read that archive.'; return; }
+    if (!d.ok){
+      if (d.error === 'upstream_busy' && !retried){
+        retried = true;
+        for (let t = 20; t > 0; t--){
+          tryerr.textContent = 'Substack is rate-limiting us for a moment. Retrying in ' + t + 's…';
+          await new Promise(res => setTimeout(res, 1000));
+        }
+        tryerr.textContent = '';
+        return runPreview();
+      }
+      tryerr.textContent = d.message || 'Could not read that archive.'; return;
+    }
+    retried = false;
     previewData = d;
     renderPreview(d);
+    history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
   } catch {
     tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
   } finally {
@@ -522,9 +522,47 @@ function renderPreview(d: any){
     ? 'Vol. I of IV · est. ' + Math.round(d.est_pages/4) + ' pages'
     : d.posts + (d.capped ? '+' : '') + ' posts · est. ' + d.est_pages + ' pages';
   (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
-  const block = document.getElementById('pv-block') as HTMLElement;
-  block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
   const over = d.est_pages > 300;
+
+  /* their colors on their cover (contrast-guarded server-side) */
+  const book = document.getElementById('pvbook') as HTMLElement;
+  if (d.theme){
+    book.classList.add('branded');
+    book.style.setProperty('--pvbg', d.theme.cover_bg);
+    book.style.setProperty('--pvink', d.theme.cover_ink);
+    book.style.setProperty('--pvink2', d.theme.cover_ink2);
+    if (d.theme.heading_stack) book.style.setProperty('--pvfont', d.theme.heading_stack);
+  } else {
+    book.classList.remove('branded');
+  }
+
+  /* their titles become the contents page */
+  const toc = document.getElementById('pv-toc')!;
+  (document.getElementById('pv-runname') as HTMLElement).textContent = d.publication;
+  const rows = (d.sample && d.sample.length ? d.sample.map((x: any) => x.t) : (d.titles || [])).slice(0, 6);
+  const step = Math.max(3, Math.round(d.est_pages / Math.max(d.posts, 1)));
+  let folio = 9;
+  toc.innerHTML = rows.map((t: string, i: number) => {
+    const line = '<div class="toc-line" style="transition-delay:' + (0.45 + i * 0.12) + 's">' +
+      '<span class="t"></span><span class="dots"></span><span class="n">' + folio + '</span></div>';
+    folio += step;
+    return line;
+  }).join('');
+  [...toc.querySelectorAll('.t')].forEach((el, i) => (el as HTMLElement).textContent = rows[i]);
+
+  /* honest at-cost price from the measured model (print $2 + 2.5c/page, MAIL $5.69) */
+  const pricePages = over ? Math.round(d.est_pages / 4) : d.est_pages;
+  const dollars = Math.round(2 + 0.025 * pricePages + 5.69);
+  (document.getElementById('pv-price') as HTMLElement).innerHTML =
+    'Printed and shipped: <b>about $' + dollars + (over ? ' a volume' : '') + '</b>' +
+    '<span class="sub">At cost during the beta. We add nothing.</span>';
+
+  /* staged assembly: cover lands, then the spine thickens to their page count */
+  const block = document.getElementById('pv-block') as HTMLElement;
+  block.style.width = '5px';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
+  }));
   (document.getElementById('pv-big') as HTMLElement).innerHTML = over
     ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
     : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
@@ -533,26 +571,31 @@ function renderPreview(d: any){
     ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' + (over
     ? 'Too big for one binding, so it prints as quarterly volumes of about ' + Math.round(d.est_pages/4) + ' pages each.'
     : 'Typeset at 6×9 with contents, running headers and your own cover.');
-  document.getElementById('preview')!.classList.add('on');
-  document.getElementById('preview')!.scrollIntoView({behavior:'smooth', block:'center'});
+  const pv = document.getElementById('preview')!;
+  pv.classList.remove('on');
+  void (pv as HTMLElement).offsetWidth;
+  pv.classList.add('on');
+  pv.scrollIntoView({behavior:'smooth', block:'center'});
 }
 function fmt(iso: string){
   return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {month:'short', year:'numeric', timeZone:'UTC'});
 }
 trybtn.addEventListener('click', runPreview);
 tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); runPreview(); } });
+{ /* a preview someone shares reproduces itself */
+  const pub = new URLSearchParams(location.search).get('pub');
+  if (pub && /^[a-z0-9.-]+$/i.test(pub)){ tryurl.value = 'https://' + pub; runPreview(); }
+}
 
 (document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
   const d = previewData;
   if (d){
     (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://' + d.host;
-    const ppy = f.elements.namedItem('posts_per_year') as HTMLInputElement;
-    ppy.value = String(d.posts);
-    document.getElementById('ppy-note')!.textContent = 'Counted from your public archive; correct it if that looks wrong.';
-    const freq = d.posts >= 200 ? 'daily' : d.posts >= 40 ? 'weekly' : d.posts >= 10 ? 'monthly' : 'irregular';
-    (f.elements.namedItem('frequency') as HTMLSelectElement).value = freq;
+    (f.elements.namedItem('posts_per_year') as HTMLInputElement).value = String(d.posts);
+    (f.elements.namedItem('frequency') as HTMLInputElement).value =
+      d.posts >= 200 ? 'daily' : d.posts >= 40 ? 'weekly' : d.posts >= 10 ? 'monthly' : 'irregular';
     document.getElementById('carried')!.textContent =
-      d.publication + ' · ' + d.est_pages + ' estimated pages. Two minutes of questions, then your email.';
+      d.publication + ' · ' + d.est_pages + ' estimated pages. A name and an email, and you are in.';
     show(2);
   }
   document.getElementById('beta')!.scrollIntoView({behavior:'smooth'});
@@ -563,8 +606,8 @@ f.addEventListener('keydown', (e)=>{
   if (e.key !== 'Enter') return;
   const target = e.target as HTMLElement;
   if (target.tagName === 'BUTTON' || target.tagName === 'SELECT') return;
-  const current = [1,2,3].find(k => (f.querySelector('.step'+k) as HTMLElement).style.display !== 'none');
-  if (current && current < 3){
+  const current = [1,2].find(k => (f.querySelector('.step'+k) as HTMLElement).style.display !== 'none');
+  if (current && current < 2){
     e.preventDefault();
     (f.querySelector('.step'+current+' [data-next]') as HTMLElement)?.click();
   }

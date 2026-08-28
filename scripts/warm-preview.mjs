@@ -37,7 +37,40 @@ async function archive(host) {
     est_pages: Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10)),
     from: new Date(dates[0]).toISOString().slice(0, 10),
     to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
-    titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)) };
+    titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
+    sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
+      d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
+    theme: await theme(host, recent[0]?.slug) };
+}
+
+// mirrors functions/api/preview.js fetchTheme; drift between the two is a bug
+async function theme(host, slug) {
+  if (!slug) return null;
+  try {
+    const r = await fetch(`https://${host}/api/v1/posts/${encodeURIComponent(slug)}`, {
+      headers: { accept: "application/json", "user-agent": "Mozilla/5.0 inksheaf-warm/1.0" } });
+    if (!r.ok) return null;
+    const tv = (await r.json())?.themeVariables || {};
+    const parse = c => {
+      if (!c || typeof c !== "string") return null;
+      const m = c.trim().match(/^#([0-9a-f]{6})$/i);
+      if (m) { const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+      const g = c.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      return g ? [+g[1], +g[2], +g[3]] : null;
+    };
+    const lum = ([r2, g, b]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(r2) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const contrast = (a, b) => { const [x, y] = [lum(a) + 0.05, lum(b) + 0.05]; return x > y ? x / y : y / x; };
+    const hex = rgb => "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
+    const bg = parse(tv.cover_bg_color || tv.web_bg_color);
+    let ink = parse(tv.cover_print_primary || tv.print_on_pop);
+    if (bg && !ink) ink = lum(bg) < 0.45 ? [255, 255, 255] : [34, 29, 22];
+    if (!bg || !ink || contrast(bg, ink) < 3) return null;
+    return { cover_bg: hex(bg), cover_ink: hex(ink),
+      cover_ink2: lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b",
+      accent: tv.color_theme_accent || tv.background_pop || null,
+      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null };
+  } catch { return null; }
 }
 
 function pubName(recent, host) {

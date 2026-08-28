@@ -14,5 +14,9 @@
   ],
   "rtlChars": 0,
   "cjkChars": 0,
-  "retrievalFailures": 0
+  "retrievalFailures": 0,
+  "dateRange": [
+    "2026-03-12",
+    "2026-04-28"
+  ]
 }
