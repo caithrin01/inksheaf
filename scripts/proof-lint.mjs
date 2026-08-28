@@ -36,7 +36,8 @@ const regions = [
 
 /* ---------- 1. degenerate repetition in generated sentences ---------- */
 for (const r of regions) {
-  for (const sentence of r.text.split(/(?<=[.!?])\s+/)) {
+  for (const line of r.lines) {
+  for (const sentence of line.split(/(?<=[.!?])\s+/)) {
     const noUrls = sentence.replace(/\S+\.(com|org|net|io|app|co)\S*/gi, " ");
     const words = noUrls.toLowerCase().match(/[a-z][a-z'-]{3,}/g) || [];
     const counts = {};
@@ -44,6 +45,7 @@ for (const r of regions) {
     for (const [w, n] of Object.entries(counts))
       if (n >= 3 && !["essays", "words", "pages", "public"].includes(w))
         findings.push(`${r.name}: "${w}" appears ${n}x in one sentence: "${sentence.slice(0, 110)}"`);
+  }
   }
 }
 
@@ -67,7 +69,7 @@ const tocRows = (html.match(/class="tocrow"/g) || []).length;
 const articles = (html.match(/class="article" id="art-/g) || []).length;
 if (!tocRows) findings.push("contents has zero rows");
 if (tocRows !== articles) findings.push(`contents rows (${tocRows}) != articles (${articles})`);
-if (!/PROOF · NOT FOR SALE/.test(html)) warn.push("no proof watermark rule found");
+// watermark removed by decision 2026-08-28 (community project); imprint line is the only mark
 const maxYear = new Date().getFullYear() + 1;
 for (const r of regions) {
   const years = [...r.text.matchAll(/\b(19|20)\d{2}\b/g)].map(m => +m[0]);

@@ -1,0 +1,12 @@
+{
+  "host": "fixture.invalid",
+  "listed": 2,
+  "skips": [],
+  "deadImages": [
+    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif",
+    "https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fequation.png"
+  ],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": []
+}

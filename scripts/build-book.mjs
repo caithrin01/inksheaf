@@ -32,8 +32,15 @@ async function text(url) {
   return r.ok ? r.text() : "";
 }
 
-console.error("fetching archive for", host);
+const FIXTURE = process.argv.includes("--fixture")
+  ? process.argv[process.argv.indexOf("--fixture") + 1] : null;
+console.error(FIXTURE ? "using fixture " + FIXTURE : "fetching archive for " + host);
 const listing = [];
+if (FIXTURE) {
+  const fx = JSON.parse((await import("node:fs")).readFileSync(FIXTURE, "utf-8"));
+  listing.push(...fx.map(p => ({ ...p, audience: "everyone", type: "newsletter" })));
+}
+if (!FIXTURE)
 for (let offset = 0; ; offset += 25) {
   const page = await j(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`);
   if (!Array.isArray(page) || !page.length) break;
@@ -55,7 +62,8 @@ const posts = listing
 console.error(listing.length, "listed;", posts.length, "printable;", report.omittedPaid, "paid omitted");
 
 const full = [];
-for (const p of posts) {
+if (FIXTURE) full.push(...posts);
+else for (const p of posts) {
   try {
     const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
     if (d.body_html && d.body_html.length <= 2_000_000) full.push(d);
@@ -66,7 +74,7 @@ for (const p of posts) {
 console.error(full.length, "bodies fetched");
 
 // publication meta from homepage
-const home = await text(`https://${host}`);
+const home = FIXTURE ? "" : await text(`https://${host}`);
 const pubName = (home.match(/property="og:site_name" content="([^"]+)"/) || [])[1]
   || full[0]?.publishedBylines?.[0]?.name || host.split(".")[0];
 let pubDesc = (home.match(/property="og:description" content="([^"]+)"/) || [])[1] || "";
@@ -123,6 +131,8 @@ function clean(html, slug) {
   // verse: paragraphs with manual line breaks set ragged, unindented, unhyphenated
   s = s.replace(/<p([^>]*)>((?:(?!<\/p>)[\s\S])*<br[\s\S]*?)<\/p>/gi,
     (m, attrs, inner) => `<p${attrs.includes('class="') ? attrs.replace('class="', 'class="verse ') : attrs + ' class="verse"'}>${inner}</p>`);
+  // bare long URLs in prose get an explicit breakable, left-set span
+  s = s.replace(/(?<=>|\s)(https?:\/\/[^\s<>"]{35,})/g, '<span class="longurl">$1</span>');
   // GIFs print one frame; say so
   s = s.replace(/<img src="([^"]+\.gif[^"]*)"([^>]*)>/gi,
     '<img src="$1"$2><div class="gifnote">Animation; one frame printed. The moving version is in the online edition.</div>');
@@ -190,7 +200,7 @@ html{ font-size: 10.5pt }
 body{ font-family:"Source Serif 4", Georgia, serif; color:var(--ink); line-height:1.5;
   font-optical-sizing:auto; margin:0 }
 .pubsrc{ string-set: pubname content(text); height:0; overflow:hidden; visibility:hidden }
-p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:auto; orphans:2; widows:2 }
+p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:auto; orphans:2; widows:2; overflow-wrap:anywhere }
 .artbody > p:first-of-type{ text-indent:0 }
 .about p, .getmore p{ text-indent:0 }
 a{ color:inherit; text-decoration:none }
@@ -205,16 +215,13 @@ li{ margin:.2em 0; text-align:justify }
 pre{ font-size:8pt; background:#f4efe4; padding:.6em; overflow:hidden; white-space:pre-wrap; word-break:break-word }
 code{ font-size:8.5pt }
 p.verse{ text-align:left; text-indent:0; hyphens:none }
+.longurl{ word-break:break-all; hyphens:none; font-size:9pt }
 .gifnote{ font-size:7.5pt; color:var(--faint); text-align:center; margin:-.5em 0 .9em }
 table{ width:100%; border-collapse:collapse; font-size:8pt; margin:.9em 0 }
 td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word; text-align:left }
 .imgmissing{ border:1px dashed var(--rubric); color:var(--faint); font-size:8.5pt; padding:1em; text-align:center; margin:.9em 0 }
 .embedcard{ border:1px solid var(--rule); border-left:3px solid var(--rubric); padding:.6em .8em;
   font-size:8.5pt; color:var(--faint); margin:.9em 0; word-break:break-all }
-/* watermark on every page */
-.pagedjs_page::after, .pagedjs_pagebox::after{ content:"PROOF · NOT FOR SALE"; position:absolute; top:50%; left:50%;
-  transform:translate(-50%,-50%) rotate(-38deg); font-family:"Source Serif 4"; font-size:26pt;
-  letter-spacing:.3em; color:rgba(166,58,43,.14); pointer-events:none; white-space:nowrap; z-index:99 }
 
 /* ---------- front matter ---------- */
 .cover{ page: cover; height:100%; position:relative; background:#f6f1e6;
@@ -296,7 +303,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   <p>Everything here was written for the screen and is reset for paper. Links print as
   references. Video, audio and interactive embeds appear as cards that point to the online
   edition.</p>
-  <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated · Proof edition, not for sale ·
+  <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated · Proof edition ·
   © ${year} ${esc(author)}. All rights remain with the author.</div>
 </div>
 
