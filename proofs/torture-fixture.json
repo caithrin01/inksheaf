@@ -10,7 +10,8 @@
     "name": "Fixture Author A"
    }
   ],
-  "body_html": "<p>Opening paragraph with a drop cap and enough text to justify across the measure of a six by nine page like a real essay would.</p><h5>An h5 heading</h5><h6>An h6 heading</h6><p>A table follows.</p><table><thead><tr><th>Model</th><th>Score</th><th>Cost</th></tr></thead><tbody><tr><td>Alpha</td><td>91.2</td><td>$3</td></tr><tr><td>Beta with a much longer cell that should wrap inside its column</td><td>88.7</td><td>$1</td></tr></tbody></table><p>Code follows.</p><pre><code>def spine_width(pages):\n    return BASE + pages * CALIPER  # long_token_that_should_wrap_rather_than_overflow_the_measure_entirely</code></pre><p>A poem follows.</p><p>The archive sleeps in server racks,<br>its essays stacked like winter wood;<br>a printer wakes, the paper cracks,<br>and stanzas stand where pixels stood.</p><p>A GIF follows.</p><figure><img src=\"https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fdemo.gif\" alt=\"animated demo\"></figure><p>Math as Substack serves it, an image:</p><img src=\"https://substackcdn.com/image/fetch/w_800,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fequation.png\" alt=\"E equals m c squared\"><p>A footnote reference<a class=\"footnote-anchor\" id=\"footnote-anchor-1\" href=\"#footnote-1\">1</a> sits here.</p><div class=\"footnote\" id=\"footnote-1\"><a href=\"#footnote-anchor-1\" class=\"footnote-number\">1</a><div class=\"footnote-content\"><p>The footnote itself, rendered as an endnote in v0.</p></div></div><p>A long URL: https://example.com/a/very/long/path/that/should/break/gracefully/rather/than/overflow/the/text/block/entirely</p><blockquote><p>A blockquote for good measure.</p></blockquote><hr><p>Text after a section break.</p><div class=\"comment\">[{\"type\":\"link\",\"attrs\":{\"href\":\"https://example.com/leak\"}}]</div><p>Text after the comment blob that must survive.</p>"
+  "body_html": "<p>Opening paragraph with a drop cap and enough text to justify across the measure of a six by nine page like a real essay would.</p><h5>An h5 heading</h5><h6>An h6 heading</h6><p>A table follows.</p><table><thead><tr><th>Model</th><th>Score</th><th>Cost</th></tr></thead><tbody><tr><td>Alpha</td><td>91.2</td><td>$3</td></tr><tr><td>Beta with a much longer cell that should wrap inside its column</td><td>88.7</td><td>$1</td></tr></tbody></table><p>Code follows.</p><pre><code>def spine_width(pages):\n    return BASE + pages * CALIPER  # long_token_that_should_wrap_rather_than_overflow_the_measure_entirely</code></pre><p>A poem follows.</p><p>The archive sleeps in server racks,<br>its essays stacked like winter wood;<br>a printer wakes, the paper cracks,<br>and stanzas stand where pixels stood.</p><p>A GIF follows.</p><figure><img src=\"https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fdemo.gif\" alt=\"animated demo\"></figure><p>Math as Substack serves it, an image:</p><img src=\"https://substackcdn.com/image/fetch/w_800,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fequation.png\" alt=\"E equals m c squared\"><p>A footnote reference<a class=\"footnote-anchor\" id=\"footnote-anchor-1\" href=\"#footnote-1\">1</a> sits here.</p><div class=\"footnote\" id=\"footnote-1\"><a href=\"#footnote-anchor-1\" class=\"footnote-number\">1</a><div class=\"footnote-content\"><p>The footnote itself, rendered as an endnote in v0.</p></div></div><p>A long URL: https://example.com/a/very/long/path/that/should/break/gracefully/rather/than/overflow/the/text/block/entirely</p><blockquote><p>A blockquote for good measure.</p></blockquote><hr><p>Text after a section break.</p><div class=\"comment\">[{\"type\":\"link\",\"attrs\":{\"href\":\"https://example.com/leak\"}}]</div><p>Text after the comment blob that must survive.</p>",
+  "reaction_count": 40
  },
  {
   "slug": "torture-2",
@@ -22,7 +23,8 @@
     "name": "Fixture Author B"
    }
   ],
-  "body_html": "<p>A second author proves the multi-author roster, TOC bylines and per-article attribution in one fixture build.</p>"
+  "body_html": "<p>A second author proves the multi-author roster, TOC bylines and per-article attribution in one fixture build.</p>",
+  "reaction_count": 5
  },
  {
   "slug": "torture-3",
@@ -34,7 +36,8 @@
     "name": "Fixture Author A"
    }
   ],
-  "body_html": "<p>Nested and ordered lists, inline marks, entities and emoji 🎉 in one place.</p><ul><li>Outer item<ul><li>Inner item one</li><li>Inner item two with <strong>bold</strong>, <em>italics</em>, <s>strikethrough</s>, x<sup>2</sup> and H<sub>2</sub>O</li></ul></li><li>Second outer</li></ul><ol><li>First</li><li>Second</li></ol><p>Smart quotes: “quoted”, apostrophe’s, en–dash, em—dash, ellipsis…, ampersand &amp;, less-than &lt;.</p><figure><img src=\"https://substackcdn.com/image/fetch/w_5000,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fdead-wide.png\" alt=\"very wide dead image\"><figcaption>A figcaption under a deliberately dead, oversized image.</figcaption></figure><p>An iframe embed:</p><iframe src=\"https://www.youtube.com/embed/abc123\"></iframe><p>Closing line.</p>"
+  "body_html": "<p>Nested and ordered lists, inline marks, entities and emoji 🎉 in one place.</p><ul><li>Outer item<ul><li>Inner item one</li><li>Inner item two with <strong>bold</strong>, <em>italics</em>, <s>strikethrough</s>, x<sup>2</sup> and H<sub>2</sub>O</li></ul></li><li>Second outer</li></ul><ol><li>First</li><li>Second</li></ol><p>Smart quotes: “quoted”, apostrophe’s, en–dash, em—dash, ellipsis…, ampersand &amp;, less-than &lt;.</p><figure><img src=\"https://substackcdn.com/image/fetch/w_5000,c_limit,f_auto,q_auto:good/https%3A%2F%2Fmedia.example%2Fdead-wide.png\" alt=\"very wide dead image\"><figcaption>A figcaption under a deliberately dead, oversized image.</figcaption></figure><p>An iframe embed:</p><iframe src=\"https://www.youtube.com/embed/abc123\"></iframe><p>Closing line.</p>",
+  "reaction_count": 22
  },
  {
   "slug": "torture-4",
@@ -46,7 +49,8 @@
     "name": "Fixture Author A"
    }
   ],
-  "body_html": "<p>The body is short; the title is the test.</p>"
+  "body_html": "<p>The body is short; the title is the test.</p>",
+  "reaction_count": 1
  },
  {
   "slug": "torture-rtl",
@@ -58,7 +62,8 @@
     "name": "Fixture Author A"
    }
   ],
-  "body_html": "<p>Hebrew: שלום עולם, זה קטע בעברית לבדיקת זיהוי כתב. Arabic: مرحبا بالعالم، هذه فقرة للاختبار. CJK: これは日本語のテスト段落です。这是一个中文测试段落。한국어 테스트 문단입니다.</p><p>Latin text resumes so the fixture stays majority-Latin and must NOT trigger a decline.</p>"
+  "body_html": "<p>Hebrew: שלום עולם, זה קטע בעברית לבדיקת זיהוי כתב. Arabic: مرحبا بالعالم، هذه فقرة للاختبار. CJK: これは日本語のテスト段落です。这是一个中文测试段落。한국어 테스트 문단입니다.</p><p>Latin text resumes so the fixture stays majority-Latin and must NOT trigger a decline.</p>",
+  "reaction_count": 9
  },
  {
   "slug": "torture-podcast",
@@ -109,7 +114,8 @@
     "name": "Fixture Author A"
    }
   ],
-  "body_html": "<p>If this sentence appears in the book, slug dedupe is broken.</p>"
+  "body_html": "<p>If this sentence appears in the book, slug dedupe is broken.</p>",
+  "reaction_count": 40
  },
  {
   "slug": "torture-empty",

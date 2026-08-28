@@ -21,6 +21,8 @@ const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
+const TOP = argOf("--top") ? +argOf("--top") : null;
+const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
@@ -70,13 +72,27 @@ const posts = listing
             && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
 if (AFTER || BEFORE) report.window = { after: AFTER, before: BEFORE };
+const seenSlugs = new Set();
+for (let i = 0; i < posts.length; ) {
+  if (seenSlugs.has(posts[i].slug)) { report.skips.push({ slug: posts[i].slug, reason: "duplicate slug" }); posts.splice(i, 1); }
+  else { seenSlugs.add(posts[i].slug); i++; }
+}
+let selectedFrom = null;
+if (TOP && posts.length > TOP) {
+  selectedFrom = posts.length;
+  const d0 = new Date(Math.min(...posts.map(p2 => Date.parse(p2.post_date))));
+  const d1 = new Date(Math.max(...posts.map(p2 => Date.parse(p2.post_date))));
+  const fmtM = d => d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  var archiveRange = `${fmtM(d0)} – ${fmtM(d1)}`;
+  const key = p2 => p2.id ?? p2.slug;
+  const keep = new Set([...posts].sort((a, b) => (b.reaction_count || 0) - (a.reaction_count || 0))
+    .slice(0, TOP).map(key));
+  for (let i = posts.length - 1; i >= 0; i--) if (!keep.has(key(posts[i]))) posts.splice(i, 1);
+  report.selection = { top: TOP, from: selectedFrom };
+}
 console.error(listing.length, "listed;", posts.length, "printable;", report.omittedPaid, "paid omitted");
 
-const seenSlugs = new Set();
-const deduped = posts.filter(p => {
-  if (seenSlugs.has(p.slug)) { report.skips.push({ slug: p.slug, reason: "duplicate slug" }); return false; }
-  seenSlugs.add(p.slug); return true;
-});
+const deduped = posts;
 const { mkdirSync: mkd, readFileSync: rdf, writeFileSync: wrf, existsSync: exf } = await import("node:fs");
 const CACHE = `proofs/.cache/${host}`;
 if (!FIXTURE) mkd(CACHE, { recursive: true });
@@ -183,6 +199,7 @@ for (let i = full.length - 1; i >= 0; i--) {
 
 /* excerpts + date-titled flags for navigable letters TOCs */
 for (const p2 of full) {
+  p2.title = String(p2.title || "").trim();
   p2._dateTitled = DATE_TITLE.test((p2.title || "").trim());
   const txt = String(p2.body_html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   p2._excerpt = txt.split(" ").slice(0, 9).join(" ").replace(/[.,;:!?]+$/, "");
@@ -221,17 +238,35 @@ function decodeCdn(src) {
   if (m) { try { return decodeURIComponent(m[1]); } catch { return src; } }
   return src;
 }
+function stripBalancedDivs(html, classRe) {
+  // remove each <div class~=classRe> ... matching </div>, counting nested divs
+  let out = html;
+  for (let guard = 0; guard < 200; guard++) {
+    const m = out.match(new RegExp(`<div[^>]*class="[^"]*(?:${classRe})[^"]*"[^>]*>`, "i"));
+    if (!m) break;
+    const start = m.index;
+    let depth = 1, i = start + m[0].length;
+    const tokens = /<div\b|<\/div>/gi;
+    tokens.lastIndex = i;
+    let t;
+    while (depth > 0 && (t = tokens.exec(out))) depth += t[0] === "</div>" ? -1 : 1;
+    const end = t ? tokens.lastIndex : out.length;
+    out = out.slice(0, start) + out.slice(end);
+  }
+  return out;
+}
 function clean(html, slug) {
   let s = html;
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "")
        .replace(/<form[\s\S]*?<\/form>/gi, "");
-  s = s.replace(/<div[^>]*class="[^"]*image-link-expand[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "");
+  s = stripBalancedDivs(s, "embedded-publication-wrap|embedded-post-wrap|\\bcomment\\b|digest-post-embed|subscription-widget|poll-embed|community-module|image-link-expand|install-substack-app");
   s = s.replace(/<button[\s\S]*?<\/button>/gi, "");
   s = s.replace(/<p[^>]*>\s*<a[^>]*>(Leave a comment|Share|Subscribe now|Refer a friend|Give a gift subscription)<\/a>\s*<\/p>/gi, "");
   s = s.replace(/<a[^>]*>(Leave a comment|Subscribe now|Share this post|Refer a friend)<\/a>/gi, "");
   s = s.replace(/<img[^>]*(width="1"|height="1")[^>]*>/gi, "");
-  s = s.replace(/<div[^>]*class="[^"]*\bcomment[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "");
   s = s.replace(/>\s*\[\{"type":[\s\S]*?\}\]\s*</g, "><");
+  // orphan separators left where an embed card was removed between list items
+  s = s.replace(/(<li><p>)\s*;\s*/gi, "");
   s = s.replace(/<source[^>]*>/gi, "");
   for (const re of KILL) s = s.replace(re, "");
   // iframes and embeds become source cards
@@ -269,6 +304,31 @@ function clean(html, slug) {
   return s;
 }
 
+/* ---------------- back-matter data: curated links + optional comments appendix ---------------- */
+let homeLinks = [];
+if (!FIXTURE) {
+  try {
+    const hl = await j(`https://${host}/api/v1/homepage_links`);
+    if (Array.isArray(hl)) homeLinks = hl.sort((a, b) => (a.rank || 0) - (b.rank || 0)).slice(0, 8);
+  } catch {}
+}
+let commentPicks = [];
+if (COMMENTS_N > 0 && !FIXTURE) {
+  const ranked = [...full].sort((a, b) => (b.reaction_count || 0) - (a.reaction_count || 0)).slice(0, COMMENTS_N);
+  for (const p2 of ranked) {
+    try {
+      const cd = await j(`https://${host}/api/v1/post/${p2.id}/comments?sort=best_first`);
+      const c = (cd.comments || []).filter(c2 => !c2.deleted && c2.name && String(c2.body || "").trim().split(/\s+/).length >= 8)
+        .sort((a, b) => (b.reaction_count || 0) - (a.reaction_count || 0))[0];
+      if (c) commentPicks.push({ article: p2.title, name: c.name,
+        body: String(c.body).split(/\s+/).slice(0, 80).join(" "),
+        truncated: String(c.body).split(/\s+/).length > 80, likes: c.reaction_count || 0 });
+    } catch {}
+    await new Promise(r => setTimeout(r, 400));
+  }
+  report.commentsAppendix = commentPicks.length;
+}
+
 /* ---------------- QR codes ---------------- */
 const qrPub = await QRCode.toDataURL(`https://${host}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } });
 const qrInk = await QRCode.toDataURL("https://inksheaf.pages.dev", { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } });
@@ -282,10 +342,11 @@ const year = new Date(dates[dates.length - 1]).getUTCFullYear();
 const y0 = new Date(dates[0]).getUTCFullYear();
 const spanMonths = (dates[dates.length - 1] - dates[0]) / 2629800000;
 const yspan = y0 === year ? String(year) : y0 + "–" + year;
-const kindLabel = spanMonths <= 4 ? `Quarterly · ${year}`
+let kindLabel = spanMonths <= 4 ? `Quarterly · ${year}`
   : (spanMonths >= 10 && spanMonths <= 14) ? `Annual · ${year}`
   : `Collected ${capNoun} · ${yspan}`;
-const volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected ${capNoun}`;
+let volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected ${capNoun}`;
+if (report.selection) { kindLabel = `Selected ${capNoun} · ${yspan}`; volLabel = `Selected ${capNoun}`; }
 const totalWords = full.reduce((s, p) => s + (p.wordcount || 0), 0);
 for (const p2 of full) if ((p2.title || "").length > 120)
   report.skips.push({ slug: p2.slug, reason: "title over 120 chars kept, check running head", kept: true });
@@ -463,6 +524,13 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .getmore .qr div{ text-align:center; font-size:8.5pt; color:var(--faint) }
 .getmore img{ width:1.15in; height:1.15in; margin:0 0 .12in }
 .getmore p{ text-indent:0; margin-bottom:.6em }
+.getmore .morelinks{ font-size:9pt; color:var(--faint); margin:.4in 0 .2in }
+.appendix{ page: frontmatter; break-before:page }
+.appendix .appnote{ font-size:8.5pt; color:var(--faint); text-indent:0; margin-bottom:1em }
+.apc{ margin:0 0 1.2em; border-top:1px solid var(--rule); padding-top:.8em }
+.apc-art{ font-size:8.5pt; letter-spacing:.06em; text-transform:uppercase; color:var(--rubric) }
+.apc-body{ margin:.4em 0; font-size:9.5pt }
+.apc-by{ font-size:8.5pt; color:var(--faint) }
 </style>
 </head>
 <body data-retrieval-failures="${report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length}">
@@ -490,9 +558,11 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   ${pubDesc ? `<p class="epigraph">${esc(pubDesc)}</p>` : ""}
   ${(() => { const lost = report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length;
      report.retrievalFailures = lost; return ""; })()}
-  <p>This volume collects ${report.retrievalFailures ? `${full.length} of the ${full.length + report.retrievalFailures} public ${noun}` : `every public ${nounOne}`} published at ${host.replace(/^www\./, "")} from
-  ${range}${author !== pubName ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
-  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>
+  ${report.selection ? `<p>This volume holds the ${full.length} ${noun} readers responded to most,
+  chosen by reactions from the ${report.selection.from} published at ${host.replace(/^www\./, "")}
+  over ${typeof archiveRange !== "undefined" ? archiveRange : range}, printed in the order they first appeared.</p>` : `<p>This volume collects ${report.retrievalFailures ? `${full.length} of the ${full.length + report.retrievalFailures} public ${noun}` : `every public ${nounOne}`} published at ${host.replace(/^www\./, "")} from
+  ${range}${author.toLowerCase() !== pubName.toLowerCase() ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
+  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>`}
   ${report.retrievalFailures ? `<p>${report.retrievalFailures} ${report.retrievalFailures === 1 ? nounOne : noun} could not be
   retrieved while this proof was built and will appear in the production edition.</p>` : ""}
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
@@ -512,12 +582,24 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 
 ${articles}
 
+${commentPicks.length ? `<div class="fm appendix">
+  <h3>From the comments</h3>
+  <p class="appnote">Readers' replies as published on the online edition; each links from the ${nounOne} it answers.</p>
+  ${commentPicks.map(c => `<div class="apc">
+    <div class="apc-art">On “${esc(c.article)}”</div>
+    <blockquote class="apc-body">${esc(c.body)}${c.truncated ? "…" : ""}</blockquote>
+    <div class="apc-by">${esc(c.name)}${c.likes ? ` · ${c.likes} ❤` : ""}</div>
+  </div>`).join("\n")}
+</div>` : ""}
+
 <div class="getmore">
   <h3>Get more</h3>
   <p><b>Read on.</b> New essays appear first at ${host.replace(/^www\./, "")}. A free subscription
   delivers each new piece by email, and the paid archive lives there too.</p>
   <p><b>Order copies.</b> This edition, and each new quarterly or annual, can be ordered at the
   publication's Inksheaf page. Gift copies ship to any US address.</p>
+  ${homeLinks.length ? `<div class="morelinks"><b>More from ${esc(pubName)}.</b> ${homeLinks.map(l =>
+    `${esc(l.title || l.url)} (${esc(String(l.url || "").replace(/^https?:\/\//, "").split("?")[0].replace(/\/$/, "").slice(0, 60))})`).join(" · ")}</div>` : ""}
   <div class="qr">
     <div><img src="${qrPub}" alt="QR: publication"><br>${host}</div>
     <div><img src="${qrInk}" alt="QR: inksheaf"><br>inksheaf.com</div>

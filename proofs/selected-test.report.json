@@ -5,15 +5,6 @@
     {
       "slug": "torture-1",
       "reason": "duplicate slug"
-    },
-    {
-      "slug": "torture-empty",
-      "reason": "empty body"
-    },
-    {
-      "slug": "torture-4",
-      "reason": "title over 120 chars kept, check running head",
-      "kept": true
     }
   ],
   "deadImages": [
@@ -24,8 +15,12 @@
   "omittedPaid": 1,
   "podcastPosts": 1,
   "declineSignals": [],
+  "selection": {
+    "top": 3,
+    "from": 7
+  },
   "kind": "essays",
-  "mediaOnly": 1,
+  "mediaOnly": 0,
   "parts": [],
   "rtlChars": 61,
   "cjkChars": 35,

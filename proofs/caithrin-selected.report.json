@@ -1,24 +1,29 @@
 {
-  "host": "www.slowboring.com",
-  "listed": 423,
+  "host": "www.caithrin.com",
+  "listed": 40,
   "skips": [],
   "deadImages": [],
-  "omittedPaid": 336,
-  "podcastPosts": 23,
+  "omittedPaid": 0,
+  "podcastPosts": 0,
   "declineSignals": [],
+  "selection": {
+    "top": 12,
+    "from": 40
+  },
   "brand": {
-    "accent": "#039287",
+    "accent": "#63543a",
     "headingFont": "Inter",
     "bodyFont": "Source Serif 4",
-    "coverBg": "#f5f5f5",
-    "coverPlate": false,
+    "coverBg": "#1D1E1D",
+    "coverPlate": true,
     "mappedFrom": "SF Pro Display",
     "warnings": []
   },
   "kind": "essays",
   "mediaOnly": 0,
   "parts": [],
-  "rtlChars": 1,
-  "cjkChars": 0,
+  "commentsAppendix": 5,
+  "rtlChars": 0,
+  "cjkChars": 1,
   "retrievalFailures": 0
 }

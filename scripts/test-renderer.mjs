@@ -139,6 +139,17 @@ const recipesReport = JSON.parse(readFileSync("proofs/recipes-test.report.json",
 ok(recipesReport.kind === "recipes", "recipes kind detected from tags", recipesReport.kind);
 ok(readFileSync("proofs/recipes-test.html", "utf-8").includes("3 recipes"), "cover foot says recipes");
 
+/* ---------- 4c. Selected volumes ---------- */
+execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
+  "--fixture", "proofs/torture-fixture.json", "--top", "3", "--out", "proofs/selected-test.html"], { stdio: "pipe" });
+const selHtml = readFileSync("proofs/selected-test.html", "utf-8");
+const selReport = JSON.parse(readFileSync("proofs/selected-test.report.json", "utf-8"));
+ok((selHtml.match(/class="article" id="art-/g) || []).length === 3, "--top 3 prints 3 pieces");
+ok(selHtml.includes("Selected Essays"), "Selected label on cover");
+ok(JSON.stringify(selReport.selection) === JSON.stringify({top: 3, from: 7}), "selection recorded", JSON.stringify(selReport.selection));
+const selOrder = [...selHtml.matchAll(/<h2 class="arttitle"[^>]*>([^<]+)/g)].map(m => m[1]);
+ok(selOrder.length === 3 && selOrder[0].includes("Torture Chapter") && selOrder[1].includes("Entity Chapter") && selOrder[2].includes("Script Detection"), "selected top-3 by reactions, chronological order", selOrder.join(" | ")); 
+
 /* ---------- 5. lint ---------- */
 try { execFileSync("node", ["scripts/proof-lint.mjs", "proofs/torture.html"], { stdio: "pipe" }); ok(true, "proof-lint clean"); }
 catch { ok(false, "proof-lint clean"); }

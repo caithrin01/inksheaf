@@ -1,0 +1,2 @@
+2026-08-27 torture: added reaction_count fields for --top selection tests
+2026-08-29 dde98b5505f3b7f1 torture: added reaction_count fields for --top tests; added torture-video media-only case; letters/recipes fixtures unchanged

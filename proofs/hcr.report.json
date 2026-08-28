@@ -11,6 +11,7 @@
     "headingFont": "Source Serif 4",
     "bodyFont": "Source Serif 4",
     "coverBg": "#FFFFFF",
+    "coverPlate": false,
     "mappedFrom": null,
     "warnings": []
   },
