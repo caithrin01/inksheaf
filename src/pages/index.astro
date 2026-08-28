@@ -83,6 +83,16 @@ p+p{margin-top:1rem}
 .kicker::after{content:""; display:block; width:2.4rem; border-bottom:2px solid var(--rubric); margin-top:.5rem}
 .note{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.74rem; color:var(--faint); letter-spacing:.04em}
 
+/* ---------- hero wind: pages blowing behind the opening, washed to paper ---------- */
+.herowind{position:absolute; top:0; left:50%; transform:translateX(-50%); width:100vw; max-width:1600px;
+  height:30rem; overflow:hidden; pointer-events:none; z-index:-1;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%);
+  mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%)}
+.herowind video{width:100%; height:100%; object-fit:cover; opacity:.22; mix-blend-mode:multiply;
+  filter:saturate(.55) brightness(1.07) blur(1.5px)}
+@media (prefers-color-scheme: dark){ .herowind video{opacity:.14; mix-blend-mode:screen; filter:invert(1) saturate(.4)} }
+@media (prefers-reduced-motion: reduce){ .herowind{display:none} }
+
 /* ---------- hero try-it ---------- */
 .hero-workbench{display:grid; grid-template-columns:minmax(18rem,.75fr) minmax(32rem,1.25fr);
   gap:2.4rem; align-items:start; margin-top:2.3rem}
@@ -138,6 +148,15 @@ p+p{margin-top:1rem}
 .pv-page .fol{margin-top:auto; text-align:center; font-size:.45rem; color:var(--faint); padding-top:.4rem}
 .pv-page .toc-line{opacity:0; transform:translateY(4px); transition:opacity .35s, transform .35s}
 .preview.on .pv-page .toc-line{opacity:1; transform:none}
+/* specimen state: the placeholder is a real ink edition, not a wireframe */
+#pvbook{--pvbg:#241e16; --pvink:#f2ead9; --pvink2:rgba(242,234,217,.6)}
+#pvbook .cover{background:var(--pvbg); border-color:rgba(0,0,0,.35)}
+#pvbook .cv-mast{color:var(--pvink); font-family:var(--pvfont, inherit)}
+#pvbook .cv-kind{color:#b99b63}
+#pvbook .cv-rule{border-color:#b99b63}
+#pvbook .cv-dates,#pvbook .cv-pages,#pvbook .cv-vol{color:var(--pvink2)}
+#pvbook .cv-foot{border-color:rgba(242,234,217,.28)}
+#pvbook .spinetext span{color:var(--pvink2)}
 #pvbook.branded .cover{background:var(--pvbg); border-color:rgba(0,0,0,.15)}
 #pvbook.branded .cv-mast{color:var(--pvink); font-family:var(--pvfont, inherit)}
 #pvbook.branded .cv-kind{color:var(--pvink2)}
@@ -177,7 +196,8 @@ p+p{margin-top:1rem}
 .cv-dates{font-size:.78rem; color:var(--faint); margin-top:.3rem}
 .cv-mid{flex:1}
 .cv-foot{border-top:1px solid var(--rule); padding-top:.55rem; display:flex; justify-content:space-between; align-items:baseline; gap:.5rem}
-.cv-pages{font-size:.72rem; color:var(--faint)}
+.cv-pages{font-size:.66rem; color:var(--faint); min-width:0}
+.cv-foot .cv-pages{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .cv-vol{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap}
 .spinetext{position:absolute; top:0; bottom:0; left:0; width:14px; display:flex; align-items:center; justify-content:center; pointer-events:none}
 .spinetext span{transform:rotate(90deg); white-space:nowrap; font-size:.5rem; letter-spacing:.2em; text-transform:uppercase; color:var(--faint)}
@@ -207,9 +227,7 @@ p+p{margin-top:1rem}
   @keyframes pv{from{opacity:0; transform:translateY(18px) scale(.985)}to{opacity:1; transform:none}}
 }
 .pv-grid{display:grid; grid-template-columns:minmax(13rem,1fr) minmax(12rem,.9fr); gap:1.8rem;
-  align-items:center; justify-items:center; padding:1.5rem; background:rgba(251,247,238,.42);
-  border:1px solid var(--rule); border-radius:3px; box-shadow:var(--sheet-shadow)}
-@media (prefers-color-scheme: dark){.pv-grid{background:rgba(30,26,21,.55)}}
+  align-items:center; justify-items:center; padding:1.5rem 0}
 .pv-facts{grid-column:1/-1; width:100%; display:none; padding-top:.2rem}
 .preview.personalized .pv-facts{display:block}
 .pv-big{font-size:2.35rem; font-weight:560; line-height:1.1; text-wrap:balance; text-shadow:var(--press)}
@@ -298,6 +316,10 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 </svg>inksheaf</b><span>private beta · printed in the US</span></header>
 
   <main>
+    <div class="herowind" aria-hidden="true">
+      <video src="/hero-pages.mp4" poster="/hero-pages-poster.jpg" autoplay muted loop playsinline
+        preload="metadata" width="1280" height="518"></video>
+    </div>
     <h1 class="reveal">See the book inside your archive.</h1>
     <p class="lede reveal">Paste your Substack URL. Inksheaf turns the last year of public writing
     into a 6×9 edition in your publication's masthead and palette.</p>
@@ -328,7 +350,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
             <div class="cv-rule"></div>
             <div class="cv-dates" id="pv-dates">The past twelve months</div>
             <div class="cv-mid"></div>
-            <div class="cv-foot"><span class="cv-pages" id="pv-cvpages">6 × 9 · perfect bound</span><span class="cv-vol">Inksheaf edition</span></div>
+            <div class="cv-foot"><span class="cv-pages" id="pv-cvpages">6 × 9 · perfect bound</span><span class="cv-vol">Inksheaf</span></div>
           </div>
           <div class="spinefold"></div>
           <div class="spinetext"><span id="pv-spine">Your publication</span></div>
@@ -356,8 +378,8 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 
     <section class="section">
       <h2 class="kicker">The object</h2>
-      <p>One publication, typeset. These are actual pages from the production file of the
-      <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays, 294 pages at 6×9,
+      <p>One publication, typeset. These are actual pages from the production file of
+      the <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays, 294 pages at 6×9,
       the same file the printed copies come from.</p>
       <div class="realspread">
         <img src="/spread-toc-real.jpg" alt="Actual contents spread from the caithrin edition"
@@ -593,6 +615,7 @@ function renderPreview(d: any){
     if (d.theme.heading_stack) book.style.setProperty('--pvfont', d.theme.heading_stack);
   } else {
     book.classList.remove('branded');
+    for (const v of ['--pvbg','--pvink','--pvink2','--pvfont']) book.style.removeProperty(v);
   }
 
   /* their titles become the contents page */
