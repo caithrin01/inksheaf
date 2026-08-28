@@ -14,60 +14,22 @@
   },
   "build": {
    "done": true,
-   "at": "2026-08-28T07:26:38.116Z",
+   "at": "2026-08-28T17:06:34.867Z",
+   "included": 40,
    "listed": 40,
    "kind": "essays",
    "retrievalFailures": 0
   },
-  "render": {
-   "done": true,
-   "at": "2026-08-28T07:26:53.657Z",
-   "pages": 294,
-   "bytes": 11836402
-  },
   "copy": {
    "done": true,
-   "at": "2026-08-28T07:42:36.548Z",
-   "model": false
+   "at": "2026-08-28T17:07:31.084Z",
+   "model": true
   },
-  "sizegate": {
+  "render": {
    "done": true,
-   "at": "2026-08-28T07:43:03.845Z",
-   "bytes": 7644856,
-   "tier": [
-    900,
-    55
-   ]
-  },
-  "cover": {
-   "done": true,
-   "at": "2026-08-28T07:43:10.702Z",
-   "W": 934,
-   "H": 666,
-   "bytes": 4108151
-  },
-  "host": {
-   "done": true,
-   "at": "2026-08-28T07:43:36.144Z",
-   "interiorUrl": "https://inksheaf.pages.dev/i-682bc90dbd58.pdf",
-   "coverUrl": "https://inksheaf.pages.dev/c-2f531e7580e4.pdf"
-  },
-  "validate": {
-   "done": true,
-   "at": "2026-08-28T07:44:24.031Z",
-   "interiorId": 4510407,
-   "coverId": 4510408,
-   "interior": "NORMALIZED",
-   "cover": "NORMALIZED"
-  },
-  "quote": {
-   "done": true,
-   "at": "2026-08-28T07:44:24.375Z",
-   "print": "9.34",
-   "shipping": "5.69",
-   "total_excl_tax": "15.78",
-   "total_incl_tax": "16.58",
-   "currency": "USD"
+   "at": "2026-08-28T17:08:18.746Z",
+   "pages": 293,
+   "bytes": 97964433
   }
  }
 }

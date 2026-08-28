@@ -9,7 +9,7 @@ const KEY = process.env.OPENROUTER_API_KEY;
 if (!KEY) { console.error("OPENROUTER_API_KEY not set"); process.exit(2); }
 const H = { authorization: `Bearer ${KEY}`, "content-type": "application/json" };
 const only = process.argv.slice(2);
-const shots = JSON.parse(readFileSync("assets/shots.json", "utf-8"))
+const shots = JSON.parse(readFileSync(process.env.SHOTS_FILE || "assets/shots.json", "utf-8"))
   .filter(s => !only.length || only.includes(s.name));
 mkdirSync("assets/clips", { recursive: true });
 const log = [];
@@ -17,8 +17,8 @@ const log = [];
 // submit all jobs
 for (const s of shots) {
   const body = { model: s.model, prompt: s.prompt, duration: s.duration,
-    aspect_ratio: s.aspect_ratio, resolution: "1080p", generate_audio: false,
-    frame_images: s.frame_images };
+    aspect_ratio: s.aspect_ratio, resolution: s.resolution || "1080p", generate_audio: false,
+    ...(s.frame_images ? { frame_images: s.frame_images } : {}) };
   const r = await fetch("https://openrouter.ai/api/v1/videos", { method: "POST", headers: H, body: JSON.stringify(body) });
   const d = await r.json();
   if (!d.id) { console.error(`SUBMIT FAIL ${s.name}:`, JSON.stringify(d).slice(0, 300)); log.push({ name: s.name, error: d }); continue; }

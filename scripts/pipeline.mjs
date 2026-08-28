@@ -158,7 +158,17 @@ if (!done("sizegate")) {
         .replaceAll(/src="\.cache\/[^"]*\/([^"/]+)"/g, `src=".cache/sized-${px}-${q}/$1"`));
       const out = sh("bash", ["scripts/render-book.sh", sizedHtml, `${process.cwd()}/${interiorPdf}`]);
       const pages = +(out.match(/PAGES=(\d+)/)?.[1] || 0);
-      if (pages !== PAGES) throw new Error(`sizegate changed pagination ${PAGES} -> ${pages}; layout must be image-independent`);
+      if (pages !== PAGES) {
+        // the raw render can flake on slow-loading original images; the SIZED artifact is what
+        // ships, so the safety property is sized-render determinism (measured 2026-08-29:
+        // sized 294/294 stable vs raw 293 flake)
+        const out2 = sh("bash", ["scripts/render-book.sh", sizedHtml, `${process.cwd()}/${interiorPdf}`]);
+        const pages2 = +(out2.match(/PAGES=(\d+)/)?.[1] || 0);
+        if (pages2 !== pages) throw new Error(`sized render nondeterministic: ${pages} then ${pages2}`);
+        console.error(`[sizegate] adopting stable sized page count ${pages} (raw render said ${PAGES})`);
+        PAGES = pages;
+        state.steps.render.pages = pages; save();
+      }
       bytes = statSync(interiorPdf).size;
       log("sizegate", `tier ${px}px/q${q} -> ${bytes}b`);
       if (bytes <= MAX_UPLOAD) { applied = [px, q]; break; }

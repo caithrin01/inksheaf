@@ -123,6 +123,9 @@ p+p{margin-top:1rem}
 .demoplate{margin:2rem 0 .4rem}
 .demoplate video{width:100%; display:block; border:1.5px solid var(--ink); border-radius:3px;
   box-shadow:var(--sheet-shadow)}
+.realspread{display:grid; gap:1.2rem; margin:1.6rem 0 .5rem}
+.realspread img{width:100%; height:auto; display:block; border:1px solid var(--rule); border-radius:3px;
+  box-shadow:var(--sheet-shadow)}
 
 /* ---------- preview magic: their page, their colors, staged assembly ---------- */
 .pv-page{width:12.5rem; aspect-ratio:6/9; background:var(--card); border:1px solid var(--rule);
@@ -336,46 +339,17 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
           autoplay preload="none" width="960" height="540"></video>
         <p class="note">Recorded from the live product: a pasted URL becomes a bound book.</p>
       </div>
-      <p>One publication, typeset. The render below is built from the real archive
-      of <a href="https://www.caithrin.com">caithrin.com</a>: 23 essays and 46,336 words over
-      Dec 2025 to Aug 2026, an estimated 158 pages at 6×9.</p>
-      <div class="bookstage" aria-hidden="true">
-        <div class="bookobj">
-          <div class="cover">
-            <div class="cv-kind">Annual · 2026</div>
-            <div class="cv-mast">caithrin</div>
-            <div class="cv-rule"></div>
-            <div class="cv-dates">December 2025 – August 2026</div>
-            <div class="cv-mid"></div>
-            <div class="cv-foot"><span class="cv-pages">23 essays · est. 158 pages</span><span class="cv-vol">Inksheaf edition</span></div>
-          </div>
-          <div class="spinefold"></div>
-          <div class="spinetext"><span>caithrin · annual 2026</span></div>
-          <div class="pageblock"></div>
-        </div>
-        <div class="spread">
-          <div class="pg left">
-            <div class="run"><span>caithrin</span><span>Contents</span></div>
-            <div class="toc-line"><span class="t">Fearmongering the Frontier</span><span class="dots"></span><span class="n">9</span></div>
-            <div class="toc-line"><span class="t">"Helpful Assistant", AI's Original Sin</span><span class="dots"></span><span class="n">21</span></div>
-            <div class="toc-line"><span class="t">China Writing &amp; Wall Dancing</span><span class="dots"></span><span class="n">31</span></div>
-            <div class="toc-line"><span class="t">so now we all love open models. now what?</span><span class="dots"></span><span class="n">38</span></div>
-            <div class="toc-line"><span class="t">First Steps: Pacific Compute</span><span class="dots"></span><span class="n">57</span></div>
-            <div class="toc-line"><span class="t">Card Counters of the Soul</span><span class="dots"></span><span class="n">64</span></div>
-            <div class="fol">· iv ·</div>
-          </div>
-          <div class="pg right">
-            <div class="run"><span>Annual 2026</span><span>9</span></div>
-            <h4>Fearmongering the Frontier</h4>
-            <div class="by">August 18 · 2,596 words</div>
-            <p class="dc">Typeset from the essay's opening pages: your prose, set at 10.5 on 15
-            with article notes, running headers and a folio, exactly as it prints.</p>
-            <p>Every article opens on its own page with title, date and byline.</p>
-            <div class="fol">· 9 ·</div>
-          </div>
-        </div>
+      <p>One publication, typeset. These are actual pages from the production file of the
+      <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays, 294 pages at 6×9,
+      the same file the printed copies come from.</p>
+      <div class="realspread">
+        <img src="/spread-toc-real.jpg" alt="Actual contents spread from the caithrin edition"
+          loading="lazy" width="1800" height="1359" />
+        <img src="/spread-real.jpg" alt="Actual essay spread with running headers and article notes"
+          loading="lazy" width="1800" height="1359" />
       </div>
-      <p class="note">Typeset render of the design system, not a photograph.</p>
+      <p class="note">Not a mockup: these spreads are rendered from the production PDF. Photographs
+      of the printed copy replace them the day it arrives.</p>
       <table class="spec">
         <tr><td>Trim</td><td>6 × 9 in, perfect bound</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
