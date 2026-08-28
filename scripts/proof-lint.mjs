@@ -72,6 +72,10 @@ if (lostM && +lostM[1] > 0 && /collects every public/.test(html))
 // double-escaped entities are shipped bugs
 if (/&amp;(#|amp;|quot;|lt;|gt;|apos;)/.test(html))
   findings.push("double-escaped entity printing literally (e.g. &amp;#x27;)");
+// Regression signature from an old opener regex that matched the start of <picture>.
+// It can leave images apparently visible while silently producing invalid book markup.
+const brokenPictures = (html.match(/<p\b[^>]*opener[^>]*"icture>/g) || []).length;
+if (brokenPictures) findings.push(`${brokenPictures} <picture> elements corrupted by opener insertion`);
 // the printer's mark stays off the front of the book
 for (const r of regions.filter(r2 => ["cover", "titlepage", "about"].includes(r2.name)))
   if (/inksheaf/i.test(r.text)) findings.push(`${r.name}: Inksheaf mark on the front of the book (imprint belongs in back matter, once)`);

@@ -59,7 +59,7 @@ body::before{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark){ body::before{mix-blend-mode:screen; opacity:.1} }
-.page{max-width:39rem; margin:0 auto; padding:0 1.25rem 6rem; position:relative; z-index:2}
+.page{max-width:70rem; margin:0 auto; padding:0 1.5rem 6rem; position:relative; z-index:2}
 main{position:relative}
 .folio{
   display:flex; justify-content:space-between; align-items:baseline;
@@ -73,9 +73,9 @@ h1{
   letter-spacing:-.015em; margin:2.8rem 0 1.15rem; text-wrap:balance; text-shadow:var(--press);
 }
 h1 .amp{color:var(--rubric)}
-.lede{font-size:1.17rem; line-height:1.6}
+.lede{font-size:1.17rem; line-height:1.6; max-width:43rem}
 p+p{margin-top:1rem}
-.section{margin-top:4.6rem}
+.section{margin:5.4rem auto 0; max-width:46rem}
 .kicker{
   font-family:ui-sans-serif,system-ui,sans-serif; font-size:.72rem; font-weight:600;
   letter-spacing:.16em; text-transform:uppercase; color:var(--rubric); margin-bottom:1.1rem;
@@ -84,8 +84,11 @@ p+p{margin-top:1rem}
 .note{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.74rem; color:var(--faint); letter-spacing:.04em}
 
 /* ---------- hero try-it ---------- */
+.hero-workbench{display:grid; grid-template-columns:minmax(18rem,.75fr) minmax(32rem,1.25fr);
+  gap:2.4rem; align-items:start; margin-top:2.3rem}
 .tryit{margin-top:2.3rem; background:var(--card); border:1.5px solid var(--ink); border-radius:3px;
   box-shadow:var(--sheet-shadow); padding:1.15rem 1.2rem 1.25rem}
+.hero-workbench .tryit{margin-top:0}
 .tryit label{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.78rem; font-weight:600; display:block; margin-bottom:.45rem}
 .tryrow{display:flex; gap:.55rem; flex-wrap:wrap}
 .tryrow input{flex:1 1 14rem; padding:.7rem .7rem; font:inherit; font-size:1.02rem; color:var(--ink);
@@ -96,16 +99,8 @@ p+p{margin-top:1rem}
 .tryrow button:disabled{opacity:.55; cursor:wait}
 .tryhint{margin-top:.55rem}
 .tryerr{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.86rem; margin-top:.6rem; min-height:0}
-
-/* ---------- hero wind: pages blowing behind the opening, washed to paper ---------- */
-.herowind{position:absolute; top:0; left:50%; transform:translateX(-50%); width:100vw; max-width:1600px;
-  height:30rem; overflow:hidden; pointer-events:none; z-index:-1;
-  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%);
-  mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%)}
-.herowind video{width:100%; height:100%; object-fit:cover; opacity:.22; mix-blend-mode:multiply;
-  filter:saturate(.55) brightness(1.07) blur(1.5px)}
-@media (prefers-color-scheme: dark){ .herowind video{opacity:.14; mix-blend-mode:screen; filter:invert(1) saturate(.4)} }
-@media (prefers-reduced-motion: reduce){ .herowind{display:none} }
+.tryhandoff{margin-top:.7rem; border:0; background:none; color:var(--rubric); padding:0;
+  font:600 .86rem ui-sans-serif,system-ui,sans-serif; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
 
 /* ---------- the mark: one currentColor vector, both schemes ---------- */
 .mast{display:flex; align-items:center; gap:.55rem}
@@ -114,8 +109,7 @@ p+p{margin-top:1rem}
 
 /* ---------- typesetting interlude: the wait is a press run ---------- */
 .preview.staging{display:block}
-.preview.staging .pv-grid{display:none}
-.pv-stage{display:none; min-height:11rem; align-items:center; justify-content:center;
+.pv-stage{display:none; min-height:5.5rem; align-items:center; justify-content:center;
   flex-direction:column; text-align:center; padding:2.2rem 1rem}
 .pv-stage.on{display:flex}
 .pv-stage .setline{font-size:2rem; font-weight:560; line-height:1.15; text-shadow:var(--press);
@@ -130,10 +124,6 @@ p+p{margin-top:1rem}
 .pv-stage.on .setrule{width:3.4rem}
 @media (prefers-reduced-motion: reduce){ .pv-stage{display:none !important} }
 
-/* ---------- the recorded moment ---------- */
-.demoplate{margin:2rem 0 .4rem}
-.demoplate video{width:100%; display:block; border:1.5px solid var(--ink); border-radius:3px;
-  box-shadow:var(--sheet-shadow)}
 .realspread{display:grid; gap:1.2rem; margin:1.6rem 0 .5rem}
 .realspread img{width:100%; height:auto; display:block; border:1px solid var(--rule); border-radius:3px;
   box-shadow:var(--sheet-shadow)}
@@ -211,14 +201,17 @@ p+p{margin-top:1rem}
 .toc-line .n{color:var(--faint)}
 
 /* ---------- preview result ---------- */
-.preview{display:none; margin-top:1.6rem}
-.preview.on{display:block}
+.preview{display:block; margin-top:0; min-width:0}
 @media (prefers-reduced-motion: no-preference){
   .preview.on{animation:pv .8s cubic-bezier(.2,.7,.2,1) both}
   @keyframes pv{from{opacity:0; transform:translateY(18px) scale(.985)}to{opacity:1; transform:none}}
 }
-.pv-grid{display:flex; gap:1.8rem; align-items:center; flex-wrap:wrap; margin-top:1.4rem}
-.pv-facts{flex:1 1 15rem}
+.pv-grid{display:grid; grid-template-columns:minmax(13rem,1fr) minmax(12rem,.9fr); gap:1.8rem;
+  align-items:center; justify-items:center; padding:1.5rem; background:rgba(251,247,238,.42);
+  border:1px solid var(--rule); border-radius:3px; box-shadow:var(--sheet-shadow)}
+@media (prefers-color-scheme: dark){.pv-grid{background:rgba(30,26,21,.55)}}
+.pv-facts{grid-column:1/-1; width:100%; display:none; padding-top:.2rem}
+.preview.personalized .pv-facts{display:block}
 .pv-big{font-size:2.35rem; font-weight:560; line-height:1.1; text-wrap:balance; text-shadow:var(--press)}
 .pv-big b{color:var(--rubric); font-weight:560}
 .pv-sub{margin-top:.7rem; color:var(--faint)}
@@ -242,7 +235,7 @@ dl.faq dt::before{content:"Q. "; color:var(--rubric); font-weight:560}
 dl.faq dd{margin:.35rem 0 0; color:var(--faint)}
 
 /* ---------- form ---------- */
-.beta{margin-top:4.6rem; border:1.5px solid var(--ink); background:var(--card);
+.beta{margin:4.6rem auto 0; max-width:46rem; border:1.5px solid var(--ink); background:var(--card);
   padding:1.8rem 1.6rem 1.6rem; border-radius:3px; box-shadow:var(--sheet-shadow)}
 .steps{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.7rem; letter-spacing:.12em;
   text-transform:uppercase; color:var(--faint); margin-bottom:1.2rem}
@@ -279,7 +272,18 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
   .reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.16s}.reveal:nth-child(4){animation-delay:.24s}
   @keyframes up{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
 }
-@media (max-width:560px){ .spread{transform:none} .bookobj{transform:none} }
+@media (max-width:820px){
+  .page{max-width:46rem}
+  .hero-workbench{grid-template-columns:1fr; gap:1.4rem}
+  .preview{grid-row:1}.tryit{grid-row:2}
+}
+@media (max-width:560px){
+  .page{padding-inline:1rem}.spread{transform:none}.bookobj{transform:none}
+  h1{margin-top:2rem}.hero-workbench{margin-top:1.5rem}
+  .pv-grid{grid-template-columns:1fr; padding:1.15rem .75rem; gap:1.2rem}
+  .pv-page{display:none}.pv-facts{grid-column:1}
+  .bookobj{width:min(14rem,74vw)}
+}
 @media (prefers-reduced-motion: reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
@@ -294,14 +298,11 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 </svg>inksheaf</b><span>private beta · printed in the US</span></header>
 
   <main>
-    <div class="herowind" aria-hidden="true">
-      <video src="/hero-pages.mp4" poster="/hero-pages-poster.jpg" autoplay muted loop playsinline
-        preload="metadata" width="1280" height="518"></video>
-    </div>
     <h1 class="reveal">See the book inside your archive.</h1>
-    <p class="lede reveal">Paste your Substack URL. Inksheaf sets your real essays as a 6×9 edition
-    in your publication's masthead and palette. You approve every page before anything prints.</p>
+    <p class="lede reveal">Paste your Substack URL. Inksheaf turns the last year of public writing
+    into a 6×9 edition in your publication's masthead and palette.</p>
 
+    <div class="hero-workbench reveal">
     <div class="tryit reveal" id="tryit">
       <label for="tryurl">See your own book. Paste your publication's URL:</label>
       <div class="tryrow">
@@ -310,9 +311,10 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
       </div>
       <div class="tryhint note">Reads only your public archive. Preview numbers are cached for 24 hours; post bodies are not read or stored.</div>
       <div class="tryerr" id="tryerr" role="alert"></div>
+      <button class="tryhandoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
     </div>
 
-    <section class="preview" id="preview" aria-live="polite">
+    <section class="preview on" id="preview" aria-live="polite" aria-label="Book preview">
       <div class="pv-stage" id="pv-stage" aria-hidden="true">
         <div class="setkick">Setting your edition</div>
         <div class="setline" id="pv-setline">Reading your archive&hellip;</div>
@@ -321,20 +323,24 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
       <div class="pv-grid">
         <div class="bookobj" id="pvbook" aria-hidden="true">
           <div class="cover">
-            <div class="cv-kind" id="pv-kind">Annual</div>
-            <div class="cv-mast" id="pv-mast"></div>
+            <div class="cv-kind" id="pv-kind">Annual edition</div>
+            <div class="cv-mast" id="pv-mast">Your publication</div>
             <div class="cv-rule"></div>
-            <div class="cv-dates" id="pv-dates"></div>
+            <div class="cv-dates" id="pv-dates">The past twelve months</div>
             <div class="cv-mid"></div>
-            <div class="cv-foot"><span class="cv-pages" id="pv-cvpages"></span><span class="cv-vol">Inksheaf edition</span></div>
+            <div class="cv-foot"><span class="cv-pages" id="pv-cvpages">6 × 9 · perfect bound</span><span class="cv-vol">Inksheaf edition</span></div>
           </div>
           <div class="spinefold"></div>
-          <div class="spinetext"><span id="pv-spine"></span></div>
+          <div class="spinetext"><span id="pv-spine">Your publication</span></div>
           <div class="pageblock" id="pv-block"></div>
         </div>
         <div class="pv-page" id="pv-page" aria-hidden="true">
-          <div class="run"><span id="pv-runname"></span><span>Contents</span></div>
-          <div id="pv-toc"></div>
+          <div class="run"><span id="pv-runname">Your publication</span><span>Contents</span></div>
+          <div id="pv-toc">
+            <div class="toc-line"><span class="t">Your first piece</span><span class="dots"></span><span class="n">9</span></div>
+            <div class="toc-line"><span class="t">Another from the archive</span><span class="dots"></span><span class="n">17</span></div>
+            <div class="toc-line"><span class="t">The writing readers keep</span><span class="dots"></span><span class="n">31</span></div>
+          </div>
           <div class="fol">&middot; iv &middot;</div>
         </div>
         <div class="pv-facts">
@@ -346,14 +352,10 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         </div>
       </div>
     </section>
+    </div>
 
     <section class="section">
-      <div class="kicker">The object</div>
-      <div class="demoplate">
-        <video src="/demo-money.mp4" poster="/demo-money-poster.jpg" muted loop playsinline
-          autoplay preload="none" width="960" height="540"></video>
-        <p class="note">Recorded from the live product: a pasted URL becomes a bound book.</p>
-      </div>
+      <h2 class="kicker">The object</h2>
       <p>One publication, typeset. These are actual pages from the production file of the
       <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays, 294 pages at 6×9,
       the same file the printed copies come from.</p>
@@ -369,7 +371,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <tr><td>Trim</td><td>6 × 9 in, perfect bound</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
         <tr><td>Cover</td><td>Full colour, matte, your publication's own masthead and palette</td></tr>
-        <tr><td>Length</td><td>30–300 pages; a year of weekly essays is roughly 200</td></tr>
+        <tr><td>Length</td><td>32–300 pages per volume; longer archives become a quarterly set</td></tr>
         <tr><td>Apparatus</td><td>Contents with page numbers, running headers, article notes and bylines per article</td></tr>
         <tr><td>Price</td><td>Beta pricing is at cost: readers pay exactly what printing and shipping
         cost, and we add nothing. Measured on a real order: a 294-page collected edition landed for
@@ -382,30 +384,28 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
     </section>
 
     <section class="section">
-      <div class="kicker">How it works</div>
+      <h2 class="kicker">How it works</h2>
       <ol class="how">
-        <li>Paste your publication's URL above. Free posts come from your public archive; for
-        paywalled posts you upload Substack's own export, so no passwords change hands.</li>
-        <li>We typeset the issue and send you a proof PDF. You reorder, cut, add an editor's note,
-        then lock it.</li>
-        <li>Your readers order from one link to a private Lulu listing. Lulu prints each copy on
-        demand and mails it to the reader; Inksheaf does not handle their payment.</li>
+        <li>Paste your publication's URL above. The instant specimen uses public archive metadata;
+        paid writing enters the concierge beta through Substack's own export, never your password.</li>
+        <li>We typeset a print-ready edition and send you the exact proof PDF. You mark corrections;
+        we make them and ask for written approval before printing.</li>
+        <li>Once approved, the edition is published through Lulu. Lulu prints each copy on demand,
+        takes the reader's payment and ships it directly.</li>
       </ol>
     </section>
 
     <section class="section">
-      <div class="kicker">Who the beta is for</div>
+      <h2 class="kicker">Who the beta is for</h2>
       <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
       essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
       person, not a pipeline, checks every page of your first issue.</p>
-      <p>Three ways beta publications plan to use print: a founding-member perk, with sponsored
-      copies for top supporters under a budget cap you set; an annual readers buy from a link in
-      your footer or About page; and a door into the back catalog, so a new subscriber can meet
-      three years of writing as one bound volume instead of an infinite scroll.</p>
+      <p>The clearest beta uses are an annual readers buy from an About page, a quarterly set for
+      frequent publishers, or a physical door into the back catalog for new subscribers.</p>
     </section>
 
     <section class="section">
-      <div class="kicker">Questions writers ask</div>
+      <h2 class="kicker">Questions writers ask</h2>
       <dl class="faq">
         <dt>What does it cost me?</dt>
         <dd>Nothing during the beta. Readers pay printing and shipping at cost, with nothing added:
@@ -414,15 +414,14 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
         <dd>During the beta, nothing and neither do we: books sell at cost. The author revenue share
         gets designed with beta publications afterward, on measured numbers.</dd>
         <dt>Who owns the writing?</dt>
-        <dd>You do. You grant permission to print and mail the copies your readers order, and you
-        can revoke it at any time; revoking stops sales of your editions.</dd>
+        <dd>You do. Nothing prints until you approve the proof. Beta permissions and takedown terms
+        are confirmed in writing before an edition is listed.</dd>
         <dt>How do paid posts get in without my password?</dt>
         <dd>You upload the export Substack generates in your own dashboard (Settings → Exports).
         Any subscriber files inside it are discarded unread; only the posts are kept.</dd>
         <dt>What happens to images, tweets and embeds?</dt>
-        <dd>Missing images are flagged automatically and the print proof is checked by a person.
-        Web-only embeds are omitted or replaced with a printed source note. You see the result
-        before the issue is locked.</dd>
+        <dd>The renderer reports missing images and replaces web-only embeds with printed source
+        notes. During beta, we inspect that report and the proof with you before printing.</dd>
         <dt>When do the first books exist?</dt>
         <dd>The beta targets December printing, with books in readers' hands around New Year. Beta
         publications hear every date change directly.</dd>
@@ -434,7 +433,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
     </section>
 
     <section class="beta" id="beta">
-      <div class="kicker">Join the private beta</div>
+      <h2 class="kicker">Join the private beta</h2>
       <div class="steps">Step <b id="stepnum">1</b> of 2</div>
       <form id="f" novalidate>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" />
@@ -499,6 +498,7 @@ show(1);
 const trybtn = document.getElementById('trybtn') as HTMLButtonElement;
 const tryurl = document.getElementById('tryurl') as HTMLInputElement;
 const tryerr = document.getElementById('tryerr')!;
+const tryhandoff = document.getElementById('tryhandoff') as HTMLButtonElement;
 let previewData: any = null;
 
 /* ---------- typesetting interlude: facts fade through while the press runs ---------- */
@@ -520,13 +520,14 @@ function interludeStart(){
   setline.innerHTML = 'Reading your archive&hellip;';
   setline.classList.add('in');
   stage.classList.add('on');
-  stage.scrollIntoView({behavior:'smooth', block:'center'});
   return true;
 }
 async function interludeFacts(d: any){
   const mon = (iso: string) => new Date(iso + 'T00:00:00Z')
     .toLocaleDateString('en-US', {month:'long', year:'numeric', timeZone:'UTC'});
-  await beat('<b>' + d.posts + '</b> ' + (d.posts === 1 ? 'essay.' : 'essays.'));
+  const count = d.public_posts ?? d.posts;
+  const noun = d.noun || 'essay';
+  await beat('<b>' + count + '</b> ' + kindLabel(d, count) + '.');
   await beat('<b>' + d.words.toLocaleString('en-US') + '</b> words.');
   await beat(mon(d.from) + ' &ndash; ' + mon(d.to) + '.');
   await beat('That makes a <b>' + d.est_pages + '-page</b> book.', 780);
@@ -535,30 +536,24 @@ async function interludeFacts(d: any){
   document.getElementById('preview')!.classList.remove('staging');
 }
 
-async function runPreview(attempt = 0, originalRaw: string | null = null){
-  const raw = originalRaw ?? tryurl.value.trim();
+async function runPreview(){
+  const raw = tryurl.value.trim();
   if (!raw){ tryerr.textContent = 'Paste your publication URL first.'; return; }
   tryerr.textContent = '';
+  tryhandoff.hidden = true;
   trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
-  const interludeOn = attempt === 0 && tryurl.value && raw !== lastShownHost ? interludeStart() : false;
+  const interludeOn = !!tryurl.value && raw !== lastShownHost ? interludeStart() : false;
   try {
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
     const d = await r.json();
     if (!d.ok){
-      if (d.error === 'upstream_busy' && attempt === 0){
-        for (let t = 4; t > 0; t--){
-          if (tryurl.value.trim() !== raw) return;
-          tryerr.textContent = 'Substack is rate-limiting us for a moment. Retrying in ' + t + 's…';
-          await new Promise(res => setTimeout(res, 1000));
-        }
-        tryerr.textContent = '';
-        return runPreview(1, raw);
-      }
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
         raw.startsWith('http') ? raw : 'https://' + raw;
       stage.classList.remove('on');
       document.getElementById('preview')!.classList.remove('staging');
-      tryerr.textContent = d.message || 'Could not read that archive.'; return;
+      tryerr.textContent = d.message || 'Could not read that archive.';
+      tryhandoff.hidden = false;
+      return;
     }
     previewData = d;
     if (interludeOn && d.host !== lastShownHost) await interludeFacts(d);
@@ -570,19 +565,21 @@ async function runPreview(attempt = 0, originalRaw: string | null = null){
     stage.classList.remove('on');
     document.getElementById('preview')!.classList.remove('staging');
     tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
+    tryhandoff.hidden = false;
   } finally {
     trybtn.disabled = false; trybtn.textContent = 'Show my book';
   }
 }
 function renderPreview(d: any){
-  const months = Math.max(1, Math.round((Date.parse(d.to) - Date.parse(d.from)) / 2629800000));
-  const kind = (months > 7 && d.est_pages <= 300) ? 'Annual' : 'Quarterly';
-  (document.getElementById('pv-kind') as HTMLElement).textContent = kind + ' · ' + d.to.slice(0,4);
+  const publicPosts = d.public_posts ?? d.posts;
+  const cadence = d.cadence || (d.est_pages > 300 ? 'Quarterly' : 'Annual');
+  const volumePages = d.volume_pages || (cadence === 'Quarterly' ? Math.round(d.est_pages / 4) : d.est_pages);
+  (document.getElementById('pv-kind') as HTMLElement).textContent = cadence + ' · ' + d.to.slice(0,4);
   (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
   (document.getElementById('pv-dates') as HTMLElement).textContent = fmt(d.from) + ' – ' + fmt(d.to);
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = d.est_pages > 300
-    ? 'Vol. I of IV · est. ' + Math.round(d.est_pages/4) + ' pages'
-    : d.posts + (d.capped ? '+' : '') + ' posts · est. ' + d.est_pages + ' pages';
+    ? 'Vol. I of IV · est. ' + volumePages + ' pages'
+    : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + d.est_pages + ' pages';
   (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
   const over = d.est_pages > 300;
 
@@ -602,7 +599,7 @@ function renderPreview(d: any){
   const toc = document.getElementById('pv-toc')!;
   (document.getElementById('pv-runname') as HTMLElement).textContent = d.publication;
   const rows = (d.sample && d.sample.length ? d.sample.map((x: any) => x.t) : (d.titles || [])).slice(0, 6);
-  const step = Math.max(3, Math.round(d.est_pages / Math.max(d.posts, 1)));
+  const step = Math.max(3, Math.round(d.est_pages / Math.max(publicPosts, 1)));
   let folio = 9;
   toc.innerHTML = rows.map((t: string, i: number) => {
     const line = '<div class="toc-line" style="transition-delay:' + (0.45 + i * 0.12) + 's">' +
@@ -613,7 +610,7 @@ function renderPreview(d: any){
   [...toc.querySelectorAll('.t')].forEach((el, i) => (el as HTMLElement).textContent = rows[i]);
 
   /* print estimate from the measured production-cost curve; shipping and tax stay separate */
-  const pricePages = over ? Math.round(d.est_pages / 4) : d.est_pages;
+  const pricePages = over ? volumePages : d.est_pages;
   const dollars = Math.round(2 + 0.025 * pricePages);
   (document.getElementById('pv-price') as HTMLElement).innerHTML =
     'Estimated printing: <b>about $' + dollars + (over ? ' a volume' : '') + '</b>' +
@@ -629,15 +626,20 @@ function renderPreview(d: any){
     ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
     : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
   (document.getElementById('pv-sub') as HTMLElement).textContent =
-    d.posts + (d.capped ? '+' : '') + ' public posts, ' + d.words.toLocaleString('en-US') +
-    ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' + (over
-    ? 'Too big for one binding, so it prints as quarterly volumes of about ' + Math.round(d.est_pages/4) + ' pages each.'
+    publicPosts + (d.capped ? '+' : '') + ' public ' + kindLabel(d, publicPosts) + ', ' +
+    d.words.toLocaleString('en-US') + ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' +
+    (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
+    (d.podcast_posts ? d.podcast_posts + ' podcast ' + (d.podcast_posts === 1 ? 'post is' : 'posts are') + ' left out of the print estimate. ' : '') +
+    (over ? 'That is a quarterly set of about ' + volumePages + ' pages per volume.'
     : 'Typeset at 6×9 with contents, running headers and your own cover.');
   const pv = document.getElementById('preview')!;
   pv.classList.remove('on');
   void (pv as HTMLElement).offsetWidth;
-  pv.classList.add('on');
-  pv.scrollIntoView({behavior:'smooth', block:'center'});
+  pv.classList.add('on', 'personalized');
+}
+function kindLabel(d: any, count: number){
+  if (count === 1) return d.noun || 'piece';
+  return d.kind || ((d.noun || 'piece') + 's');
 }
 function fmt(iso: string){
   return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {month:'short', year:'numeric', timeZone:'UTC'});
@@ -649,13 +651,24 @@ tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault
   if (pub && /^[a-z0-9.-]+$/i.test(pub)){ tryurl.value = 'https://' + pub; runPreview(); }
 }
 
+tryhandoff.addEventListener('click', ()=>{
+  const raw = tryurl.value.trim();
+  if (raw) (f.elements.namedItem('publication_url') as HTMLInputElement).value =
+    raw.startsWith('http') ? raw : 'https://' + raw;
+  document.getElementById('carried')!.textContent =
+    'We will build this preview by hand. Leave one email for the proof pages.';
+  show(2);
+  document.getElementById('beta')!.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
 (document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
   const d = previewData;
   if (d){
     (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://' + d.host;
-    (f.elements.namedItem('posts_per_year') as HTMLInputElement).value = String(d.posts);
+    const publicPosts = d.public_posts ?? d.posts;
+    (f.elements.namedItem('posts_per_year') as HTMLInputElement).value = String(publicPosts);
     (f.elements.namedItem('frequency') as HTMLInputElement).value =
-      d.posts >= 200 ? 'daily' : d.posts >= 40 ? 'weekly' : d.posts >= 10 ? 'monthly' : 'irregular';
+      publicPosts >= 200 ? 'daily' : publicPosts >= 40 ? 'weekly' : publicPosts >= 10 ? 'monthly' : 'irregular';
     document.getElementById('carried')!.textContent =
       d.publication + ' · ' + d.est_pages + ' estimated pages. Leave one email for the first proof pages.';
     show(2);

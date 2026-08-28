@@ -10,7 +10,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "pipeline": "node scripts/pipeline.mjs"
+    "pipeline": "node scripts/pipeline.mjs",
+    "test:preview": "node scripts/test-preview.mjs",
+    "test:renderer": "node scripts/test-renderer.mjs"
   },
   "dependencies": {
     "astro": "^7.2.6",

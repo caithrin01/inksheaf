@@ -3,6 +3,7 @@
 // Usage: node scripts/warm-preview.mjs https://pub1.com https://pub2.substack.com ...
 // Mirrors functions/api/preview.js math exactly; drift between the two is a bug.
 import { execFileSync } from "node:child_process";
+import { summarizeArchive } from "../functions/lib/preview-summary.js";
 
 const MAX_POSTS = 150, WINDOW_DAYS = 366;
 
@@ -26,22 +27,13 @@ async function archive(host) {
     offset += page.length;
     if (page.length && Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
   }
-  const recent = posts.filter(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
+  const identityPost = posts.find(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
     && (p.type === "newsletter" || !p.type));
-  if (!recent.length) throw new Error("empty archive");
-  const words = recent.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
-  const dates = recent.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
-  const identity = await theme(host, recent[0]?.slug);
-  return { host,
-    publication: identity.publicationName || pubName(recent, host),
-    posts: recent.length, capped: posts.length >= MAX_POSTS, words,
-    est_pages: Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10)),
-    from: new Date(dates[0]).toISOString().slice(0, 10),
-    to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
-    titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
-    sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
-      d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
-    theme: identity.theme };
+  if (!identityPost) throw new Error("empty archive");
+  const identity = await theme(host, identityPost.slug);
+  const summary = summarizeArchive(posts, identity, host, cutoff, posts.length >= MAX_POSTS);
+  if (!summary) throw new Error("no public posts");
+  return summary;
 }
 
 // mirrors functions/api/preview.js fetchTheme; drift between the two is a bug
@@ -87,16 +79,6 @@ function publicationNameFromPost(post, host) {
     || pubs.find(p => p.id === post?.publication_id)
     || pubs[0];
   return matched?.name ? String(matched.name).slice(0, 120) : null;
-}
-
-function pubName(recent, host) {
-  const names = {};
-  for (const p of recent) for (const b of (p.publishedBylines || []))
-    if (b?.name) names[b.name] = (names[b.name] || 0) + 1;
-  const distinct = Object.keys(names);
-  if (distinct.length === 1) return distinct[0];
-  const label = host.replace(/^www\./, "").split(".")[0];
-  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 for (const raw of process.argv.slice(2)) {

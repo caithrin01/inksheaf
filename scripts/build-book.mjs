@@ -669,6 +669,7 @@ async function worker() {
   }
 }
 await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+report.deadImages.sort();
 
 mkdirSync("proofs", { recursive: true });
 writeFileSync(OUT, htmlOut);

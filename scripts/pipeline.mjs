@@ -22,7 +22,8 @@ if (!RAW || RAW.startsWith("--")) { console.error("usage: pipeline.mjs <substack
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
 const host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
 const SLUG = argOf("--slug") || host.replace(/^www\./, "").split(".")[0];
-const WINDOW = argOf("--window") || "all";
+// The product promise is an annual or quarterly edition. An unbounded archive is opt-in.
+const WINDOW = argOf("--window") || "12m";
 const FORCE = argOf("--force");
 const NO_MODEL = process.argv.includes("--no-model");
 const DIR = `proofs/pipe/${SLUG}`;

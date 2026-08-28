@@ -6,6 +6,7 @@ const MAX_POSTS = 150;
 const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 6000;
 const WINDOW_DAYS = 366;
+import { summarizeArchive } from "../lib/preview-summary.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
@@ -22,7 +23,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.sample) return json({ ok: true, cached: true, ...pay }); // old-shape rows refetch
+    if (pay.summary_version === 2) return json({ ok: true, cached: true, ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -120,29 +121,17 @@ async function fetchArchive(host) {
     if (page.length && Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
   }
 
-  const recent = posts.filter(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
+  const identityPost = posts.find(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
     && (p.type === "newsletter" || !p.type));
-  if (!recent.length)
+  if (!identityPost)
     return { ok: false, error: "empty", status: 200,
       message: "The public archive there looks empty for the last year. Paid-only archives preview after you join the beta." };
-
-  const words = recent.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
-  const dates = recent.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
-  const pages = Math.max(30, Math.round(words / 270 + recent.length * 1.0 + 10));
   const capped = posts.length >= MAX_POSTS;
-  const identity = await fetchIdentity(host, recent[0]?.slug);
-  return { ok: true, data: {
-    host,
-    publication: identity.publicationName || pubName(recent, host),
-    posts: recent.length, capped, words,
-    est_pages: pages,
-    from: new Date(dates[0]).toISOString().slice(0, 10),
-    to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
-    titles: recent.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
-    sample: recent.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
-      d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
-    theme: identity.theme,
-  } };
+  const identity = await fetchIdentity(host, identityPost.slug);
+  const data = summarizeArchive(posts, identity, host, cutoff, capped);
+  if (!data) return { ok: false, error: "empty", status: 200,
+    message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
+  return { ok: true, data };
 }
 
 /* One guarded call to the newest post for the publication's own palette; the mirror moment
@@ -221,16 +210,6 @@ const lum = ([r, g, b]) => {
 };
 const contrast = (a, b) => { const [x, y] = [lum(a) + 0.05, lum(b) + 0.05]; return x > y ? x / y : y / x; };
 const hex = rgb => "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
-
-function pubName(recent, host) {
-  const names = {};
-  for (const p of recent) for (const b of (p.publishedBylines || []))
-    if (b?.name) names[b.name] = (names[b.name] || 0) + 1;
-  const distinct = Object.keys(names);
-  if (distinct.length === 1) return distinct[0];
-  const label = host.replace(/^www\./, "").split(".")[0];
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
 
 const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body), { status,

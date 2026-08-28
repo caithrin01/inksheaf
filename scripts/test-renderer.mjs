@@ -4,6 +4,7 @@
 // Usage: node scripts/test-renderer.mjs [--skip-render]
 import { execFileSync, execSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const t0 = Math.floor(Date.now() / 1000);
 let pass = 0, fail = 0;
@@ -62,6 +63,7 @@ if (!process.argv.includes("--skip-render")) {
   let domOut = "";
   try {
     execSync("playwright-cli open about:blank", { stdio: "pipe" });
+    const pdfPath = resolve("proofs/torture-proof.pdf").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
     domOut = execSync(`playwright-cli run-code "async page => {
       await page.goto('http://127.0.0.1:${port}/torture.html?v=' + Date.now(), {waitUntil:'domcontentloaded'});
       const n = await page.evaluate(() => Promise.race([window.__pagedDone, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), 180000))]));
@@ -99,7 +101,7 @@ if (!process.argv.includes("--skip-render")) {
         const fnTarget = fnLink ? !!document.getElementById(fnLink.getAttribute('href').slice(1)) : false;
         return { pages: pages.length, overflow, verseLeft, missing, headerHasTitle, folio, fnTarget };
       });
-      await page.pdf({ path: '/Users/caithrinrintoul/repos/inksheaf/proofs/torture-proof.pdf', preferCSSPageSize: true, printBackground: true });
+      await page.pdf({ path: '${pdfPath}', preferCSSPageSize: true, printBackground: true });
       return 'DOM=' + JSON.stringify(r) + ' N=' + n;
     }"`, { encoding: "utf-8", timeout: 300000 });
   } finally {
