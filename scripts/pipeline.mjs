@@ -76,13 +76,14 @@ if (!existsSync(brandPath)) {
 const interiorHtml = `proofs/${SLUG}-pipe.html`;
 if (!done("build")) {
   log("build", `window=${WINDOW}`);
-  const args = ["scripts/build-book.mjs", host, "--print-interior", "--interior-bw",
+  const args = ["scripts/build-book.mjs", host, "--print-interior", "--images-print", "--interior-bw",
     "--brand-file", brandPath, "--out", interiorHtml];
   if (P.after) args.push("--after", P.after);
   if (P.before) args.push("--before", P.before);
   sh("node", args);
   const report = JSON.parse(readFileSync(interiorHtml.replace(/\.html$/, ".report.json"), "utf-8"));
-  finish("build", { listed: report.listed, kind: report.kind, retrievalFailures: report.retrievalFailures?.length || 0 });
+  finish("build", { included: report.included, listed: report.listed, kind: report.kind,
+    retrievalFailures: Number(report.retrievalFailures) || 0 });
 }
 const B = state.steps.build;
 
@@ -98,7 +99,7 @@ if (!done("copy") || !existsSync(copyPath)) {
   const y1 = y(d1) || "", y2 = y(d2) || "";
   const years = y1 && y1 !== y2 ? `${y1}–${y2}` : y2;
   const datesLine = d1 && d2 ? `${mon(d1)} – ${mon(d2)}` : years;
-  const count = B?.listed || 0;
+  const count = B?.included ?? B?.listed ?? 0;
   const fallback = {
     kindLine: `Collected ${noun} · ${years}`,
     spineText: `${P.pubName} · Collected ${noun} · ${years}`,
@@ -246,8 +247,12 @@ if (!done("validate")) {
 }
 
 /* ---------- quote ---------- */
-const REF_ADDR = { city: "San Francisco", country_code: "US", postcode: "94103", state_code: "CA",
-  street1: "1680 Mission St", phone_number: "+1 415 725 8944", name: "Inksheaf Reference" };
+// reference quote address lives OUTSIDE source control (public repo; audit finding P2-20).
+// Provide ~/.secrets/inksheaf-ref-address.json or pass --quote-to explicitly.
+const REF_ADDR_PATH = `${process.env.HOME}/.secrets/inksheaf-ref-address.json`;
+const REF_ADDR = existsSync(REF_ADDR_PATH) ? JSON.parse(readFileSync(REF_ADDR_PATH, "utf-8"))
+  : { city: "San Francisco", country_code: "US", postcode: "94103", state_code: "CA",
+      street1: "1 Market St", phone_number: "+1 415 555 0100", name: "Inksheaf Reference" };
 if (!done("quote")) {
   const addr = argOf("--quote-to") ? JSON.parse(readFileSync(argOf("--quote-to"), "utf-8")) : REF_ADDR;
   const q = await lulu.costQuote(PAGES, addr);
@@ -273,6 +278,11 @@ console.log(JSON.stringify(manifest, null, 1));
 /* ---------- order: REAL MONEY; both flags required ---------- */
 const orderAddr = argOf("--order");
 if (orderAddr) {
+  if (done("order")) {
+    console.error(`[order] NOT placed again; state already records Lulu job ${state.steps.order.jobId}.`);
+    console.error("Use a new slug or explicitly clear order state only after reviewing the existing job.");
+    process.exit(0);
+  }
   if (!process.argv.includes("--yes")) {
     console.error(`\nOrder NOT placed. Quote: ${state.steps.quote.total_incl_tax} ${state.steps.quote.currency} landed.`);
     console.error("Re-run with --yes to charge the saved wallet and print.");
