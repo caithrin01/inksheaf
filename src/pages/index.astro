@@ -96,6 +96,38 @@ p+p{margin-top:1rem}
 .tryhint{margin-top:.55rem}
 .tryerr{color:var(--rubric); font-family:ui-sans-serif,system-ui,sans-serif; font-size:.86rem; margin-top:.6rem; min-height:0}
 
+/* ---------- the mark ---------- */
+.mast{display:flex; align-items:center; gap:.55rem}
+.mark{height:24px; width:auto; display:none; transform:translateY(-1px)}
+.mark-l{display:inline-block}
+@media (prefers-color-scheme: dark){ .mark-l{display:none} .mark-d{display:inline-block} }
+footer .mark{height:34px; display:block; margin:0 auto .8rem; opacity:.85}
+footer .mark-d{display:none}
+@media (prefers-color-scheme: dark){ footer .mark-l{display:none} footer .mark-d{display:block} }
+
+/* ---------- typesetting interlude: the wait is a press run ---------- */
+.preview.staging{display:block}
+.preview.staging .pv-grid{display:none}
+.pv-stage{display:none; min-height:11rem; align-items:center; justify-content:center;
+  flex-direction:column; text-align:center; padding:2.2rem 1rem}
+.pv-stage.on{display:flex}
+.pv-stage .setline{font-size:2rem; font-weight:560; line-height:1.15; text-shadow:var(--press);
+  opacity:0; transform:translateY(8px); text-wrap:balance}
+.pv-stage .setline b{color:var(--rubric); font-weight:560}
+.pv-stage .setline.in{opacity:1; transform:none; transition:opacity .28s, transform .28s}
+.pv-stage .setline.out{opacity:0; transform:translateY(-6px); transition:opacity .22s, transform .22s}
+.pv-stage .setkick{font-family:ui-sans-serif,system-ui,sans-serif; font-size:.66rem;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--faint); font-weight:600; margin-bottom:1.1rem}
+.pv-stage .setrule{width:0; border-bottom:2px solid var(--rubric); margin-top:1.1rem;
+  transition:width .55s cubic-bezier(.2,.7,.2,1)}
+.pv-stage.on .setrule{width:3.4rem}
+@media (prefers-reduced-motion: reduce){ .pv-stage{display:none !important} }
+
+/* ---------- the recorded moment ---------- */
+.demoplate{margin:2rem 0 .4rem}
+.demoplate video{width:100%; display:block; border:1.5px solid var(--ink); border-radius:3px;
+  box-shadow:var(--sheet-shadow)}
+
 /* ---------- preview magic: their page, their colors, staged assembly ---------- */
 .pv-page{width:12.5rem; aspect-ratio:6/9; background:var(--card); border:1px solid var(--rule);
   border-radius:2px 5px 5px 2px; padding:.95rem .85rem .6rem; display:flex; flex-direction:column;
@@ -247,7 +279,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 </head>
 <body>
 <div class="page">
-  <header class="folio"><b>inksheaf</b><span>private beta · printed in the US</span></header>
+  <header class="folio"><b class="mast"><img class="mark mark-l" src="/brand/mark-black-sm.png" alt="" height="24" /><img class="mark mark-d" src="/brand/mark-white-sm.png" alt="" height="24" />inksheaf</b><span>private beta · printed in the US</span></header>
 
   <main>
     <h1 class="reveal">See the book inside your archive.</h1>
@@ -265,6 +297,11 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
     </div>
 
     <section class="preview" id="preview" aria-live="polite">
+      <div class="pv-stage" id="pv-stage" aria-hidden="true">
+        <div class="setkick">Setting your edition</div>
+        <div class="setline" id="pv-setline">Reading your archive&hellip;</div>
+        <div class="setrule"></div>
+      </div>
       <div class="pv-grid">
         <div class="bookobj" id="pvbook" aria-hidden="true">
           <div class="cover">
@@ -296,6 +333,11 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
 
     <section class="section">
       <div class="kicker">The object</div>
+      <div class="demoplate">
+        <video src="/demo-money.mp4" poster="/demo-money-poster.jpg" muted loop playsinline
+          autoplay preload="none" width="960" height="540"></video>
+        <p class="note">Recorded from the live product: a pasted URL becomes a bound book.</p>
+      </div>
       <p>One publication, typeset. The render below is built from the real archive
       of <a href="https://www.caithrin.com">caithrin.com</a>: 23 essays and 46,336 words over
       Dec 2025 to Aug 2026, an estimated 158 pages at 6×9.</p>
@@ -438,6 +480,7 @@ a{color:var(--rubric); text-decoration-thickness:1px; text-underline-offset:2px}
   </main>
 
   <footer>
+    <img class="mark mark-l" src="/brand/mark-black-sm.png" alt="" height="34" /><img class="mark mark-d" src="/brand/mark-white-sm.png" alt="" height="34" />
     Inksheaf prints editions of Substack publications with their owners' permission. It is an
     independent product, for Substack writers, and is not affiliated with or endorsed by Substack Inc.<br />
     US delivery during the beta. Built by <a href="https://about.caithrin.com">Caithrin</a>.
@@ -469,11 +512,46 @@ const tryurl = document.getElementById('tryurl') as HTMLInputElement;
 const tryerr = document.getElementById('tryerr')!;
 let previewData: any = null;
 
+/* ---------- typesetting interlude: facts fade through while the press runs ---------- */
+const stage = document.getElementById('pv-stage')!;
+const setline = document.getElementById('pv-setline')!;
+let lastShownHost: string | null = null;
+const motionOK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+async function beat(html: string, hold = 620){
+  setline.classList.remove('in'); setline.classList.add('out');
+  await new Promise(r => setTimeout(r, 230));
+  setline.innerHTML = html;
+  setline.classList.remove('out'); setline.classList.add('in');
+  await new Promise(r => setTimeout(r, 290 + hold));
+}
+function interludeStart(){
+  if (!motionOK) return false;
+  const pv = document.getElementById('preview')!;
+  pv.classList.remove('on'); pv.classList.add('staging');
+  setline.innerHTML = 'Reading your archive&hellip;';
+  setline.classList.add('in');
+  stage.classList.add('on');
+  stage.scrollIntoView({behavior:'smooth', block:'center'});
+  return true;
+}
+async function interludeFacts(d: any){
+  const mon = (iso: string) => new Date(iso + 'T00:00:00Z')
+    .toLocaleDateString('en-US', {month:'long', year:'numeric', timeZone:'UTC'});
+  await beat('<b>' + d.posts + '</b> ' + (d.posts === 1 ? 'essay.' : 'essays.'));
+  await beat('<b>' + d.words.toLocaleString('en-US') + '</b> words.');
+  await beat(mon(d.from) + ' &ndash; ' + mon(d.to) + '.');
+  await beat('That makes a <b>' + d.est_pages + '-page</b> book.', 780);
+  stage.classList.remove('on');
+  setline.classList.remove('in');
+  document.getElementById('preview')!.classList.remove('staging');
+}
+
 async function runPreview(attempt = 0, originalRaw: string | null = null){
   const raw = originalRaw ?? tryurl.value.trim();
   if (!raw){ tryerr.textContent = 'Paste your publication URL first.'; return; }
   tryerr.textContent = '';
   trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
+  const interludeOn = attempt === 0 && tryurl.value && raw !== lastShownHost ? interludeStart() : false;
   try {
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
     const d = await r.json();
@@ -489,12 +567,19 @@ async function runPreview(attempt = 0, originalRaw: string | null = null){
       }
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
         raw.startsWith('http') ? raw : 'https://' + raw;
+      stage.classList.remove('on');
+      document.getElementById('preview')!.classList.remove('staging');
       tryerr.textContent = d.message || 'Could not read that archive.'; return;
     }
     previewData = d;
+    if (interludeOn && d.host !== lastShownHost) await interludeFacts(d);
+    else { stage.classList.remove('on'); document.getElementById('preview')!.classList.remove('staging'); }
+    lastShownHost = d.host;
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
   } catch {
+    stage.classList.remove('on');
+    document.getElementById('preview')!.classList.remove('staging');
     tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
   } finally {
     trybtn.disabled = false; trybtn.textContent = 'Show my book';
