@@ -179,8 +179,8 @@ def check_costs_schema():
         if not isinstance(r.get("total"), (int, float)):
             problems.append(f"row {i} has no numeric total")
             break
-    if data.get("source") != "lulu-sandbox-api":
-        problems.append('source must be "lulu-sandbox-api" (measured, not estimated)')
+    if data.get("source") not in ("lulu-sandbox-api", "lulu-production-api"):
+        problems.append('source must be a measured Lulu API (sandbox or production), not an estimate')
     if problems:
         fail("lulu-costs.json: " + "; ".join(problems))
     else:

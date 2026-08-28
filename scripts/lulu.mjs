@@ -64,14 +64,28 @@ if (cmd === "cover") {
   const d = await api("/cover-dimensions/", { pod_package_id: POD, interior_page_count: pages, unit: "pt" }, tok);
   console.log(JSON.stringify({ pages, ...d }));
 } else if (cmd === "shipping") {
-  for (const dst of DESTINATIONS) {
-    const q = new URLSearchParams({ iso_country_code: "US", state_code: dst.state_code,
-      quantity: "1", pod_package_id: POD, page_count: "132", currency: "USD" });
-    try {
-      const d = await api(`/shipping-options/?${q}`, null, tok);
-      const opts = (d.results || d).map(o => `${o.level}:$${o.cost_excl_tax ?? o.total_cost_excl_tax ?? "?"}`);
-      console.log(dst.label, opts.join(" "));
-    } catch (e) { console.log(dst.label, "ERR", String(e.message).slice(0, 120)); }
+  // price ladder: cost-calculations per level; transit times from the carrier catalog
+  const q = new URLSearchParams({ iso_country_code: "US", state_code: "WA", quantity: "1",
+    pod_package_id: POD, page_count: "132", currency: "USD" });
+  const cat = await api(`/shipping-options/?${q}`, null, tok);
+  const transit = {};
+  for (const o of (cat.results || cat)) {
+    const t = transit[o.level] || [Infinity, -Infinity];
+    transit[o.level] = [Math.min(t[0], o.transit_time), Math.max(t[1], o.transit_time)];
+  }
+  for (const dst of [DESTINATIONS[0], DESTINATIONS[3]]) {
+    for (const level of ["MAIL", "GROUND", "PRIORITY_MAIL", "EXPEDITED", "EXPRESS"]) {
+      try {
+        const d = await api("/print-job-cost-calculations/", {
+          line_items: [{ page_count: 132, pod_package_id: POD, quantity: 1 }],
+          shipping_address: { city: dst.city, country_code: "US", postcode: dst.postcode,
+            state_code: dst.state_code, street1: dst.street1, phone_number: "+1 206 555 0100" },
+          shipping_option: level }, tok);
+        const tt = transit[level] ? `${transit[level][0]}-${transit[level][1]}d` : "?";
+        console.log(`${dst.label} ${level}: ship $${d.shipping_cost?.total_cost_excl_tax} total $${d.total_cost_excl_tax} transit ${tt}`);
+      } catch (e) { console.log(`${dst.label} ${level}: unavailable`); }
+      await new Promise(r => setTimeout(r, 350));
+    }
   }
 } else if (cmd === "costs") {
   const rows = [];
