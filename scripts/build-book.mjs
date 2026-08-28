@@ -23,6 +23,7 @@ const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
 const TOP = argOf("--top") ? +argOf("--top") : null;
 const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
+const PRINT_INTERIOR = process.argv.includes("--print-interior");
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
@@ -535,15 +536,15 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 </head>
 <body data-retrieval-failures="${report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length}">
 
-<div class="cover">
-  <div class="pubsrc">${esc(pubName)}</div>
+${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : `<div class="cover">
+  <div class="pubsrc">${esc(pubName)}</div>`}
   <div class="kind">${kindLabel}</div>
   <h1>${esc(pubName)}</h1>
   <div class="rule"></div>
   <div class="dates">${range}</div>
   ${coverPlate ? `<div class="coverplate"><img src="${coverPlate.path}" alt=""></div>` : ""}
   <div class="foot"><span>${full.length} ${noun}</span><span>${host.replace(/^www\./, "")}</span></div>
-</div>
+${PRINT_INTERIOR ? "" : "</div>"}
 
 <div class="fm halftitle">${esc(pubName)}</div>
 

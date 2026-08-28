@@ -1,0 +1,24 @@
+{
+  "host": "www.caithrin.com",
+  "listed": 40,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "brand": {
+    "accent": "#63543a",
+    "headingFont": "Inter",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#1D1E1D",
+    "coverPlate": false,
+    "mappedFrom": "SF Pro Display",
+    "warnings": []
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "parts": [],
+  "rtlChars": 0,
+  "cjkChars": 1,
+  "retrievalFailures": 0
+}
