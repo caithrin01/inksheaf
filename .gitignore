@@ -33,3 +33,4 @@ public/*.pdf
 proofs/pipe/**/*.pdf
 proofs/pipe/**/*.img
 proofs/pipe/**/*.html
+.playwright-cli/
