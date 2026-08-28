@@ -27,9 +27,48 @@
   },
   "render": {
    "done": true,
-   "at": "2026-08-28T17:08:18.746Z",
-   "pages": 293,
+   "at": "2026-08-28T17:14:24.117Z",
+   "pages": 294,
    "bytes": 97964433
+  },
+  "sizegate": {
+   "done": true,
+   "at": "2026-08-28T17:15:08.580Z",
+   "bytes": 9123711,
+   "tier": [
+    900,
+    55
+   ]
+  },
+  "cover": {
+   "done": true,
+   "at": "2026-08-28T17:15:15.624Z",
+   "W": 934,
+   "H": 666,
+   "bytes": 4131256
+  },
+  "host": {
+   "done": true,
+   "at": "2026-08-28T17:15:47.653Z",
+   "interiorUrl": "https://inksheaf.pages.dev/i-7b83b98d48c0.pdf",
+   "coverUrl": "https://inksheaf.pages.dev/c-a34eb2198fe1.pdf"
+  },
+  "validate": {
+   "done": true,
+   "at": "2026-08-28T17:17:02.001Z",
+   "interiorId": 4512480,
+   "coverId": 4512481,
+   "interior": "NORMALIZED",
+   "cover": "NORMALIZED"
+  },
+  "quote": {
+   "done": true,
+   "at": "2026-08-28T17:17:02.735Z",
+   "print": "9.34",
+   "shipping": "5.69",
+   "total_excl_tax": "15.78",
+   "total_incl_tax": "16.58",
+   "currency": "USD"
   }
  }
 }

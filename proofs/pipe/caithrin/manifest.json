@@ -8,8 +8,8 @@
  "articles": 40,
  "interior": {
   "pdf": "proofs/pipe/caithrin/interior.pdf",
-  "url": "https://inksheaf.pages.dev/i-682bc90dbd58.pdf",
-  "bytes": 7644856,
+  "url": "https://inksheaf.pages.dev/i-7b83b98d48c0.pdf",
+  "bytes": 9123711,
   "sizedTier": [
    900,
    55
@@ -17,19 +17,19 @@
  },
  "cover": {
   "pdf": "proofs/pipe/caithrin/cover.pdf",
-  "url": "https://inksheaf.pages.dev/c-2f531e7580e4.pdf"
+  "url": "https://inksheaf.pages.dev/c-a34eb2198fe1.pdf"
  },
  "validation": {
   "done": true,
-  "at": "2026-08-28T07:44:24.031Z",
-  "interiorId": 4510407,
-  "coverId": 4510408,
+  "at": "2026-08-28T17:17:02.001Z",
+  "interiorId": 4512480,
+  "coverId": 4512481,
   "interior": "NORMALIZED",
   "cover": "NORMALIZED"
  },
  "quote": {
   "done": true,
-  "at": "2026-08-28T07:44:24.375Z",
+  "at": "2026-08-28T17:17:02.735Z",
   "print": "9.34",
   "shipping": "5.69",
   "total_excl_tax": "15.78",
