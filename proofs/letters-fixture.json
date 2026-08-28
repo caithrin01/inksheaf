@@ -1,0 +1,74 @@
+[
+ {
+  "slug": "letter-0",
+  "title": "March 12, 2026",
+  "post_date": "2026-03-12T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>The first letter considers the vote count in detail and what the margin implies for the summer.</p><p>More follows in tomorrow's letter, as always.</p>"
+ },
+ {
+  "slug": "letter-1",
+  "title": "March 13, 2026",
+  "post_date": "2026-03-13T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>A second letter follows the money through three committees and names the totals involved.</p><p>More follows in tomorrow's letter, as always.</p>"
+ },
+ {
+  "slug": "letter-2",
+  "title": "March 29, 2026",
+  "post_date": "2026-03-29T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>The third letter closes the month with a note on the railroad statutes of 1887.</p><p>More follows in tomorrow's letter, as always.</p>"
+ },
+ {
+  "slug": "letter-3",
+  "title": "April 2, 2026",
+  "post_date": "2026-04-02T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>April opens with tariffs, and the letter walks through the numbers port by port.</p><p>More follows in tomorrow's letter, as always.</p>"
+ },
+ {
+  "slug": "letter-4",
+  "title": "April 15, 2026",
+  "post_date": "2026-04-15T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>A mid-month letter on the census figures and what the undercount did to apportionment.</p><p>More follows in tomorrow's letter, as always.</p>"
+ },
+ {
+  "slug": "letter-5",
+  "title": "April 28, 2026",
+  "post_date": "2026-04-28T12:00:00.000Z",
+  "wordcount": 700,
+  "publishedBylines": [
+   {
+    "name": "Fixture Historian"
+   }
+  ],
+  "body_html": "<p>The month ends on the harbor lights and a speech nobody expected to matter, but did.</p><p>More follows in tomorrow's letter, as always.</p>"
+ }
+]

@@ -88,9 +88,13 @@ async function fetchText(url) {
   return r.ok ? r.text() : "";
 }
 async function fetchJson(url) {
-  const r = await fetch(url, { headers: UA, redirect: "follow" });
-  if (!r.ok) throw new Error(`${r.status} ${url}`);
-  return r.json();
+  for (let a = 0; a < 3; a++) {
+    const r = await fetch(url, { headers: UA, redirect: "follow" });
+    if (r.status === 429 || r.status >= 500) { await new Promise(z => setTimeout(z, 2000 * (a + 1))); continue; }
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    return r.json();
+  }
+  throw new Error(`429/5xx after retries ${url}`);
 }
 
 export async function extractBrand(host) {
@@ -156,9 +160,15 @@ export async function extractBrand(host) {
   brand.body_font = SERIFS.has(body.family) ? body.family : "Source Serif 4";
   brand.body_font_mapped_from = body.mappedFrom;
 
-  // cover: use the publication's cover colors when present and self-consistent
+  // cover: resolve to a COHERENT pair; partial data derives the missing half, never half-applies
   const bg = parseColor(brand.cover_bg);
-  const ink = parseColor(brand.cover_print || "#ffffff");
+  if (bg && !parseColor(brand.cover_print)) {
+    brand.cover_print = lum(bg) < 0.45 ? "#ffffff" : "#221d16";
+    brand.warnings.push("cover ink derived from ground luminance (source incomplete)");
+  }
+  if (bg && !parseColor(brand.cover_print_secondary))
+    brand.cover_print_secondary = lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b";
+  const ink = parseColor(brand.cover_print);
   brand.cover_usable = !!(bg && ink && contrast(bg, ink) >= 3);
   if (!brand.cover_usable) brand.warnings.push("cover colors missing or low-contrast; neutral cover used");
 

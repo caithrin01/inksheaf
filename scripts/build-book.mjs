@@ -17,13 +17,16 @@ const OUT = process.argv.includes("--out")
 const UA = { "user-agent": "Mozilla/5.0 inksheaf-proof/0.1", accept: "application/json" };
 const MODE = process.argv.includes("--images-print") ? "print" : "proof";
 const NO_BRAND = process.argv.includes("--no-brand");
+const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
+const AFTER = argOf("--after"), BEFORE = argOf("--before");
+const BW = process.argv.includes("--interior-bw");
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
 
 /* ---------------- fetch ---------------- */
 async function j(url) {
-  for (let a = 0; a < 3; a++) {
+  for (let a = 0; a < 5; a++) {
     const r = await fetch(url, { headers: UA, redirect: "follow" });
     if (r.status === 429 || r.status >= 500) { await new Promise(z => setTimeout(z, 1500 * (a + 1))); continue; }
     if (!r.ok) throw new Error(`${r.status} ${url}`);
@@ -62,7 +65,10 @@ if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-
 const posts = listing
   .filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type)
     && p.is_published !== false && !p.restacked_post_id)
+  .filter(p => (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER))
+            && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
+if (AFTER || BEFORE) report.window = { after: AFTER, before: BEFORE };
 console.error(listing.length, "listed;", posts.length, "printable;", report.omittedPaid, "paid omitted");
 
 const seenSlugs = new Set();
@@ -70,13 +76,19 @@ const deduped = posts.filter(p => {
   if (seenSlugs.has(p.slug)) { report.skips.push({ slug: p.slug, reason: "duplicate slug" }); return false; }
   seenSlugs.add(p.slug); return true;
 });
+const { mkdirSync: mkd, readFileSync: rdf, writeFileSync: wrf, existsSync: exf } = await import("node:fs");
+const CACHE = `proofs/.cache/${host}`;
+if (!FIXTURE) mkd(CACHE, { recursive: true });
+const cachePath = p2 => `${CACHE}/${p2.slug}--${Date.parse(p2.post_date)}.json`;
 const full = [];
 if (FIXTURE) full.push(...deduped.filter(p => p.body_html && p.body_html.length <= 2_000_000 ||
   (report.skips.push({ slug: p.slug, reason: p.body_html ? "body over 2MB" : "empty body" }), false)));
 else for (const p of deduped) {
+  const cp = cachePath(p);
+  if (exf(cp)) { full.push(JSON.parse(rdf(cp, "utf-8"))); continue; }
   try {
     const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
-    if (d.body_html && d.body_html.length <= 2_000_000) full.push(d);
+    if (d.body_html && d.body_html.length <= 2_000_000) { full.push(d); wrf(cp, JSON.stringify(d)); }
     else report.skips.push({ slug: p.slug, reason: d.body_html ? "body over 2MB" : "empty body" });
   } catch (e) { report.skips.push({ slug: p.slug, reason: String(e.message) }); }
   await new Promise(r => setTimeout(r, 350));
@@ -88,7 +100,7 @@ const home = FIXTURE ? "" : await text(`https://${host}`);
 let pubName = (home.match(/property="og:site_name" content="([^"]+)"/) || [])[1]
   || full[0]?.publishedBylines?.[0]?.name || host.split(".")[0];
 let pubDesc = (home.match(/property="og:description" content="([^"]+)"/) || [])[1] || "";
-pubDesc = pubDesc.replace(/\s*Click to read.*$/i, "").trim();
+pubDesc = decodeEntities(pubDesc.replace(/\s*Click to read.*$/i, "").trim());
 
 /* ---------- brand lift: the publication's own theme drives the book ---------- */
 let brand = null;
@@ -116,9 +128,68 @@ for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCoun
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
-const authorLine = multi
-  ? "Essays by " + authors.slice(0, 6).join(", ") + (authors.length > 6 ? ` and ${authors.length - 6} others` : "")
-  : author;
+const dominantShare = full.length ? (byCount[author] || 0) / full.length : 1;
+
+/* ---------- content kind: what the pieces ARE drives every label ---------- */
+const DATE_TITLE = /^[A-Z][a-z]+ \d{1,2},? \d{4}[.\s]*$/;
+const NOUNS = { essays: "essay", letters: "letter", recipes: "recipe", poems: "poem",
+  stories: "story", reviews: "review", dispatches: "dispatch", pieces: "piece" };
+const KIND_KEYWORDS = { recipe: "recipes", poem: "poems", poetry: "poems", letter: "letters",
+  fiction: "stories", story: "stories", review: "reviews", dispatch: "dispatches" };
+function detectKind() {
+  const flagIdx = process.argv.indexOf("--noun");
+  if (flagIdx > -1) { const n = process.argv[flagIdx + 1]; return NOUNS[n] ? n : "pieces"; }
+  const dateFrac = full.filter(p2 => DATE_TITLE.test((p2.title || "").trim())).length / Math.max(1, full.length);
+  if (dateFrac > 0.5) return "letters";
+  const votes = {};
+  for (const p2 of full)
+    for (const t of [...(p2.postTags || []).map(t2 => t2?.name || t2), p2.section_name])
+      for (const [kw, kind] of Object.entries(KIND_KEYWORDS))
+        if (String(t || "").toLowerCase().includes(kw)) votes[kind] = (votes[kind] || 0) + 1;
+  const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
+  return top && top[1] >= full.length * 0.3 ? top[0] : "essays";
+}
+const kind = detectKind();
+const noun = kind, nounOne = NOUNS[kind] || "piece";
+const capNoun = noun.charAt(0).toUpperCase() + noun.slice(1);
+report.kind = kind;
+
+/* media-only pieces (video/audio interviews with no prose) never print as empty chapters */
+report.mediaOnly = 0;
+for (let i = full.length - 1; i >= 0; i--) {
+  const words = String(full[i].body_html || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
+  if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
+}
+
+/* excerpts + date-titled flags for navigable letters TOCs */
+for (const p2 of full) {
+  p2._dateTitled = DATE_TITLE.test((p2.title || "").trim());
+  const txt = String(p2.body_html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  p2._excerpt = txt.split(" ").slice(0, 9).join(" ").replace(/[.,;:!?]+$/, "");
+}
+
+/* parts: month sections for letters; named sections when a publication truly uses them */
+const distinctSections = [...new Set(full.map(p2 => p2.section_name).filter(Boolean))];
+const sectionCoverage = full.filter(p2 => p2.section_name).length / Math.max(1, full.length);
+let partOf = null, partTitles = [];
+if (kind === "letters") {
+  partOf = p2 => new Date(Date.parse(p2.post_date)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+} else if (distinctSections.length >= 2 && sectionCoverage >= 0.6) {
+  partOf = p2 => p2.section_name || "General";
+}
+if (partOf) for (const p2 of full) { const t = partOf(p2); if (!partTitles.includes(t)) partTitles.push(t); }
+report.parts = partTitles;
+let authorLine = author;
+if (multi) {
+  const cut = Math.max(2, Math.ceil(full.length * 0.1));
+  const principals = authors.filter(a => byCount[a] >= cut);
+  const rest = authors.length - principals.length;
+  const label = { essays: "Essays", letters: "Letters", recipes: "Recipes", poems: "Poems",
+    stories: "Stories", reviews: "Reviews", dispatches: "Dispatches", pieces: "Writing" }[kind] || "Writing";
+  authorLine = label + " by " + (principals.length ? principals.join(", ") : authors.slice(0, 3).join(", "))
+    + (rest > 0 ? `, with contributions from ${rest} other${rest === 1 ? "" : "s"}` : "");
+}
 
 /* ---------------- clean bodies ---------------- */
 const KILL = [
@@ -145,8 +216,12 @@ function clean(html, slug) {
   s = s.replace(/<source[^>]*>/gi, "");
   for (const re of KILL) s = s.replace(re, "");
   // iframes and embeds become source cards
-  s = s.replace(/<iframe[^>]*src="([^"]+)"[\s\S]*?<\/iframe>/gi,
-    (_, src) => `<div class="embedcard">Viewable online: <span>${src.slice(0, 90)}</span></div>`);
+  s = s.replace(/<iframe[^>]*src="([^"]+)"[\s\S]*?<\/iframe>/gi, (_, src) => {
+    let u = src.split("?")[0].replace(/^https?:\/\//, "");
+    const yt = u.match(/(?:youtube(?:-nocookie)?\.com\/embed\/|youtu\.be\/)([\w-]{6,})/);
+    if (yt) u = "youtube.com/watch?v=" + yt[1];
+    return `<div class="embedcard">Viewable online: <span>${u.slice(0, 90)}</span></div>`;
+  });
   s = s.replace(/<div[^>]*class="[^"]*tweet[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
     `<div class="embedcard">A post from X, viewable in the online edition.</div>`);
   // images: proof mode keeps Substack CDN JPEGs (small); print mode uses decoded S3 originals
@@ -187,31 +262,71 @@ const range = `${dfmt(dates[0])} – ${dfmt(dates[dates.length - 1])}`;
 const year = new Date(dates[dates.length - 1]).getUTCFullYear();
 const y0 = new Date(dates[0]).getUTCFullYear();
 const spanMonths = (dates[dates.length - 1] - dates[0]) / 2629800000;
+const yspan = y0 === year ? String(year) : y0 + "–" + year;
 const kindLabel = spanMonths <= 4 ? `Quarterly · ${year}`
   : (spanMonths >= 10 && spanMonths <= 14) ? `Annual · ${year}`
-  : `Collected Essays · ${y0 === year ? year : y0 + "–" + year}`;
-const volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected Essays`;
+  : `Collected ${capNoun} · ${yspan}`;
+const volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected ${capNoun}`;
 const totalWords = full.reduce((s, p) => s + (p.wordcount || 0), 0);
 for (const p2 of full) if ((p2.title || "").length > 120)
   report.skips.push({ slug: p2.slug, reason: "title over 120 chars kept, check running head", kept: true });
 
 const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function decodeEntities(s) { return String(s || "")
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&amp;/g, "&"); }
 
-const tocRows = full.map((p, i) => {
-  const b = multi ? p.publishedBylines?.[0]?.name : null;
-  return `<div class="tocrow"><span class="toct"><a href="#art-${i}">${esc(p.title)}</a>${b ? `<span class="tocby"> · ${esc(b)}</span>` : ""}</span><span class="tocdots"></span><span class="tocn"><a href="#art-${i}"></a></span></div>`;
-}).join("\n");
+function tocRow(p, i) {
+  const b = p.publishedBylines?.[0]?.name;
+  const showBy = multi && b && (dominantShare < 0.5 || b !== author);
+  let label = esc(p.title);
+  if (p._dateTitled) {
+    const day = new Date(Date.parse(p.post_date)).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+    label = `${day} <span class="tocex">— ${esc(p._excerpt)}…</span>`;
+  }
+  return `<div class="tocrow"><span class="toct"><a href="#art-${i}">${label}</a>${showBy ? `<span class="tocby"> · ${esc(b)}</span>` : ""}</span><span class="tocdots"></span><span class="tocn"><a href="#art-${i}"></a></span></div>`;
+}
+let tocRows;
+if (partOf) {
+  let cur = null; const chunks = [];
+  full.forEach((p, i) => {
+    const t = partOf(p);
+    if (t !== cur) { cur = t; chunks.push(`<div class="tocpart"><a href="#part-${partTitles.indexOf(t)}">${esc(t)}</a></div>`); }
+    chunks.push(tocRow(p, i));
+  });
+  tocRows = chunks.join("\n");
+} else {
+  tocRows = full.map((p, i) => tocRow(p, i)).join("\n");
+}
 
-const articles = full.map((p, i) => `
+let lastPart = null;
+const articles = full.map((p, i) => {
+  let divider = "";
+  if (partOf) {
+    const t = partOf(p);
+    if (t !== lastPart) { lastPart = t;
+      divider = `<section class="part" id="part-${partTitles.indexOf(t)}"><div class="partkind">${esc(volLabel)}</div><h2 class="parttitle">${esc(t)}</h2></section>\n`; }
+  }
+  const b = p.publishedBylines?.[0]?.name;
+  const showBy = multi && b && (dominantShare < 0.5 || b !== author);
+  const meta = [
+    p._dateTitled ? null : dayfmt(Date.parse(p.post_date)),
+    (p.wordcount || 0) >= 50 ? (p.wordcount || 0).toLocaleString("en-US") + " words" : null,
+    showBy ? "by " + esc(b) : null,
+  ].filter(Boolean).join(" · ");
+  return divider + `
 <section class="article" id="art-${i}">
   <header class="arthead">
-    <div class="artnum">${i + 1}</div>
+    ${kind === "letters" ? "" : `<div class="artnum">${i + 1}</div>`}
     <h2 class="arttitle" data-title="${esc(p.title)}">${esc(p.title)}</h2>
     ${p.subtitle ? `<p class="artsub">${esc(p.subtitle)}</p>` : ""}
-    <div class="artmeta">${dayfmt(Date.parse(p.post_date))} · ${(p.wordcount || 0).toLocaleString("en-US")} words${(() => { const b = p.publishedBylines?.[0]?.name; return b && (multi || b !== author) ? " · by " + esc(b) : ""; })()}</div>
+    <div class="artmeta">${meta}</div>
   </header>
   <div class="artbody">${clean(p.body_html, p.slug)}</div>
-</section>`).join("\n");
+</section>`;
+}).join("\n");
 
 // script coverage: counts always reported; decline only when dominant
 const allBody = full.map(p2 => p2.body_html).join("");
@@ -249,6 +364,7 @@ body{ font-family:"${B.bodyFont}", "Source Serif 4", Georgia, serif; color:var(-
 .pubsrc{ string-set: pubname content(text); height:0; overflow:hidden; visibility:hidden }
 p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:none; orphans:2; widows:2 }
 .artbody > p:first-of-type{ text-indent:0 }
+
 .about p, .getmore p{ text-indent:0 }
 a{ color:inherit; text-decoration:none }
 img{ max-width:100%; height:auto; display:block; margin:.9em auto }
@@ -290,7 +406,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .about h3, .toc h3, .getmore h3{ font-size:9pt; letter-spacing:.26em; text-transform:uppercase;
   color:var(--rubric); font-weight:600; margin:0 0 .3in }
 .about p{ text-indent:0; margin-bottom:.6em }
-.about .epigraph{ color:var(--faint); font-size:11.5pt; margin:0 0 1.1em; padding-left:.8em; border-left:2.5px solid var(--rubric) }
+.about .epigraph{ color:var(--faint); font-size:12.5pt; font-style:italic; text-align:center; margin:.2em 0 1.4em; padding:0 }
 .about .colophon{ margin-top:1in; font-size:8.5pt; color:var(--faint); border-top:1px solid var(--rule); padding-top:.15in }
 .toc{ page: frontmatter }
 .tocrow{ display:flex; align-items:baseline; gap:.3em; margin:.42em 0; font-size:10pt }
@@ -298,6 +414,12 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .tocby{ color:var(--faint); font-size:8.5pt }
 .tocdots{ flex:1; border-bottom:1px dotted #b9b19d; transform:translateY(-2px) }
 .tocn a::after{ content: target-counter(attr(href), page); font-variant-numeric:oldstyle-nums }
+/* ---------- parts ---------- */
+.part{ page: frontmatter; break-before:page; break-after:page; text-align:center; padding-top:2.9in }
+.partkind{ font-size:8.5pt; letter-spacing:.26em; text-transform:uppercase; color:var(--rubric); margin-bottom:.35in }
+.parttitle{ font-size:22pt; font-weight:var(--headweight); font-family:var(--headfont), "Source Serif 4", serif }
+.tocpart{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--rubric); font-weight:600; margin:1.1em 0 .3em }
+.tocex{ color:var(--faint); font-size:9pt }
 /* ---------- articles ---------- */
 .article{ page: chapter; break-before:page }
 .arthead{ margin:0 0 1.1em; padding-top:.55in }
@@ -321,7 +443,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .getmore p{ text-indent:0; margin-bottom:.6em }
 </style>
 </head>
-<body>
+<body data-retrieval-failures="${report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length}">
 
 <div class="cover">
   <div class="pubsrc">${esc(pubName)}</div>
@@ -329,7 +451,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   <h1>${esc(pubName)}</h1>
   <div class="rule"></div>
   <div class="dates">${range}</div>
-  <div class="foot"><span>${full.length} essays · ${totalWords.toLocaleString("en-US")} words</span><span>INKSHEAF EDITION</span></div>
+  <div class="foot"><span>${full.length} ${noun}</span><span>${host.replace(/^www\./, "")}</span></div>
 </div>
 
 <div class="fm halftitle">${esc(pubName)}</div>
@@ -337,22 +459,26 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 <div class="fm titlepage">
   <div class="t">${esc(pubName)}</div>
   <div class="s">${volLabel} · ${range}</div>
-  ${(multi || author !== pubName) ? `<div class="a">${esc(authorLine)}</div>` : ""}
-  <div class="imprint">Printed by Inksheaf</div>
+  ${(multi || author.toLowerCase() !== pubName.toLowerCase()) ? `<div class="a">${esc(authorLine)}</div>` : ""}
 </div>
 
 <div class="fm about">
   <h3>About</h3>
   ${pubDesc ? `<p class="epigraph">${esc(pubDesc)}</p>` : ""}
-  <p>This volume collects every public essay published at ${host.replace(/^www\./, "")} from
-  ${range}${author !== pubName ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} pieces,
+  ${(() => { const lost = report.skips.filter(k => /429|5xx|timeout|fetch|unreachable/i.test(k.reason)).length;
+     report.retrievalFailures = lost; return ""; })()}
+  <p>This volume collects ${report.retrievalFailures ? `${full.length} of the ${full.length + report.retrievalFailures} public ${noun}` : `every public ${nounOne}`} published at ${host.replace(/^www\./, "")} from
+  ${range}${author !== pubName ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
   ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>
-  ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? "essay is" : "essays are"} not
+  ${report.retrievalFailures ? `<p>${report.retrievalFailures} ${report.retrievalFailures === 1 ? nounOne : noun} could not be
+  retrieved while this proof was built and will appear in the production edition.</p>` : ""}
+  ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
+  ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Links print as
   references. Video, audio and interactive embeds appear as cards that point to the online
   edition.</p>
-  <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated · Proof edition ·
+  <div class="colophon">Set in Source Serif 4 · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 
@@ -387,16 +513,37 @@ window.__pagedDone = new Promise(res => {
 </body>
 </html>`;
 
-// dead-image scan (unique srcs, concurrency 6)
+// image localization: download once into the cache, convert to grayscale for BW proofs,
+// rewrite to relative paths (renders become network-independent; dead images get honest boxes)
+const { execFileSync: execF } = await import("node:child_process");
+const crypto = await import("node:crypto");
+const IMGCACHE = "proofs/.cache/img";
+mkdirSync(IMGCACHE, { recursive: true });
 const srcs = [...new Set([...html.matchAll(/<img src="(http[^"]+)"/g)].map(m => m[1]))];
 let htmlOut = html;
 const queue = [...srcs];
 async function worker() {
   while (queue.length) {
     const u = queue.pop();
+    const h = crypto.createHash("sha1").update(u).digest("hex").slice(0, 16);
+    const ext = /f_jpg|\.jpe?g/i.test(u) ? "jpg" : /\.png/i.test(u) ? "png" : "img";
+    const base = `${IMGCACHE}/${h}.${ext}`;
+    const gray = `${IMGCACHE}/${h}-gray.${ext}`;
+    const want = BW ? gray : base;
     try {
-      const r = await fetch(u, { method: "HEAD", headers: { "user-agent": UA["user-agent"] } });
-      if (!r.ok) throw new Error(r.status);
+      const { existsSync: ex, writeFileSync: wf } = await import("node:fs");
+      if (!ex(base)) {
+        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] } });
+        if (!r.ok) throw new Error(r.status);
+        wf(base, Buffer.from(await r.arrayBuffer()));
+      }
+      if (BW && !ex(gray)) {
+        try {
+          execF("sips", ["-m", "/System/Library/ColorSync/Profiles/Generic Gray Profile.icc",
+            base, "--out", gray], { stdio: "pipe" });
+        } catch { execF("cp", [base, gray]); }
+      }
+      htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${want.replace("proofs/", "")}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`,

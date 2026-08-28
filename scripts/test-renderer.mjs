@@ -34,7 +34,7 @@ ok(report.deadImages.length === 3, "3 dead images detected", String(report.deadI
 /* ---------- 3. content-shape assertions ---------- */
 ok((html.match(/class="tocrow"/g) || []).length === 5, "toc rows match articles");
 ok(html.includes('class="tocby"'), "toc bylines (multi-author)");
-ok(html.includes("Essays by Fixture Author A, Fixture Author B"), "title-page roster");
+ok(html.includes("Essays by Fixture Author A, with contributions from 1 other"), "title-page roster with principals threshold");
 ok(html.includes('class="verse'), "verse class applied");
 ok(html.includes('class="gifnote"'), "gif caption present");
 ok(html.includes('class="longurl"'), "longurl span present");
@@ -44,6 +44,9 @@ ok(!/<iframe/.test(html), "no raw iframes remain");
 ok(!/<script/i.test(html.split("</style>")[1].split("<script>")[0] || ""), "no scripts inside body content");
 ok(html.includes("figcaption"), "figcaption preserved");
 ok(!html.includes('[{"type":'), "no raw ProseMirror JSON leaks");
+ok(!html.includes("A Video Interview That Must Not Print As A Chapter"), "media-only post excluded from chapters");
+ok(html.includes("piece is a video or audio conversation"), "media-only About note printed");
+ok(!/(?<!\d)0 words/.test(html), "no zero-word meta lines");
 ok(html.includes("Text after the comment blob that must survive."), "text after comment blob survives");
 ok(html.includes("1 paid") || html.includes("1 paid essay"), "paid-omission note printed");
 
@@ -115,6 +118,26 @@ if (!process.argv.includes("--skip-render")) {
   const mt = Number(execSync("stat -f %m proofs/torture-proof.pdf", { encoding: "utf-8" }).trim());
   ok(mt >= t0, "torture PDF is fresh, not stale");
 }
+
+/* ---------- 4b. content-kind fixtures ---------- */
+execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
+  "--fixture", "proofs/letters-fixture.json", "--out", "proofs/letters-test.html"], { stdio: "pipe" });
+const lettersHtml = readFileSync("proofs/letters-test.html", "utf-8");
+const lettersReport = JSON.parse(readFileSync("proofs/letters-test.report.json", "utf-8"));
+ok(lettersReport.kind === "letters", "letters kind detected", lettersReport.kind);
+ok((lettersHtml.match(/class="tocpart"/g) || []).length === 2, "letters TOC groups into 2 month parts");
+ok(lettersHtml.includes('class="tocex"'), "letters TOC rows carry excerpts");
+ok((lettersHtml.match(/class="part" /g) || []).length === 2, "2 part divider pages");
+ok(!/class="artnum"/.test(lettersHtml), "no chapter numerals on letters");
+ok(lettersHtml.includes("6 letters"), "cover foot says letters");
+try { execFileSync("node", ["scripts/proof-lint.mjs", "proofs/letters-test.html"], { stdio: "pipe" }); ok(true, "letters book lint-clean"); }
+catch { ok(false, "letters book lint-clean"); }
+
+execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
+  "--fixture", "proofs/recipes-fixture.json", "--out", "proofs/recipes-test.html"], { stdio: "pipe" });
+const recipesReport = JSON.parse(readFileSync("proofs/recipes-test.report.json", "utf-8"));
+ok(recipesReport.kind === "recipes", "recipes kind detected from tags", recipesReport.kind);
+ok(readFileSync("proofs/recipes-test.html", "utf-8").includes("3 recipes"), "cover foot says recipes");
 
 /* ---------- 5. lint ---------- */
 try { execFileSync("node", ["scripts/proof-lint.mjs", "proofs/torture.html"], { stdio: "pipe" }); ok(true, "proof-lint clean"); }

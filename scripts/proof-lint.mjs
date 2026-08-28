@@ -64,6 +64,28 @@ for (const b of ["Click to read", "Subscribe now", "Share this post", "Leave a c
   if (n) findings.push(`platform boilerplate "${b}" appears ${n}x as element text`);
 }
 
+/* ---------- 3b. editorial standards (docs/BOOK-QUALITY.md) ---------- */
+// "every public X" may not be claimed over retrieval failures
+const lostM = html.match(/data-retrieval-failures="(\d+)"/);
+if (lostM && +lostM[1] > 0 && /collects every public/.test(html))
+  findings.push(`About claims "every public" while ${lostM[1]} pieces failed retrieval`);
+// double-escaped entities are shipped bugs
+if (/&amp;(#|amp;|quot;|lt;|gt;|apos;)/.test(html))
+  findings.push("double-escaped entity printing literally (e.g. &amp;#x27;)");
+// the printer's mark stays off the front of the book
+for (const r of regions.filter(r2 => ["cover", "titlepage", "about"].includes(r2.name)))
+  if (/inksheaf/i.test(r.text)) findings.push(`${r.name}: Inksheaf mark on the front of the book (imprint belongs in back matter, once)`);
+// a TOC of bare dates is not navigation
+const tocHtml = (html.match(/<div class="fm toc">[\s\S]*?<\/div>\s*(<section|<div class="get)/) || [""])[0];
+const rowLabels = [...tocHtml.matchAll(/<span class="toct">([\s\S]*?)<\/span>/g)].map(m => m[1].replace(/<[^>]+>/g, " ").trim());
+const dateRows = rowLabels.filter(t => /^[A-Z][a-z]+ \d{1,2},? \d{4}\s*$/.test(t)).length;
+if (rowLabels.length && dateRows / rowLabels.length > 0.4 && !/class="tocpart"/.test(html))
+  findings.push(`TOC is ${dateRows}/${rowLabels.length} bare dates with no part grouping`);
+// bylines mark exceptions, not the norm
+const byCountToc = (html.match(/class="tocby"/g) || []).length;
+if (rowLabels.length && byCountToc / rowLabels.length > 0.5 && byCountToc < rowLabels.length)
+  findings.push(`TOC bylines on ${byCountToc}/${rowLabels.length} rows: mark minority authors only, or all in a true group publication`);
+
 /* ---------- 4. structure sanity ---------- */
 const tocRows = (html.match(/class="tocrow"/g) || []).length;
 const articles = (html.match(/class="article" id="art-/g) || []).length;

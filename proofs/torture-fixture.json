@@ -135,5 +135,17 @@
    }
   ],
   "body_html": "<p>If this sentence appears in the book, the is_published filter is broken.</p>"
+ },
+ {
+  "slug": "torture-video",
+  "title": "A Video Interview That Must Not Print As A Chapter",
+  "post_date": "2026-08-22T00:00:00.000Z",
+  "wordcount": 300,
+  "publishedBylines": [
+   {
+    "name": "Fixture Author A"
+   }
+  ],
+  "body_html": "<p>Watch:</p><iframe src=\"https://www.youtube-nocookie.com/embed/abc123XYZ_9?rel=0&autoplay=0\"></iframe>"
  }
 ]

@@ -1,0 +1,7 @@
+[     397ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fequation.png:0
+[     397ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif:0
+[     397ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdead-wide.png:0
+[     947ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:9208/favicon.ico:0
+[     991ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdemo.gif:0
+[     992ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fequation.png:0
+[    1008ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://substackcdn.com/image/fetch/w_1100,c_limit,f_jpg,q_80/https%3A%2F%2Fmedia.example%2Fdead-wide.png:0

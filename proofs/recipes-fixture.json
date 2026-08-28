@@ -1,0 +1,53 @@
+[
+ {
+  "slug": "recipe-0",
+  "title": "Braised Leeks on Toast",
+  "post_date": "2026-08-10T12:00:00.000Z",
+  "wordcount": 400,
+  "publishedBylines": [
+   {
+    "name": "Fixture Cook"
+   }
+  ],
+  "postTags": [
+   {
+    "name": "Recipes"
+   }
+  ],
+  "body_html": "<p>Preheat, combine, rest, serve. A full method follows with quantities and times.</p>"
+ },
+ {
+  "slug": "recipe-1",
+  "title": "A Better Weeknight Dal",
+  "post_date": "2026-08-11T12:00:00.000Z",
+  "wordcount": 400,
+  "publishedBylines": [
+   {
+    "name": "Fixture Cook"
+   }
+  ],
+  "postTags": [
+   {
+    "name": "Recipes"
+   }
+  ],
+  "body_html": "<p>Preheat, combine, rest, serve. A full method follows with quantities and times.</p>"
+ },
+ {
+  "slug": "recipe-2",
+  "title": "Plum Galette for a Crowd",
+  "post_date": "2026-08-12T12:00:00.000Z",
+  "wordcount": 400,
+  "publishedBylines": [
+   {
+    "name": "Fixture Cook"
+   }
+  ],
+  "postTags": [
+   {
+    "name": "Recipes"
+   }
+  ],
+  "body_html": "<p>Preheat, combine, rest, serve. A full method follows with quantities and times.</p>"
+ }
+]

@@ -1,0 +1,30 @@
+{
+  "host": "heathercoxrichardson.substack.com",
+  "listed": 423,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 160,
+  "declineSignals": [],
+  "brand": {
+    "accent": "#3f5885",
+    "headingFont": "Source Serif 4",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#FFFFFF",
+    "mappedFrom": null,
+    "warnings": []
+  },
+  "kind": "letters",
+  "mediaOnly": 78,
+  "parts": [
+    "March 2026",
+    "April 2026",
+    "May 2026",
+    "June 2026",
+    "July 2026",
+    "August 2026"
+  ],
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0
+}

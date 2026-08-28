@@ -27,3 +27,4 @@ proofs/*.html
 node_modules/
 dist/
 .astro/
+proofs/.cache/

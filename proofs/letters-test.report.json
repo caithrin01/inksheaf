@@ -1,0 +1,18 @@
+{
+  "host": "fixture.invalid",
+  "listed": 6,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "kind": "letters",
+  "mediaOnly": 0,
+  "parts": [
+    "March 2026",
+    "April 2026"
+  ],
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0
+}
