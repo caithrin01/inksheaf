@@ -55,6 +55,15 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
   };
 }
 
+export function parseRelayedArchive(text) {
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start < 0 || end < start) throw new Error("relay returned no JSON array");
+  const value = JSON.parse(text.slice(start, end + 1));
+  if (!Array.isArray(value)) throw new Error("relay payload is not an archive array");
+  return value;
+}
+
 function publicationName(posts, host) {
   const names = {};
   for (const post of posts) for (const byline of (post.publishedBylines || []))

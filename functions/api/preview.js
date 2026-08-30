@@ -5,8 +5,9 @@
 const MAX_POSTS = 150;
 const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 6000;
+const RELAY_TIMEOUT_MS = 15000;
 const WINDOW_DAYS = 366;
-import { summarizeArchive } from "../lib/preview-summary.js";
+import { parseRelayedArchive, summarizeArchive } from "../lib/preview-summary.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
@@ -66,55 +67,31 @@ async function fetchArchive(host) {
   const posts = [];
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 3600 * 1000;
   let hops = 0;
+  let relayed = false;
   for (let offset = 0; offset < MAX_POSTS; ) {
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-    let resp;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        resp = await fetch(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`, {
-          redirect: "manual", signal: ctl.signal,
-          headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
-        });
-      } catch {
-        clearTimeout(timer);
-        return { ok: false, error: "unreachable", status: 502,
-          message: "Could not reach that publication. The signup below works without a preview." };
-      }
-      if ((resp.status === 429 || resp.status >= 500) && attempt === 0) {
-        await new Promise(r => setTimeout(r, 1200));
-        continue;
-      }
-      break;
-    }
-    clearTimeout(timer);
-    if (resp.status === 429)
-      return { ok: false, error: "upstream_busy", status: 503, upstream: 429,
-        message: "Substack is rate-limiting our reader for that publication right now. Try again in a minute, or sign up below and we will send your preview by email." };
-    if (resp.status >= 300 && resp.status < 400) {
-      const loc = resp.headers.get("location") || "";
-      const nextHost = parseHost(loc.startsWith("http") ? loc : `https://${host}${loc}`);
-      if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
-      return { ok: false, error: "redirect", status: 502,
-        message: "That address redirects somewhere we could not follow. Try the publication's final URL." };
-    }
-    if (!resp.ok)
-      return { ok: false, error: "not_substack", status: 502, upstream: resp.status,
-        message: "Could not read an archive there. Is this a Substack publication URL?" };
-    let text;
-    try { text = await readLimitedText(resp); }
-    catch {
-      return { ok: false, error: "too_large", status: 502,
-        message: "That archive response is too large to preview safely. Join the beta and we will build it in the full pipeline." };
-    }
     let page;
-    try { page = JSON.parse(text); } catch {
-      return { ok: false, error: "not_substack", status: 502,
-        message: "That page did not answer like a Substack archive. Is this the publication's URL?" };
+    if (relayed) {
+      const via = await fetchRelayedArchive(host, offset);
+      if (!via.ok) return archiveUnavailable(via.error);
+      page = via.page;
+    } else {
+      const direct = await fetchDirectArchive(host, offset);
+      if (direct.redirect) {
+        const nextHost = parseHost(direct.redirect.startsWith("http")
+          ? direct.redirect : `https://${host}${direct.redirect}`);
+        if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
+        return { ok: false, error: "redirect", status: 502,
+          message: "That address redirects somewhere we could not follow. Try the publication's final URL." };
+      }
+      if (direct.ok) page = direct.page;
+      else if (direct.retryable) {
+        const via = await fetchRelayedArchive(host, offset);
+        if (!via.ok) return archiveUnavailable(via.error);
+        relayed = true;
+        page = via.page;
+      } else return { ok: false, error: "not_substack", status: 502, upstream: direct.status,
+        message: "Could not read an archive there. Is this a Substack publication URL?" };
     }
-    if (!Array.isArray(page))
-      return { ok: false, error: "not_substack", status: 502,
-        message: "That page did not answer like a Substack archive. Is this the publication's URL?" };
     if (!page.length) break;
     posts.push(...page);
     offset += page.length;
@@ -127,55 +104,72 @@ async function fetchArchive(host) {
     return { ok: false, error: "empty", status: 200,
       message: "The public archive there looks empty for the last year. Paid-only archives preview after you join the beta." };
   const capped = posts.length >= MAX_POSTS;
-  const identity = await fetchIdentity(host, identityPost.slug);
+  const identity = identityFromArchive(identityPost, host);
   const data = summarizeArchive(posts, identity, host, cutoff, capped);
   if (!data) return { ok: false, error: "empty", status: 200,
     message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
+  data.fetch_mode = relayed ? "relay" : "direct";
   return { ok: true, data };
 }
 
-/* One guarded call to the newest post for the publication's own palette; the mirror moment
-   should wear THEIR colors. The same response carries the publication identity nested under the
-   byline; using that avoids putting an author's personal name on a differently named publication. */
-async function fetchIdentity(host, slug) {
-  if (!slug) return { theme: null, publicationName: null };
+async function fetchDirectArchive(host, offset) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-    const r = await fetch(`https://${host}/api/v1/posts/${encodeURIComponent(slug)}`, {
+    const r = await fetch(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`, {
       redirect: "manual", signal: ctl.signal,
       headers: { accept: "application/json", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.pages.dev)" },
     });
     clearTimeout(timer);
-    if (!r.ok) return { theme: null, publicationName: null };
-    const post = JSON.parse(await readLimitedText(r));
-    const publicationName = publicationNameFromPost(post, host);
-    const tv = post?.themeVariables || {};
-    const bg = parseColor(tv.cover_bg_color || tv.web_bg_color);
-    let ink = parseColor(tv.cover_print_primary || tv.print_on_pop);
-    if (bg && !ink) ink = lum(bg) < 0.45 ? [255, 255, 255] : [34, 29, 22];
-    if (!bg || !ink || contrast(bg, ink) < 4.5)
-      return { theme: null, publicationName };
-    const ink2 = lum(bg) < 0.45 ? [217, 217, 217] : [90, 85, 75];
-    return { publicationName, theme: {
-      cover_bg: hex(bg), cover_ink: hex(ink), cover_ink2: hex(ink2),
-      accent: tv.color_theme_accent || tv.background_pop || null,
-      heading_stack: String(tv.font_family_headings_preset || "").slice(0, 200) || null,
-    } };
-  } catch { return { theme: null, publicationName: null }; }
+    if (r.status >= 300 && r.status < 400) return { ok: false, redirect: r.headers.get("location") || "" };
+    if (!r.ok) return { ok: false, status: r.status, retryable: r.status === 429 || r.status >= 500 };
+    const value = JSON.parse(await readLimitedText(r));
+    return Array.isArray(value) ? { ok: true, page: value } : { ok: false, status: 502 };
+  } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502 }; }
 }
 
-function publicationNameFromPost(post, host) {
+async function fetchRelayedArchive(host, offset) {
+  const source = `https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`;
+  const relayUrl = "https://r.jina.ai/" + source.replaceAll("&", "%26");
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), RELAY_TIMEOUT_MS);
+  try {
+    const r = await fetch(relayUrl, { redirect: "manual", signal: ctl.signal,
+      headers: { accept: "text/plain", "user-agent": "inksheaf-preview/2.0 (+https://inksheaf.com)" } });
+    clearTimeout(timer);
+    if (!r.ok) return { ok: false, error: `relay ${r.status}` };
+    return { ok: true, page: parseRelayedArchive(await readLimitedText(r)) };
+  } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
+}
+
+function archiveUnavailable(detail) {
+  return { ok: false, error: "upstream_busy", status: 503,
+    message: "We could not read that archive automatically. Send it below and we will build the preview by hand.",
+    detail: String(detail || "unavailable").slice(0, 120) };
+}
+
+function identityFromArchive(post, host) {
+  const pub = publicationFromPost(post, host);
+  const publicationName = pub?.name ? String(pub.name).slice(0, 120) : null;
+  const bg = parseColor(pub?.theme_var_background_pop);
+  if (!bg) return { publicationName, theme: null };
+  const light = [255, 255, 255], dark = [34, 29, 22];
+  const ink = contrast(bg, light) >= contrast(bg, dark) ? light : dark;
+  if (contrast(bg, ink) < 4.5) return { publicationName, theme: null };
+  return { publicationName, theme: { cover_bg: hex(bg), cover_ink: hex(ink),
+    cover_ink2: lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b", accent: hex(bg), heading_stack: null } };
+}
+
+function publicationFromPost(post, host) {
   const pubs = [];
   for (const byline of (post?.publishedBylines || []))
     for (const user of (byline?.publicationUsers || []))
       if (user?.publication?.name) pubs.push(user.publication);
   const normalized = host.replace(/^www\./, "");
-  const matched = pubs.find(p => String(p.custom_domain || "").replace(/^www\./, "") === normalized)
+  return pubs.find(p => String(p.custom_domain || "").replace(/^www\./, "") === normalized)
     || pubs.find(p => `${p.subdomain}.substack.com` === normalized)
     || pubs.find(p => p.id === post?.publication_id)
     || pubs[0];
-  return matched?.name ? String(matched.name).slice(0, 120) : null;
 }
 
 async function readLimitedText(resp) {

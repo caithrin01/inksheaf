@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { strict as assert } from "node:assert";
-import { summarizeArchive } from "../functions/lib/preview-summary.js";
+import { parseRelayedArchive, summarizeArchive } from "../functions/lib/preview-summary.js";
 
 const now = Date.parse("2026-08-28T00:00:00Z");
 const cutoff = now - 366 * 864e5;
@@ -42,4 +42,7 @@ assert.equal(mixedMedia.podcast_posts, 18);
 assert.equal(mixedMedia.public_posts, 12);
 assert.ok(mixedMedia.est_pages >= 32);
 
-console.log("PASS preview summaries: personal, daily letters, paid-heavy, mixed-media");
+const relayed = parseRelayedArchive('Title:\n\nMarkdown Content:\n[{"title":"From relay"}]');
+assert.equal(relayed[0].title, "From relay");
+
+console.log("PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, relay envelope");
