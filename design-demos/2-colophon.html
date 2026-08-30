@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2 · The Colophon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f8f4ea;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--hair:rgba(33,28,21,.16);--faint:rgba(33,28,21,.58)}
+*{box-sizing:border-box;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,serif;line-height:1.6;font-size:1.12rem;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.4;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
+/* the title-page frame: double rule around the whole sheet */
+.frame{position:fixed;inset:14px;border:1px solid var(--rule);pointer-events:none;z-index:4;animation:fr 1.4s ease .2s both}
+.frame::after{content:"";position:absolute;inset:5px;border:2.5px solid var(--rule)}
+@keyframes fr{from{opacity:0}to{opacity:1}}
+.sheet{max-width:44rem;margin:0 auto;padding:4.5rem 2rem 5rem;text-align:center}
+.smallcaps{letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;font-size:.82rem;color:var(--faint)}
+.crest{color:var(--ink);margin:2.4rem auto 2rem;animation:up 1.1s .35s both}
+h1{font-size:clamp(2.8rem,6vw,4.3rem);font-weight:480;line-height:1.12;letter-spacing:.005em;margin:1.6rem auto 0;max-width:15ch;animation:up 1.1s .5s both}
+.rule-orn{display:flex;align-items:center;gap:1.1rem;justify-content:center;margin:2.4rem auto;max-width:20rem;animation:up 1.1s .65s both}
+.rule-orn::before,.rule-orn::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.rule-orn span{color:var(--red);font-size:1.05rem}
+.lede{font-size:1.28rem;line-height:1.65;max-width:34ch;margin:0 auto;animation:up 1.1s .75s both}
+.tryline{margin:3.4rem auto 0;max-width:26rem;animation:up 1.1s .9s both}
+.tryline label{display:block;font-size:.74rem;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;color:var(--faint);margin-bottom:1.2rem}
+.tryline input{width:100%;text-align:center;padding:.4rem 0 .55rem;font:inherit;font-size:1.2rem;background:transparent;border:0;border-bottom:1px solid var(--rule);caret-color:var(--red)}
+.tryline input:focus{outline:none;border-bottom-color:var(--red)}
+.tryline button{margin-top:1.5rem;padding:.75rem 2.4rem .8rem;font-family:inherit;font-size:.8rem;letter-spacing:.28em;padding-left:2.68rem;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer;transition:all .3s}
+.tryline button:hover{background:var(--ink);color:var(--paper)}
+.imprint{margin-top:4.2rem;animation:up 1.1s 1.05s both}
+.imprint .city{font-size:.95rem;letter-spacing:.22em;padding-left:.22em;text-transform:uppercase}
+.imprint .yr{margin-top:.3rem;font-size:.95rem;letter-spacing:.18em;color:var(--faint)}
+/* the book, presented like an engraving plate below the fold */
+.plate{margin:4.5rem auto 0;max-width:30rem;text-align:center;animation:up 1.1s 1.15s both}
+.book{position:relative;width:13.5rem;aspect-ratio:6/9;margin:0 auto;transition:transform .5s}
+.plate:hover .book{transform:translateY(-4px)}
+.cover{position:absolute;inset:0;background:#f4efe2;border:1px solid var(--rule);display:flex;flex-direction:column;align-items:center;padding:1.8rem 1.1rem 1.1rem;box-shadow:0 2px 3px rgba(33,28,21,.15),12px 18px 34px -18px rgba(33,28,21,.5),inset 9px 0 12px -10px rgba(33,28,21,.4)}
+.cover .in{border:1px solid var(--hair);position:absolute;inset:7px;pointer-events:none}
+.cover .k{font-size:.55rem;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;color:var(--red)}
+.cover .m{font-size:1.45rem;font-weight:520;line-height:1.15;margin-top:.7rem}
+.cover .o{color:var(--red);margin:.8rem 0;font-size:.9rem}
+.cover .d{font-size:.72rem;color:var(--faint)}
+.cover .mid{flex:1}
+.cover .imp{font-size:.55rem;letter-spacing:.26em;padding-left:.26em;text-transform:uppercase;color:var(--faint)}
+.pages{position:absolute;top:4px;bottom:4px;right:-7px;width:7px;background:repeating-linear-gradient(180deg,#fdfaf2 0 2px,#e9e2d1 2px 3px);box-shadow:2px 3px 6px -2px rgba(33,28,21,.35)}
+.cap{margin-top:1.4rem;font-size:.78rem;letter-spacing:.24em;padding-left:.24em;text-transform:uppercase;color:var(--faint)}
+.facts{margin:3.6rem auto 0;font-size:1.05rem;color:var(--faint);max-width:38ch;animation:up 1.1s 1.25s both}
+.facts b{color:var(--red);font-weight:520}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+</style></head><body>
+<div class="frame"></div>
+<div class="sheet">
+  <div class="smallcaps" style="animation:up 1.1s .25s both">Inksheaf &middot; Private beta</div>
+  <div class="crest"><svg style="height:54px;width:auto;" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg></div>
+  <h1>See the book inside your archive.</h1>
+  <div class="rule-orn"><span>&#10086;</span></div>
+  <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public writing into a 6×9 edition in your publication&rsquo;s masthead and palette.</p>
+  <div class="tryline">
+    <label>Your publication&rsquo;s URL</label>
+    <input placeholder="yourname.substack.com">
+    <button>Show my book</button>
+  </div>
+  <div class="imprint">
+    <div class="city">Printed in the United States</div>
+    <div class="yr">MMXXVI</div>
+  </div>
+  <div class="plate">
+    <div class="book"><div class="cover"><div class="in"></div>
+      <div class="k">Annual Edition</div><div class="m">Caithrin</div><div class="o">&#10087;</div>
+      <div class="d">Aug 2025 &ndash; Aug 2026</div><div class="mid"></div>
+      <div class="imp">Inksheaf</div>
+    </div><div class="pages"></div></div>
+    <div class="cap">27 essays &middot; 226 pages &middot; 6 × 9, perfect bound</div>
+  </div>
+  <p class="facts">Your archive is already a <b>226-page book</b>. Readers pay printing and shipping at cost; nothing is added during the beta.</p>
+</div></body></html>

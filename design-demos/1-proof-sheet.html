@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1 · The Proof Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Newsreader:opsz,wght@6..72,400..700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f3ecdc;--ink:#1e1710;--rubric:#a93b22;--rule:rgba(30,23,16,.28);--hair:rgba(30,23,16,.16);--faint:rgba(30,23,16,.6);--gold:#bf9d63}
+*{box-sizing:border-box;margin:0}
+body{background:linear-gradient(180deg,#f3ecdc,#ece3cf);color:var(--ink);font-family:"Newsreader",Georgia,serif;font-optical-sizing:auto;font-variant-numeric:oldstyle-nums;line-height:1.58;font-size:1.1rem}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.55;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(130% 100% at 50% 30%,transparent 62%,rgba(64,47,26,.13) 100%)}
+.page{max-width:72rem;margin:0 auto;padding:0 2.5rem 4rem}
+.np{padding-top:1.3rem;text-align:center}
+.oxford{border-top:3px solid var(--ink);position:relative;height:7px}
+.oxford::after{content:"";position:absolute;inset:3px 0 auto;border-top:1px solid var(--ink)}
+.crest{margin:1.4rem auto .8rem;color:var(--ink);animation:up .9s cubic-bezier(.2,.7,.2,1) .25s both}
+.word{font-family:"Fraunces";font-size:clamp(3rem,8vw,5.2rem);font-weight:480;line-height:1;letter-spacing:.155em;padding-left:.155em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.45);animation:setw 1.2s cubic-bezier(.2,.7,.2,1) both}
+.tag{font-size:.92rem;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;color:var(--faint);margin:.9rem 0 1.2rem;font-weight:500;animation:up .9s .3s both}
+.date{display:flex;justify-content:center;gap:1.4rem;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:.5rem;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;font-weight:500;animation:up .9s .35s both}
+.date .o{color:var(--rubric);letter-spacing:0;font-family:"Fraunces"}
+.oxford,.date{transform-origin:center}
+@keyframes setw{from{opacity:0;letter-spacing:.3em}to{opacity:1;letter-spacing:.155em}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:3rem;align-items:start;margin-top:1rem}
+h1{font-family:"Fraunces";font-size:clamp(2.6rem,5.4vw,4.4rem);font-weight:440;line-height:1.02;letter-spacing:-.012em;margin-top:3rem;max-width:16ch;text-shadow:0 1px 0 rgba(255,255,255,.45);animation:up .8s .45s both}
+.lede{font-size:1.3rem;line-height:1.5;max-width:33ch;margin-top:1.4rem;animation:up .8s .55s both}
+.coupon{margin-top:2.2rem;position:relative;padding:1.5rem 1.4rem 1.35rem;border:1.5px dashed var(--rule);max-width:29rem;transform:rotate(-.4deg);transition:transform .35s;animation:up .8s .65s both}
+.coupon:hover{transform:rotate(0)}
+.coupon::before{content:"✂";position:absolute;top:-.72em;left:1.6rem;font-size:1.1rem;color:var(--faint);background:var(--paper);padding:0 .35rem;transform:rotate(-90deg)}
+.coupon label{display:block;font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem}
+.row{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap}
+.row input{flex:1 1 12rem;padding:.35rem 0 .45rem;font:inherit;font-size:1.1rem;color:var(--ink);background:transparent;border:0;border-bottom:1.5px solid var(--rule);caret-color:var(--rubric)}
+.row input:focus{outline:none;border-bottom-color:var(--rubric)}
+.row button{padding:.68rem 1.2rem .72rem;font-family:inherit;font-size:.76rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;border-radius:1px;cursor:pointer;transition:background .25s}
+.row button:hover{background:var(--rubric)}
+.hint{margin-top:.85rem;font-size:.78rem;color:var(--faint)}
+.stack{position:relative;min-height:26rem;margin-top:2.2rem;animation:up .9s .6s both}
+.book{position:relative;width:17rem;aspect-ratio:6/9;margin-left:6%;transform:rotate(-1.6deg);z-index:2;transition:transform .45s}
+.stack:hover .book{transform:rotate(-1deg) translateY(-5px)}
+.cover{position:absolute;inset:0;background:#241c12;border-radius:2px 7px 7px 2px;display:flex;flex-direction:column;padding:1.7rem 1.3rem 1.2rem;color:#f0e7d2;box-shadow:0 2px 3px rgba(30,23,16,.2),18px 26px 44px -18px rgba(30,23,16,.55),inset 12px 0 16px -13px rgba(0,0,0,.6)}
+.k{font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.m{font-family:"Fraunces";font-weight:540;font-size:1.7rem;line-height:1.1;margin-top:.45rem}
+.r{width:2.3rem;border-bottom:2.5px solid var(--gold);margin:.75rem 0 .85rem}
+.d{font-size:.8rem;opacity:.65;margin-top:.3rem}
+.mid{flex:1}
+.ft{border-top:1px solid rgba(240,231,210,.28);padding-top:.6rem;display:flex;justify-content:space-between;font-size:.64rem;opacity:.75}
+.pages{position:absolute;top:5px;bottom:5px;right:-8px;width:8px;background:repeating-linear-gradient(180deg,#fdfaf2 0 2px,#e7e0cf 2px 3px);border-radius:0 2px 2px 0;box-shadow:2px 3px 6px -2px rgba(30,23,16,.42)}
+.leaf{position:absolute;top:1.4rem;right:4%;width:12.5rem;aspect-ratio:6/9;background:#f8f2e4;border:1px solid var(--hair);padding:1rem .9rem .6rem;transform:rotate(4.5deg);z-index:1;font-size:.62rem;line-height:1.55;box-shadow:0 2px 3px rgba(30,23,16,.12),12px 18px 30px -16px rgba(30,23,16,.4)}
+.leaf .run{display:flex;justify-content:space-between;letter-spacing:.16em;text-transform:uppercase;font-size:.46rem;color:var(--faint);border-bottom:1px solid var(--hair);padding-bottom:.4rem;margin-bottom:.55rem}
+.tl{display:flex;align-items:baseline;gap:.35rem;margin-top:.48rem}
+.tl .dots{flex:1;border-bottom:1px dotted var(--rule);transform:translateY(-2px)}
+.tl .n{color:var(--faint)}
+.pull{margin-top:2.5rem;border-top:1px solid var(--ink);border-bottom:1px solid var(--hair);padding:1.7rem .2rem 1.8rem;animation:up .9s .8s both}
+.pull .big{font-family:"Fraunces";font-size:2.3rem;font-weight:450;line-height:1.1}
+.pull b{color:var(--rubric);font-weight:520}
+.pull .sub{margin-top:.8rem;color:var(--faint);max-width:52ch}
+@media(max-width:880px){.hero{grid-template-columns:1fr}.stack{min-height:24rem}h1{margin-top:2rem;max-width:none}}
+</style></head><body>
+<div class="page">
+  <header class="np">
+    <div class="oxford"></div>
+    <div class="crest"><svg style="height:42px;width:auto;" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg></div>
+    <div class="word">Inksheaf</div>
+    <div class="tag">Your Substack, printed &amp; bound</div>
+    <div class="date"><span>Vol. I &middot; Private beta</span><span class="o">&#10086;</span><span>Printed in the United States</span></div>
+  </header>
+  <div class="hero">
+    <div>
+      <h1>See the book inside your archive.</h1>
+      <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public writing into a 6×9 edition in your publication&rsquo;s masthead and palette.</p>
+      <div class="coupon">
+        <label>See your own book &mdash; paste your publication&rsquo;s URL</label>
+        <div class="row"><input placeholder="yourname.substack.com"><button>Show my book</button></div>
+        <div class="hint">Reads only your public archive. Post bodies are not read or stored.</div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="book"><div class="cover">
+        <div class="k">Annual &middot; 2026</div><div class="m">Caithrin</div><div class="r"></div>
+        <div class="d">Aug 2025 &ndash; Aug 2026</div><div class="mid"></div>
+        <div class="ft"><span>27 essays &middot; est. 226 pages</span><span>INKSHEAF</span></div>
+      </div><div class="pages"></div></div>
+      <div class="leaf">
+        <div class="run"><span>Caithrin</span><span>Contents</span></div>
+        <div class="tl"><span>Fearmongering the Frontier</span><span class="dots"></span><span class="n">9</span></div>
+        <div class="tl"><span>&ldquo;Helpful Assistant&rdquo;</span><span class="dots"></span><span class="n">17</span></div>
+        <div class="tl"><span>China Writing &amp; Wall D&hellip;</span><span class="dots"></span><span class="n">25</span></div>
+        <div class="tl"><span>First Steps: Pacific Com&hellip;</span><span class="dots"></span><span class="n">41</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="pull">
+    <div class="big">Your archive is already a <b>226-page book</b>.</div>
+    <p class="sub">27 public essays, 51,029 words, Aug 2025 to Aug 2026. Typeset at 6×9 with contents, running headers and your own cover. Estimated printing: about $8.</p>
+  </div>
+</div></body></html>

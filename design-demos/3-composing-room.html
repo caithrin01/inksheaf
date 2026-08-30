@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3 · The Composing Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ultra&family=Oswald:wght@400..600&family=Besley:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#efe3c8;--ink:#221e19;--red:#c03a20;--rule:#221e19;--faint:rgba(34,30,25,.62)}
+*{box-sizing:border-box;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:"Besley",Georgia,serif;line-height:1.55;font-size:1.05rem}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.6;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
+.bill{max-width:56rem;margin:0 auto;padding:2rem 2rem 4rem}
+.bframe{border:3px solid var(--ink);outline:1px solid var(--ink);outline-offset:4px;padding:2.4rem 2rem 2.6rem;text-align:center;background:var(--paper)}
+.topline{display:flex;justify-content:space-between;font-family:"Oswald";font-size:.78rem;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);margin-bottom:1.4rem}
+.crest{color:var(--ink);margin:0 auto .6rem}
+.presents{font-family:"Oswald";font-weight:500;font-size:.95rem;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;margin:.6rem 0 .2rem}
+.rule{border-top:2px solid var(--ink);margin:1.1rem auto}
+.rule.thin{border-top-width:1px}
+.stars{color:var(--red);font-size:1rem;letter-spacing:1.2em;padding-left:1.2em;margin:.4rem 0}
+h1{margin:0;line-height:.98}
+h1 .l1,h1 .l3{display:block;font-family:"Ultra";font-weight:400;font-size:clamp(2.6rem,7.4vw,5rem);letter-spacing:.01em;text-transform:uppercase;
+  text-shadow:3px 3px 0 var(--red);animation:stamp .5s cubic-bezier(.3,1.4,.5,1) both}
+h1 .l2{display:block;font-family:"Oswald";font-weight:600;font-size:clamp(1.5rem,3.8vw,2.6rem);letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;margin:.7rem 0;animation:stamp .5s .18s both}
+h1 .l3{animation-delay:.32s}
+@keyframes stamp{from{opacity:0;transform:scale(1.12)}to{opacity:1;transform:none}}
+.sub{font-size:1.15rem;max-width:44ch;margin:1.5rem auto 0;animation:up .7s .55s both}
+.tryband{margin:2rem auto 0;max-width:34rem;border:2px solid var(--ink);padding:1.3rem 1.4rem 1.4rem;background:#f5ecd6;animation:up .7s .7s both}
+.tryband .lbl{font-family:"Oswald";font-weight:600;font-size:.85rem;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;margin-bottom:1rem}
+.row{display:flex;gap:.9rem;align-items:stretch;flex-wrap:wrap}
+.row input{flex:1 1 12rem;padding:.6rem .8rem;font-family:"Besley";font-size:1.05rem;color:var(--ink);background:var(--paper);border:2px solid var(--ink)}
+.row input:focus{outline:3px solid var(--red);outline-offset:-3px}
+.row button{padding:.6rem 1.5rem;font-family:"Oswald";font-weight:600;font-size:.95rem;letter-spacing:.2em;text-transform:uppercase;background:var(--red);color:#f6eed9;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;transition:transform .12s,box-shadow .12s}
+.row button:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.smallnote{font-size:.82rem;color:var(--faint);margin-top:.8rem}
+.billing{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:2.2rem;border:2px solid var(--ink);animation:up .7s .85s both}
+.billing>div{padding:1rem .8rem 1.1rem;border-right:1px solid var(--ink)}
+.billing>div:last-child{border-right:0}
+.billing .n{font-family:"Ultra";font-size:2rem;color:var(--red);line-height:1;text-shadow:1.5px 1.5px 0 var(--ink)}
+.billing .t{font-family:"Oswald";font-weight:500;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;margin-top:.45rem}
+.footline{font-family:"Oswald";font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);margin-top:2rem;animation:up .7s 1s both}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+</style></head><body>
+<div class="bill"><div class="bframe">
+  <div class="topline"><span>Vol. I</span><span>Private beta</span></div>
+  <div class="crest"><svg style="height:46px;width:auto;" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg></div>
+  <div class="presents">Inksheaf presents</div>
+  <div class="stars">&#9733;&#9733;&#9733;</div>
+  <h1><span class="l1">See the book</span><span class="l2">inside your</span><span class="l3">Archive</span></h1>
+  <div class="rule"></div>
+  <p class="sub">Paste your Substack URL. Inksheaf turns the last year of public writing into a 6×9 edition in your publication&rsquo;s masthead and palette.</p>
+  <div class="tryband">
+    <div class="lbl">Paste your publication&rsquo;s URL</div>
+    <div class="row"><input placeholder="yourname.substack.com"><button>Show my book</button></div>
+    <div class="smallnote">Reads only your public archive. Post bodies are not read or stored.</div>
+  </div>
+  <div class="billing">
+    <div><div class="n">226</div><div class="t">pages from one year</div></div>
+    <div><div class="n">6×9</div><div class="t">perfect bound</div></div>
+    <div><div class="n">$0</div><div class="t">added to print cost</div></div>
+  </div>
+  <div class="rule thin"></div>
+  <div class="footline">Printed on demand &middot; United States &middot; MMXXVI</div>
+</div></div></body></html>

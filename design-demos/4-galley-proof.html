@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4 · The Galley Proof</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f7f4ec;--ink:#2b2823;--red:#c23b26;--pencil:#b5442e;--hair:rgba(43,40,35,.18);--faint:rgba(43,40,35,.6)}
+*{box-sizing:border-box;margin:0}
+body{background:#e8e4d8;color:var(--ink);font-family:"Courier Prime",monospace;line-height:1.7;font-size:1rem;padding:2.5rem 1rem 4rem}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.4;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
+.galley{max-width:52rem;margin:0 auto;background:var(--paper);position:relative;padding:4.2rem 4.5rem 4rem;box-shadow:0 2px 4px rgba(43,40,35,.15),0 22px 50px -24px rgba(43,40,35,.5)}
+/* crop + registration marks */
+.crop{position:absolute;width:22px;height:22px;pointer-events:none}
+.crop::before,.crop::after{content:"";position:absolute;background:var(--ink)}
+.crop::before{width:100%;height:1px;top:50%}.crop::after{width:1px;height:100%;left:50%}
+.crop.tl{top:12px;left:12px}.crop.tr{top:12px;right:12px}.crop.bl{bottom:12px;left:12px}.crop.br{bottom:12px;right:12px}
+.reg{position:absolute;top:12px;left:50%;width:14px;height:14px;border:1px solid var(--ink);border-radius:50%;transform:translateX(-50%)}
+.reg::before{content:"";position:absolute;inset:2px;border-radius:50%;border:1px solid var(--ink)}
+.slug{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--ink);padding-bottom:.7rem}
+.stamp{position:absolute;top:5.4rem;right:3.2rem;font-family:"Special Elite";font-size:.95rem;letter-spacing:.14em;text-transform:uppercase;color:var(--red);border:2.5px solid var(--red);border-radius:3px;padding:.35rem .8rem;transform:rotate(6deg);opacity:.85;animation:thunk .4s cubic-bezier(.3,1.6,.5,1) .8s both}
+@keyframes thunk{from{opacity:0;transform:rotate(6deg) scale(1.6)}to{opacity:.85;transform:rotate(6deg) scale(1)}}
+.crest{color:var(--ink);margin:2.6rem 0 .4rem}
+.galleyno{font-size:.8rem;color:var(--faint);letter-spacing:.1em}
+h1{font-family:"Special Elite";font-size:clamp(2rem,4.6vw,3.1rem);font-weight:400;line-height:1.25;margin-top:1.6rem;max-width:18ch}
+h1 .circ{position:relative;white-space:nowrap}
+h1 .circ::after{content:"";position:absolute;inset:-6px -10px;border:2px solid var(--pencil);border-radius:50%;transform:rotate(-2deg);opacity:0;animation:mark .5s 1.4s both}
+@keyframes mark{to{opacity:.85}}
+.mnote{font-family:"Caveat";font-size:1.4rem;color:var(--pencil);transform:rotate(-3deg);display:inline-block;animation:mark .5s 1.7s both;opacity:0}
+.mnote.stet{position:absolute;right:2.2rem;top:16rem}
+.lede{margin-top:1.6rem;max-width:52ch}
+.lede .ins{position:relative}
+.lede .ins::after{content:"^";position:absolute;left:50%;bottom:-1em;color:var(--pencil);font-weight:700;font-size:1.15rem;transform:translateX(-50%)}
+.tryblock{margin-top:2.8rem;border:1px solid var(--ink);padding:1.4rem 1.5rem 1.5rem;position:relative}
+.tryblock .lbl{font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:.9rem;font-weight:700}
+.row{display:flex;gap:.9rem;flex-wrap:wrap}
+.row input{flex:1 1 13rem;padding:.55rem .7rem;font:inherit;color:var(--ink);background:#fdfbf5;border:1px solid var(--ink)}
+.row input:focus{outline:2px solid var(--red);outline-offset:1px}
+.row button{padding:.55rem 1.2rem;font-family:"Special Elite";font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;cursor:pointer}
+.row button:hover{background:var(--red)}
+.tryblock .apprv{position:absolute;top:-1.1rem;right:1rem;font-family:"Caveat";font-size:1.5rem;color:var(--pencil);transform:rotate(-2deg);animation:mark .5s 2s both;opacity:0}
+.smallnote{font-size:.8rem;color:var(--faint);margin-top:.8rem}
+.specimen{margin-top:3rem;display:grid;grid-template-columns:1fr 1fr;gap:0 2rem;border-top:1px solid var(--ink);padding-top:1.4rem}
+.specimen dt{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-top:.9rem}
+.specimen dd{margin:0;font-weight:700}
+.folio{margin-top:3rem;text-align:center;font-size:.78rem;color:var(--faint);letter-spacing:.2em}
+@media(max-width:640px){.galley{padding:3.4rem 1.6rem 3rem}.mnote.stet{display:none}.specimen{grid-template-columns:1fr}}
+</style></head><body>
+<div class="galley">
+  <div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div><div class="reg"></div>
+  <div class="slug"><span>Inksheaf &mdash; galley 01</span><span>Set 2026-08-30 &middot; private beta</span></div>
+  <div class="stamp">First proof</div>
+  <div class="crest"><svg style="height:40px;width:auto;" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg></div>
+  <div class="galleyno">fol. 1 &mdash; front matter</div>
+  <h1>See the <span class="circ">book</span> inside your archive.</h1>
+  <div class="mnote stet">stet &mdash; it&rsquo;s true</div>
+  <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public <span class="ins">writing</span> into a 6×9 edition in your publication&rsquo;s masthead and palette.</p>
+  <div class="tryblock">
+    <div class="apprv">try it &rarr;</div>
+    <div class="lbl">Your publication&rsquo;s URL</div>
+    <div class="row"><input placeholder="yourname.substack.com"><button>Show my book</button></div>
+    <div class="smallnote">Reads only your public archive. Post bodies are not read or stored.</div>
+  </div>
+  <dl class="specimen">
+    <dt>Measured on a real archive</dt><dd>27 essays &middot; 51,029 words &middot; 226 pages</dd>
+    <dt>Trim</dt><dd>6 × 9 in, perfect bound</dd>
+    <dt>Reader pays</dt><dd>print + shipping at cost; $0 added</dd>
+    <dt>First edition</dt><dd>on sale at its exact $9.34 print cost</dd>
+  </dl>
+  <div class="folio">&mdash; 1 &mdash;</div>
+</div></body></html>
