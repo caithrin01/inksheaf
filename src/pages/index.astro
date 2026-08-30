@@ -603,6 +603,7 @@ async function runPreview(){
         raw.startsWith('http') ? raw : 'https://' + raw;
       stage.classList.remove('on');
       document.getElementById('preview')!.classList.remove('staging');
+      document.getElementById('preview')!.classList.add('on');
       tryerr.textContent = d.message || 'Could not read that archive.';
       tryhandoff.hidden = false;
       return;
@@ -616,6 +617,7 @@ async function runPreview(){
   } catch {
     stage.classList.remove('on');
     document.getElementById('preview')!.classList.remove('staging');
+    document.getElementById('preview')!.classList.add('on');
     tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
     tryhandoff.hidden = false;
   } finally {
