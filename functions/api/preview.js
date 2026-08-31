@@ -5,7 +5,7 @@
 const MAX_POSTS = 150;
 const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 6000;
-const RELAY_TIMEOUT_MS = 15000;
+const RELAY_TIMEOUT_MS = 30000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
 
@@ -70,11 +70,7 @@ async function fetchArchive(host, env) {
   let relayed = false;
   for (let offset = 0; offset < MAX_POSTS; ) {
     let page;
-    if (relayed) {
-      const via = await fetchRelayedArchive(host, offset, env);
-      if (!via.ok) return archiveUnavailable(via.error);
-      page = via.page;
-    } else {
+    {
       const direct = await fetchDirectArchive(host, offset);
       if (direct.redirect) {
         const nextHost = parseHost(direct.redirect.startsWith("http")
@@ -85,10 +81,13 @@ async function fetchArchive(host, env) {
       }
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
-        const via = await fetchRelayedArchive(host, offset, env);
+        /* one batch call: the relay fetches and paces every page server-side */
+        const via = await fetchRelayedAll(host, env);
         if (!via.ok) return archiveUnavailable(via.error);
         relayed = true;
-        page = via.page;
+        posts.length = 0;
+        posts.push(...via.posts);
+        break;
       } else return { ok: false, error: "not_substack", status: 502, upstream: direct.status,
         message: "Could not read an archive there. Is this a Substack publication URL?" };
     }
@@ -128,11 +127,11 @@ async function fetchDirectArchive(host, offset) {
   } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502 }; }
 }
 
-async function fetchRelayedArchive(host, offset, env) {
+async function fetchRelayedAll(host, env) {
   if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
-  const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:${offset}`);
+  const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all`);
   const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +
-    `?host=${encodeURIComponent(host)}&offset=${offset}&sig=${signature}`;
+    `?host=${encodeURIComponent(host)}&mode=all&sig=${signature}`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), RELAY_TIMEOUT_MS);
   try {
@@ -141,7 +140,7 @@ async function fetchRelayedArchive(host, offset, env) {
     clearTimeout(timer);
     if (!r.ok) return { ok: false, error: `relay ${r.status}` };
     const value = JSON.parse(await readLimitedText(r));
-    return Array.isArray(value) ? { ok: true, page: value } : { ok: false, error: "invalid relay shape" };
+    return Array.isArray(value) ? { ok: true, posts: value } : { ok: false, error: "invalid relay shape" };
   } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
 }
 
