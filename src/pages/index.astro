@@ -733,7 +733,7 @@ function renderPreview(d: any){
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   (document.getElementById('pv-big') as HTMLElement).innerHTML =
     recD && recD.volumes.length > 1
-    ? 'Your year is ' + (d.form || 'a set') + ': <b>' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
+    ? (d.young ? 'Your archive so far is ' : 'Your year is ') + (d.form || 'a set') + ': <b>' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
     : over
     ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
     : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
@@ -742,8 +742,11 @@ function renderPreview(d: any){
     d.words.toLocaleString('en-US') + ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' +
     (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
     (d.podcast_posts ? d.podcast_posts + ' podcast ' + (d.podcast_posts === 1 ? 'post is' : 'posts are') + ' left out of the print estimate. ' : '') +
-    (over ? 'That is a quarterly set of about ' + volumePages + ' pages per volume.'
-    : 'Typeset at 6×9 with contents, running headers and your own cover.');
+    (recD && recD.volumes.length > 1
+      ? 'That is ' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's of ' +
+        Math.min(...recD.volumes.map((v: any) => v.est_pages)) + ' to ' +
+        Math.max(...recD.volumes.map((v: any) => v.est_pages)) + ' pages.'
+      : 'Typeset at 6×9 with contents, running headers and your own cover.');
   renderDesk(d);
   renderSnippet(d);
   const pv = document.getElementById('preview')!;
@@ -761,6 +764,7 @@ function priceFor(pages: number, interior: string){
   return c.base + c.per_page * pages;
 }
 function unitOf(d: any, n: number){ return (d.unit || 'volume') + (n === 1 ? '' : 's'); }
+function aUnit(d: any){ const u = d.unit || 'volume'; return (/^[aeiou]/.test(u) ? 'an ' : 'a ') + u; }
 function renderDesk(d: any){
   const el = document.getElementById('desk') as HTMLElement;
   const reason = document.getElementById('pv-reason') as HTMLElement;
@@ -830,7 +834,7 @@ function drawDesk(){
     const sub = document.createElement('span');
     const price = priceFor(avg, key);
     sub.textContent = key === 'color'
-      ? 'about $' + Math.round(price) + ' a ' + (d.unit || 'volume')
+      ? 'about $' + Math.round(price) + ' ' + aUnit(d)
       : 'about $' + Math.round(price) + ', saves $' + Math.max(1, Math.round(priceFor(avg,'color') - price));
     b.append(t, sub);
     b.addEventListener('click', () => { desk.interior = key; beacon('plan_interior'); drawDesk(); });
@@ -838,7 +842,7 @@ function drawDesk(){
   }
   const per = priceFor(avg, desk.interior);
   (document.getElementById('pv-price') as HTMLElement).innerHTML =
-    'Readers pay <b>about $' + Math.round(per) + ' a ' + (d.unit || 'volume') + '</b> in print cost, plus $' +
+    'Readers pay <b>about $' + Math.round(per) + ' ' + aUnit(d) + '</b> in print cost, plus $' +
     PRICES.shipping.toFixed(2) + ' shipping, mainland US.' +
     '<span class="margin-note">Your margin: <b>$0 during the beta</b> · you set it at launch. ' +
     'Prices measured on Lulu\u2019s print API, ' + PRICES.measured + '.</span>';
