@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { strict as assert } from "node:assert";
-import { parseRelayedArchive, summarizeArchive } from "../functions/lib/preview-summary.js";
+import { summarizeArchive } from "../functions/lib/preview-summary.js";
 
 const now = Date.parse("2026-08-28T00:00:00Z");
 const cutoff = now - 366 * 864e5;
@@ -13,7 +13,7 @@ const summarize = posts => summarizeArchive(posts, { publicationName: null, them
 
 const personal = summarize(Array.from({ length: 27 }, (_, i) => post(`Essay ${i + 1}`, 1900)));
 assert.equal(personal.public_posts, 27);
-assert.equal(personal.summary_version, 2);
+assert.equal(personal.summary_version, 3);
 assert.equal(personal.est_pages, 227);
 assert.equal(personal.cadence, "Annual");
 assert.equal(personal.kind, "essays");
@@ -42,7 +42,49 @@ assert.equal(mixedMedia.podcast_posts, 18);
 assert.equal(mixedMedia.public_posts, 12);
 assert.ok(mixedMedia.est_pages >= 32);
 
-const relayed = parseRelayedArchive('Title:\n\nMarkdown Content:\n[{"title":"From relay"}]');
-assert.equal(relayed[0].title, "From relay");
+/* ---------- v3 divisions fixtures ---------- */
+const dated = (title, wordcount, iso, extra = {}) => post(title, wordcount, { post_date: iso, ...extra });
+const iso = (y, m, d) => new Date(Date.UTC(y, m - 1, d)).toISOString();
 
-console.log("PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, relay envelope");
+/* young publication: five months of writing, labeled honestly, single volume */
+const young = summarize(Array.from({ length: 10 }, (_, i) => dated(`Essay ${i}`, 1800, iso(2026, 4 + Math.floor(i / 2), 1 + i))));
+assert.equal(young.young, true);
+assert.equal(young.recommended.cadence, "single");
+assert.ok(young.divisions.single.feasible);
+
+/* 150pp archive: a single volume, full stop; monthly folds below two volumes */
+const midsize = summarize(Array.from({ length: 15 }, (_, i) => dated(`Essay ${i}`, 2300, iso(2025, 9 + (i % 12), 5))));
+assert.ok(midsize.est_pages < 300 && midsize.est_pages > 100);
+assert.equal(midsize.recommended.cadence, "single");
+
+/* 900pp archive: single infeasible with the reason, quarterly feasible with real volumes */
+const heavy = summarize(Array.from({ length: 96 }, (_, i) => dated(`Letter ${i}`, 2500, iso(2025, 9 + Math.floor(i / 8), 1 + (i % 8)))));
+assert.ok(heavy.est_pages > 800);
+assert.equal(heavy.divisions.single.feasible, false);
+assert.ok(heavy.divisions.single.reason.includes("300-page"));
+assert.equal(heavy.recommended.cadence, "quarterly");
+assert.ok(heavy.divisions.quarterly.volumes.length >= 3);
+for (const v of heavy.divisions.quarterly.volumes) assert.ok(v.est_pages >= 32 && v.est_pages <= 300, v.label);
+const qsum = heavy.divisions.quarterly.volumes.reduce((s, v) => s + v.posts, 0);
+assert.equal(qsum, 96);
+
+/* a thin quarter folds into its neighbor instead of printing a pamphlet */
+const lopsided = summarize([
+  ...Array.from({ length: 40 }, (_, i) => dated(`Essay A${i}`, 2600, iso(2025, 10, 1 + (i % 27)))),
+  ...Array.from({ length: 40 }, (_, i) => dated(`Essay B${i}`, 2600, iso(2026, 2, 1 + (i % 27)))),
+  dated("Lone essay", 900, iso(2026, 6, 15)),
+]);
+for (const v of lopsided.divisions.quarterly.volumes) assert.ok(v.est_pages >= 32, v.label + " " + v.est_pages);
+
+/* image-heavy publication defaults to the colour interior */
+const visual = summarize(Array.from({ length: 20 }, (_, i) => dated(`Field notes ${i}`, 1400, iso(2025, 9 + (i % 12), 3), { cover_image: "https://img/" + i })));
+assert.ok(visual.image_rate >= 0.99);
+assert.equal(visual.recommended.interior, "color");
+assert.equal(personal.recommended.interior, "bw");
+
+/* form naming reaches the surface */
+assert.equal(letters.form, "a magazine");
+assert.equal(letters.unit, "issue");
+assert.equal(personal.form, "a collected edition");
+
+console.log("PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, young, 150pp, 900pp, folding, image-heavy, forms");

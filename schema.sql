@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS signups (
   archive_type TEXT, frequency TEXT, posts_per_year INTEGER,
   cadence_pref TEXT, us_subscribers TEXT, expected_orders TEXT,
   founding_count TEXT, price_range TEXT, interview_ok TEXT, concern TEXT,
-  raw_json TEXT NOT NULL
+  raw_json TEXT NOT NULL,
+  plan_json TEXT
 );
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

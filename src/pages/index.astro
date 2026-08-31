@@ -3,6 +3,7 @@
 // The page is a fine-press title page: framed sheet, centered column, EB Garamond, engraved restraint.
 // Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
 // Demo numbers are REAL caithrin archive data (research.md §1a + live fetch 2026-08-27); renders labeled as renders.
+import prices from "../../functions/lib/print-prices.json";
 ---
 <html lang="en">
 <head>
@@ -221,6 +222,46 @@ ol.how li+li::before{top:1.2rem}
 .faq summary:hover{color:var(--red)}
 .faq details p{padding:0 .2rem 1.2rem 1.75rem;color:var(--faint);margin:0}
 
+/* ---------- the composing desk ---------- */
+.pv-reason{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}
+.desk{margin-top:2rem;text-align:center}
+.desk-tabs{display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.3rem}
+.desk-tab{background:none;border:0;cursor:pointer;font-family:inherit;font-size:.76rem;
+  letter-spacing:.24em;padding:.2rem 0 .45rem;text-transform:uppercase;color:var(--faint);
+  border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.desk-tab .fl{color:var(--red);margin-right:.4rem}
+.desk-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.desk-tab:hover:not(:disabled){color:var(--ink)}
+.desk-tab:disabled{cursor:not-allowed;text-decoration:line-through;text-decoration-color:var(--rule);opacity:.55}
+.foliobar{display:flex;gap:4px;height:4.6rem;max-width:34rem;margin:0 auto;align-items:stretch}
+.folio-seg{background:var(--card);border:1px solid var(--rule);min-width:3.2rem;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
+  padding:.3rem .2rem;transition:flex-grow .55s cubic-bezier(.2,.7,.2,1);overflow:hidden;position:relative}
+.folio-seg::after{content:"";position:absolute;top:4px;bottom:4px;right:2px;width:3px;
+  background:repeating-linear-gradient(180deg,rgba(33,28,21,.18) 0 1px,transparent 1px 3px)}
+.folio-seg .fs-dates{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.folio-seg .fs-pages{font-size:.95rem;font-weight:560;color:var(--ink)}
+.folio-seg .fs-price{font-size:.62rem;color:var(--faint)}
+.desk-verdict{margin-top:.9rem;min-height:1.2em}
+.interior-row{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.3rem}
+.int-opt{background:transparent;border:1px solid var(--rule);cursor:pointer;font-family:inherit;
+  font-size:.95rem;padding:.6rem 1.2rem;color:var(--faint);transition:all .25s;text-align:center}
+.int-opt b{display:block;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+  font-weight:600;margin-bottom:.2rem;color:inherit}
+.int-opt[aria-checked="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
+.int-opt:hover{color:var(--ink)}
+.pv-price .margin-note{display:block;font-size:.8rem;color:var(--faint);margin-top:.4rem}
+.pv-price .margin-note b{color:var(--red);font-weight:560}
+/* newsletter snippet generator */
+.snippet{margin:1.8rem auto 0;max-width:30rem;text-align:center}
+.snip-label{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:.8rem}
+.snip-code{text-align:left;font:0.72rem/1.55 ui-monospace,Menlo,monospace;background:var(--card);
+  border:1px solid var(--hair);padding:.9rem 1rem;white-space:pre-wrap;word-break:break-all;color:var(--ink)}
+.snip-copy{margin-top:.8rem;padding:.55rem 1.6rem;font-family:inherit;font-size:.74rem;
+  letter-spacing:.22em;text-transform:uppercase;background:transparent;color:var(--ink);
+  border:1px solid var(--ink);cursor:pointer;transition:all .3s}
+.snip-copy:hover{background:var(--ink);color:var(--paper)}
+
 /* ---------- newsletter mock: depicts a Substack post footer ---------- */
 .newsmock{margin:2rem auto 0;max-width:26rem;background:#fff;border:1px solid var(--hair);
   border-radius:6px;padding:1.5rem 1.5rem 1.2rem;
@@ -280,6 +321,7 @@ footer a{color:inherit}
 </style>
 </head>
 <body>
+<script is:inline type="application/json" id="print-prices" set:html={JSON.stringify({ measured: prices.measured, shipping: prices.shipping_mail, bw: { base: prices.pods.bw.base, per_page: prices.pods.bw.per_page }, color: { base: prices.pods.color.base, per_page: prices.pods.color.per_page } })}></script>
 <div class="frame" aria-hidden="true"></div>
 <div class="sheet">
   <header class="masthead">
@@ -292,7 +334,9 @@ footer a{color:inherit}
     <h1>Send your Substack to&nbsp;the&nbsp;printers.</h1>
     <div class="rule-orn"><span>&#10086;</span></div>
     <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public writing
-    into a 6×9 edition in your publication&rsquo;s masthead and palette.</p>
+    into a 6×9 edition in your publication&rsquo;s masthead and palette, divided into the
+    volumes it needs: one book, a quarterly set, a monthly magazine. The math is done
+    before you decide anything.</p>
 
     <div class="tryit" id="tryit">
       <label for="tryurl">Your publication&rsquo;s URL</label>
@@ -340,24 +384,20 @@ footer a{color:inherit}
       </div>
 
       <div class="pv-facts">
+        <div class="pv-reason" id="pv-reason"></div>
         <div class="pv-big" id="pv-big"></div>
         <p class="pv-sub" id="pv-sub"></p>
-        <div class="pv-price" id="pv-price"></div>
-        <button class="pv-cta" id="pv-cta" type="button">Reserve a beta spot for this book</button>
-        <p class="pv-note note">One email, no payment. Page count is an estimate from your public archive; the proof PDF is exact.</p>
-      </div>
-    </section>
-
-    <section class="atcost">
-      <div class="rule-orn"><span>&#10086;</span></div>
-      <div class="big">Every book sells <b>at cost</b>.</div>
-      <p>Readers pay exactly what printing and shipping cost, and nothing more. During the beta
-      Inksheaf adds nothing and the author adds nothing. Measured on a real order: a 294-page
-      collected edition landed for $16.58 including tax, mainland US.</p>
-      <div class="costline">
-        <div><div class="n">$9.34</div><div class="t">print cost, 294 pages</div></div>
-        <div><div class="n">$0</div><div class="t">added by Inksheaf</div></div>
-        <div><div class="n">$0</div><div class="t">taken from the author</div></div>
+        <div class="desk" id="desk" hidden>
+          <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="How the edition divides"></div>
+          <div class="foliobar" id="foliobar" aria-hidden="true"></div>
+          <div class="desk-verdict note" id="desk-verdict"></div>
+          <div class="interior-row" id="interior-row" role="radiogroup" aria-label="Interior printing"></div>
+          <div class="pv-price" id="pv-price"></div>
+        </div>
+        <button class="pv-cta" id="pv-cta" type="button">Send it to print</button>
+        <p class="pv-note note">Printing runs through Lulu, our print partner: readers pay Lulu
+        directly and we add no margin. The first step is your proof; leave one email and the
+        press starts. Page counts are estimates from your public archive; the proof PDF is exact.</p>
       </div>
     </section>
 
@@ -390,13 +430,17 @@ footer a{color:inherit}
         <tr><td>Cover</td><td>Full colour, matte, your publication&rsquo;s own masthead and palette</td></tr>
         <tr><td>Length</td><td>32&ndash;300 pages per volume; longer archives become a quarterly set</td></tr>
         <tr><td>Apparatus</td><td>Contents with page numbers, running headers, article notes and bylines per article</td></tr>
-        <tr><td>Price</td><td>Beta pricing is at cost: readers pay exactly what printing and shipping
-        cost, and we add nothing. Measured on a real order: a 294-page collected edition landed for
-        $16.58 including tax, mainland US</td></tr>
-        <tr><td>Live example</td><td>The first edition is on sale now, at its exact $9.34 print cost:
+        <tr><td>Price</td><td>The service is free for authors during the beta. Readers pay the
+        printer; you choose whether the list price carries a margin, and beta editions default
+        to exact cost. Measured on a real order: a 294-page edition landed for $16.58 including
+        tax, mainland US</td></tr>
+        <tr><td>Interior</td><td>Colour, when your writing carries images and charts; black and
+        white to cut the print cost. Measured on Lulu&rsquo;s print API: a 200-page volume prints
+        for $6.99 in black and white, $10.83 in colour</td></tr>
+        <tr><td>Live example</td><td>The first edition is on sale now at its exact $9.34 print
+        cost, by its author&rsquo;s choice:
         <a href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">caithrin
-        &mdash; Collected Essays 2025&ndash;2026</a>. You pay the printer directly; neither we nor the
-        author receive a cent on it.</td></tr>
+        &mdash; Collected Essays 2025&ndash;2026</a>. Readers pay the printer directly.</td></tr>
       </table>
     </section>
 
@@ -427,6 +471,13 @@ footer a{color:inherit}
         <div class="nm-foot">Subscribe &middot; Share &middot; Get a print copy</div>
         <figcaption>The live example above is real: it links to the caithrin edition at its exact print cost.</figcaption>
       </figure>
+      <div class="snippet" id="snippet" hidden>
+        <div class="snip-label">Your button. Paste it into any post or your About page:</div>
+        <pre class="snip-code" id="snip-code"></pre>
+        <button class="snip-copy" id="snip-copy" type="button">Copy the code</button>
+        <p class="note">Today the link reproduces your preview for your readers; when your
+        edition is live it goes straight to your Lulu page.</p>
+      </div>
     </section>
 
     <section class="section">
@@ -435,8 +486,9 @@ footer a{color:inherit}
       <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
       essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
       person, not a pipeline, checks every page of your first issue.</p>
-      <p>The clearest beta uses are an annual readers buy from an About page, a quarterly set for
-      frequent publishers, or a physical door into the back catalog for new subscribers.</p>
+      <p>The clearest beta uses are an annual your readers buy at your price, a thank-you
+      edition for founding subscribers, and a physical door into the back catalog for new
+      readers. Your margin is yours the day payouts ship.</p>
     </section>
 
     <section class="section faq">
@@ -444,13 +496,14 @@ footer a{color:inherit}
       <div class="rule-orn"><span>&#10086;</span></div>
       <details open>
         <summary>What does it cost me?</summary>
-        <p>Nothing during the beta. Readers pay printing and shipping at cost, with nothing added:
+        <p>Nothing. The service is free during the beta. Readers pay the printer for each copy:
         a 294-page book landed at $16.58 on a real order, and thinner books cost less.</p>
       </details>
       <details>
         <summary>What do I earn?</summary>
-        <p>During the beta, nothing and neither do we: books sell at cost. The author revenue share
-        gets designed with beta publications afterward, on measured numbers.</p>
+        <p>Whatever you choose. List at print cost, or add a margin; the margin is yours. Beta
+        editions default to exact cost while payouts get built with beta authors on measured
+        numbers, so nothing is promised before it exists.</p>
       </details>
       <details>
         <summary>Who owns the writing?</summary>
@@ -503,6 +556,8 @@ footer a{color:inherit}
           <input type="email" id="email" name="email" required />
           <input type="hidden" name="posts_per_year" id="ppy" />
           <input type="hidden" name="frequency" />
+          <input type="hidden" name="cadence_pref" id="cadence_pref" />
+          <input type="hidden" name="plan_json" id="plan_json" />
           <button type="submit" class="main">Request a spot</button>
           <button type="button" class="ghost" data-back="1">Back</button>
         </div>
@@ -582,7 +637,10 @@ async function interludeFacts(d: any){
   await beat('<b>' + count + '</b> ' + kindLabel(d, count) + '.');
   await beat('<b>' + d.words.toLocaleString('en-US') + '</b> words.');
   await beat(mon(d.from) + ' &ndash; ' + mon(d.to) + '.');
-  await beat('That makes a <b>' + d.est_pages + '-page</b> book.', 780);
+  await beat('That is <b>' + d.est_pages + ' pages</b>: ' + (d.form || 'a book') + '.', 700);
+  const recDiv = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
+  if (recDiv && recDiv.volumes.length > 1)
+    await beat('Divided into <b>' + recDiv.volumes.length + '</b> ' + (d.unit || 'volume') + 's.', 780);
   stage.classList.remove('on');
   setline.classList.remove('in');
   document.getElementById('preview')!.classList.remove('staging');
@@ -664,12 +722,7 @@ function renderPreview(d: any){
   }).join('');
   [...toc.querySelectorAll('.t')].forEach((el, i) => (el as HTMLElement).textContent = rows[i]);
 
-  /* print estimate from the measured production-cost curve; shipping and tax stay separate */
-  const pricePages = over ? volumePages : d.est_pages;
-  const dollars = Math.round(2 + 0.025 * pricePages);
-  (document.getElementById('pv-price') as HTMLElement).innerHTML =
-    'Estimated printing: <b>about $' + dollars + (over ? ' a volume' : '') + '</b>' +
-    '<span class="sub">Shipping and tax are calculated by Lulu. Inksheaf adds nothing during the beta.</span>';
+
 
   /* staged assembly: cover lands, then the spine thickens to their page count */
   const block = document.getElementById('pv-block') as HTMLElement;
@@ -677,7 +730,11 @@ function renderPreview(d: any){
   requestAnimationFrame(() => requestAnimationFrame(() => {
     block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
   }));
-  (document.getElementById('pv-big') as HTMLElement).innerHTML = over
+  const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
+  (document.getElementById('pv-big') as HTMLElement).innerHTML =
+    recD && recD.volumes.length > 1
+    ? 'Your year is ' + (d.form || 'a set') + ': <b>' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
+    : over
     ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
     : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
   (document.getElementById('pv-sub') as HTMLElement).textContent =
@@ -687,11 +744,130 @@ function renderPreview(d: any){
     (d.podcast_posts ? d.podcast_posts + ' podcast ' + (d.podcast_posts === 1 ? 'post is' : 'posts are') + ' left out of the print estimate. ' : '') +
     (over ? 'That is a quarterly set of about ' + volumePages + ' pages per volume.'
     : 'Typeset at 6×9 with contents, running headers and your own cover.');
+  renderDesk(d);
+  renderSnippet(d);
   const pv = document.getElementById('preview')!;
   pv.classList.remove('on');
   void (pv as HTMLElement).offsetWidth;
   pv.classList.add('on', 'personalized');
 }
+
+/* ---------- the composing desk: all the math done, defaults pre-set ---------- */
+const PRICES = JSON.parse(document.getElementById('print-prices')!.textContent!);
+let desk: any = null;
+const CAD_LABEL: any = { single: 'One volume', quarterly: 'Quarterly', monthly: 'Monthly' };
+function priceFor(pages: number, interior: string){
+  const c = PRICES[interior === 'color' ? 'color' : 'bw'];
+  return c.base + c.per_page * pages;
+}
+function unitOf(d: any, n: number){ return (d.unit || 'volume') + (n === 1 ? '' : 's'); }
+function renderDesk(d: any){
+  const el = document.getElementById('desk') as HTMLElement;
+  const reason = document.getElementById('pv-reason') as HTMLElement;
+  if (!d.divisions || !d.recommended){
+    el.hidden = true; reason.textContent = '';
+    (document.getElementById('pv-price') as HTMLElement).innerHTML =
+      'Estimated printing: <b>about $' + Math.round(priceFor(d.est_pages, 'bw')) + '</b>' +
+      '<span class="sub">Shipping and tax are calculated by Lulu.</span>';
+    return;
+  }
+  desk = { cadence: d.recommended.cadence, interior: d.recommended.interior, d };
+  el.hidden = false;
+  const publicPosts = d.public_posts ?? d.posts;
+  reason.textContent = 'What we read: ' + publicPosts + ' ' + kindLabel(d, publicPosts) + ' · ' +
+    d.words.toLocaleString('en-US') + ' words · ' + fmt(d.from) + ' – ' + fmt(d.to);
+  drawDesk();
+}
+function drawDesk(){
+  const d = desk.d;
+  const tabs = document.getElementById('desk-tabs')!;
+  tabs.innerHTML = '';
+  for (const key of ['single','quarterly','monthly']){
+    const div = d.divisions[key];
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'desk-tab'; b.setAttribute('role','tab');
+    b.setAttribute('aria-selected', String(desk.cadence === key));
+    if (d.recommended.cadence === key){
+      const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766';
+      b.appendChild(fl);
+    }
+    b.appendChild(document.createTextNode(CAD_LABEL[key]));
+    if (!div.feasible){ b.disabled = true; b.title = div.reason || 'not printable'; }
+    else b.addEventListener('click', () => { desk.cadence = key; beacon('plan_cadence'); drawDesk(); });
+    tabs.appendChild(b);
+  }
+  const div = d.divisions[desk.cadence];
+  const bar = document.getElementById('foliobar')!;
+  bar.innerHTML = '';
+  for (const v of div.volumes){
+    const seg = document.createElement('div'); seg.className = 'folio-seg';
+    seg.style.flexGrow = String(v.est_pages);
+    const l1 = document.createElement('div'); l1.className = 'fs-dates'; l1.textContent = v.label;
+    const l2 = document.createElement('div'); l2.className = 'fs-pages'; l2.textContent = v.est_pages + 'pp';
+    const l3 = document.createElement('div'); l3.className = 'fs-price';
+    l3.textContent = 'about $' + Math.round(priceFor(v.est_pages, desk.interior));
+    seg.append(l1, l2, l3);
+    bar.appendChild(seg);
+  }
+  const n = div.volumes.length;
+  const verdict = document.getElementById('desk-verdict')!;
+  let vtext = (desk.cadence === d.recommended.cadence ? 'Our recommendation: ' : 'Your pick: ') +
+    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + div.volumes[0].est_pages + ' pages.'
+     : n + ' ' + unitOf(d, n) + ' of ' +
+       Math.min(...div.volumes.map((v: any) => v.est_pages)) + ' to ' +
+       Math.max(...div.volumes.map((v: any) => v.est_pages)) + ' pages.');
+  const ruled = ['single','quarterly','monthly'].find(k => !d.divisions[k].feasible);
+  if (ruled) vtext += ' ' + CAD_LABEL[ruled] + ' is ruled out: ' + d.divisions[ruled].reason + '.';
+  verdict.textContent = vtext;
+  const avg = div.volumes.reduce((s: number, v: any) => s + v.est_pages, 0) / n;
+  const row = document.getElementById('interior-row')!;
+  row.innerHTML = '';
+  for (const [key, name] of [['color','Colour'],['bw','Black & white']] as const){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'int-opt'; b.setAttribute('role','radio');
+    b.setAttribute('aria-checked', String(desk.interior === key));
+    const t = document.createElement('b'); t.textContent = name;
+    const sub = document.createElement('span');
+    const price = priceFor(avg, key);
+    sub.textContent = key === 'color'
+      ? 'about $' + Math.round(price) + ' a ' + (d.unit || 'volume')
+      : 'about $' + Math.round(price) + ', saves $' + Math.max(1, Math.round(priceFor(avg,'color') - price));
+    b.append(t, sub);
+    b.addEventListener('click', () => { desk.interior = key; beacon('plan_interior'); drawDesk(); });
+    row.appendChild(b);
+  }
+  const per = priceFor(avg, desk.interior);
+  (document.getElementById('pv-price') as HTMLElement).innerHTML =
+    'Readers pay <b>about $' + Math.round(per) + ' a ' + (d.unit || 'volume') + '</b> in print cost, plus $' +
+    PRICES.shipping.toFixed(2) + ' shipping, mainland US.' +
+    '<span class="margin-note">Your margin: <b>$0 during the beta</b> · you set it at launch. ' +
+    'Prices measured on Lulu\u2019s print API, ' + PRICES.measured + '.</span>';
+  updateCoverFromDesk(d, div);
+}
+function updateCoverFromDesk(d: any, div: any){
+  const n = div.volumes.length;
+  const year = d.to.slice(0, 4);
+  (document.getElementById('pv-kind') as HTMLElement).textContent =
+    (desk.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual')
+     : desk.cadence === 'quarterly' ? 'Quarterly' : 'Monthly') + ' · ' + year;
+  if (n > 1)
+    (document.getElementById('pv-cvpages') as HTMLElement).textContent =
+      'Vol. I of ' + n + ' · ' + div.volumes[0].est_pages + ' pages';
+}
+function renderSnippet(d: any){
+  const wrap = document.getElementById('snippet') as HTMLElement;
+  if (!wrap) return;
+  wrap.hidden = false;
+  (document.getElementById('snip-code') as HTMLElement).textContent =
+    '<a href="https://inksheaf.com/?pub=' + d.host + '">Get a print copy of ' + d.publication + '</a>';
+}
+document.getElementById('snip-copy')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget as HTMLButtonElement;
+  try {
+    await navigator.clipboard.writeText(document.getElementById('snip-code')!.textContent || '');
+    btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy the code'; }, 1600);
+  } catch { btn.textContent = 'Select and copy above'; }
+});
 function kindLabel(d: any, count: number){
   if (count === 1) return d.noun || 'piece';
   return d.kind || ((d.noun || 'piece') + 's');
@@ -718,6 +894,13 @@ tryhandoff.addEventListener('click', ()=>{
 
 (document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
   const d = previewData;
+  if (d && desk && d.divisions){
+    (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence;
+    (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
+      cadence: desk.cadence, interior: desk.interior,
+      volumes: d.divisions[desk.cadence].volumes,
+      form: d.form, unit: d.unit, prices_measured: PRICES.measured });
+  }
   if (d){
     (f.elements.namedItem('publication_url') as HTMLInputElement).value = 'https://' + d.host;
     const publicPosts = d.public_posts ?? d.posts;

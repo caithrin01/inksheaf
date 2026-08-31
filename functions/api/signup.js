@@ -1,7 +1,7 @@
 // POST /api/signup — store one beta signup in D1. No cookies, no IP stored.
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
-  "founding_count","price_range","interview_ok","concern"];
+  "founding_count","price_range","interview_ok","concern","plan_json"];
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST")
@@ -45,13 +45,13 @@ export async function onRequest({ request, env }) {
   await env.DB.prepare(
     `INSERT INTO signups (publication_url,name,role,email,archive_type,frequency,
        posts_per_year,cadence_pref,us_subscribers,expected_orders,founding_count,
-       price_range,interview_ok,concern,raw_json)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+       price_range,interview_ok,concern,plan_json,raw_json)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).bind(
     clean.publication_url, clean.name, clean.role, clean.email, clean.archive_type,
     clean.frequency, clean.posts_per_year, clean.cadence_pref, clean.us_subscribers,
     clean.expected_orders, clean.founding_count, clean.price_range, clean.interview_ok,
-    clean.concern, JSON.stringify(clean)
+    clean.concern, String(clean.plan_json || "").slice(0, 4096) || null, JSON.stringify(clean)
   ).run();
   return ok();
 }

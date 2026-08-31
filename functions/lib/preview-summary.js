@@ -17,6 +17,72 @@ export function detectPreviewKind(posts) {
   return top && top[1] >= posts.length * 0.3 ? top[0] : "essays";
 }
 
+
+/* ---------- v3: the composing desk engine ---------- */
+const FORM_NAMES = { essays: "a collected edition", letters: "a magazine", poems: "a book of poetry",
+  recipes: "a recipe book", stories: "a story collection", reviews: "a review annual",
+  dispatches: "a magazine", pieces: "a collected edition" };
+const ISSUE_KINDS = new Set(["letters", "dispatches"]);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function volPages(posts) {
+  const words = posts.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
+  return Math.round(words / 270 + posts.length + 8);
+}
+function spanLabel(posts) {
+  const ds = posts.map(p => new Date(p.post_date));
+  const a = ds[0], b = ds[ds.length - 1];
+  const am = MONTHS[a.getUTCMonth()] + " " + a.getUTCFullYear();
+  const bm = MONTHS[b.getUTCMonth()] + " " + b.getUTCFullYear();
+  return am === bm ? am : am + " \u2013 " + bm;
+}
+function toVolume(posts) {
+  return { label: spanLabel(posts), from: posts[0].post_date.slice(0, 10),
+    to: posts[posts.length - 1].post_date.slice(0, 10), posts: posts.length,
+    words: posts.reduce((s, p) => s + (Number(p.wordcount) || 0), 0), est_pages: volPages(posts) };
+}
+function groupBy(posts, keyFn) {
+  const map = new Map();
+  for (const p of posts) {
+    const k = keyFn(new Date(p.post_date));
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(p);
+  }
+  return [...map.values()];
+}
+/* fold groups under 32pp into a neighbor until all bind, or give up */
+function foldSmall(groups) {
+  const g = groups.map(x => [...x]);
+  for (let guard = 0; guard < 48; guard++) {
+    const i = g.findIndex(x => volPages(x) < 32);
+    if (i === -1) return g;
+    if (g.length === 1) return g;
+    const into = i > 0 ? i - 1 : i + 1;
+    g[into] = into < i ? [...g[into], ...g[i]] : [...g[i], ...g[into]];
+    g.splice(i, 1);
+  }
+  return g;
+}
+function cadenceDivision(sorted, keyFn, minVolumes) {
+  const folded = foldSmall(groupBy(sorted, keyFn));
+  const vols = folded.map(toVolume);
+  if (vols.length < minVolumes)
+    return { feasible: false, reason: "the archive folds down to " + vols.length + " volume" + (vols.length === 1 ? "" : "s"), volumes: vols };
+  const fat = vols.find(v => v.est_pages > 300);
+  if (fat) return { feasible: false, reason: "the " + fat.label + " volume would run " + fat.est_pages + " pages; past our 300-page binding cap", volumes: vols };
+  return { feasible: true, volumes: vols };
+}
+export function planDivisions(publicPosts, estPages) {
+  const sorted = [...publicPosts].sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
+  const single = estPages <= 300
+    ? { feasible: true, volumes: [{ ...toVolume(sorted), est_pages: estPages }] }
+    : { feasible: false, reason: "one volume would run " + estPages + " pages; past our 300-page binding cap",
+        volumes: [{ ...toVolume(sorted), est_pages: estPages }] };
+  const quarterly = cadenceDivision(sorted, d => d.getUTCFullYear() + "q" + Math.floor(d.getUTCMonth() / 3), 2);
+  const monthly = cadenceDivision(sorted, d => d.getUTCFullYear() + "m" + d.getUTCMonth(), 2);
+  return { single, quarterly, monthly };
+}
+
 export function summarizeArchive(posts, identity, host, cutoff, capped = false) {
   const inWindow = posts.filter(p => p && p.post_date && Date.parse(p.post_date) >= cutoff);
   const newsletters = inWindow.filter(p => p.type === "newsletter" || !p.type);
@@ -31,8 +97,21 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
   const cadence = estPages > 300 ? "Quarterly" : "Annual";
   const volumePages = cadence === "Quarterly" ? Math.max(32, Math.round(estPages / 4)) : estPages;
   const kind = detectPreviewKind(publicPosts);
+  const divisions = planDivisions(publicPosts, estPages);
+  const imageRate = publicPosts.filter(p => p.cover_image).length / publicPosts.length;
+  const spanMonths = (dates[dates.length - 1] - dates[0]) / (30.44 * 864e5);
+  const recommendedCadence = divisions.single.feasible ? "single"
+    : divisions.quarterly.feasible ? "quarterly"
+    : divisions.monthly.feasible ? "monthly" : "single";
   return {
-    summary_version: 2,
+    summary_version: 3,
+    form: FORM_NAMES[kind] || "a collected edition",
+    unit: ISSUE_KINDS.has(kind) ? "issue" : "volume",
+    span_months: Math.round(spanMonths * 10) / 10,
+    young: spanMonths < 10,
+    image_rate: Math.round(imageRate * 100) / 100,
+    divisions,
+    recommended: { cadence: recommendedCadence, interior: imageRate >= 0.3 ? "color" : "bw" },
     host,
     publication: identity.publicationName || publicationName(publicPosts, host),
     posts: publicPosts.length,
@@ -55,15 +134,6 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
   };
 }
 
-export function parseRelayedArchive(text) {
-  const start = text.indexOf("[");
-  const end = text.lastIndexOf("]");
-  if (start < 0 || end < start) throw new Error("relay returned no JSON array");
-  const value = JSON.parse(text.slice(start, end + 1));
-  if (!Array.isArray(value)) throw new Error("relay payload is not an archive array");
-  return value;
-}
-
 function publicationName(posts, host) {
   const names = {};
   for (const post of posts) for (const byline of (post.publishedBylines || []))
@@ -72,4 +142,13 @@ function publicationName(posts, host) {
   if (distinct.length === 1) return distinct[0];
   const label = host.replace(/^www\./, "").split(".")[0];
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export function parseRelayedArchive(text) {
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start < 0 || end < start) throw new Error("relay returned no JSON array");
+  const value = JSON.parse(text.slice(start, end + 1));
+  if (!Array.isArray(value)) throw new Error("relay payload is not an archive array");
+  return value;
 }
