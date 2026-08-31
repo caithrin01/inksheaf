@@ -7,7 +7,7 @@ const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 6000;
 const RELAY_TIMEOUT_MS = 15000;
 const WINDOW_DAYS = 366;
-import { parseRelayedArchive, summarizeArchive } from "../lib/preview-summary.js";
+import { summarizeArchive } from "../lib/preview-summary.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
@@ -24,7 +24,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 2) return json({ ok: true, cached: true, ...pay });
+    if (pay.summary_version === 3) return json({ ok: true, cached: true, ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -38,7 +38,7 @@ export async function onRequest({ request, env }) {
   await env.DB.prepare("INSERT INTO events (session, event) VALUES (?, 'preview_fetch')")
     .bind(minute).run().catch(() => {});
 
-  const result = await fetchArchive(host);
+  const result = await fetchArchive(host, env);
   if (!result.ok) {
     await env.DB.prepare("INSERT INTO events (session, event) VALUES ('', 'preview_fail')").run().catch(() => {});
     return json(result, result.status || 502);
@@ -63,7 +63,7 @@ function parseHost(raw) {
   return h;
 }
 
-async function fetchArchive(host) {
+async function fetchArchive(host, env) {
   const posts = [];
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 3600 * 1000;
   let hops = 0;
@@ -71,7 +71,7 @@ async function fetchArchive(host) {
   for (let offset = 0; offset < MAX_POSTS; ) {
     let page;
     if (relayed) {
-      const via = await fetchRelayedArchive(host, offset);
+      const via = await fetchRelayedArchive(host, offset, env);
       if (!via.ok) return archiveUnavailable(via.error);
       page = via.page;
     } else {
@@ -85,7 +85,7 @@ async function fetchArchive(host) {
       }
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
-        const via = await fetchRelayedArchive(host, offset);
+        const via = await fetchRelayedArchive(host, offset, env);
         if (!via.ok) return archiveUnavailable(via.error);
         relayed = true;
         page = via.page;
@@ -128,9 +128,11 @@ async function fetchDirectArchive(host, offset) {
   } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502 }; }
 }
 
-async function fetchRelayedArchive(host, offset) {
-  const source = `https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`;
-  const relayUrl = "https://r.jina.ai/" + source.replaceAll("&", "%26");
+async function fetchRelayedArchive(host, offset, env) {
+  if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
+  const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:${offset}`);
+  const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +
+    `?host=${encodeURIComponent(host)}&offset=${offset}&sig=${signature}`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), RELAY_TIMEOUT_MS);
   try {
@@ -138,8 +140,17 @@ async function fetchRelayedArchive(host, offset) {
       headers: { accept: "text/plain", "user-agent": "inksheaf-preview/2.0 (+https://inksheaf.com)" } });
     clearTimeout(timer);
     if (!r.ok) return { ok: false, error: `relay ${r.status}` };
-    return { ok: true, page: parseRelayedArchive(await readLimitedText(r)) };
+    const value = JSON.parse(await readLimitedText(r));
+    return Array.isArray(value) ? { ok: true, page: value } : { ok: false, error: "invalid relay shape" };
   } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
+}
+
+async function hmacHex(secret, message) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message)));
+  return [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 function archiveUnavailable(detail) {

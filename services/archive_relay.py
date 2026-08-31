@@ -6,6 +6,7 @@ array, and never requests post bodies.
 """
 
 import hmac
+import hashlib
 import ipaddress
 import json
 import os
@@ -36,11 +37,12 @@ def valid_host(host: str) -> bool:
 
 @app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=30)
 @modal.fastapi_endpoint(method="GET")
-def archive(host: str, offset: int = 0, key: str = ""):
+def archive(host: str, offset: int = 0, sig: str = ""):
     from fastapi import HTTPException, Response
 
     expected = os.environ.get("ARCHIVE_RELAY_TOKEN", "")
-    if not expected or not hmac.compare_digest(key, expected):
+    expected_sig = hmac.new(expected.encode(), f"{host}:{offset}".encode(), hashlib.sha256).hexdigest()
+    if not expected or not hmac.compare_digest(sig, expected_sig):
         raise HTTPException(status_code=401, detail="unauthorized")
     host = host.lower().strip().rstrip(".")
     if not valid_host(host) or offset < 0 or offset > 150 or offset % 25:
