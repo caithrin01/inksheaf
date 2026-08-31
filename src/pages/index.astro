@@ -850,9 +850,10 @@ function updateCoverFromDesk(d: any, div: any){
   (document.getElementById('pv-kind') as HTMLElement).textContent =
     (desk.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual')
      : desk.cadence === 'quarterly' ? 'Quarterly' : 'Monthly') + ' · ' + year;
-  if (n > 1)
-    (document.getElementById('pv-cvpages') as HTMLElement).textContent =
-      'Vol. I of ' + n + ' · ' + div.volumes[0].est_pages + ' pages';
+  const publicPosts = d.public_posts ?? d.posts;
+  (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
+    ? 'Vol. I of ' + n + ' · ' + div.volumes[0].est_pages + ' pages'
+    : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + div.volumes[0].est_pages + ' pages';
 }
 function renderSnippet(d: any){
   const wrap = document.getElementById('snippet') as HTMLElement;
