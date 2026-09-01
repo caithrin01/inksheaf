@@ -630,7 +630,7 @@ ${commentPicks.length ? `<div class="fm appendix">
   </div>
   <p style="margin-top:.5in; font-size:8.5pt; color:var(--faint)">Printed and bound as a proof by
   Inksheaf, an independent service for Substack writers, not affiliated with Substack Inc.
-  Corrections: hello@inksheaf.com.</p>
+  Corrections: caithrin@caithrin.com.</p>
 </div>
 
 <script>
