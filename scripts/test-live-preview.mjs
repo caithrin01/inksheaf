@@ -22,7 +22,10 @@ if (process.env.FRESH === "1") {
 }
 
 let failures = 0;
+let first = true;
 for (const [label, publicationUrl, expectedKind] of cases) {
+  if (!first && process.env.FRESH === "1") await new Promise(r => setTimeout(r, 6000));
+  first = false;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 45_000);
   try {

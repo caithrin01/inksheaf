@@ -83,8 +83,20 @@ async function fetchArchive(host, env) {
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
         /* one batch call: the relay fetches and paces every page server-side */
-        const via = await fetchRelayedAll(host, env);
-        if (!via.ok) return archiveUnavailable(via.error);
+        let via = await fetchRelayedAll(host, env);
+        if (!via.ok){
+          await new Promise(r => setTimeout(r, 2500));
+          via = await fetchRelayedAll(host, env);
+        }
+        if (!via.ok){
+          const stale = await env.DB.prepare(
+            "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
+          if (stale){
+            const pay = JSON.parse(stale.payload);
+            if (pay.summary_version === 3) return { ok: true, data: { ...pay, stale: true } };
+          }
+          return archiveUnavailable(via.error);
+        }
         relayed = true;
         relayComplete = via.complete;
         posts.length = 0;
