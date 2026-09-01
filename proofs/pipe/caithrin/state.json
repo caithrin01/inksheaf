@@ -53,17 +53,27 @@
    "interiorUrl": "https://inksheaf.pages.dev/i-7b83b98d48c0.pdf",
    "coverUrl": "https://inksheaf.pages.dev/c-a34eb2198fe1.pdf"
   },
+  "store": {
+   "done": true,
+   "at": "2026-09-01T19:21:19.768Z",
+   "interiorKey": "proofs/caithrin/i-7b83b98d48c0.pdf",
+   "coverKey": "proofs/caithrin/c-a34eb2198fe1.pdf",
+   "bytes": {
+    "interior": 9123711,
+    "cover": 4131256
+   }
+  },
   "validate": {
    "done": true,
-   "at": "2026-08-28T17:17:02.001Z",
-   "interiorId": 4512480,
-   "coverId": 4512481,
+   "at": "2026-09-01T19:21:25.767Z",
+   "interiorId": 4529391,
+   "coverId": 4529392,
    "interior": "NORMALIZED",
    "cover": "NORMALIZED"
   },
   "quote": {
    "done": true,
-   "at": "2026-08-28T17:17:02.735Z",
+   "at": "2026-09-01T19:21:26.336Z",
    "print": "9.34",
    "shipping": "5.69",
    "total_excl_tax": "15.78",

@@ -1,14 +1,14 @@
 {
  "slug": "caithrin",
- "host": "www.caithrin.com",
+ "host": "caithrin.com",
  "pod": "0600X0900.BW.STD.PB.060UW444.MXX",
  "pages": 294,
- "window": "all",
+ "window": "12m",
  "kind": "essays",
  "articles": 40,
  "interior": {
   "pdf": "proofs/pipe/caithrin/interior.pdf",
-  "url": "https://inksheaf.pages.dev/i-7b83b98d48c0.pdf",
+  "key": "proofs/caithrin/i-7b83b98d48c0.pdf",
   "bytes": 9123711,
   "sizedTier": [
    900,
@@ -17,24 +17,24 @@
  },
  "cover": {
   "pdf": "proofs/pipe/caithrin/cover.pdf",
-  "url": "https://inksheaf.pages.dev/c-a34eb2198fe1.pdf"
+  "key": "proofs/caithrin/c-a34eb2198fe1.pdf"
  },
  "validation": {
   "done": true,
-  "at": "2026-08-28T17:17:02.001Z",
-  "interiorId": 4512480,
-  "coverId": 4512481,
+  "at": "2026-09-01T19:21:25.767Z",
+  "interiorId": 4529391,
+  "coverId": 4529392,
   "interior": "NORMALIZED",
   "cover": "NORMALIZED"
  },
  "quote": {
   "done": true,
-  "at": "2026-08-28T17:17:02.735Z",
+  "at": "2026-09-01T19:21:26.336Z",
   "print": "9.34",
   "shipping": "5.69",
   "total_excl_tax": "15.78",
   "total_incl_tax": "16.58",
   "currency": "USD"
  },
- "order_command": "node scripts/pipeline.mjs www.caithrin.com --slug caithrin --order <address.json> --yes"
+ "order_command": "node scripts/pipeline.mjs caithrin.com --slug caithrin --order <address.json> --yes"
 }

@@ -28,7 +28,7 @@ node_modules/
 dist/
 .astro/
 proofs/.cache/
-# pipeline runtime artifacts (regenerable; hosted copies live on CF Pages)
+# pipeline runtime artifacts (regenerable; proofs live on the private Modal store, never in public/)
 public/*.pdf
 proofs/pipe/**/*.pdf
 proofs/pipe/**/*.img

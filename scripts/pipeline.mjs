@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-command print pipeline: Substack URL -> Lulu-validated interior + cover, hosted and
+// One-command print pipeline: Substack URL -> Lulu-validated interior + cover, privately stored and
 // quoted, with an order command ready. Composes the proven pieces (build-book, render-book,
 // cover-wrap, lulu-client) exactly as they were driven by hand for the caithrin edition
 // (evidence/dogfood-order.md, evidence/lulu-store-publish.md).
@@ -8,7 +8,8 @@
 //     [--force <step>] [--quote-to addr.json] [--order addr.json --yes] [--no-model]
 //
 // Steps (each idempotent; state in proofs/pipe/<slug>/state.json):
-//   probe -> copy -> build -> render -> sizegate -> cover -> host -> validate -> quote [-> order]
+//   probe -> copy -> build -> render -> sizegate -> cover -> store -> validate -> quote [-> order]
+// Proofs go to the private proof store (services/proof_store.py); nothing here deploys the site.
 // The ONLY step that spends money is `order`, and it runs solely with --order AND --yes.
 // Lulu calls run against production (the account keys are production-only; lulu-auth.md).
 
@@ -16,6 +17,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, statSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { makeClient, POD } from "./lulu-client.mjs";
+import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 
 const RAW = process.argv[2];
 if (!RAW || RAW.startsWith("--")) { console.error("usage: pipeline.mjs <substack-url> [flags]"); process.exit(2); }
@@ -36,7 +38,7 @@ const UA = { "user-agent": "Mozilla/5.0 inksheaf-pipeline/1.0" };
 const statePath = `${DIR}/state.json`;
 const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf-8")) : { steps: {} };
 const save = () => writeFileSync(statePath, JSON.stringify(state, null, 1));
-const ORDER = ["probe", "build", "copy", "render", "sizegate", "cover", "host", "validate", "quote"];
+const ORDER = ["probe", "build", "copy", "render", "sizegate", "cover", "store", "validate", "quote"];
 if (FORCE) for (const s of ORDER.slice(ORDER.indexOf(FORCE))) delete state.steps[s];
 const done = s => state.steps[s]?.done;
 const finish = (s, data = {}) => { state.steps[s] = { done: true, at: new Date().toISOString(), ...data }; save(); };
@@ -219,30 +221,23 @@ if (!done("cover")) {
   finish("cover", { W, H, bytes: statSync(coverPdf).size });
 }
 
-/* ---------- host: hashed names on the public site (interim per R3; private bucket later) ---------- */
-if (!done("host")) {
-  const hash = f => createHash("sha256").update(readFileSync(f)).digest("hex").slice(0, 12);
-  const iName = `i-${hash(interiorPdf)}.pdf`, cName = `c-${hash(coverPdf)}.pdf`;
-  copyFileSync(interiorPdf, `public/${iName}`);
-  copyFileSync(coverPdf, `public/${cName}`);
-  log("host", "deploying");
-  execSync("npm run build >/dev/null 2>&1 && npx wrangler pages deploy dist --project-name inksheaf --commit-dirty=true >/dev/null 2>&1");
-  const base = "https://inksheaf.pages.dev";
-  for (const [name, file] of [[iName, interiorPdf], [cName, coverPdf]]) {
-    // CF Pages omits content-length on HEAD; a 1-byte ranged GET returns the true size
-    // in content-range ("bytes 0-0/TOTAL").
-    let ok = false;
-    for (let a = 0; a < 10 && !ok; a++) {
-      await new Promise(r => setTimeout(r, 4000));
-      const h = await fetch(`${base}/${name}`, { headers: { range: "bytes=0-0" } });
-      const total = +(h.headers.get("content-range")?.split("/")[1] || h.headers.get("content-length") || 0);
-      ok = h.ok && total === statSync(file).size;
-    }
-    if (!ok) throw new Error(`hosted ${name} does not match the local file`);
+/* ---------- store: private expiring URLs on the Modal proof volume (never the public site) ---------- */
+if (!done("store")) {
+  const iKey = proofKey(SLUG, "interior", interiorPdf), cKey = proofKey(SLUG, "cover", coverPdf);
+  log("store", "uploading both proofs to the private store");
+  const ui = await uploadProof(interiorPdf, iKey);
+  const uc = await uploadProof(coverPdf, cKey);
+  for (const [key, file, up] of [[iKey, interiorPdf, ui], [cKey, coverPdf, uc]]) {
+    if (up.bytes !== statSync(file).size) throw new Error(`stored ${key} does not match the local file`);
+    const h = await fetch(signedProofUrl(key, 120), { headers: { range: "bytes=0-0" } });
+    const total = +(h.headers.get("content-range")?.split("/")[1] || 0);
+    if (!h.ok || total !== statSync(file).size) throw new Error(`stored ${key} not readable through a signed URL`);
   }
-  finish("host", { interiorUrl: `${base}/${iName}`, coverUrl: `${base}/${cName}` });
+  finish("store", { interiorKey: iKey, coverKey: cKey, bytes: { interior: ui.bytes, cover: uc.bytes } });
 }
-const H = state.steps.host;
+// Signed URLs live one hour; every consumer mints its own at the moment of use.
+const H = { get interiorUrl() { return signedProofUrl(state.steps.store.interiorKey); },
+            get coverUrl() { return signedProofUrl(state.steps.store.coverKey); } };
 
 /* ---------- validate: Lulu must say NORMALIZED before anything ships (R4) ---------- */
 if (!done("validate")) {
@@ -277,8 +272,8 @@ if (!done("quote")) {
 const manifest = {
   slug: SLUG, host, pod: POD, pages: PAGES, window: WINDOW,
   kind: B.kind, articles: B.listed,
-  interior: { pdf: interiorPdf, url: H.interiorUrl, bytes: state.steps.sizegate.bytes, sizedTier: state.steps.sizegate.tier },
-  cover: { pdf: coverPdf, url: H.coverUrl },
+  interior: { pdf: interiorPdf, key: state.steps.store.interiorKey, bytes: state.steps.sizegate.bytes, sizedTier: state.steps.sizegate.tier },
+  cover: { pdf: coverPdf, key: state.steps.store.coverKey },
   validation: state.steps.validate,
   quote: state.steps.quote,
   order_command: `node scripts/pipeline.mjs ${host} --slug ${SLUG} --order <address.json> --yes`,
