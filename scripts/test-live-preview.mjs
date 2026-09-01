@@ -40,8 +40,13 @@ for (const [label, publicationUrl, expectedKind] of cases) {
     assert.ok(body.public_posts > 0);
     assert.ok(body.est_pages >= 32);
     if (expectedKind) assert.equal(body.kind, expectedKind);
-    if (process.env.FRESH === "1") assert.equal(body.cached, false, label + ": expected a cold-origin fetch");
-    console.log(`PASS LIVE ${label}: ${body.public_posts} ${body.kind}, ${body.est_pages}pp, ${body.fetch_mode}${body.cached ? ", cached" : ""}`);
+    if (process.env.FRESH === "1") {
+      // structural: a stale fallback also reports cached:false, so only served:"origin" counts
+      assert.equal(body.served, "origin", label + ": expected a cold-origin fetch, served=" + body.served);
+      assert.notEqual(body.stale, true, label + ": stale payload served as fresh");
+      assert.ok(["relay", "direct"].includes(body.fetch_mode), label + ": fetch_mode " + body.fetch_mode);
+    }
+    console.log(`PASS LIVE ${label}: ${body.public_posts} ${body.kind}, ${body.est_pages}pp, ${body.fetch_mode}, served=${body.served}`);
   } catch (e) {
     failures++;
     console.error(`FAIL LIVE ${label}: ${String(e?.message || e)}`);

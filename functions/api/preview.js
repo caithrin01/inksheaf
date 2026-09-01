@@ -24,7 +24,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 5) return json({ ok: true, cached: true, ...pay });
+    if (pay.summary_version === 5) return json({ ok: true, cached: true, served: "cache", ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -45,11 +45,13 @@ export async function onRequest({ request, env }) {
   }
 
   await env.DB.prepare("INSERT INTO events (session, event) VALUES ('', 'preview_ok')").run().catch(() => {});
+  // A stale payload is a served fallback, not a fresh read: never re-stamp its fetched_at.
+  if (result.data.stale) return json({ ok: true, cached: false, served: "stale", ...result.data });
   await env.DB.prepare(
     "INSERT INTO preview_cache (host, fetched_at, payload) VALUES (?, datetime('now'), ?) " +
     "ON CONFLICT(host) DO UPDATE SET fetched_at = datetime('now'), payload = excluded.payload")
     .bind(host, JSON.stringify(result.data)).run().catch(() => {});
-  return json({ ok: true, cached: false, ...result.data });
+  return json({ ok: true, cached: false, served: "origin", ...result.data });
 }
 
 function parseHost(raw) {

@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 // Durable honesty gate: every number and claim on the deployed page traced to its
 // measured source, plus the reachable-state contradictions the 2026-09-01 audit named.
-// Run: node scripts/test-honesty.mjs [base-url]
+// Run: node scripts/test-honesty.mjs [base-url | --source-only]
+//   --source-only reads dist/index.html and skips the live API checks (pre-deploy gate).
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 
-const base = (process.argv[2] || "https://inksheaf.com").replace(/\/$/, "");
-const html = await (await fetch(base + "/")).text();
+const sourceOnly = process.argv[2] === "--source-only";
+const base = (sourceOnly ? "" : (process.argv[2] || "https://inksheaf.com")).replace(/\/$/, "");
+const html = sourceOnly
+  ? readFileSync(new URL("../dist/index.html", import.meta.url), "utf8")
+  : await (await fetch(base + "/")).text();
 const prices = JSON.parse(readFileSync(new URL("../functions/lib/print-prices.json", import.meta.url), "utf8"));
 let n = 0;
 const ok = (name, cond, detail = "") => { n++; assert.ok(cond, name + (detail ? " :: " + detail : "")); console.log("PASS " + name); };
@@ -34,6 +38,7 @@ ok("substack non-affiliation", html.includes("not affiliated"));
 ok("og domain canonical", html.includes('content="https://inksheaf.com/og.png"'));
 
 /* reachable-state checks against the live API (the audit's core objection) */
+if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }
 const acx = await (await fetch(base + "/api/preview?url=astralcodexten.com")).json();
 if (acx.ok) {
   const rec = acx.recommended.cadence;
