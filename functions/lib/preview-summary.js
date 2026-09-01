@@ -104,14 +104,17 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
     : divisions.quarterly.feasible ? "quarterly"
     : divisions.monthly.feasible ? "monthly" : "concierge";
   return {
-    summary_version: 4,
+    summary_version: 5,
     form: FORM_NAMES[kind] || "a collected edition",
     unit: ISSUE_KINDS.has(kind) ? "issue" : "volume",
     span_months: Math.round(spanMonths * 10) / 10,
     young: spanMonths < 10,
     image_rate: Math.round(imageRate * 100) / 100,
     divisions,
-    recommended: { cadence: recommendedCadence, interior: imageRate >= 0.3 ? "color" : "bw" },
+    /* interior defaults to black and white (Caithrin 2026-09-01): the cover_image signal
+       is Substack's auto-attached social card, not interior art, so it cannot justify a
+       60% price premium. Colour stays one tap away with its measured price. */
+    recommended: { cadence: recommendedCadence, interior: "bw" },
     host,
     publication: identity.publicationName || publicationName(publicPosts, host),
     posts: publicPosts.length,

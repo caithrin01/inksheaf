@@ -24,7 +24,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 4) return json({ ok: true, cached: true, ...pay });
+    if (pay.summary_version === 5) return json({ ok: true, cached: true, ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -104,7 +104,7 @@ async function fetchArchive(host, env) {
             "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
           if (stale){
             const pay = JSON.parse(stale.payload);
-            if (pay.summary_version === 4) return { ok: true, data: { ...pay, stale: true } };
+            if (pay.summary_version === 5) return { ok: true, data: { ...pay, stale: true } };
           }
           if (/unavailable|unreachable|upstream 404|invalid upstream JSON/.test(String(via.error || "")))
             return { ok: false, error: "not_substack", status: 422,

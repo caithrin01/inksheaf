@@ -13,7 +13,7 @@ const summarize = posts => summarizeArchive(posts, { publicationName: null, them
 
 const personal = summarize(Array.from({ length: 27 }, (_, i) => post(`Essay ${i + 1}`, 1900)));
 assert.equal(personal.public_posts, 27);
-assert.equal(personal.summary_version, 4);
+assert.equal(personal.summary_version, 5);
 assert.equal(personal.est_pages, 227);
 assert.equal(personal.cadence, "Annual");
 assert.equal(personal.kind, "essays");
@@ -79,7 +79,7 @@ for (const v of lopsided.divisions.quarterly.volumes) assert.ok(v.est_pages >= 3
 /* image-heavy publication defaults to the colour interior */
 const visual = summarize(Array.from({ length: 20 }, (_, i) => dated(`Field notes ${i}`, 1400, iso(2025, 9 + (i % 12), 3), { cover_image: "https://img/" + i })));
 assert.ok(visual.image_rate >= 0.99);
-assert.equal(visual.recommended.interior, "color");
+assert.equal(visual.recommended.interior, "bw"); /* bw default regardless of image_rate */
 assert.equal(personal.recommended.interior, "bw");
 
 /* form naming reaches the surface */
