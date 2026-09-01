@@ -17,7 +17,8 @@
     "test:renderer": "node scripts/test-renderer.mjs",
     "test:signup": "node scripts/test-signup.mjs",
     "test:honesty": "node scripts/test-honesty.mjs",
-    "test:relay": "node scripts/test-relay-sample.mjs"
+    "test:relay": "node scripts/test-relay-sample.mjs",
+    "test:design": "node scripts/test-design.mjs"
   },
   "dependencies": {
     "astro": "^7.2.6",
@@ -28,6 +29,7 @@
     "esbuild": true
   },
   "devDependencies": {
+    "axe-core": "^4.10.3",
     "playwright": "^1.62.1"
   }
 }

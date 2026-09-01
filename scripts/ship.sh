@@ -4,7 +4,8 @@
 #
 #   clean tree -> build -> validate.py -> unit -> renderer (full Paged.js render) -> honesty (local)
 #   -> dist privacy scan -> preview deploy -> FRESH cold-origin gate -> journeys -> inputs
-#   -> honesty (preview) -> production deploy -> live gate + journeys against production
+#   -> design (axe contrast, screenshot set) -> honesty (preview) -> production deploy
+#   -> live gate + journeys against production
 #
 # Runs from a frozen export of HEAD (see below). Refuses a dirty tree unless SHIP_DIRTY=1 and
 # SHIP_REASON="why" are both set; the reason is printed into the log so an incident deploy is
@@ -72,6 +73,7 @@ FRESH=1 INKSHEAF_BASE_URL="$PREVIEW_URL" node scripts/test-live-preview.mjs
 if [ "${SKIP_BROWSER:-}" != "1" ]; then
   step "journeys against preview (chromium)"; node scripts/test-journeys.mjs chromium "$PREVIEW_URL"
   step "hostile inputs against preview";       node scripts/test-inputs.mjs chromium "$PREVIEW_URL"
+  step "design gate against preview (axe contrast + 30 shots)"; INKSHEAF_HEAD="${HEAD:0:7}" node scripts/test-design.mjs "$PREVIEW_URL"
 fi
 step "honesty against preview"; node scripts/test-honesty.mjs "$PREVIEW_URL"
 

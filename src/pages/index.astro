@@ -24,7 +24,7 @@ import prices from "../../functions/lib/print-prices.json";
 <style is:global>
 :root{
   --paper:#f7f3e9; --ink:#211c15; --red:#8e2f1c;
-  --rule:rgba(33,28,21,.5); --hair:rgba(33,28,21,.15); --faint:rgba(33,28,21,.58);
+  --rule:rgba(33,28,21,.5); --hair:rgba(33,28,21,.15); --faint:rgba(33,28,21,.65);
   --card:#f4efe2; --press:0 1px 0 rgba(255,255,255,.4); --grain:.42;
 }
 @media (prefers-color-scheme: dark){
@@ -160,7 +160,7 @@ h1{font-size:clamp(2.3rem,5.2vw,3.5rem);font-weight:490;line-height:1.1;letter-s
 .cv-pages{letter-spacing:.06em;text-transform:none;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:rgba(30,23,16,.62)}
 .cv-footwrap{width:100%;display:grid;gap:.3rem;justify-items:center;position:relative;z-index:1;padding-top:.6rem}
 .spinetext{position:absolute;top:0;bottom:0;left:-1px;width:13px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3}
-.spinetext span{transform:rotate(90deg);white-space:nowrap;font-size:.48rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.55)}
+.spinetext span{transform:rotate(90deg);white-space:nowrap;font-size:.48rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.66)}
 .pageblock{position:absolute;top:4px;bottom:4px;right:-7px;width:7px;
   background:repeating-linear-gradient(180deg,#fdfaf2 0 2px,#e7e0cf 2px 3px);
   box-shadow:2px 3px 6px -2px rgba(33,28,21,.38);transition:width .9s ease-out .35s}
@@ -276,12 +276,12 @@ ol.how li+li::before{top:1.2rem}
 .nm-run{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;
   border-bottom:1px solid rgba(128,128,128,.2);padding-bottom:.6rem;margin-bottom:.9rem}
 .nm-pub{font-weight:700;font-size:.95rem}
-.nm-date{opacity:.5}
+.nm-date{opacity:.6}
 .nm-body{font-family:Georgia,serif;font-size:.95rem;line-height:1.6;margin:0}
 .nm-btn{display:block;margin:1.2rem auto .4rem;text-align:center;background:#ff6719;color:#fff;
   font-weight:600;font-size:.92rem;padding:.7rem 1rem;border-radius:6px;text-decoration:none;transition:filter .2s}
 .nm-btn:hover{filter:brightness(.92)}
-.nm-foot{text-align:center;font-size:.74rem;opacity:.45;margin-top:.8rem}
+.nm-foot{text-align:center;font-size:.74rem;opacity:.6;margin-top:.8rem}
 .newsmock figcaption{margin-top:1.1rem;font-family:"EB Garamond",serif;text-align:center;
   font-size:.85rem;color:var(--faint);border-top:1px solid rgba(128,128,128,.15);padding-top:.9rem}
 
@@ -551,7 +551,7 @@ footer a{color:inherit}
       <noscript><p style="text-align:center">This form needs JavaScript. Without it, write to
       <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a> and we will add you by hand.</p></noscript>
       <form id="f" novalidate>
-        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" />
+        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <div class="step1">
           <label for="url">Your publication&rsquo;s URL</label>
           <input type="url" id="url" name="publication_url" placeholder="https://yourname.substack.com" required />

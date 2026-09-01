@@ -64,6 +64,35 @@ ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));
 ok("substack non-affiliation", html.includes("not affiliated"));
 ok("og domain canonical", html.includes('content="https://inksheaf.com/og.png"'));
 
+/* voice lint (launch-hardening 2.2): the visible copy, the client bundle's strings, and
+   the CSS. Exclamation marks, marketing words and any affiliation construction are refused;
+   the caithrin personal brand and Substack's marks stay out of the Inksheaf tree. */
+const visible = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/g, "")
+  .replace(/<[^>]+>/g, " ").replace(/&[a-z]+;|&#\d+;/g, " ");
+const jsStrings = [...js.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)].map(m => m[2]).join("\n");
+const copy = visible + "\n" + jsStrings;
+ok("no exclamation marks in visible copy or client strings", !/!/.test(copy));
+for (const phrase of ["high-quality", "join thousands", "beautiful", "treasure"])
+  ok(`voice: no "${phrase}"`, !new RegExp(phrase, "i").test(copy));
+const affiliations = [...copy.matchAll(/(partner(ed|ship)?\s+with\s+Substack|official\s+Substack|Substack['’]s\s+print|by\s+Substack\b|endorsed\s+by\s+Substack|Substack\s*(\+|and|x)\s*Inksheaf|Inksheaf\s*(\+|and|x)\s*Substack)/gi)]
+  .filter(m => !/not affiliated with or endorsed by Substack/i.test(copy.slice(Math.max(0, m.index - 40), m.index + 40)));
+ok("voice: no affiliation construction (the disclaimer's negation is the one allowed form)", affiliations.length === 0, affiliations.map(m => m[0]).join(", "));
+const cssPaths = [...html.matchAll(/href="(\/_astro\/[^"]+\.css)"/g)].map(m => m[1]);
+const css = sourceOnly
+  ? cssPaths.map(p => readFileSync(new URL("../dist" + p, import.meta.url), "utf8")).join("\n")
+  : (await Promise.all(cssPaths.map(p => fetch(base + p).then(r => r.text())))).join("\n");
+ok("brand: EB Garamond is the face", /EB Garamond/.test(css) && /family=EB\+Garamond/.test(html));
+ok("brand: no Cormorant Garamond (caithrin face)", !/Cormorant/i.test(css + html));
+ok("brand: no caithrin palette", !/#(16120e|f4efe6|7d6448)\b/i.test(css + html));
+ok("brand: no caithrin d20 mark", !/d20-(black|white|final|exact|tile)\.svg|dice-(bold|all)\.svg/.test(html + css + js));
+/* Substack's button orange is allowed in exactly one place: the .nm-btn rule of the figure
+   labelled "Example of the print link at the end of a Substack post", which depicts a
+   Substack post. Anywhere else it reads as affiliation. */
+const orangeOutsideMockup = (css + html + js).replace(/\.nm-btn\{[^}]*\}/g, "");
+ok("brand: no Substack logo assets", !/substackcdn\.com|substack\.com\/img/i.test(html + css + js));
+ok("brand: Substack orange only inside the labelled post mockup", !/#ff6719\b/i.test(orangeOutsideMockup)
+  && /aria-label="Example of the print link at the end of a Substack post"/.test(html));
+
 /* reachable-state checks against the live API (the audit's core objection) */
 if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }
 const acx = await (await fetch(base + "/api/preview?url=astralcodexten.com")).json();
