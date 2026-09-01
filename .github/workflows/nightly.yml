@@ -1,0 +1,56 @@
+name: nightly
+# Nightly against production (launch-hardening 1.6): the whole journey battery in three
+# browser engines, the hostile-input battery, the honesty gate, then the relay reliability
+# sample once the browsers are done so the two never share the relay. The full Paged.js
+# render runs on every ship (ship.sh), not here: it needs the local playwright-cli.
+# The relay token lives in the repository secret ARCHIVE_RELAY_TOKEN (the repo is public).
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+jobs:
+  journeys:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Journeys (${{ matrix.engine }})
+        run: node scripts/test-journeys.mjs ${{ matrix.engine }}
+  inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Hostile-input battery (chromium)
+        run: node scripts/test-inputs.mjs chromium
+      - name: Honesty gate against production
+        run: node scripts/test-honesty.mjs
+  relay-sample:
+    needs: [journeys, inputs]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Relay reliability sample (20 cold requests, 15s apart)
+        env:
+          ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
+          INKSHEAF_EVIDENCE_DIR: ${{ github.workspace }}/relay-evidence
+        run: node scripts/test-relay-sample.mjs
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: relay-sample-${{ github.run_id }}
+          path: relay-evidence/
+          if-no-files-found: ignore

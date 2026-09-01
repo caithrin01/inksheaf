@@ -37,8 +37,12 @@ def valid_host(host: str) -> bool:
 
 # max_inputs recycles the container every few requests, rotating the egress IP;
 # Substack scores per-IP reputation and a long-lived relay IP accumulates 403s.
+# cloud="gcp": Substack's Cloudflare edge serves a managed challenge (403, cf-mitigated:
+# challenge) to Azure egress at the first page, and Modal otherwise places containers on
+# either cloud. Measured 2026-09-01: mixed placement 13/20 cold reads succeeded; pinned to
+# GCP 5/5 containers read every page. Retries on the same container never clear a challenge.
 @app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=60,
-              max_inputs=1)
+              max_inputs=1, cloud="gcp")
 @modal.fastapi_endpoint(method="GET")
 def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
     from fastapi import HTTPException, Response

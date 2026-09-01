@@ -2,14 +2,19 @@
 # The only sanctioned path to production. Every step must pass before the production
 # deploy; nothing else in this repo may run `wrangler pages deploy`.
 #
-#   clean tree -> build -> validate.py -> unit -> renderer (no render) -> honesty (local)
+#   clean tree -> build -> validate.py -> unit -> renderer (full Paged.js render) -> honesty (local)
 #   -> dist privacy scan -> preview deploy -> FRESH cold-origin gate -> journeys -> inputs
 #   -> honesty (preview) -> production deploy -> live gate + journeys against production
 #
-# Runs from a frozen export of HEAD (see below). Refuses a dirty tree unless SHIP_DIRTY=1 and SHIP_REASON="why" are both set; the reason
-# is printed into the log so an incident deploy is never silent.
+# Runs from a frozen export of HEAD (see below). Refuses a dirty tree unless SHIP_DIRTY=1 and
+# SHIP_REASON="why" are both set; the reason is printed into the log so an incident deploy is
+# never silent.
 # SKIP_BROWSER=1 skips the Playwright suites (only for a documented hotfix of the gate itself).
 set -euo pipefail
+# Bash reads a script incrementally, so an edit to this file while a gate runs would derail
+# it mid-flight (2026-09-01: a rewrite during the gate turned "sleep 6" into "6"). The
+# whole body is one function, parsed completely before anything executes.
+main() {
 cd "$(dirname "$0")/.."
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -42,7 +47,7 @@ echo "frozen tree at $STAGE"
 step "build";            npm run build
 step "validate.py";      python3 validate.py
 step "unit gates";       npm run test:preview:unit
-step "renderer contract"; node scripts/test-renderer.mjs --skip-render
+step "renderer (full render)"; node scripts/test-renderer.mjs
 step "honesty (source)"; node scripts/test-honesty.mjs --source-only
 
 step "dist privacy scan"
@@ -85,3 +90,5 @@ step "honesty against production"; node scripts/test-honesty.mjs
 echo
 cd "$REPO"; rm -rf "$STAGE"
 echo "SHIPPED $HEAD at $STAMP via $PREVIEW_URL"
+}
+main "$@"; exit

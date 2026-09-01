@@ -1,8 +1,17 @@
 name: live-preview-gate
+# Hourly through the friends round (launch-hardening 1.6). Reads production the way a
+# visitor does; never FRESH (that clears the production cache and is reserved for ship.sh
+# against a preview URL, decision D3). A failed run emails the repo owner through GitHub's
+# Actions notifications; `force_fail` exists to prove that email arrives.
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
+    inputs:
+      force_fail:
+        description: "Fail on purpose to confirm the failure email reaches the inbox"
+        type: boolean
+        default: false
 jobs:
   gate:
     runs-on: ubuntu-latest
@@ -10,5 +19,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Forced failure (notification drill)
+        if: ${{ inputs.force_fail }}
+        run: |
+          echo "forced failure requested: this run exists to prove the failure email arrives"
+          exit 1
       - name: Run the deployed four-publication gate
         run: node scripts/test-live-preview.mjs
