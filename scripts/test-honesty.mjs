@@ -58,6 +58,13 @@ ok("relay budget is 40s", apiSrc.includes("RELAY_BUDGET_MS = 40000"));
 ok("client abort is 45s, after the server budget", astroSrc.includes("ctl.abort(), 45000"));
 ok("abort shows the hand-built offer", astroSrc.includes("taking too long to read. Send it below"));
 
+/* Astro's compressor drops a line break between a word and an inline tag, gluing
+   "choice:caithrin" and "oncaithrin.com" together (found on production 2026-09-01, same
+   class as the noscript bug A13 caught). Refuse any letter or punctuation flush against
+   an opening <a>, or a closing </a> flush against a letter. */
+const glued = [...html.matchAll(/[A-Za-z:;,.]<a\s[^>]*>|<\/a>[A-Za-z]/g)].map(m => m[0].slice(0, 30));
+ok("no text glued to a link by the compressor", glued.length === 0, glued.join(" | "));
+
 /* contact + attribution */
 ok("no dead hello@ anywhere in page", !html.includes("hello@inksheaf.com"));
 ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));
