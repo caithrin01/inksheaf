@@ -85,9 +85,12 @@ async function fetchArchive(host, env) {
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
         /* one batch call: the relay fetches and paces every page server-side */
+        /* each relay request lands on a fresh container (max_inputs=1), so each retry
+           is a new egress IP against Substack's per-IP scoring */
         let via = await fetchRelayedAll(host, env);
-        if (!via.ok){
-          await new Promise(r => setTimeout(r, 2500));
+        for (const wait of [2500, 6000]){
+          if (via.ok) break;
+          await new Promise(r => setTimeout(r, wait));
           via = await fetchRelayedAll(host, env);
         }
         if (!via.ok){

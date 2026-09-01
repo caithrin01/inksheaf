@@ -35,7 +35,10 @@ def valid_host(host: str) -> bool:
     return not re.search(r"(^|\.)(localhost|local|internal|home|lan|corp|test|invalid)$", host)
 
 
-@app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=60)
+# max_inputs recycles the container every few requests, rotating the egress IP;
+# Substack scores per-IP reputation and a long-lived relay IP accumulates 403s.
+@app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=60,
+              max_inputs=1)
 @modal.fastapi_endpoint(method="GET")
 def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
     from fastapi import HTTPException, Response
