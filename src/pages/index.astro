@@ -727,18 +727,18 @@ function renderPreview(d: any){
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   (document.getElementById('pv-big') as HTMLElement).innerHTML =
     recD && recD.volumes.length > 1
-    ? (d.young ? 'Your archive so far is ' : 'Your year is ') + (d.form || 'a set') + ': <b>' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
+    ? ((d.young || d.capped) ? 'Your archive so far is ' : 'Your year is ') + (d.form || 'a set') + ': <b>' + (d.capped ? 'about ' : '') + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
     : over
-    ? 'Your year is a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
-    : 'Your archive is already a <b>' + d.est_pages + '-page book</b>.';
+    ? 'Your year is ' + (d.capped ? 'at least ' : '') + 'a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
+    : 'Your archive is already ' + (d.capped ? 'at least ' : '') + 'a <b>' + d.est_pages + '-page book</b>.';
   (document.getElementById('pv-sub') as HTMLElement).textContent =
     publicPosts + (d.capped ? '+' : '') + ' public ' + kindLabel(d, publicPosts) + ', ' +
     d.words.toLocaleString('en-US') + ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' +
     (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
     (d.podcast_posts ? d.podcast_posts + ' podcast ' + (d.podcast_posts === 1 ? 'post is' : 'posts are') + ' left out of the print estimate. ' : '') +
-    (d.capped ? 'Your archive runs deeper than this preview reads; the proof covers the full year. ' : '') +
+    (d.capped ? 'This preview read your newest ' + publicPosts + ' ' + kindLabel(d, publicPosts) + '; the printed edition uses them all. Pages and prices below are estimates until we read the rest. ' : '') +
     (recD && recD.volumes.length > 1
-      ? 'That is ' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's of ' +
+      ? 'That is ' + (d.capped ? 'about ' : '') + recD.volumes.length + ' ' + (d.unit || 'volume') + 's of ' +
         Math.min(...recD.volumes.map((v: any) => v.est_pages)) + ' to ' +
         Math.max(...recD.volumes.map((v: any) => v.est_pages)) + ' pages.'
       : 'Typeset at 6×9 with contents, running headers and your own cover.');
@@ -836,8 +836,8 @@ function drawDesk(){
   const n = div.volumes.length;
   const verdict = document.getElementById('desk-verdict')!;
   let vtext = (desk.cadence === d.recommended.cadence ? 'Our recommendation: ' : 'Your pick: ') +
-    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + div.volumes[0].est_pages + ' pages.'
-     : n + ' ' + unitOf(d, n) + ' of ' +
+    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + (d.capped ? 'about ' : '') + div.volumes[0].est_pages + ' pages.'
+     : (d.capped ? 'about ' : '') + n + ' ' + unitOf(d, n) + ' of ' +
        Math.min(...div.volumes.map((v: any) => v.est_pages)) + ' to ' +
        Math.max(...div.volumes.map((v: any) => v.est_pages)) + ' pages.');
   if (n > 1) vtext += ' Each volume carries its own front matter.';
@@ -856,8 +856,10 @@ function drawDesk(){
     row.appendChild(b);
   }
   const ship = shipFor(n);
+  /* measured set sizes (1, 2, 4, 8) print exact; a fitted count, or a capped read, says "about" */
+  const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
   (document.getElementById('pv-price') as HTMLElement).textContent =
-    'Readers pay print cost plus $' + ship.toFixed(2) +
+    'Readers pay print cost plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) +
     (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
     'Beta editions sell at cost; your margin comes at launch.';
   updateCoverFromDesk(d, div);

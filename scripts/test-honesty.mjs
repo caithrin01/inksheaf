@@ -11,6 +11,12 @@ const base = (sourceOnly ? "" : (process.argv[2] || "https://inksheaf.com")).rep
 const html = sourceOnly
   ? readFileSync(new URL("../dist/index.html", import.meta.url), "utf8")
   : await (await fetch(base + "/")).text();
+/* the page's client script is a separate bundle: read every /_astro/*.js the page references */
+const bundlePaths = [...html.matchAll(/src="(\/_astro\/[^"]+\.js)"/g)].map(m => m[1]);
+const js = sourceOnly
+  ? bundlePaths.map(p => readFileSync(new URL("../dist" + p, import.meta.url), "utf8")).join("\n")
+  : (await Promise.all(bundlePaths.map(p => fetch(base + p).then(r => r.text())))).join("\n");
+const astroSrc = readFileSync(new URL("../src/pages/index.astro", import.meta.url), "utf8");
 const prices = JSON.parse(readFileSync(new URL("../functions/lib/print-prices.json", import.meta.url), "utf8"));
 let n = 0;
 const ok = (name, cond, detail = "") => { n++; assert.ok(cond, name + (detail ? " :: " + detail : "")); console.log("PASS " + name); };
@@ -31,6 +37,14 @@ ok("engine cap is 300", summarySrc.includes("> 300"));
 ok("page states the 300 cap", /300[- ]page/.test(html));
 ok("pipeline hard limit is 800", readFileSync(new URL("../scripts/pipeline.mjs", import.meta.url), "utf8").includes("pages > 800"));
 
+/* capped reads and fitted shipping are labelled as estimates (audit gates 3 and 4) */
+ok("page references its client bundle", bundlePaths.length >= 1);
+ok("full-year claim is gone", !js.includes("covers the full year") && !astroSrc.includes("covers the full year"));
+ok("capped sentence in client bundle", js.includes("estimates until we read the rest"));
+ok("unmeasured shipping says about (source)", astroSrc.includes("'about $' + Math.round(ship)"));
+ok("shipping is exact only at measured set sizes (source)", astroSrc.includes("Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped"));
+ok("shipping 8-point is from the sweep", readFileSync(new URL("../scripts/quote-sweep.mjs", import.meta.url), "utf8").includes("[1, 2, 4, 8]"));
+
 /* contact + attribution */
 ok("no dead hello@ anywhere in page", !html.includes("hello@inksheaf.com"));
 ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));
@@ -50,6 +64,13 @@ const cai = await (await fetch(base + "/api/preview?url=caithrin.com")).json();
 if (cai.ok) {
   ok("caithrin recommendation feasible", cai.divisions[cai.recommended.cadence].feasible);
   ok("capped flag is boolean", typeof cai.capped === "boolean");
+  ok("caithrin is a full read (not capped)", cai.capped === false);
 } else console.log("SKIP caithrin reachable-state");
+const hcr = await (await fetch(base + "/api/preview?url=heathercoxrichardson.substack.com")).json();
+if (hcr.ok) {
+  ok("HCR is a capped read, so the page's capped copy is reachable", hcr.capped === true);
+  const rec = hcr.divisions[hcr.recommended.cadence];
+  ok("HCR recommended set size is not a measured shipping point", !prices.shipping_by_volumes[String(rec.volumes.length)], "n=" + rec.volumes.length);
+} else console.log("SKIP HCR reachable-state");
 
 console.log(`HONESTY GATE: ${n} checks passed`);

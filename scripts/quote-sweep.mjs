@@ -38,12 +38,21 @@ for (const [key, pod] of Object.entries(PODS)) {
     max_fit_error: +worst.toFixed(3), points };
   console.log(key, "fit: base $" + base.toFixed(2), "+ $" + per_page.toFixed(4) + "/page, max err $" + worst.toFixed(2));
 }
+// Set shipping is measured at 1, 2, 4 and 8 volumes; the page prints these four exactly and
+// says "about" for any other count. Raw quotes go to the vault evidence folder with a date.
 out.shipping_by_volumes = {};
-for (const n of [1, 2, 4]) {
+const raw = { measured: out.measured, shipping_option: "MAIL", destination: addr.state_code + ", " + addr.country_code, quotes: {} };
+for (const n of [1, 2, 4, 8]) {
   const items = Array.from({ length: n }, () => ({ page_count: 200, pod_package_id: PODS.bw, quantity: 1 }));
   const q = await c.api("/print-job-cost-calculations/", { line_items: items, shipping_address: addr, shipping_option: "MAIL" });
   out.shipping_by_volumes[n] = Number(q.shipping_cost.total_cost_excl_tax);
+  raw.quotes[n] = { shipping_cost: q.shipping_cost, total_cost_excl_tax: q.total_cost_excl_tax, total_cost_incl_tax: q.total_cost_incl_tax };
   console.log("shipping x" + n, out.shipping_by_volumes[n]);
 }
 await writeFile("functions/lib/print-prices.json", JSON.stringify(out, null, 1));
 console.log("wrote functions/lib/print-prices.json");
+const EVIDENCE = process.env.INKSHEAF_EVIDENCE_DIR ||
+  process.env.HOME + "/Library/Mobile Documents/com~apple~CloudDocs/Caithrin/05-Projects/Substack Magazine/evidence";
+const evPath = EVIDENCE + "/lulu-shipping-" + out.measured + ".json";
+await writeFile(evPath, JSON.stringify(raw, null, 1));
+console.log("wrote", evPath);

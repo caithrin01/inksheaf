@@ -107,6 +107,23 @@ await journey("A6 second publication fully replaces the first", {}, async page =
   const sub = await page.evaluate(() => document.getElementById("pv-sub").textContent);
   assert.ok(/Letters from an American/i.test(mast), "cover is HCR: " + mast);
   assert.ok(!/caithrin/i.test(sub), "no stale caithrin in payoff");
+  /* HCR is a capped read (audit gate 3): nothing on the desk may read as final */
+  assert.ok(/estimates until we read the rest/.test(sub), "capped sentence present: " + sub.slice(-120));
+  assert.ok(!/covers the full year/.test(sub), "old full-year claim gone");
+  const big = await page.evaluate(() => document.getElementById("pv-big").textContent);
+  assert.ok(/so far|at least|about/.test(big), "headline hedged when capped: " + big);
+  const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
+  assert.ok(/about \d+ (volumes|issues)|of about \d+ pages/.test(verdict), "verdict hedged when capped: " + verdict.slice(0, 80));
+  const price = await page.evaluate(() => document.getElementById("pv-price").textContent);
+  assert.ok(/plus about \$\d+ shipping/.test(price), "shipping is 'about' when capped or unmeasured: " + price.slice(0, 80));
+});
+
+await journey("A6b uncapped single volume quotes measured shipping exactly", {}, async page => {
+  await preview(page, "caithrin.com");
+  const sub = await page.evaluate(() => document.getElementById("pv-sub").textContent);
+  assert.ok(!/estimates until we read the rest/.test(sub), "no capped sentence on a full read");
+  const price = await page.evaluate(() => document.getElementById("pv-price").textContent);
+  assert.ok(/plus \$5\.69 shipping, mainland US/.test(price), "measured 1-volume shipping exact: " + price.slice(0, 80));
 });
 
 await journey("A7 failure after success clears the desk, keeps the book", {}, async page => {
