@@ -171,10 +171,8 @@ h1{font-size:clamp(2.5rem,5.8vw,4rem);font-weight:490;line-height:1.12;letter-sp
 .pv-big{font-size:clamp(1.8rem,3.6vw,2.5rem);font-weight:500;line-height:1.15;text-wrap:balance;text-shadow:var(--press)}
 .pv-big b{color:var(--red);font-weight:560}
 .pv-sub{margin-top:.9rem;color:var(--faint);max-width:52ch;margin-inline:auto}
-.pv-price{margin-top:1.3rem;opacity:0;transform:scale(.97);transition:opacity .4s 1.05s,transform .4s 1.05s}
+.pv-price{margin-top:1.3rem;font-size:.98rem;color:var(--faint);opacity:0;transform:scale(.97);transition:opacity .4s 1.05s,transform .4s 1.05s}
 .preview.on .pv-price{opacity:1;transform:none}
-.pv-price b{font-size:1.45rem;font-weight:560}
-.pv-price .sub{display:block;font-size:.85rem;color:var(--faint);margin-top:.25rem}
 .pv-cta{margin-top:1.7rem;display:inline-block;padding:.95rem 2.6rem 1rem;background:var(--ink);color:var(--paper);
   border:1px solid var(--ink);text-decoration:none;font-weight:500;font-size:.85rem;letter-spacing:.26em;padding-left:2.86rem;
   text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .3s}
@@ -246,14 +244,11 @@ ol.how li+li::before{top:1.2rem}
 .desk-verdict{margin-top:.9rem;min-height:1.2em}
 .interior-row{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.3rem}
 .int-opt{background:transparent;border:1px solid var(--rule);cursor:pointer;font-family:inherit;
-  font-size:.95rem;padding:.6rem 1.2rem;color:var(--faint);transition:all .25s;text-align:center}
-.int-opt b{display:block;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
-  font-weight:600;margin-bottom:.2rem;color:inherit}
+  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:500;
+  padding:.75rem 1.3rem;color:var(--faint);transition:all .25s;text-align:center}
 .int-opt[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
 .desk-tab:focus-visible,.int-opt:focus-visible,.tryrow button:focus-visible,button.main:focus-visible,.pv-cta:focus-visible,.snip-copy:focus-visible{outline:2px solid var(--red);outline-offset:3px}
 .int-opt:hover{color:var(--ink)}
-.pv-price .margin-note{display:block;font-size:.8rem;color:var(--faint);margin-top:.4rem}
-.pv-price .margin-note b{color:var(--red);font-weight:560}
 /* newsletter snippet generator */
 .snippet{margin:1.8rem auto 0;max-width:30rem;text-align:center}
 .snip-label{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:.8rem}
@@ -396,9 +391,8 @@ footer a{color:inherit}
           <div class="pv-price" id="pv-price"></div>
         </div>
         <button class="pv-cta" id="pv-cta" type="button">Send it to print</button>
-        <p class="pv-note note">Printing runs through Lulu, our print partner: readers pay Lulu
-        directly and we add no margin. The first step is your proof; leave one email and the
-        press starts. Page counts are estimates from your public archive; the proof PDF is exact.</p>
+        <p class="pv-note note">Lulu, our print partner, takes each reader&rsquo;s payment and
+        ships every copy. Nothing prints before you approve your proof.</p>
       </div>
     </section>
 
@@ -826,25 +820,17 @@ function drawDesk(){
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'int-opt';
     b.setAttribute('aria-pressed', String(desk.interior === key));
-    const t = document.createElement('b'); t.textContent = name;
-    const sub = document.createElement('span');
-    const price = priceFor(avg, key);
-    sub.textContent = key === 'color'
-      ? 'about $' + Math.round(price) + ' ' + aUnit(d)
-      : 'about $' + Math.round(price) + ', saves $' + Math.max(1, Math.round(priceFor(avg,'color') - price));
-    b.append(t, sub);
+    b.textContent = name + ' · about $' + Math.round(priceFor(avg, key)) + ' ' + aUnit(d);
     b.addEventListener('click', () => { desk.interior = key; beacon('plan_interior'); drawDesk(); });
     row.appendChild(b);
   }
-  const per = priceFor(avg, desk.interior);
   const ship = n <= 1 ? PRICES.shipping
     : (PRICES.shipping_set && (PRICES.shipping_set[String(n)] ??
        (n >= 4 ? PRICES.shipping_set['4'] : PRICES.shipping_set['2']))) || PRICES.shipping;
-  (document.getElementById('pv-price') as HTMLElement).innerHTML =
-    'Readers pay <b>about $' + Math.round(per) + ' ' + aUnit(d) + '</b> in print cost, plus $' +
-    ship.toFixed(2) + (n > 1 ? ' shipping for the whole set' : ' shipping') + ', mainland US.' +
-    '<span class="margin-note">Your margin: <b>$0 during the beta</b> · you set it at launch. ' +
-    'Prices measured on Lulu\u2019s print API, ' + PRICES.measured + '.</span>';
+  (document.getElementById('pv-price') as HTMLElement).textContent =
+    'Readers pay print cost plus $' + ship.toFixed(2) +
+    (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
+    'Beta editions sell at cost; your margin comes at launch.';
   updateCoverFromDesk(d, div);
 }
 function updateCoverFromDesk(d: any, div: any){
