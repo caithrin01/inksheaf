@@ -102,7 +102,7 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
   const spanMonths = (dates[dates.length - 1] - dates[0]) / (30.44 * 864e5);
   const recommendedCadence = divisions.single.feasible ? "single"
     : divisions.quarterly.feasible ? "quarterly"
-    : divisions.monthly.feasible ? "monthly" : "single";
+    : divisions.monthly.feasible ? "monthly" : "concierge";
   return {
     summary_version: 3,
     form: FORM_NAMES[kind] || "a collected edition",

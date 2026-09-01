@@ -79,19 +79,6 @@ for (let i = 0; i < posts.length; ) {
   if (seenSlugs.has(posts[i].slug)) { report.skips.push({ slug: posts[i].slug, reason: "duplicate slug" }); posts.splice(i, 1); }
   else { seenSlugs.add(posts[i].slug); i++; }
 }
-/* pre-flight page estimate: refuse a book the bindery cannot take BEFORE fetching
-   hundreds of bodies and running a render that can hang or exhaust memory.
-   Same formula as the site preview. Override deliberately with --force-pages. */
-{
-  const estWords = posts.reduce((a, p) => a + (Number(p.wordcount) || 0), 0);
-  const estPages = Math.round(estWords / 270 + posts.length + 10);
-  if (estPages > 800 && !process.argv.includes("--force-pages")) {
-    console.error(`REFUSED before fetch: ~${estPages}pp estimated from ${posts.length} posts ` +
-      `(bindery limit 800pp; our volume cap 300pp). Build volumes with --after/--before date ` +
-      `windows per the preview's division plan, or pass --force-pages to override.`);
-    process.exit(2);
-  }
-}
 let selectedFrom = null;
 if (TOP && posts.length > TOP) {
   selectedFrom = posts.length;
@@ -105,6 +92,20 @@ if (TOP && posts.length > TOP) {
   for (let i = posts.length - 1; i >= 0; i--) if (!keep.has(key(posts[i]))) posts.splice(i, 1);
   report.selection = { top: TOP, from: selectedFrom };
 }
+/* pre-flight page estimate: refuse a book the bindery cannot take BEFORE fetching
+   hundreds of bodies and running a render that can hang or exhaust memory.
+   Same formula as the site preview. Override deliberately with --force-pages. */
+{
+  const estWords = posts.reduce((a, p) => a + (Number(p.wordcount) || 0), 0);
+  const estPages = Math.round(estWords / 270 + posts.length + 10);
+  if (estPages > 800 && !process.argv.includes("--force-pages")) {
+    console.error(`REFUSED before fetch: ~${estPages}pp estimated from ${posts.length} posts ` +
+      `(bindery limit 800pp; our volume cap 300pp). Build volumes with --after/--before date ` +
+      `windows per the preview's division plan, or pass --force-pages to override.`);
+    process.exit(2);
+  }
+}
+
 console.error(listing.length, "listed;", posts.length, "printable;", report.omittedPaid, "paid omitted");
 
 const deduped = posts;

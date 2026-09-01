@@ -87,4 +87,11 @@ assert.equal(letters.form, "a magazine");
 assert.equal(letters.unit, "issue");
 assert.equal(personal.form, "a collected edition");
 
-console.log("PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, young, 150pp, 900pp, folding, image-heavy, forms");
+/* all cadences infeasible: recommended must say concierge, never an infeasible plan */
+const giants = summarize(Array.from({ length: 12 }, (_, i) => dated(`Giant ${i}`, 90000, iso(2025, 9 + i, 15))));
+assert.equal(giants.divisions.single.feasible, false);
+assert.equal(giants.divisions.quarterly.feasible, false);
+assert.equal(giants.divisions.monthly.feasible, false);
+assert.equal(giants.recommended.cadence, "concierge");
+
+console.log("PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, young, 150pp, 900pp, folding, image-heavy, forms, all-infeasible");

@@ -782,7 +782,7 @@ function renderDesk(d: any){
     return;
   }
   const feasible = ['single','quarterly','monthly'].filter(k => d.divisions[k] && d.divisions[k].feasible);
-  const startCadence = d.divisions[d.recommended.cadence]?.feasible
+  const startCadence = d.divisions[d.recommended.cadence] && d.divisions[d.recommended.cadence].feasible
     ? d.recommended.cadence : feasible[0];
   desk = { cadence: startCadence, interior: d.recommended.interior, d };
   el.hidden = false;
@@ -916,10 +916,12 @@ tryhandoff.addEventListener('click', ()=>{
 (document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
   const d = previewData;
   if (d && desk && d.divisions){
-    (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence;
+    const div = desk.cadence && d.divisions[desk.cadence];
+    (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
-      cadence: desk.cadence, interior: desk.interior,
-      volumes: d.divisions[desk.cadence].volumes,
+      cadence: desk.cadence || 'concierge', interior: desk.interior,
+      volumes: div && div.feasible ? div.volumes : [],
+      needs_hand_plan: !(div && div.feasible) || undefined,
       form: d.form, unit: d.unit, prices_measured: PRICES.measured });
   }
   if (d){
