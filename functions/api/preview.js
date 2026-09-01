@@ -79,8 +79,10 @@ async function fetchArchive(host, env) {
         const nextHost = parseHost(direct.redirect.startsWith("http")
           ? direct.redirect : `https://${host}${direct.redirect}`);
         if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
-        return { ok: false, error: "redirect", status: 422,
-          message: "That address redirects somewhere we could not follow. Try the publication's final URL." };
+        /* a same-host path redirect on the archive API means this is not Substack
+           (Substack never rewrites its own API path; Ghost and WordPress do) */
+        return { ok: false, error: "not_substack", status: 422,
+          message: "Could not find a Substack archive there. Check the address?" };
       }
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
@@ -110,8 +112,14 @@ async function fetchArchive(host, env) {
         posts.length = 0;
         posts.push(...via.posts);
         break;
-      } else return { ok: false, error: "not_substack", status: 422, upstream: direct.status,
-        message: "Could not read an archive there. Is this a Substack publication URL?" };
+      } else {
+        /* many Substack custom domains serve only on www; an apex 404 deserves one www try */
+        if (direct.status === 404 && !host.startsWith("www.") && hops < 2) {
+          hops++; host = "www." + host; continue;
+        }
+        return { ok: false, error: "not_substack", status: 422, upstream: direct.status,
+          message: "Could not read an archive there. Is this a Substack publication URL?" };
+      }
     }
     if (!page.length) break;
     posts.push(...page);
