@@ -37,3 +37,5 @@ proofs/pipe/**/*.html
 # video asset masters (regenerable via scripts/shoot-*)
 assets/
 .wrangler/
+proofs/oversized-*
+proofs/heavy-*

@@ -25,8 +25,15 @@ export async function onRequest({ request, env }) {
   if (!host) return json({ ok: false, error: "bad_host",
     message: "That does not look like a publication URL." }, 400);
 
+  // fresh=<hmac(host:fresh:bucket)>, signed with the relay token: the release gate reads
+  // cold from origin without clearing the shared cache, so a scheduled check that hits
+  // production mid-gate cannot repopulate a host under it. Unsigned callers cannot bust.
+  const freshSig = new URL(request.url).searchParams.get("fresh");
+  const fresh = !!freshSig && !!env.ARCHIVE_RELAY_TOKEN &&
+    await freshSignatureOk(freshSig, host, env.ARCHIVE_RELAY_TOKEN);
+
   // Per-host cache first (also serves as the only lookup log).
-  const cached = await env.DB.prepare(
+  const cached = fresh ? null : await env.DB.prepare(
     "SELECT payload, fetched_at FROM preview_cache WHERE host = ?").bind(host).first()
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
@@ -202,6 +209,13 @@ async function fetchRelayedAll(host, env, timeoutMs) {
     const value = JSON.parse(await readLimitedText(r));
     return Array.isArray(value) ? { ok: true, posts: value, complete } : { ok: false, error: "invalid relay shape" };
   } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
+}
+
+async function freshSignatureOk(sig, host, secret) {
+  const bucket = Math.floor(Date.now() / 300000);
+  for (const b of [bucket, bucket - 1])
+    if (sig === await hmacHex(secret, `${host}:fresh:${b}`)) return true;
+  return false;
 }
 
 async function hmacHex(secret, message) {

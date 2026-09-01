@@ -18,6 +18,12 @@ import urllib.request
 import modal
 
 app = modal.App("inksheaf-archive-relay")
+# A finished read outlives the caller: the Pages Function aborts an attempt at 28s and
+# retries, and without this the retry started over. Results are keyed by host for 10 min.
+results = modal.Dict.from_name("inksheaf-relay-results", create_if_missing=True)
+RESULT_TTL = 600
+PAGE_BATCH = 4          # concurrent archive pages per batch (GCP egress; measured clean)
+BATCH_PAUSE = 0.25
 image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi")
 MAX_BYTES = 2_000_000
 HOST = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
@@ -44,7 +50,7 @@ def valid_host(host: str) -> bool:
 @app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=60,
               max_inputs=1, cloud="gcp")
 @modal.fastapi_endpoint(method="GET")
-def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
+def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold: int = 0):
     from fastapi import HTTPException, Response
 
     expected = os.environ.get("ARCHIVE_RELAY_TOKEN", "")
@@ -63,32 +69,58 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
         raise HTTPException(status_code=400, detail="bad request")
 
     if mode == "all":
-        # fetch the trailing year by date, not by post count; up to 20 paced pages
+        hit = None
+        if not cold:   # cold=1 (signed callers only) forces a fresh read, for the reliability sample
+            try:
+                hit = results.get(host)
+            except Exception:
+                hit = None
+        if hit and _t.time() - hit["at"] < RESULT_TTL:
+            return Response(content=hit["body"], media_type="application/json",
+                            headers={"Cache-Control": "private, max-age=300",
+                                     "X-Archive-Complete": "1" if hit["complete"] else "0",
+                                     "X-Relay-Result": "reused"})
+        # fetch the trailing year by date, not by post count; up to 28 pages, four at a time
         cutoff = (_t.time() - 366 * 86400) * 1000
         combined, complete = [], True
-        for off in range(0, 700, 25):
-            page = fetch_page(host, off, HTTPException)
-            if not page:
-                break
-            combined.extend(slim(p) for p in page)
-            oldest = page[-1].get("post_date") or ""
-            try:
-                from datetime import datetime, timezone
-                oldest_ms = datetime.fromisoformat(oldest.replace("Z", "+00:00")).timestamp() * 1000
-                if oldest_ms < cutoff:
+        from concurrent.futures import ThreadPoolExecutor
+        from datetime import datetime
+        offsets = list(range(0, 700, 25))
+        done = False
+        with ThreadPoolExecutor(max_workers=PAGE_BATCH) as pool:
+            for b in range(0, len(offsets), PAGE_BATCH):
+                batch = offsets[b:b + PAGE_BATCH]
+                pages = list(pool.map(lambda off: fetch_page(host, off, HTTPException), batch))
+                for off, page in zip(batch, pages):
+                    if not page:
+                        done = True
+                        break
+                    combined.extend(slim(p) for p in page)
+                    oldest = page[-1].get("post_date") or ""
+                    try:
+                        oldest_ms = datetime.fromisoformat(oldest.replace("Z", "+00:00")).timestamp() * 1000
+                        if oldest_ms < cutoff:
+                            done = True
+                            break
+                    except (ValueError, AttributeError):
+                        pass
+                if done:
                     break
-            except (ValueError, AttributeError):
-                pass
-            if off >= 675:
-                complete = False
-                break
-            _t.sleep(0.5)
+                if batch[-1] >= 675:
+                    complete = False
+                    break
+                _t.sleep(BATCH_PAUSE)
         body = json.dumps(combined).encode()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=502, detail="response too large")
+        try:
+            results[host] = {"at": _t.time(), "body": body, "complete": complete}
+        except Exception:
+            pass
         return Response(content=body, media_type="application/json",
                         headers={"Cache-Control": "private, max-age=300",
-                                 "X-Archive-Complete": "1" if complete else "0"})
+                                 "X-Archive-Complete": "1" if complete else "0",
+                                 "X-Relay-Result": "read"})
 
     body = json.dumps(fetch_page(host, offset, HTTPException)).encode()
     return Response(content=body, media_type="application/json",

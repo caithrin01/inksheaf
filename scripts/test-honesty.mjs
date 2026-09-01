@@ -36,6 +36,8 @@ const summarySrc = readFileSync(new URL("../functions/lib/preview-summary.js", i
 ok("engine cap is 300", summarySrc.includes("> 300"));
 ok("page states the 300 cap", /300[- ]page/.test(html));
 ok("pipeline hard limit is 800", readFileSync(new URL("../scripts/pipeline.mjs", import.meta.url), "utf8").includes("pages > 800"));
+ok("page states the 800 refusal (D5)", /refuse any past (the bindery&rsquo;s limit of |the bindery’s limit of )?800/.test(html));
+ok("builder warns between 300 and 800 (D5)", readFileSync(new URL("../scripts/build-book.mjs", import.meta.url), "utf8").includes("over the recommended 300pp"));
 
 /* capped reads and fitted shipping are labelled as estimates (audit gates 3 and 4) */
 ok("page references its client bundle", bundlePaths.length >= 1);

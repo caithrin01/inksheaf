@@ -165,6 +165,42 @@ ok(JSON.stringify(selReport.selection) === JSON.stringify({top: 3, from: 7}), "s
 const selOrder = [...selHtml.matchAll(/<h2 class="arttitle"[^>]*>([^<]+)/g)].map(m => m[1]);
 ok(selOrder.length === 3 && selOrder[0].includes("Torture Chapter") && selOrder[1].includes("Entity Chapter") && selOrder[2].includes("Script Detection"), "selected top-3 by reactions, chronological order", selOrder.join(" | ")); 
 
+/* ---------- 4e. pre-flight page guard (launch-hardening 1.7, D5) ----------
+   Oversized fixtures are generated here from the torture fixture rather than stored:
+   the same five printable pieces, with wordcounts that put the estimate at ~930pp
+   (refuse) and ~480pp (warn). The guard runs before any body is fetched. */
+{
+  const { writeFileSync: wf } = await import("node:fs");
+  const base = JSON.parse(readFileSync("proofs/torture-fixture.json", "utf-8"));
+  const sized = words => base.map(p => (p.wordcount > 0 ? { ...p, wordcount: words } : p));
+  wf("proofs/oversized-fixture.json", JSON.stringify(sized(48000)));   // five printable posts: 48000*5/270 + 5 + 10 ≈ 900pp
+  wf("proofs/heavy-fixture.json", JSON.stringify(sized(24000)));       // ≈ 460pp
+  const build = (fixture, out, ...flags) => {
+    try {
+      const err = execFileSync("node", ["scripts/build-book.mjs", "https://fixture.invalid",
+        "--fixture", fixture, "--out", out, ...flags], { stdio: ["ignore", "pipe", "pipe"] });
+      return { code: 0 };
+    } catch (e) { return { code: e.status, stderr: String(e.stderr || "") }; }
+  };
+  const refused = build("proofs/oversized-fixture.json", "proofs/oversized-test.html");
+  ok(refused.code === 2, "oversized estimate refuses with exit 2 before fetch", String(refused.code));
+  ok(/REFUSED before fetch: ~\d+pp/.test(refused.stderr || ""), "refusal names the estimate", (refused.stderr || "").slice(0, 120));
+  ok(/recommend volumes under 300pp/.test(refused.stderr || ""), "refusal states the 300 recommendation and the 800 limit");
+  const topped = build("proofs/oversized-fixture.json", "proofs/oversized-top-test.html", "--top", "1");
+  ok(topped.code === 0, "oversized source with --top 1 builds", String(topped.code));
+  ok((readFileSync("proofs/oversized-top-test.html", "utf-8").match(/class="article" id="art-/g) || []).length === 1, "--top 1 prints one piece");
+  const forced = build("proofs/oversized-fixture.json", "proofs/oversized-forced-test.html", "--force-pages");
+  ok(forced.code === 0, "--force-pages overrides the refusal", String(forced.code));
+  const forcedReport = JSON.parse(readFileSync("proofs/oversized-forced-test.report.json", "utf-8"));
+  ok(/past the bindery limit of 800/.test(forcedReport.pageWarning || ""), "forced build records the over-800 warning", forcedReport.pageWarning);
+  const heavy = build("proofs/heavy-fixture.json", "proofs/heavy-test.html");
+  ok(heavy.code === 0, "300 to 800 estimate builds", String(heavy.code));
+  const heavyReport = JSON.parse(readFileSync("proofs/heavy-test.report.json", "utf-8"));
+  ok(heavyReport.estPages > 300 && heavyReport.estPages <= 800, "heavy estimate is inside 300..800", String(heavyReport.estPages));
+  ok(/over the recommended 300pp/.test(heavyReport.pageWarning || ""), "300 to 800 warns, does not refuse", heavyReport.pageWarning);
+  ok(!report.pageWarning && report.estPages <= 300, "torture fixture carries no page warning", JSON.stringify([report.estPages, report.pageWarning]));
+}
+
 /* ---------- 5. lint ---------- */
 try { execFileSync("node", ["scripts/proof-lint.mjs", "proofs/torture.html"], { stdio: "pipe" }); ok(true, "proof-lint clean"); }
 catch { ok(false, "proof-lint clean"); }

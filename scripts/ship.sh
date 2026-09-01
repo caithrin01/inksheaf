@@ -66,7 +66,7 @@ PREVIEW_URL=$(echo "$OUT" | grep -o 'https://[a-z0-9]*\.inksheaf\.pages\.dev' | 
 echo "preview: $PREVIEW_URL"
 sleep 4
 
-step "cold-origin gate against preview (FRESH=1: clears the four gate hosts from cache)"
+step "cold-origin gate against preview (FRESH=1: signed cache bypass, cache left intact)"
 FRESH=1 INKSHEAF_BASE_URL="$PREVIEW_URL" node scripts/test-live-preview.mjs
 
 if [ "${SKIP_BROWSER:-}" != "1" ]; then

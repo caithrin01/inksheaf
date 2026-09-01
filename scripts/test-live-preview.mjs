@@ -11,15 +11,21 @@ const cases = [
   ["Razib Khan", "https://razib.substack.com", null],
 ];
 
-/* FRESH=1: clear the D1 cache for the gate hosts first and require cold-origin fetches.
-   Needs local wrangler auth; use for release gates, not the scheduled availability cron. */
+/* FRESH=1: every request carries fresh=<hmac(host:fresh:bucket)> signed with the relay
+   token, so the API skips its cache read and must fetch cold from origin. The shared cache
+   is never cleared, so a scheduled check hitting production mid-gate cannot repopulate a
+   host under the gate (that happened 2026-09-01). Needs the relay token; release gates only. */
+let freshSign = null;
 if (process.env.FRESH === "1") {
-  const { execSync } = await import("node:child_process");
-  const hosts = ["www.caithrin.com", "heathercoxrichardson.substack.com", "www.slowboring.com", "razib.substack.com"];
-  execSync(`npx wrangler d1 execute inksheaf-beta --remote --command "DELETE FROM preview_cache WHERE host IN (${hosts.map(h => `'${h}'`).join(",")})"`,
-    { stdio: "inherit" });
-  console.log("cache cleared for gate hosts; requiring cold-origin fetches");
+  const { createHmac } = await import("node:crypto");
+  const { readFileSync } = await import("node:fs");
+  const token = process.env.ARCHIVE_RELAY_TOKEN ||
+    readFileSync(`${process.env.HOME}/.secrets/inksheaf-relay-token`, "utf8").trim();
+  freshSign = host => createHmac("sha256", token)
+    .update(`${host}:fresh:${Math.floor(Date.now() / 300000)}`).digest("hex");
+  console.log("FRESH: signed cold-origin requests for the gate hosts");
 }
+const gateHost = u => new URL(u).hostname;
 
 let failures = 0;
 let first = true;
@@ -29,7 +35,8 @@ for (const [label, publicationUrl, expectedKind] of cases) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 45_000);
   try {
-    const r = await fetch(`${base}/api/preview?url=${encodeURIComponent(publicationUrl)}`,
+    const freshQ = freshSign ? `&fresh=${freshSign(gateHost(publicationUrl))}` : "";
+    const r = await fetch(`${base}/api/preview?url=${encodeURIComponent(publicationUrl)}${freshQ}`,
       { signal: ctl.signal, headers: { accept: "application/json" } });
     const body = await r.json();
     assert.equal(r.status, 200, JSON.stringify(body));

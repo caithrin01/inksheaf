@@ -1,7 +1,7 @@
 name: live-preview-gate
 # Hourly through the friends round (launch-hardening 1.6). Reads production the way a
-# visitor does; never FRESH (that clears the production cache and is reserved for ship.sh
-# against a preview URL, decision D3). A failed run emails the repo owner through GitHub's
+# visitor does; never FRESH (the signed cold-origin read is reserved for ship.sh against a
+# preview URL, decision D3). A failed run emails the repo owner through GitHub's
 # Actions notifications; `force_fail` exists to prove that email arrives.
 on:
   schedule:

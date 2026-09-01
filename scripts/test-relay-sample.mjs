@@ -2,7 +2,8 @@
 // Relay reliability sample (launch-hardening 2.1). The relay is the only path to an
 // archive for hosts that block Cloudflare, so its latency and error rate decide whether a
 // friend sees a preview or the hand-built offer. 20 cold requests across five small and
-// mid-size *.substack.com archives, spaced 15s, measured from this process's wall clock
+// mid-size *.substack.com archives, spaced 15s, cold=1 so the relay's 10-minute result
+// store is bypassed, measured from this process's wall clock
 // (Workers freeze Date.now() between I/O, so the API's latency_ms is not this number).
 // Pass: 19/20 succeed and p95 under 30s. Writes the latency table to the evidence dir.
 // Token: ARCHIVE_RELAY_TOKEN or ~/.secrets/inksheaf-relay-token.
@@ -35,7 +36,7 @@ for (let i = 0; i < N; i++) {
   if (i) await new Promise(r => setTimeout(r, SPACING_MS));
   const host = HOSTS[i % HOSTS.length];
   const bucket = Math.floor(Date.now() / 300000);
-  const url = `${RELAY}?host=${encodeURIComponent(host)}&mode=all&sig=${sign(`${host}:all:${bucket}`)}`;
+  const url = `${RELAY}?host=${encodeURIComponent(host)}&mode=all&cold=1&sig=${sign(`${host}:all:${bucket}`)}`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), PER_REQUEST_MS);
   const t0 = performance.now();

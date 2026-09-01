@@ -98,11 +98,18 @@ if (TOP && posts.length > TOP) {
 {
   const estWords = posts.reduce((a, p) => a + (Number(p.wordcount) || 0), 0);
   const estPages = Math.round(estWords / 270 + posts.length + 10);
+  report.estPages = estPages;
   if (estPages > 800 && !process.argv.includes("--force-pages")) {
     console.error(`REFUSED before fetch: ~${estPages}pp estimated from ${posts.length} posts ` +
-      `(bindery limit 800pp; our volume cap 300pp). Build volumes with --after/--before date ` +
-      `windows per the preview's division plan, or pass --force-pages to override.`);
+      `(bindery limit 800pp; we recommend volumes under 300pp). Build volumes with --after/--before ` +
+      `date windows per the preview's division plan, or pass --force-pages to override.`);
     process.exit(2);
+  }
+  if (estPages > 300) {
+    report.pageWarning = estPages > 800
+      ? `~${estPages}pp is past the bindery limit of 800; built only because --force-pages was passed`
+      : `~${estPages}pp is over the recommended 300pp per volume (bindery limit 800); consider date windows`;
+    console.error("WARNING: " + report.pageWarning);
   }
 }
 
