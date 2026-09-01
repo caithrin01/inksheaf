@@ -17,6 +17,7 @@ async function journey(name, opts, fn) {
     viewport: opts.mobile ? { width: 390, height: 844 } : { width: 1440, height: 950 },
     colorScheme: opts.dark ? "dark" : "light",
     hasTouch: !!opts.mobile,
+    javaScriptEnabled: !opts.noJs,
   });
   const page = await ctx.newPage();
   const errors = [];
@@ -194,6 +195,26 @@ await journey("A1m mobile dark: reveal + desk in first viewports", { mobile: tru
   const tap = await page.evaluate(() => document.querySelector(".bookhint .tap") && getComputedStyle(document.querySelector(".bookhint .tap")).display !== "none");
   await page.tap("#bookwrap"); await page.waitForTimeout(400);
   assert.equal(await page.evaluate(() => document.getElementById("bookwrap").getAttribute("aria-pressed")), "true", "tap opens on touch");
+});
+
+/* A13: with scripts off the page still reads and the form's noscript fallback offers a
+   working mailto; the specimen book is server-rendered so it is present too */
+await journey("A13 no-JS fallback with a working mailto", { noJs: true }, async page => {
+  await page.goto(base + "/");
+  const r = await page.evaluate(() => {
+    const ns = document.querySelector("noscript");
+    const mail = !!document.querySelector('noscript a[href="mailto:caithrin@caithrin.com"]');
+    const spaced = /write to caithrin@caithrin\.com and we will/.test(ns ? ns.textContent : "");
+    const book = document.getElementById("bookwrap");
+    const visible = el => !!el && el.getBoundingClientRect().height > 0;
+    const title = document.querySelector("h1");
+    return { mail, spaced, book: visible(book), title: visible(title), noscriptShown: visible(ns) };
+  });
+  assert.ok(r.spaced, "fallback sentence keeps its spaces (Astro's compressor once ate the one before the address)");
+  assert.ok(r.title, "headline renders without scripts");
+  assert.ok(r.book, "specimen book renders without scripts");
+  assert.ok(r.mail, "noscript fallback carries the mailto");
+  assert.ok(r.noscriptShown, "noscript fallback is displayed");
 });
 
 await browser.close();
