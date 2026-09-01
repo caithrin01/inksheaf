@@ -71,9 +71,11 @@ await journey("A2 book opens by hover, keyboard, and tap", {}, async page => {
 
 await journey("A3 cadence and interior switching stays truthful", {}, async page => {
   await preview(page, "heathercoxrichardson.substack.com");
-  const enabled = await page.evaluate(() => [...document.querySelectorAll(".desk-tab:not(:disabled)")].map(b => b.textContent.trim()));
+  /* Accessible names, not textContent: the selected tab carries an aria-hidden fleuron. */
+  const enabled = await page.evaluate(() => [...document.querySelectorAll(".desk-tab:not(:disabled)")]
+    .map(b => [...b.childNodes].filter(n => !(n.nodeType === 1 && n.getAttribute("aria-hidden") === "true")).map(n => n.textContent).join("").trim()));
   for (const label of enabled) {
-    await page.getByRole("tab", { name: label }).click();
+    await page.getByRole("tab", { name: label, exact: true }).click();
     await page.waitForTimeout(650);
     const segs = await page.evaluate(() => [...document.querySelectorAll(".folio-seg")].length);
     const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
@@ -186,6 +188,26 @@ const assertLanding = async (page, viewportH) => {
 await journey("A11 reveal lands on the book (desktop)", {}, async page => {
   await preview(page, "caithrin.com");
   await assertLanding(page, 950);
+});
+
+/* A12 (the automated half): what a screen reader is given. The reveal moves focus to the
+   book and the status region announces it; ornaments, the tab fleuron and the FAQ plus
+   sign are decoration and must not be read (2026-09-01: "❦One volume", "❦" x8, "? +"). */
+await journey("A12 screen-reader tree: focus, announcement, no decoration read", {}, async page => {
+  await preview(page, "caithrin.com");
+  const r = await page.evaluate(() => ({
+    active: document.activeElement && document.activeElement.id,
+    status: [...document.querySelectorAll("[aria-live]")].map(e => e.textContent.trim()).join(" | "),
+  }));
+  assert.equal(r.active, "bookwrap", "focus moved to the book, got #" + r.active);
+  assert.ok(/Your book is ready: \d+ pages/.test(r.status), "status announces the book: " + r.status);
+  const tree = await page.locator("body").ariaSnapshot();
+  assert.ok(!/[❦❧]/.test(tree), "ornament glyphs in the accessibility tree");
+  assert.ok(!/\? \+/.test(tree), "FAQ plus sign read as part of the question");
+  for (const name of ["One volume", "Quarterly", "Monthly"])
+    assert.ok(tree.includes(`tab "${name}"`), `tab named exactly "${name}"`);
+  assert.ok(tree.includes('textbox "Your publication’s URL"'), "URL field has its label");
+  assert.ok(tree.includes('button "Reserve this print run"'), "reserve button named");
 });
 
 await journey("A1m mobile dark: reveal + desk in first viewports", { mobile: true, dark: true }, async page => {

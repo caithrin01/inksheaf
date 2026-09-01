@@ -224,7 +224,7 @@ ol.how li+li::before{top:1.2rem}
   display:flex;align-items:baseline;gap:.6rem;transition:color .2s}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::before{content:"Q.";color:var(--red);font-weight:560;flex:0 0 auto}
-.faq summary::after{content:"+";margin-left:auto;color:var(--faint);font-size:1.3rem;line-height:1;transition:transform .3s;flex:0 0 auto}
+.faq summary::after{content:"+" / "";margin-left:auto;color:var(--faint);font-size:1.3rem;line-height:1;transition:transform .3s;flex:0 0 auto}
 .faq details[open] summary::after{transform:rotate(45deg);color:var(--red)}
 .faq summary:hover{color:var(--red)}
 .faq details p{padding:0 .2rem 1.2rem 1.75rem;color:var(--faint);margin:0}
@@ -337,7 +337,7 @@ footer a{color:inherit}
 
   <main>
     <h1>Send your Substack to&nbsp;the&nbsp;printers.</h1>
-    <div class="rule-orn"><span>&#10086;</span></div>
+    <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
     <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public writing
     into a classic 6×9 edition under your own masthead, divided into the volumes it needs:
     one book, a quarterly set, a monthly magazine. The math is done before you decide
@@ -407,7 +407,7 @@ footer a{color:inherit}
 
     <section class="section">
       <h2 class="shead">The object</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <p>One publication, typeset. These are actual pages from the production file of
       the <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays from January 2025
       to August 2026, twenty months rather than the preview&rsquo;s twelve, 294 pages at 6×9,
@@ -449,7 +449,7 @@ footer a{color:inherit}
 
     <section class="section">
       <h2 class="shead">How it works</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <ol class="how">
         <li>Paste your publication&rsquo;s URL above. The instant specimen uses public archive metadata;
         paid writing enters the concierge beta through Substack&rsquo;s own export, never your password.</li>
@@ -462,7 +462,7 @@ footer a{color:inherit}
 
     <section class="section">
       <h2 class="shead">In your newsletter</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <p>Readers meet the edition where they already read you: one link at the foot of a post,
       or on your About page, goes straight to the printed copy. Buying it is the link, then
       Lulu&rsquo;s checkout. Nothing of ours in between.</p>
@@ -485,7 +485,7 @@ footer a{color:inherit}
 
     <section class="section">
       <h2 class="shead">Who the beta is for</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
       essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
       person, not a pipeline, checks every page of your first issue.</p>
@@ -496,7 +496,7 @@ footer a{color:inherit}
 
     <section class="section faq">
       <h2 class="shead">Questions writers ask</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <details open>
         <summary>What does it cost me?</summary>
         <p>Nothing. The service is free during the beta. Readers pay the printer for each copy:
@@ -544,7 +544,7 @@ footer a{color:inherit}
 
     <section class="beta" id="beta">
       <h2 class="shead">Join the private beta</h2>
-      <div class="rule-orn"><span>&#10086;</span></div>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <div class="steps">Step <b id="stepnum">1</b> of 2</div>
       <noscript><p style="text-align:center">This form needs JavaScript. Without it, write to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a> and we will add you by hand.</p></noscript>
       <form id="f" novalidate>
@@ -577,7 +577,7 @@ footer a{color:inherit}
   </main>
 
   <footer>
-    <div class="rule-orn"><span>&#10087;</span></div>
+    <div class="rule-orn" aria-hidden="true"><span>&#10087;</span></div>
     <svg class="markfoot" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg>
     <p class="legal">Inksheaf prints editions of Substack publications with their owners&rsquo; permission. It is an
     independent product, for Substack writers, and is not affiliated with or endorsed by Substack Inc.
@@ -831,7 +831,7 @@ function drawDesk(){
     b.type = 'button'; b.className = 'desk-tab'; b.setAttribute('role','tab');
     b.setAttribute('aria-selected', String(desk.cadence === key));
     if (d.recommended.cadence === key){
-      const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766';
+      const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766'; fl.setAttribute('aria-hidden', 'true');
       b.appendChild(fl);
     }
     b.appendChild(document.createTextNode(CAD_LABEL[key]));
