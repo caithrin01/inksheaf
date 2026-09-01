@@ -45,6 +45,11 @@ ok("unmeasured shipping says about (source)", astroSrc.includes("'about $' + Mat
 ok("shipping is exact only at measured set sizes (source)", astroSrc.includes("Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped"));
 ok("shipping 8-point is from the sweep", readFileSync(new URL("../scripts/quote-sweep.mjs", import.meta.url), "utf8").includes("[1, 2, 4, 8]"));
 
+/* labels promise what the click does (audit gate 6, decision D2 2026-09-01) */
+ok("big button reserves, does not start", html.includes(">Reserve this print run<") && !html.includes("Start the print run"));
+ok("reply card confirms a reservation", html.includes("Your print run is reserved."));
+ok("snippet offers a preview until an edition is live", js.includes("Preview a print edition of ") && !js.includes("Get a print copy of "));
+
 /* contact + attribution */
 ok("no dead hello@ anywhere in page", !html.includes("hello@inksheaf.com"));
 ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));

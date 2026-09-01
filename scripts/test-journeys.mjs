@@ -165,9 +165,32 @@ await journey("A10 double-clicks and refresh mid-flight", {}, async page => {
   await page.waitForFunction(() => document.getElementById("done").style.display === "block", null, { timeout: 20000 });
 });
 
+/* the reveal lands on the book (audit gate 6): focus moves to it, the status line announces
+   the result, and the book sits at the top of the viewport on both desktop and mobile */
+const assertLanding = async (page, viewportH) => {
+  await page.waitForTimeout(1500); /* smooth scroll and the 0.7s rise both settle */
+  const r = await page.evaluate(() => {
+    const b = document.getElementById("bookwrap").getBoundingClientRect();
+    const big = document.getElementById("pv-big").getBoundingClientRect();
+    return { active: document.activeElement && document.activeElement.id, status: document.getElementById("pv-status").textContent,
+      bookTop: Math.round(b.top), bookBottom: Math.round(b.bottom), bigTop: Math.round(big.top) };
+  });
+  assert.equal(r.active, "bookwrap", "focus moved to the book");
+  assert.match(r.status, /^Your book is ready: (about )?\d+ (pages|volumes|issues)\.$/, "status announced: " + r.status);
+  assert.ok(r.bookTop >= 0 && r.bookTop <= 120, "book top near the top of the viewport: " + r.bookTop);
+  assert.ok(r.bookBottom <= viewportH, "whole book inside the viewport: bottom " + r.bookBottom);
+  assert.ok(r.bigTop < viewportH, "the one-line fact is inside the first viewport: " + r.bigTop);
+};
+
+await journey("A11 reveal lands on the book (desktop)", {}, async page => {
+  await preview(page, "caithrin.com");
+  await assertLanding(page, 950);
+});
+
 await journey("A1m mobile dark: reveal + desk in first viewports", { mobile: true, dark: true }, async page => {
   await preview(page, "caithrin.com");
   assert.ok(await page.evaluate(() => document.getElementById("preview").classList.contains("personalized")));
+  await assertLanding(page, 844);
   const tap = await page.evaluate(() => document.querySelector(".bookhint .tap") && getComputedStyle(document.querySelector(".bookhint .tap")).display !== "none");
   await page.tap("#bookwrap"); await page.waitForTimeout(400);
   assert.equal(await page.evaluate(() => document.getElementById("bookwrap").getAttribute("aria-pressed")), "true", "tap opens on touch");

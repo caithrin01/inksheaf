@@ -125,8 +125,9 @@ h1{font-size:clamp(2.3rem,5.2vw,3.5rem);font-weight:490;line-height:1.1;letter-s
 @media (prefers-reduced-motion: reduce){ .pv-stage{display:none !important} }
 
 /* ---------- the book: rests closed, opens to the contents ---------- */
-.bookwrap{margin:2.4rem auto 0;width:16rem;perspective:1600px;position:relative;animation:up 1s .8s both}
+.bookwrap{margin:2.4rem auto 0;width:16rem;perspective:1600px;position:relative;animation:up 1s .8s both;scroll-margin-top:3.5rem}
 .bookwrap:focus-visible{outline:2px solid var(--red);outline-offset:6px}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .bookobj{position:relative;width:100%;aspect-ratio:6/9;transform-style:preserve-3d;transition:transform .5s}
 .bookwrap:hover .bookobj,.bookwrap.open .bookobj{transform:translateY(-5px)}
 /* inside: the contents page, revealed when the cover swings */
@@ -353,7 +354,8 @@ footer a{color:inherit}
       <button class="tryhandoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
     </div>
 
-    <section class="preview on" id="preview" aria-live="polite" aria-label="Book preview">
+    <section class="preview on" id="preview" aria-label="Book preview">
+      <p class="sr-only" id="pv-status" role="status" aria-live="polite"></p>
       <div class="pv-stage" id="pv-stage" aria-hidden="true">
         <div class="setkick">Setting your edition</div>
         <div class="setline" id="pv-setline">Reading your archive&hellip;</div>
@@ -397,7 +399,7 @@ footer a{color:inherit}
           <div class="interior-row" id="interior-row" aria-label="Interior printing"></div>
           <div class="pv-price" id="pv-price"></div>
         </div>
-        <button class="pv-cta" id="pv-cta" type="button">Start the print run</button>
+        <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
         <p class="pv-note note">Lulu, our print partner, takes each reader&rsquo;s payment and
         ships every copy. Nothing prints before you approve your proof.</p>
       </div>
@@ -568,7 +570,7 @@ footer a{color:inherit}
         <div class="err" id="err" role="alert"></div>
       </form>
       <div class="done" id="done">
-        <h3>You&rsquo;re on the list.</h3>
+        <h3>Your print run is reserved.</h3>
         <p>We reply to every signup within a few days with the beta timeline and, if your archive is
         public, the first proof pages of your own edition. To skip the queue, reply with a link to
         the one issue of your publication you&rsquo;d most want on paper.</p>
@@ -748,6 +750,22 @@ function renderPreview(d: any){
   pv.classList.remove('on');
   void (pv as HTMLElement).offsetWidth;
   pv.classList.add('on', 'personalized');
+  revealBook(d);
+}
+/* The reveal must land on the book: scroll it to the top of the viewport, move focus to it
+   so keyboard and screen-reader users arrive where sighted users are looking, and announce
+   the result once. Reduced-motion users get the same landing without the smooth scroll. */
+function revealBook(d: any){
+  const bw = document.getElementById('bookwrap') as HTMLElement;
+  const status = document.getElementById('pv-status') as HTMLElement;
+  const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
+  const pages = recD && recD.volumes.length > 1
+    ? recD.volumes.length + ' ' + unitOf(d, recD.volumes.length)
+    : d.est_pages + ' pages';
+  status.textContent = 'Your book is ready: ' + (d.capped ? 'about ' : '') + pages + '.';
+  const smooth = matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  bw.focus({ preventScroll: true });
+  bw.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
 }
 
 /* ---------- the composing desk: all the math done, defaults pre-set ---------- */
@@ -882,7 +900,7 @@ function renderSnippet(d: any){
   if (!wrap) return;
   wrap.hidden = false;
   (document.getElementById('snip-code') as HTMLElement).textContent =
-    '<a href="https://inksheaf.com/?pub=' + d.host + '">Get a print copy of ' + d.publication + '</a>';
+    '<a href="https://inksheaf.com/?pub=' + d.host + '">Preview a print edition of ' + d.publication + '</a>';
 }
 document.getElementById('snip-copy')?.addEventListener('click', async (e) => {
   const btn = e.currentTarget as HTMLButtonElement;
