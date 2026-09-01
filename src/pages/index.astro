@@ -346,7 +346,7 @@ footer a{color:inherit}
         <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="off" />
         <button id="trybtn" type="button">Show my book</button>
       </div>
-      <div class="tryhint note">Reads only your public archive. Preview numbers are cached for 24 hours; post bodies are not read or stored.</div>
+      <div class="tryhint note">We look at your public archive only: the list of posts, not the posts themselves. Nothing is stored except the count, for 24 hours.</div>
       <div class="tryerr" id="tryerr" role="alert"></div>
       <button class="tryhandoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
     </div>
@@ -397,18 +397,14 @@ footer a{color:inherit}
           <div class="pv-price" id="pv-price"></div>
         </div>
         <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
-        <p class="pv-note note">Lulu, our print partner, takes each reader&rsquo;s payment and
-        ships every copy. Nothing prints before you approve your proof.</p>
+        <p class="pv-note note">Lulu prints each copy when a reader orders it, takes their payment and ships it. Nothing prints until you&rsquo;ve approved the proof.</p>
       </div>
     </section>
 
     <section class="section">
       <h2 class="shead">The object</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
-      <p>One publication, typeset. These are actual pages from the production file of
-      the <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays from January 2025
-      to August 2026, twenty months rather than the preview&rsquo;s twelve, 294 pages at 6×9,
-      the same file the printed copies come from.</p>
+      <p>This one is mine. I typeset my own Substack first so the problems would be mine before they were yours. These are pages from the print file of the <a href="https://www.caithrin.com">caithrin.com</a> edition: 40 essays from January 2025 to August 2026 (twenty months; the preview above takes your last twelve), 294 pages at 6×9. The printed copies come from this file.</p>
       <div class="realspread">
         <figure>
           <img src="/spread-toc-real.jpg" alt="Actual contents spread from the caithrin edition"
@@ -418,29 +414,20 @@ footer a{color:inherit}
         <figure>
           <img src="/spread-real.jpg" alt="Actual essay spread with running headers and article notes"
             loading="lazy" width="1800" height="1359" />
-          <figcaption><b>Plate II.</b> &nbsp;Essay spread &mdash; running headers, article notes</figcaption>
+          <figcaption><b>Plate II.</b> &nbsp;Essay spread: running headers, article notes</figcaption>
         </figure>
       </div>
-      <p class="note">Not a mockup: these spreads are rendered from the production PDF. Photographs
-      of the printed copy replace them the day it arrives.</p>
+      <p class="note">Both spreads are rendered from the PDF, not photographed. The printed copy is in the post; its photographs go here when it arrives.</p>
       <table class="spec">
         <tr><td>Trim</td><td>6 × 9 in</td></tr>
-        <tr><td>Binding</td><td>Perfect bound paperback, on every edition.</td></tr>
+        <tr><td>Binding</td><td>Perfect bound paperback, every edition</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
         <tr><td>Cover</td><td>Matte, in the classic literary style: ivory ground, red and black rules, your masthead set in type</td></tr>
-        <tr><td>Length</td><td>32 to 300 pages per volume. We recommend volumes under 300 pages and
-        refuse any past the bindery&rsquo;s limit of 800; a longer archive becomes a quarterly set
-        of thinner volumes rather than one oversized book.</td></tr>
+        <tr><td>Length</td><td>32 to 300 pages a volume. We recommend staying under 300 pages and refuse any past the bindery&rsquo;s limit of 800. A longer archive becomes a quarterly set of thinner books.</td></tr>
         <tr><td>Apparatus</td><td>Contents with page numbers, running headers, article notes and bylines per article</td></tr>
-        <tr><td>Price</td><td>The service is free for authors during the beta. Readers pay the
-        printer; you choose whether the list price carries a margin, and beta editions default
-        to exact cost. Measured on a real order: a 294-page edition landed for $16.58 including
-        tax, mainland US</td></tr>
-        <tr><td>Interior</td><td>Colour, when your writing carries images and charts; black and
-        white to cut the print cost. Measured on Lulu&rsquo;s print API: a 200-page volume prints
-        for $6.99 in black and white, $10.83 in colour</td></tr>
-        <tr><td>Live example</td><td>The first edition is on sale now at its exact $9.34 print
-        cost, by its author&rsquo;s choice: <a href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">caithrin &mdash; Collected Essays 2025&ndash;2026</a>. Readers pay the printer directly.</td></tr>
+        <tr><td>Price</td><td>Free for you during the beta. Readers pay the printer; you decide whether the list price carries a margin, and beta editions default to cost. On a real order, a 294-page edition landed for $16.58 including tax, mainland US</td></tr>
+        <tr><td>Interior</td><td>Colour if your posts carry images and charts; black and white if you&rsquo;d rather keep the price down. On Lulu&rsquo;s print API a 200-page volume prints for $6.99 in black and white, $10.83 in colour</td></tr>
+        <tr><td>Live example</td><td>The first edition is on sale now at its $9.34 print cost, which is what I chose to list it at: <a href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">caithrin &mdash; Collected Essays 2025&ndash;2026</a>. Readers pay the printer directly.</td></tr>
       </table>
     </section>
 
@@ -448,47 +435,37 @@ footer a{color:inherit}
       <h2 class="shead">How it works</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <ol class="how">
-        <li>Paste your publication&rsquo;s URL above. The instant specimen uses public archive metadata;
-        paid writing enters the concierge beta through Substack&rsquo;s own export, never your password.</li>
-        <li>We typeset a print-ready edition and send you the exact proof PDF. You mark corrections;
-        we make them and ask for written approval before printing.</li>
-        <li>Once approved, the edition is published through Lulu. Lulu prints each copy on demand,
-        takes the reader&rsquo;s payment and ships it directly.</li>
+        <li>Paste your URL above. The preview reads your public post list. Paid posts come in later through the export Substack makes for you, so we never need your password.</li>
+        <li>We typeset the edition and send you the proof PDF. You mark it up, we fix it, and we ask you in writing before anything prints.</li>
+        <li>The edition goes up on Lulu. They print each copy to order, take the reader&rsquo;s payment and ship it.</li>
       </ol>
     </section>
 
     <section class="section">
       <h2 class="shead">In your newsletter</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
-      <p>Readers meet the edition where they already read you: one link at the foot of a post,
-      or on your About page, goes straight to the printed copy. Buying it is the link, then
-      Lulu&rsquo;s checkout. Nothing of ours in between.</p>
+      <p>One link at the end of a post, or on your About page, takes a reader to the printed copy. They click, Lulu takes the order, the book arrives. We&rsquo;re not in the transaction.</p>
       <figure class="newsmock" aria-label="Example of the print link at the end of a Substack post">
         <div class="nm-run"><span class="nm-pub">Caithrin</span><span class="nm-date">Aug 28</span></div>
         <p class="nm-body">&hellip;and that, more than anything, is why an archive deserves paper.
         Thanks for reading.</p>
-        <a class="nm-btn" href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">Get a print copy &mdash; the 2026 annual, at cost</a>
+        <a class="nm-btn" href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">Get a print copy: the 2026 annual, at cost</a>
         <div class="nm-foot">Subscribe &middot; Share &middot; Get a print copy</div>
-        <figcaption>The live example above is real: it links to the caithrin edition at its exact print cost.</figcaption>
+        <figcaption>That button is live. It goes to the caithrin edition at print cost.</figcaption>
       </figure>
       <div class="snippet" id="snippet" hidden>
-        <div class="snip-label">Your button. Paste it into any post or your About page:</div>
+        <div class="snip-label">Yours. Paste it into a post or your About page:</div>
         <pre class="snip-code" id="snip-code"></pre>
         <button class="snip-copy" id="snip-copy" type="button">Copy the code</button>
-        <p class="note">Today the link reproduces your preview for your readers; when your
-        edition is live it goes straight to your Lulu page.</p>
+        <p class="note">For now the link opens your preview. Once your edition is live it goes to your Lulu page.</p>
       </div>
     </section>
 
     <section class="section">
       <h2 class="shead">Who the beta is for</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
-      <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of archive, and
-      essays or serialized nonfiction. Every publication in the beta gets concierge treatment: a
-      person, not a pipeline, checks every page of your first issue.</p>
-      <p>The clearest beta uses are an annual your readers buy at your price, a thank-you
-      edition for founding subscribers, and a physical door into the back catalog for new
-      readers. Your margin is yours the day payouts ship.</p>
+      <p>Substack writers with roughly 1,000 to 20,000 subscribers, at least a year of posts, writing essays or serialized nonfiction. The beta is small on purpose: we read every page of your first issue ourselves before it prints.</p>
+      <p>The three uses we&rsquo;re building for: an annual your readers buy at your price, a thank-you edition for founding subscribers, and a way for a new reader to buy the back catalogue in one go. Any margin is yours from the day payouts ship.</p>
     </section>
 
     <section class="section faq">
@@ -496,46 +473,35 @@ footer a{color:inherit}
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <details open>
         <summary>What does it cost me?</summary>
-        <p>Nothing. The service is free during the beta. Readers pay the printer for each copy:
-        a 294-page book landed at $16.58 on a real order, and thinner books cost less.</p>
+        <p>Nothing. It&rsquo;s free during the beta. Readers pay the printer per copy: a 294-page book came to $16.58 on a real order, and thinner books cost less.</p>
       </details>
       <details>
         <summary>What do I earn?</summary>
-        <p>Whatever you choose. List at print cost, or add a margin; the margin is yours. Beta
-        editions default to exact cost while payouts get built with beta authors on measured
-        numbers, so nothing is promised before it exists.</p>
+        <p>Whatever you set. List at print cost or add a margin, and the margin is yours. Beta editions default to cost while we build payouts with the beta authors on real numbers; we won&rsquo;t promise a rate before we can pay it.</p>
       </details>
       <details>
         <summary>Who owns the writing?</summary>
-        <p>You do. Nothing prints until you approve the proof. Beta permissions and takedown terms
-        are confirmed in writing before an edition is listed.</p>
+        <p>You. Nothing prints until you approve the proof, and we confirm permissions and takedown terms with you in writing before an edition is listed.</p>
       </details>
       <details>
         <summary>Is every book perfect bound?</summary>
-        <p>Yes. Every beta edition is a 6×9 perfect-bound paperback. Rather than push one volume to
-        the binding&rsquo;s limits, we recommend volumes under 300 pages and refuse any past 800: a
-        longer archive becomes a quarterly set of thinner books. Hardcover comes later, if beta
-        publications want it.</p>
+        <p>Yes, a 6×9 paperback every time. We recommend volumes under 300 pages and refuse any past 800; a longer archive becomes a quarterly set of thinner books. Hardcover later, if beta writers ask for it.</p>
       </details>
       <details>
         <summary>How do paid posts get in without my password?</summary>
-        <p>You upload the export Substack generates in your own dashboard (Settings &rarr; Exports).
-        Any subscriber files inside it are discarded unread; only the posts are kept.</p>
+        <p>You download the export Substack makes in your own dashboard (Settings &rarr; Exports) and send it to us. Any subscriber files inside it we delete unread; only the posts are kept.</p>
       </details>
       <details>
         <summary>What happens to images, tweets and embeds?</summary>
-        <p>The renderer reports missing images and replaces web-only embeds with printed source
-        notes. During beta, we inspect that report and the proof with you before printing.</p>
+        <p>The renderer lists every missing image and swaps web-only embeds (tweets, videos) for a printed source note. We go through that list and the proof with you before printing.</p>
       </details>
       <details>
         <summary>When do the first books exist?</summary>
-        <p>The beta targets December printing, with books in readers&rsquo; hands around New Year. Beta
-        publications hear every date change directly.</p>
+        <p>We&rsquo;re aiming for December printing, so books arrive around New Year. If the date moves, you hear it from us directly.</p>
       </details>
       <details>
         <summary>Where can I read more?</summary>
-        <p>Write to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a>; every message gets
-        an answer. The build is documented as it happens on <a href="https://www.caithrin.com">caithrin.com</a>.</p>
+        <p>Write to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a>; every message gets an answer. I&rsquo;m writing up the build as it goes on <a href="https://www.caithrin.com">caithrin.com</a>.</p>
       </details>
     </section>
 
@@ -566,9 +532,7 @@ footer a{color:inherit}
       </form>
       <div class="done" id="done">
         <h3>Your print run is reserved.</h3>
-        <p>We reply to every signup within a few days with the beta timeline and, if your archive is
-        public, the first proof pages of your own edition. To skip the queue, reply with a link to
-        the one issue of your publication you&rsquo;d most want on paper.</p>
+        <p>We reply to every signup within a few days with the timeline and, if your archive is public, the first proof pages of your own edition. Want to skip the queue? Reply with a link to the one post you&rsquo;d most like to see on paper.</p>
       </div>
     </section>
   </main>
