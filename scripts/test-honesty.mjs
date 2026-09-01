@@ -50,6 +50,12 @@ ok("big button reserves, does not start", html.includes(">Reserve this print run
 ok("reply card confirms a reservation", html.includes("Your print run is reserved."));
 ok("snippet offers a preview until an edition is live", js.includes("Preview a print edition of ") && !js.includes("Get a print copy of "));
 
+/* time budget: server relay retries finish inside 40s, the page gives up at 45s (1.6) */
+const apiSrc = readFileSync(new URL("../functions/api/preview.js", import.meta.url), "utf8");
+ok("relay budget is 40s", apiSrc.includes("RELAY_BUDGET_MS = 40000"));
+ok("client abort is 45s, after the server budget", astroSrc.includes("ctl.abort(), 45000"));
+ok("abort shows the hand-built offer", astroSrc.includes("taking too long to read. Send it below"));
+
 /* contact + attribution */
 ok("no dead hello@ anywhere in page", !html.includes("hello@inksheaf.com"));
 ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));

@@ -659,8 +659,11 @@ async function runPreview(){
   tryhandoff.hidden = true;
   trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
   const interludeOn = !!tryurl.value && raw !== lastShownHost ? interludeStart() : false;
+  /* the server's relay budget is 40s; the page gives up at 45s and offers the hand-built route */
+  const ctl = new AbortController();
+  const abortTimer = setTimeout(() => ctl.abort(), 45000);
   try {
-    const r = await fetch('/api/preview?url=' + encodeURIComponent(raw));
+    const r = await fetch('/api/preview?url=' + encodeURIComponent(raw), { signal: ctl.signal });
     const d = await r.json();
     if (!d.ok){
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
@@ -679,14 +682,17 @@ async function runPreview(){
     lastShownHost = d.host;
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
-  } catch {
+  } catch (e) {
     stage.classList.remove('on');
     document.getElementById('preview')!.classList.remove('staging');
     document.getElementById('preview')!.classList.remove('personalized');
     document.getElementById('preview')!.classList.add('on');
-    tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
+    tryerr.textContent = (e as any)?.name === 'AbortError'
+      ? 'That archive is taking too long to read. Send it below and we will build the preview by hand.'
+      : 'Could not reach the preview service. The signup below works without it.';
     tryhandoff.hidden = false;
   } finally {
+    clearTimeout(abortTimer);
     trybtn.disabled = false; trybtn.textContent = 'Show my book';
   }
 }

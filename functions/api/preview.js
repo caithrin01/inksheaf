@@ -5,7 +5,14 @@
 const MAX_POSTS = 150;
 const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 6000;
-const RELAY_TIMEOUT_MS = 30000;
+// Relay budget (2026-09-01): a cold read of a large archive takes 18-23s on the relay
+// (measured HCR 23.0s, Slow Boring 20.7s), so the first attempt gets 28s; the whole
+// retry sequence must finish inside 40s, under the client's 45s abort. Retries mainly
+// clear per-IP throttling (each relay call lands on a fresh egress IP), which fails fast.
+const RELAY_BUDGET_MS = 40000;
+const RELAY_ATTEMPT_MS = 28000;
+const RELAY_WAITS_MS = [2500, 6000];
+const RELAY_MIN_ATTEMPT_MS = 4000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
 
@@ -47,10 +54,12 @@ export async function onRequest({ request, env }) {
   await env.DB.prepare("INSERT INTO events (session, event) VALUES ('', 'preview_ok')").run().catch(() => {});
   // A stale payload is a served fallback, not a fresh read: never re-stamp its fetched_at.
   if (result.data.stale) return json({ ok: true, cached: false, served: "stale", ...result.data });
+  // attempts/latency_ms describe this fetch, not the archive: they never enter the cache
+  const { attempts, latency_ms, ...cacheable } = result.data;
   await env.DB.prepare(
     "INSERT INTO preview_cache (host, fetched_at, payload) VALUES (?, datetime('now'), ?) " +
     "ON CONFLICT(host) DO UPDATE SET fetched_at = datetime('now'), payload = excluded.payload")
-    .bind(host, JSON.stringify(result.data)).run().catch(() => {});
+    .bind(host, JSON.stringify(cacheable)).run().catch(() => {});
   return json({ ok: true, cached: false, served: "origin", ...result.data });
 }
 
@@ -73,6 +82,7 @@ async function fetchArchive(host, env) {
   let hops = 0;
   let relayed = false;
   let relayComplete = true;
+  let relayMeta = null;
   for (let offset = 0; offset < MAX_POSTS; ) {
     let page;
     {
@@ -95,23 +105,31 @@ async function fetchArchive(host, env) {
         /* one batch call: the relay fetches and paces every page server-side */
         /* each relay request lands on a fresh container (max_inputs=1), so each retry
            is a new egress IP against Substack's per-IP scoring */
-        let via = await fetchRelayedAll(host, env);
-        for (const wait of [2500, 6000]){
+        const t0 = Date.now();
+        let via, attempts = 0;
+        for (;;) {
+          const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
+          if (remaining < RELAY_MIN_ATTEMPT_MS) break;
+          via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining));
+          attempts++;
           if (via.ok) break;
+          const wait = RELAY_WAITS_MS[attempts - 1];
+          if (wait === undefined || Date.now() - t0 + wait + RELAY_MIN_ATTEMPT_MS > RELAY_BUDGET_MS) break;
           await new Promise(r => setTimeout(r, wait));
-          via = await fetchRelayedAll(host, env);
         }
-        if (!via.ok){
+        relayMeta = { attempts, latency_ms: Date.now() - t0 };
+        if (!via || !via.ok){
+          via = via || { ok: false, error: "relay budget exhausted" };
           const stale = await env.DB.prepare(
             "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
           if (stale){
             const pay = JSON.parse(stale.payload);
-            if (pay.summary_version === 5) return { ok: true, data: { ...pay, stale: true } };
+            if (pay.summary_version === 5) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
           }
           if (/unavailable|unreachable|upstream 404|invalid upstream JSON/.test(String(via.error || "")))
-            return { ok: false, error: "not_substack", status: 422,
+            return { ok: false, error: "not_substack", status: 422, ...relayMeta,
               message: "Could not find a Substack archive there. Check the address?" };
-          return archiveUnavailable(via.error);
+          return { ...archiveUnavailable(via.error), ...relayMeta };
         }
         relayed = true;
         relayComplete = via.complete;
@@ -144,6 +162,7 @@ async function fetchArchive(host, env) {
   if (!data) return { ok: false, error: "empty", status: 200,
     message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
   data.fetch_mode = relayed ? "relay" : "direct";
+  if (relayMeta) Object.assign(data, relayMeta);
   return { ok: true, data };
 }
 
@@ -163,14 +182,14 @@ async function fetchDirectArchive(host, offset) {
   } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502 }; }
 }
 
-async function fetchRelayedAll(host, env) {
+async function fetchRelayedAll(host, env, timeoutMs) {
   if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
   const bucket = Math.floor(Date.now() / 300000);
   const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all:${bucket}`);
   const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +
     `?host=${encodeURIComponent(host)}&mode=all&sig=${signature}`;
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), RELAY_TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const r = await fetch(relayUrl, { redirect: "manual", signal: ctl.signal,
       headers: { accept: "text/plain", "user-agent": "inksheaf-preview/2.0 (+https://inksheaf.com)" } });

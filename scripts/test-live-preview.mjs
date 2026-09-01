@@ -45,8 +45,13 @@ for (const [label, publicationUrl, expectedKind] of cases) {
       assert.equal(body.served, "origin", label + ": expected a cold-origin fetch, served=" + body.served);
       assert.notEqual(body.stale, true, label + ": stale payload served as fresh");
       assert.ok(["relay", "direct"].includes(body.fetch_mode), label + ": fetch_mode " + body.fetch_mode);
+      if (body.fetch_mode === "relay") {
+        assert.ok(Number.isInteger(body.attempts) && body.attempts >= 1 && body.attempts <= 3, label + ": attempts " + body.attempts);
+        assert.ok(body.latency_ms > 0 && body.latency_ms <= 40000, label + ": relay latency inside the 40s budget: " + body.latency_ms);
+      }
     }
-    console.log(`PASS LIVE ${label}: ${body.public_posts} ${body.kind}, ${body.est_pages}pp, ${body.fetch_mode}, served=${body.served}`);
+    console.log(`PASS LIVE ${label}: ${body.public_posts} ${body.kind}, ${body.est_pages}pp, ${body.fetch_mode}, served=${body.served}` +
+      (body.attempts ? `, attempts=${body.attempts}, ${body.latency_ms}ms` : ""));
   } catch (e) {
     failures++;
     console.error(`FAIL LIVE ${label}: ${String(e?.message || e)}`);
