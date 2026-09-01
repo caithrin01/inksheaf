@@ -135,30 +135,28 @@ h1{font-size:clamp(2.5rem,5.8vw,4rem);font-weight:490;line-height:1.12;letter-sp
 .toc-line .t{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%}
 .toc-line .dots{flex:1;border-bottom:1px dotted var(--rule);transform:translateY(-2px)}
 .toc-line .n{color:var(--faint)}
-/* cover: front face, swings from the spine */
-#pvbook{--pvbg:var(--card); --pvink:var(--ink); --pvink2:var(--faint)}
-.cover{position:absolute;inset:0;background:var(--pvbg);border:1px solid var(--rule);
+/* cover: the classic ivory literary paperback, whatever the publication's web palette */
+.cover{position:absolute;inset:0;background:#f9f4e6;border:1px solid rgba(30,23,16,.35);
   transform-origin:left center;transition:transform .85s cubic-bezier(.3,.75,.25,1);backface-visibility:hidden;
-  display:flex;flex-direction:column;align-items:center;text-align:center;padding:1.9rem 1.15rem 1.15rem;
+  display:flex;flex-direction:column;align-items:center;text-align:center;padding:2.2rem 1.3rem 1.3rem;
   box-shadow:0 2px 3px rgba(33,28,21,.16),14px 20px 38px -18px rgba(33,28,21,.5),inset 9px 0 12px -10px rgba(33,28,21,.4);z-index:2}
+.cover::before{content:"";position:absolute;inset:9px;border:1.5px solid #1e1710;pointer-events:none;opacity:.85}
+.cover::after{content:"";position:absolute;inset:14px;border:1px solid #a93b22;pointer-events:none;opacity:.9}
 .bookwrap:hover .cover,.bookwrap.open .cover{transform:rotateY(-84deg);box-shadow:0 2px 3px rgba(33,28,21,.16),30px 8px 40px -20px rgba(33,28,21,.4)}
-.cover .in{position:absolute;inset:8px;border:1px solid var(--pvink2);opacity:.45;pointer-events:none}
-.cv-kind{font-size:.58rem;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;color:var(--pvk,var(--red));font-weight:600}
-#pvbook.branded .cv-kind{color:var(--pvink2)}
-.cv-mast{font-family:var(--pvfont,"EB Garamond"),serif;font-size:1.55rem;font-weight:540;line-height:1.15;margin-top:.75rem;color:var(--pvink);overflow-wrap:anywhere}
-.cv-orn{color:var(--pvk,var(--red));margin:.85rem 0;font-size:.95rem}
-#pvbook.branded .cv-orn{color:var(--pvink2)}
-.cv-dates{font-size:.76rem;color:var(--pvink2)}
+.cv-kind{font-size:.6rem;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;color:#a93b22;font-weight:600;margin-top:.9rem}
+.cv-mast{font-family:"EB Garamond",serif;font-size:1.5rem;font-weight:560;line-height:1.18;margin-top:.2rem;color:#1e1710;overflow-wrap:anywhere;max-width:100%}
+.cv-orn{color:#a93b22;margin:.9rem 0;font-size:.95rem}
+.cv-dates{font-size:.76rem;color:rgba(30,23,16,.62)}
 .cv-mid{flex:1}
-.cv-foot{width:100%;display:flex;justify-content:center;gap:.7rem;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--pvink2)}
-.cv-pages{letter-spacing:.06em;text-transform:none;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:var(--pvink2)}
-.cv-footwrap{width:100%;border-top:1px solid var(--pvink2);padding-top:.6rem;display:grid;gap:.3rem;justify-items:center}
+.cv-foot{width:100%;display:flex;justify-content:center;gap:.7rem;font-size:.6rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.62)}
+.cv-pages{letter-spacing:.06em;text-transform:none;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:rgba(30,23,16,.62)}
+.cv-footwrap{width:100%;display:grid;gap:.3rem;justify-items:center;position:relative;z-index:1;padding-top:.6rem}
 .spinetext{position:absolute;top:0;bottom:0;left:-1px;width:13px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3}
-.spinetext span{transform:rotate(90deg);white-space:nowrap;font-size:.48rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint)}
+.spinetext span{transform:rotate(90deg);white-space:nowrap;font-size:.48rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.55)}
 .pageblock{position:absolute;top:4px;bottom:4px;right:-7px;width:7px;
   background:repeating-linear-gradient(180deg,#fdfaf2 0 2px,#e7e0cf 2px 3px);
   box-shadow:2px 3px 6px -2px rgba(33,28,21,.38);transition:width .9s ease-out .35s}
-@media (prefers-color-scheme: dark){ .pageblock{background:repeating-linear-gradient(180deg,#2a251e 0 2px,#1a1611 2px 3px)} }
+/* the book is a physical object; it does not invert with the site theme */
 .bookhint{margin-top:1.6rem;text-align:center;font-size:.72rem;letter-spacing:.26em;padding-left:.26em;text-transform:uppercase;color:var(--faint)}
 .bookhint .tap{display:none}
 @media (hover:none){ .bookhint .hov{display:none} .bookhint .tap{display:inline} }
@@ -338,9 +336,9 @@ footer a{color:inherit}
     <h1>Send your Substack to&nbsp;the&nbsp;printers.</h1>
     <div class="rule-orn"><span>&#10086;</span></div>
     <p class="lede">Paste your Substack URL. Inksheaf turns the last year of public writing
-    into a 6×9 edition in your publication&rsquo;s masthead and palette, divided into the
-    volumes it needs: one book, a quarterly set, a monthly magazine. The math is done
-    before you decide anything.</p>
+    into a classic 6×9 edition under your own masthead, divided into the volumes it needs:
+    one book, a quarterly set, a monthly magazine. The math is done before you decide
+    anything.</p>
 
     <div class="tryit" id="tryit">
       <label for="tryurl">Your publication&rsquo;s URL</label>
@@ -373,9 +371,8 @@ footer a{color:inherit}
             <div class="fol">&middot; iv &middot;</div>
           </div>
           <div class="cover">
-            <div class="in"></div>
-            <div class="cv-kind" id="pv-kind">Annual edition</div>
             <div class="cv-mast" id="pv-mast">Your publication</div>
+            <div class="cv-kind" id="pv-kind">Annual edition</div>
             <div class="cv-orn">&#10087;</div>
             <div class="cv-dates" id="pv-dates">The past twelve months</div>
             <div class="cv-mid"></div>
@@ -431,7 +428,7 @@ footer a{color:inherit}
         300 pages; a longer archive becomes a quarterly set of thinner volumes rather than one
         oversized book.</td></tr>
         <tr><td>Paper</td><td>60# uncoated white, black ink</td></tr>
-        <tr><td>Cover</td><td>Full colour, matte, your publication&rsquo;s own masthead and palette</td></tr>
+        <tr><td>Cover</td><td>Matte, in the classic literary style: ivory ground, red and black rules, your masthead set in type</td></tr>
         <tr><td>Length</td><td>32&ndash;300 pages per volume; longer archives become a quarterly set</td></tr>
         <tr><td>Apparatus</td><td>Contents with page numbers, running headers, article notes and bylines per article</td></tr>
         <tr><td>Price</td><td>The service is free for authors during the beta. Readers pay the
@@ -703,19 +700,7 @@ function renderPreview(d: any){
   (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
   const over = d.est_pages > 300;
 
-  /* their colors on their cover (contrast-guarded server-side) */
-  const book = document.getElementById('pvbook') as HTMLElement;
-  if (d.theme){
-    book.classList.add('branded');
-    book.style.setProperty('--pvbg', d.theme.cover_bg);
-    book.style.setProperty('--pvink', d.theme.cover_ink);
-    book.style.setProperty('--pvink2', d.theme.cover_ink2);
-    if (d.theme.heading_stack) book.style.setProperty('--pvfont', d.theme.heading_stack);
-  } else {
-    book.classList.remove('branded');
-    for (const v of ['--pvbg','--pvink','--pvink2','--pvfont']) book.style.removeProperty(v);
-  }
-
+  /* the cover keeps the classic ivory style for every publication; web palettes stay on the web */
   /* their titles become the contents page */
   const toc = document.getElementById('pv-toc')!;
   (document.getElementById('pv-runname') as HTMLElement).textContent = d.publication;
@@ -865,9 +850,10 @@ function drawDesk(){
 function updateCoverFromDesk(d: any, div: any){
   const n = div.volumes.length;
   const year = d.to.slice(0, 4);
+  const kindTitle = (d.kind || 'collected').charAt(0).toUpperCase() + (d.kind || 'collected').slice(1);
   (document.getElementById('pv-kind') as HTMLElement).textContent =
     desk.cadence === 'single'
-    ? (d.young ? div.volumes[0].label : 'Annual · ' + year)
+    ? (d.young ? kindTitle : 'Annual') + ' · ' + year
     : (desk.cadence === 'quarterly' ? 'Quarterly' : 'Monthly') + ' · ' + year;
   const publicPosts = d.public_posts ?? d.posts;
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
