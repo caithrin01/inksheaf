@@ -158,7 +158,10 @@ async function fetchRelayedAll(host, env) {
     const r = await fetch(relayUrl, { redirect: "manual", signal: ctl.signal,
       headers: { accept: "text/plain", "user-agent": "inksheaf-preview/2.0 (+https://inksheaf.com)" } });
     clearTimeout(timer);
-    if (!r.ok) return { ok: false, error: `relay ${r.status}` };
+    if (!r.ok){
+      const detail = await r.text().then(t => { try { return JSON.parse(t).detail || t; } catch { return t; } }).catch(() => "");
+      return { ok: false, error: `relay ${r.status} ${String(detail).slice(0, 60)}` };
+    }
     const complete = r.headers.get("x-archive-complete") !== "0";
     const value = JSON.parse(await readLimitedText(r));
     return Array.isArray(value) ? { ok: true, posts: value, complete } : { ok: false, error: "invalid relay shape" };
