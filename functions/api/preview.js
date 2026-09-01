@@ -68,6 +68,7 @@ async function fetchArchive(host, env) {
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 3600 * 1000;
   let hops = 0;
   let relayed = false;
+  let relayComplete = true;
   for (let offset = 0; offset < MAX_POSTS; ) {
     let page;
     {
@@ -85,6 +86,7 @@ async function fetchArchive(host, env) {
         const via = await fetchRelayedAll(host, env);
         if (!via.ok) return archiveUnavailable(via.error);
         relayed = true;
+        relayComplete = via.complete;
         posts.length = 0;
         posts.push(...via.posts);
         break;
@@ -102,7 +104,7 @@ async function fetchArchive(host, env) {
   if (!identityPost)
     return { ok: false, error: "empty", status: 200,
       message: "The public archive there looks empty for the last year. Paid-only archives preview after you join the beta." };
-  const capped = posts.length >= MAX_POSTS;
+  const capped = relayed ? !relayComplete : posts.length >= MAX_POSTS;
   const identity = identityFromArchive(identityPost, host);
   const data = summarizeArchive(posts, identity, host, cutoff, capped);
   if (!data) return { ok: false, error: "empty", status: 200,
@@ -129,7 +131,8 @@ async function fetchDirectArchive(host, offset) {
 
 async function fetchRelayedAll(host, env) {
   if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
-  const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all`);
+  const bucket = Math.floor(Date.now() / 300000);
+  const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all:${bucket}`);
   const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +
     `?host=${encodeURIComponent(host)}&mode=all&sig=${signature}`;
   const ctl = new AbortController();
@@ -139,8 +142,9 @@ async function fetchRelayedAll(host, env) {
       headers: { accept: "text/plain", "user-agent": "inksheaf-preview/2.0 (+https://inksheaf.com)" } });
     clearTimeout(timer);
     if (!r.ok) return { ok: false, error: `relay ${r.status}` };
+    const complete = r.headers.get("x-archive-complete") !== "0";
     const value = JSON.parse(await readLimitedText(r));
-    return Array.isArray(value) ? { ok: true, posts: value } : { ok: false, error: "invalid relay shape" };
+    return Array.isArray(value) ? { ok: true, posts: value, complete } : { ok: false, error: "invalid relay shape" };
   } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
 }
 

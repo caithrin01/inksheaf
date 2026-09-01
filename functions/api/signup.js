@@ -32,6 +32,8 @@ export async function onRequest({ request, env }) {
 
   const clean = {};
   for (const k of FIELDS) clean[k] = body[k] == null ? null : String(body[k]).slice(0, 300);
+  /* plan_json is a JSON document, not a form field; it gets its own cap */
+  clean.plan_json = body.plan_json == null ? null : String(body.plan_json).slice(0, 4096);
   clean.publication_url = url;
   clean.email = email;
   clean.posts_per_year = Number.parseInt(clean.posts_per_year, 10) || null;

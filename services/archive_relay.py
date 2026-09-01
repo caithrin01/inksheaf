@@ -41,32 +41,75 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
     from fastapi import HTTPException, Response
 
     expected = os.environ.get("ARCHIVE_RELAY_TOKEN", "")
-    message = f"{host}:all" if mode == "all" else f"{host}:{offset}"
-    expected_sig = hmac.new(expected.encode(), message.encode(), hashlib.sha256).hexdigest()
-    if not expected or not hmac.compare_digest(sig, expected_sig):
+    import time as _t
+    bucket = int(_t.time() // 300)
+    if mode == "all":
+        candidates = [f"{host}:all:{b}" for b in (bucket, bucket - 1)]
+    else:
+        candidates = [f"{host}:{offset}"]
+    ok_sig = any(hmac.compare_digest(sig,
+        hmac.new(expected.encode(), m.encode(), hashlib.sha256).hexdigest()) for m in candidates)
+    if not expected or not ok_sig:
         raise HTTPException(status_code=401, detail="unauthorized")
     host = host.lower().strip().rstrip(".")
     if not valid_host(host) or offset < 0 or offset > 150 or offset % 25:
         raise HTTPException(status_code=400, detail="bad request")
 
     if mode == "all":
-        combined = []
-        for off in range(0, 150, 25):
+        # fetch the trailing year by date, not by post count; up to 20 paced pages
+        cutoff = (_t.time() - 366 * 86400) * 1000
+        combined, complete = [], True
+        for off in range(0, 500, 25):
             page = fetch_page(host, off, HTTPException)
             if not page:
                 break
-            combined.extend(page)
-            import time
-            time.sleep(0.7)
+            combined.extend(slim(p) for p in page)
+            oldest = page[-1].get("post_date") or ""
+            try:
+                from datetime import datetime, timezone
+                oldest_ms = datetime.fromisoformat(oldest.replace("Z", "+00:00")).timestamp() * 1000
+                if oldest_ms < cutoff:
+                    break
+            except (ValueError, AttributeError):
+                pass
+            if off >= 475:
+                complete = False
+                break
+            _t.sleep(0.7)
         body = json.dumps(combined).encode()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=502, detail="response too large")
         return Response(content=body, media_type="application/json",
-                        headers={"Cache-Control": "private, max-age=300"})
+                        headers={"Cache-Control": "private, max-age=300",
+                                 "X-Archive-Complete": "1" if complete else "0"})
 
     body = json.dumps(fetch_page(host, offset, HTTPException)).encode()
     return Response(content=body, media_type="application/json",
                     headers={"Cache-Control": "private, max-age=300"})
+
+
+def slim(p):
+    """Strip a post to the fields the preview summarizer and identity code consume."""
+    def pub_slim(u):
+        pub = (u.get("publication") or {}) if isinstance(u, dict) else {}
+        return {"publication": {k: pub.get(k) for k in
+                ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop")}}
+    return {
+        "title": str(p.get("title") or "")[:200],
+        "wordcount": p.get("wordcount"),
+        "post_date": p.get("post_date"),
+        "audience": p.get("audience"),
+        "type": p.get("type"),
+        "section_name": p.get("section_name"),
+        "cover_image": (str(p.get("cover_image"))[:200] if p.get("cover_image") else None),
+        "postTags": [{"name": (t.get("name") if isinstance(t, dict) else t)}
+                     for t in (p.get("postTags") or [])[:8]],
+        "publication_id": p.get("publication_id"),
+        "publishedBylines": [
+            {"name": b.get("name"),
+             "publicationUsers": [pub_slim(u) for u in (b.get("publicationUsers") or [])[:3]]}
+            for b in (p.get("publishedBylines") or [])[:3] if isinstance(b, dict)],
+    }
 
 
 def fetch_page(host, offset, HTTPException):

@@ -38,5 +38,12 @@ for (const [key, pod] of Object.entries(PODS)) {
     max_fit_error: +worst.toFixed(3), points };
   console.log(key, "fit: base $" + base.toFixed(2), "+ $" + per_page.toFixed(4) + "/page, max err $" + worst.toFixed(2));
 }
+out.shipping_by_volumes = {};
+for (const n of [1, 2, 4]) {
+  const items = Array.from({ length: n }, () => ({ page_count: 200, pod_package_id: PODS.bw, quantity: 1 }));
+  const q = await c.api("/print-job-cost-calculations/", { line_items: items, shipping_address: addr, shipping_option: "MAIL" });
+  out.shipping_by_volumes[n] = Number(q.shipping_cost.total_cost_excl_tax);
+  console.log("shipping x" + n, out.shipping_by_volumes[n]);
+}
 await writeFile("functions/lib/print-prices.json", JSON.stringify(out, null, 1));
 console.log("wrote functions/lib/print-prices.json");

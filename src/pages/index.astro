@@ -42,7 +42,10 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opa
 .frame{position:fixed;inset:14px;border:1px solid var(--rule);pointer-events:none;z-index:5;animation:fr 1.2s ease .15s both}
 .frame::after{content:"";position:absolute;inset:5px;border:2.5px solid var(--rule)}
 @keyframes fr{from{opacity:0}to{opacity:1}}
-@media (max-width:560px){ .frame{inset:8px} .frame::after{inset:4px;border-width:2px} }
+@media (max-width:560px){
+  .folio-seg .fs-price{display:none}
+  .folio-seg .fs-dates{font-size:.5rem;letter-spacing:.08em}
+ .frame{inset:8px} .frame::after{inset:4px;border-width:2px} }
 .sheet{max-width:46rem;margin:0 auto;padding:3.6rem 1.6rem 5rem}
 a{color:var(--red);text-decoration-thickness:1px;text-underline-offset:3px}
 p+p{margin-top:1rem}
@@ -234,9 +237,9 @@ ol.how li+li::before{top:1.2rem}
 .desk-tab:hover:not(:disabled){color:var(--ink)}
 .desk-tab:disabled{cursor:not-allowed;text-decoration:line-through;text-decoration-color:var(--rule);opacity:.55}
 .foliobar{display:flex;gap:4px;height:4.6rem;max-width:34rem;margin:0 auto;align-items:stretch}
-.folio-seg{background:var(--card);border:1px solid var(--rule);min-width:3.2rem;
+.folio-seg{background:var(--card);border:1px solid var(--rule);min-width:2.3rem;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
-  padding:.3rem .2rem;transition:flex-grow .55s cubic-bezier(.2,.7,.2,1);overflow:hidden;position:relative}
+  padding:.3rem .12rem;transition:flex-grow .55s cubic-bezier(.2,.7,.2,1);overflow:hidden;position:relative}
 .folio-seg::after{content:"";position:absolute;top:4px;bottom:4px;right:2px;width:3px;
   background:repeating-linear-gradient(180deg,rgba(33,28,21,.18) 0 1px,transparent 1px 3px)}
 .folio-seg .fs-dates{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
@@ -248,7 +251,8 @@ ol.how li+li::before{top:1.2rem}
   font-size:.95rem;padding:.6rem 1.2rem;color:var(--faint);transition:all .25s;text-align:center}
 .int-opt b{display:block;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
   font-weight:600;margin-bottom:.2rem;color:inherit}
-.int-opt[aria-checked="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
+.int-opt[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
+.desk-tab:focus-visible,.int-opt:focus-visible,.tryrow button:focus-visible,button.main:focus-visible,.pv-cta:focus-visible,.snip-copy:focus-visible{outline:2px solid var(--red);outline-offset:3px}
 .int-opt:hover{color:var(--ink)}
 .pv-price .margin-note{display:block;font-size:.8rem;color:var(--faint);margin-top:.4rem}
 .pv-price .margin-note b{color:var(--red);font-weight:560}
@@ -321,7 +325,7 @@ footer a{color:inherit}
 </style>
 </head>
 <body>
-<script is:inline type="application/json" id="print-prices" set:html={JSON.stringify({ measured: prices.measured, shipping: prices.shipping_mail, bw: { base: prices.pods.bw.base, per_page: prices.pods.bw.per_page }, color: { base: prices.pods.color.base, per_page: prices.pods.color.per_page } })}></script>
+<script is:inline type="application/json" id="print-prices" set:html={JSON.stringify({ measured: prices.measured, shipping: prices.shipping_mail, shipping_set: prices.shipping_by_volumes, bw: { base: prices.pods.bw.base, per_page: prices.pods.bw.per_page }, color: { base: prices.pods.color.base, per_page: prices.pods.color.per_page } })}></script>
 <div class="frame" aria-hidden="true"></div>
 <div class="sheet">
   <header class="masthead">
@@ -389,9 +393,9 @@ footer a{color:inherit}
         <p class="pv-sub" id="pv-sub"></p>
         <div class="desk" id="desk" hidden>
           <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="How the edition divides"></div>
-          <div class="foliobar" id="foliobar" aria-hidden="true"></div>
+          <div class="foliobar" id="foliobar" role="list" aria-label="How the volumes divide"></div>
           <div class="desk-verdict note" id="desk-verdict"></div>
-          <div class="interior-row" id="interior-row" role="radiogroup" aria-label="Interior printing"></div>
+          <div class="interior-row" id="interior-row" aria-label="Interior printing"></div>
           <div class="pv-price" id="pv-price"></div>
         </div>
         <button class="pv-cta" id="pv-cta" type="button">Send it to print</button>
@@ -543,6 +547,8 @@ footer a{color:inherit}
       <h2 class="shead">Join the private beta</h2>
       <div class="rule-orn"><span>&#10086;</span></div>
       <div class="steps">Step <b id="stepnum">1</b> of 2</div>
+      <noscript><p style="text-align:center">This form needs JavaScript. Without it, write to
+      <a href="mailto:hello@inksheaf.com">hello@inksheaf.com</a> and we will add you by hand.</p></noscript>
       <form id="f" novalidate>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" />
         <div class="step1">
@@ -661,6 +667,7 @@ async function runPreview(){
         raw.startsWith('http') ? raw : 'https://' + raw;
       stage.classList.remove('on');
       document.getElementById('preview')!.classList.remove('staging');
+      document.getElementById('preview')!.classList.remove('personalized');
       document.getElementById('preview')!.classList.add('on');
       tryerr.textContent = d.message || 'Could not read that archive.';
       tryhandoff.hidden = false;
@@ -675,6 +682,7 @@ async function runPreview(){
   } catch {
     stage.classList.remove('on');
     document.getElementById('preview')!.classList.remove('staging');
+    document.getElementById('preview')!.classList.remove('personalized');
     document.getElementById('preview')!.classList.add('on');
     tryerr.textContent = 'Could not reach the preview service. The signup below works without it.';
     tryhandoff.hidden = false;
@@ -805,6 +813,8 @@ function drawDesk(){
   bar.innerHTML = '';
   for (const v of div.volumes){
     const seg = document.createElement('div'); seg.className = 'folio-seg';
+    seg.setAttribute('role','listitem');
+    seg.setAttribute('aria-label', v.label + ', ' + v.est_pages + ' pages, about $' + Math.round(priceFor(v.est_pages, desk.interior)));
     seg.style.flexGrow = String(v.est_pages);
     const l1 = document.createElement('div'); l1.className = 'fs-dates'; l1.textContent = v.label;
     const l2 = document.createElement('div'); l2.className = 'fs-pages'; l2.textContent = v.est_pages + 'pp';
@@ -820,6 +830,7 @@ function drawDesk(){
      : n + ' ' + unitOf(d, n) + ' of ' +
        Math.min(...div.volumes.map((v: any) => v.est_pages)) + ' to ' +
        Math.max(...div.volumes.map((v: any) => v.est_pages)) + ' pages.');
+  if (n > 1) vtext += ' Each volume carries its own front matter.';
   const ruled = ['single','quarterly','monthly'].find(k => !d.divisions[k].feasible);
   if (ruled) vtext += ' ' + CAD_LABEL[ruled] + ' is ruled out: ' + d.divisions[ruled].reason + '.';
   verdict.textContent = vtext;
@@ -828,8 +839,8 @@ function drawDesk(){
   row.innerHTML = '';
   for (const [key, name] of [['color','Colour'],['bw','Black & white']] as const){
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'int-opt'; b.setAttribute('role','radio');
-    b.setAttribute('aria-checked', String(desk.interior === key));
+    b.type = 'button'; b.className = 'int-opt';
+    b.setAttribute('aria-pressed', String(desk.interior === key));
     const t = document.createElement('b'); t.textContent = name;
     const sub = document.createElement('span');
     const price = priceFor(avg, key);
@@ -841,9 +852,12 @@ function drawDesk(){
     row.appendChild(b);
   }
   const per = priceFor(avg, desk.interior);
+  const ship = n <= 1 ? PRICES.shipping
+    : (PRICES.shipping_set && (PRICES.shipping_set[String(n)] ??
+       (n >= 4 ? PRICES.shipping_set['4'] : PRICES.shipping_set['2']))) || PRICES.shipping;
   (document.getElementById('pv-price') as HTMLElement).innerHTML =
     'Readers pay <b>about $' + Math.round(per) + ' ' + aUnit(d) + '</b> in print cost, plus $' +
-    PRICES.shipping.toFixed(2) + ' shipping, mainland US.' +
+    ship.toFixed(2) + (n > 1 ? ' shipping for the whole set' : ' shipping') + ', mainland US.' +
     '<span class="margin-note">Your margin: <b>$0 during the beta</b> · you set it at launch. ' +
     'Prices measured on Lulu\u2019s print API, ' + PRICES.measured + '.</span>';
   updateCoverFromDesk(d, div);
@@ -852,8 +866,9 @@ function updateCoverFromDesk(d: any, div: any){
   const n = div.volumes.length;
   const year = d.to.slice(0, 4);
   (document.getElementById('pv-kind') as HTMLElement).textContent =
-    (desk.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual')
-     : desk.cadence === 'quarterly' ? 'Quarterly' : 'Monthly') + ' · ' + year;
+    desk.cadence === 'single'
+    ? (d.young ? div.volumes[0].label : 'Annual · ' + year)
+    : (desk.cadence === 'quarterly' ? 'Quarterly' : 'Monthly') + ' · ' + year;
   const publicPosts = d.public_posts ?? d.posts;
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
     ? 'Vol. I of ' + n + ' · ' + div.volumes[0].est_pages + ' pages'
