@@ -31,6 +31,15 @@ ok("shipping base on page matches source", html.includes(prices.shipping_mail.to
 /* the shipping fit is labeled for what it is: measured points exist for 1/2/4/8 */
 for (const k of ["1","2","4","8"]) ok("shipping point " + k + " measured", typeof prices.shipping_by_volumes[k] === "number");
 
+/* The Object section quotes the caithrin edition; its counts and span come from the
+   pipeline's manifest and copy files, and the span is stated because the preview's
+   twelve-month read of the same site gives a smaller book (28 essays on 2026-09-01). */
+const manifest = JSON.parse(readFileSync(new URL("../proofs/pipe/caithrin/manifest.json", import.meta.url), "utf8"));
+const editionCopy = JSON.parse(readFileSync(new URL("../proofs/pipe/caithrin/copy.json", import.meta.url), "utf8"));
+ok("edition essay count matches the manifest", html.includes(`edition: ${manifest.articles} essays`));
+ok("edition page count matches the manifest", html.includes(`${manifest.pages} pages at 6×9`));
+ok("edition span on page matches the cover copy", editionCopy.dates === "January 2025 – August 2026" && /40 essays from January 2025\s+to August 2026/.test(html));
+
 /* policy consistency: the page's binding cap agrees with the engine's */
 const summarySrc = readFileSync(new URL("../functions/lib/preview-summary.js", import.meta.url), "utf8");
 ok("engine cap is 300", summarySrc.includes("> 300"));
