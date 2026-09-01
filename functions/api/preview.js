@@ -90,6 +90,9 @@ async function fetchArchive(host, env) {
   let relayed = false;
   let relayComplete = true;
   let relayMeta = null;
+  /* the 40s budget runs from the first byte of work, not from the first relay call: the
+     direct timeout (6s) and any www hop count, so the answer lands before the page's 45s abort */
+  const t0 = Date.now();
   for (let offset = 0; offset < MAX_POSTS; ) {
     let page;
     {
@@ -109,10 +112,14 @@ async function fetchArchive(host, env) {
       }
       if (direct.ok) page = direct.page;
       else if (direct.retryable) {
+        /* a thrown direct read (no status) on a host that does not resolve is a typo:
+           answer in a second rather than after a 30s relay sweep */
+        if (direct.threw && !(await hostExists(host)))
+          return { ok: false, error: "not_substack", status: 422,
+            message: "Could not find a Substack archive there. Check the address?" };
         /* one batch call: the relay fetches and paces every page server-side */
         /* each relay request lands on a fresh container (max_inputs=1), so each retry
            is a new egress IP against Substack's per-IP scoring */
-        const t0 = Date.now();
         let via, attempts = 0;
         for (;;) {
           const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
@@ -133,7 +140,13 @@ async function fetchArchive(host, env) {
             const pay = JSON.parse(stale.payload);
             if (pay.summary_version === 5) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
           }
-          if (/unavailable|unreachable|upstream 404|invalid upstream JSON/.test(String(via.error || "")))
+          /* The direct read failed on a retryable status (429, 5xx, timeout, DNS) and the
+             relay failed too. The relay's error text cannot tell a dead domain from an
+             outage ("upstream unavailable" covers both), so ask a resolver: only a host
+             that does not exist is the writer's typo; everything else is an outage or a
+             block and gets the retry plus hand-built offer. Incident 2026-09-01:
+             understandingai.org was unreachable for 31s and the page blamed the URL. */
+          if (!(await hostExists(host)))
             return { ok: false, error: "not_substack", status: 422, ...relayMeta,
               message: "Could not find a Substack archive there. Check the address?" };
           return { ...archiveUnavailable(via.error), ...relayMeta };
@@ -186,7 +199,7 @@ async function fetchDirectArchive(host, offset) {
     if (!r.ok) return { ok: false, status: r.status, retryable: r.status === 429 || r.status >= 500 };
     const value = JSON.parse(await readLimitedText(r));
     return Array.isArray(value) ? { ok: true, page: value } : { ok: false, status: 502 };
-  } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502 }; }
+  } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502, threw: true }; }
 }
 
 async function fetchRelayedAll(host, env, timeoutMs) {
@@ -226,9 +239,24 @@ async function hmacHex(secret, message) {
   return [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+/* DNS-over-HTTPS lookup, only on the failure path. Anything but a definite NXDOMAIN
+   (resolver down, timeout, odd status) counts as existing: doubt goes to the writer. */
+async function hostExists(host) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 2000);
+  try {
+    const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`,
+      { headers: { accept: "application/dns-json" }, signal: ctl.signal });
+    clearTimeout(timer);
+    if (!r.ok) return true;
+    const d = await r.json();
+    return d.Status !== 3;
+  } catch { clearTimeout(timer); return true; }
+}
+
 function archiveUnavailable(detail) {
   return { ok: false, error: "upstream_busy", status: 503,
-    message: "We could not read that archive automatically. Send it below and we will build the preview by hand.",
+    message: "That archive did not answer just now. Try again in a minute, or send it below and we will build the preview by hand.",
     detail: String(detail || "unavailable").slice(0, 120) };
 }
 

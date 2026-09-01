@@ -11,7 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "pipeline": "node scripts/pipeline.mjs",
-    "test:preview:unit": "node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-signup.mjs",
+    "test:preview:unit": "node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-preview-outage.mjs && node scripts/test-signup.mjs",
     "test:preview:live": "node scripts/test-live-preview.mjs",
     "test:preview": "npm run test:preview:unit && npm run test:preview:live",
     "test:renderer": "node scripts/test-renderer.mjs",
