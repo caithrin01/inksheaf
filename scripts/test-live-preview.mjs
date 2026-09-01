@@ -11,6 +11,16 @@ const cases = [
   ["Razib Khan", "https://razib.substack.com", null],
 ];
 
+/* FRESH=1: clear the D1 cache for the gate hosts first and require cold-origin fetches.
+   Needs local wrangler auth; use for release gates, not the scheduled availability cron. */
+if (process.env.FRESH === "1") {
+  const { execSync } = await import("node:child_process");
+  const hosts = ["www.caithrin.com", "heathercoxrichardson.substack.com", "www.slowboring.com", "razib.substack.com"];
+  execSync(`npx wrangler d1 execute inksheaf-beta --remote --command "DELETE FROM preview_cache WHERE host IN (${hosts.map(h => `'${h}'`).join(",")})"`,
+    { stdio: "inherit" });
+  console.log("cache cleared for gate hosts; requiring cold-origin fetches");
+}
+
 let failures = 0;
 for (const [label, publicationUrl, expectedKind] of cases) {
   const ctl = new AbortController();
@@ -27,6 +37,7 @@ for (const [label, publicationUrl, expectedKind] of cases) {
     assert.ok(body.public_posts > 0);
     assert.ok(body.est_pages >= 32);
     if (expectedKind) assert.equal(body.kind, expectedKind);
+    if (process.env.FRESH === "1") assert.equal(body.cached, false, label + ": expected a cold-origin fetch");
     console.log(`PASS LIVE ${label}: ${body.public_posts} ${body.kind}, ${body.est_pages}pp, ${body.fetch_mode}${body.cached ? ", cached" : ""}`);
   } catch (e) {
     failures++;

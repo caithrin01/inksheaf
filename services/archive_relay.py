@@ -59,7 +59,7 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
         # fetch the trailing year by date, not by post count; up to 20 paced pages
         cutoff = (_t.time() - 366 * 86400) * 1000
         combined, complete = [], True
-        for off in range(0, 500, 25):
+        for off in range(0, 700, 25):
             page = fetch_page(host, off, HTTPException)
             if not page:
                 break
@@ -72,10 +72,10 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page"):
                     break
             except (ValueError, AttributeError):
                 pass
-            if off >= 475:
+            if off >= 675:
                 complete = False
                 break
-            _t.sleep(0.7)
+            _t.sleep(0.5)
         body = json.dumps(combined).encode()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=502, detail="response too large")

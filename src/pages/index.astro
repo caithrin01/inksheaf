@@ -46,37 +46,43 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opa
   .folio-seg .fs-price{display:none}
   .folio-seg .fs-dates{font-size:.5rem;letter-spacing:.08em}
  .frame{inset:8px} .frame::after{inset:4px;border-width:2px} }
-.sheet{max-width:46rem;margin:0 auto;padding:3.6rem 1.6rem 5rem}
+.sheet{max-width:46rem;margin:0 auto;padding:2.6rem 1.6rem 5rem}
 a{color:var(--red);text-decoration-thickness:1px;text-underline-offset:3px}
 p+p{margin-top:1rem}
 .caps{letter-spacing:.3em;padding-left:.3em;text-transform:uppercase}
 
 /* ---------- masthead: the name and the state of the product ---------- */
-.masthead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.6rem;margin-top:.6rem}
+.masthead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.6rem;margin-top:.2rem}
 .masthead .crest{color:var(--rule);justify-self:center;animation:up 1s .3s both}
-.masthead .crest svg{height:clamp(120px,15vw,180px);width:auto;display:block}
+.masthead .crest svg{height:clamp(100px,12vw,144px);width:auto;display:block}
 .masthead .side{font-size:clamp(1.25rem,2.6vw,1.9rem);letter-spacing:.28em;text-transform:uppercase;font-weight:500;animation:up 1s .4s both;line-height:1.3}
 .masthead .side.l{justify-self:end;text-align:right}
 .masthead .side.r{justify-self:start;color:var(--red)}
 @media (max-width:700px){
-  .masthead{grid-template-columns:1fr;gap:.9rem;text-align:center;margin-top:0}
+  .masthead{grid-template-columns:1fr;gap:.55rem;text-align:center;margin-top:0}
+  .masthead .crest svg{height:74px}
+  .masthead .side{font-size:1.15rem}
+  h1{margin-top:1.3rem}
+  .lede{font-size:1.08rem}
+  .tryit{margin-top:1.4rem}
+  .tryit label{margin-bottom:.6rem}
   .masthead .side.l{justify-self:center;text-align:center}
   .masthead .side.r{justify-self:center}
   .masthead .crest svg{height:110px}
 }
-h1{font-size:clamp(2.5rem,5.8vw,4rem);font-weight:490;line-height:1.12;letter-spacing:.004em;
-  margin:3rem auto 0;max-width:17ch;text-align:center;text-shadow:var(--press);animation:up 1s .5s both}
-.rule-orn{display:flex;align-items:center;gap:1.1rem;justify-content:center;margin:2.2rem auto;max-width:20rem}
+h1{font-size:clamp(2.3rem,5.2vw,3.5rem);font-weight:490;line-height:1.1;letter-spacing:.004em;
+  margin:1.9rem auto 0;max-width:17ch;text-align:center;text-shadow:var(--press);animation:up 1s .5s both}
+.rule-orn{display:flex;align-items:center;gap:1.1rem;justify-content:center;margin:1.5rem auto;max-width:20rem}
 .rule-orn::before,.rule-orn::after{content:"";flex:1;border-top:1px solid var(--rule)}
 .rule-orn span{color:var(--red);font-size:1.05rem}
-.lede{font-size:1.3rem;line-height:1.6;max-width:36ch;margin:0 auto;text-align:center;animation:up 1s .6s both}
+.lede{font-size:1.22rem;line-height:1.55;max-width:38ch;margin:0 auto;text-align:center;animation:up 1s .6s both}
 .note{font-size:.85rem;color:var(--faint)}
 @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
 /* ---------- the try line ---------- */
-.tryit{margin:3rem auto 0;max-width:27rem;text-align:center;animation:up 1s .7s both}
+.tryit{margin:1.9rem auto 0;max-width:27rem;text-align:center;animation:up 1s .7s both}
 .tryit label{display:block;font-size:.76rem;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;color:var(--faint);margin-bottom:1.1rem;font-weight:500}
-.tryrow{display:flex;flex-direction:column;gap:1.2rem;align-items:center}
+.tryrow{display:flex;flex-direction:column;gap:.95rem;align-items:center}
 .tryrow input{width:100%;text-align:center;padding:.4rem 0 .55rem;font:inherit;font-size:1.25rem;color:var(--ink);
   background:transparent;border:0;border-bottom:1px solid var(--rule);border-radius:0;caret-color:var(--red)}
 .tryrow input::placeholder{color:var(--faint);opacity:.7}
@@ -91,7 +97,7 @@ h1{font-size:clamp(2.5rem,5.8vw,4rem);font-weight:490;line-height:1.12;letter-sp
   font:500 .95rem "EB Garamond",serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 
 /* ---------- the pressroom: activity while the edition is set ---------- */
-.preview{display:block;margin-top:2.6rem;min-width:0}
+.preview{display:block;margin-top:1.8rem;min-width:0}
 @media (prefers-reduced-motion: no-preference){
   .preview.on{animation:pv .8s cubic-bezier(.2,.7,.2,1) both}
   @keyframes pv{from{opacity:0;transform:translateY(16px) scale(.99)}to{opacity:1;transform:none}}
@@ -120,6 +126,7 @@ h1{font-size:clamp(2.5rem,5.8vw,4rem);font-weight:490;line-height:1.12;letter-sp
 
 /* ---------- the book: rests closed, opens to the contents ---------- */
 .bookwrap{margin:2.4rem auto 0;width:16rem;perspective:1600px;position:relative;animation:up 1s .8s both}
+.bookwrap:focus-visible{outline:2px solid var(--red);outline-offset:6px}
 .bookobj{position:relative;width:100%;aspect-ratio:6/9;transform-style:preserve-3d;transition:transform .5s}
 .bookwrap:hover .bookobj,.bookwrap.open .bookobj{transform:translateY(-5px)}
 /* inside: the contents page, revealed when the cover swings */
@@ -354,7 +361,7 @@ footer a{color:inherit}
         <div class="presslog"><span>collating essays</span><span>measuring words</span><span>casting off pages</span><span>setting the cover</span></div>
       </div>
 
-      <div class="bookwrap" id="bookwrap">
+      <div class="bookwrap" id="bookwrap" tabindex="0" role="button" aria-label="Open the book to its contents page" aria-pressed="false">
         <div class="bookobj" id="pvbook" aria-hidden="true">
           <div class="pv-page" id="pv-page">
             <div class="run"><span id="pv-runname">Your publication</span><span>Contents</span></div>
@@ -390,7 +397,7 @@ footer a{color:inherit}
           <div class="interior-row" id="interior-row" aria-label="Interior printing"></div>
           <div class="pv-price" id="pv-price"></div>
         </div>
-        <button class="pv-cta" id="pv-cta" type="button">Send it to print</button>
+        <button class="pv-cta" id="pv-cta" type="button">Start the print run</button>
         <p class="pv-note note">Lulu, our print partner, takes each reader&rsquo;s payment and
         ships every copy. Nothing prints before you approve your proof.</p>
       </div>
@@ -729,6 +736,7 @@ function renderPreview(d: any){
     d.words.toLocaleString('en-US') + ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' +
     (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
     (d.podcast_posts ? d.podcast_posts + ' podcast ' + (d.podcast_posts === 1 ? 'post is' : 'posts are') + ' left out of the print estimate. ' : '') +
+    (d.capped ? 'Your archive runs deeper than this preview reads; the proof covers the full year. ' : '') +
     (recD && recD.volumes.length > 1
       ? 'That is ' + recD.volumes.length + ' ' + (d.unit || 'volume') + 's of ' +
         Math.min(...recD.volumes.map((v: any) => v.est_pages)) + ' to ' +
@@ -751,6 +759,17 @@ function priceFor(pages: number, interior: string){
   return c.base + c.per_page * pages;
 }
 function unitOf(d: any, n: number){ return (d.unit || 'volume') + (n === 1 ? '' : 's'); }
+function shipFor(n: number){
+  const pts = Object.entries(PRICES.shipping_set || {}).map(([k, v]) => [Number(k), Number(v)]);
+  if (!pts.length) return PRICES.shipping;
+  const exact = pts.find(([k]) => k === n);
+  if (exact) return exact[1];
+  /* least-squares line through the measured points; shipping scales near-linearly per volume */
+  const m = pts.length, sx = pts.reduce((a, [x]) => a + x, 0), sy = pts.reduce((a, [, y]) => a + y, 0);
+  const sxx = pts.reduce((a, [x]) => a + x * x, 0), sxy = pts.reduce((a, [x, y]) => a + x * y, 0);
+  const slope = (m * sxy - sx * sy) / (m * sxx - sx * sx), base = (sy - slope * sx) / m;
+  return Math.max(PRICES.shipping, base + slope * n);
+}
 function aUnit(d: any){ const u = d.unit || 'volume'; return (/^[aeiou]/.test(u) ? 'an ' : 'a ') + u; }
 function renderDesk(d: any){
   const el = document.getElementById('desk') as HTMLElement;
@@ -762,8 +781,20 @@ function renderDesk(d: any){
       '<span class="sub">Shipping and tax are calculated by Lulu.</span>';
     return;
   }
-  desk = { cadence: d.recommended.cadence, interior: d.recommended.interior, d };
+  const feasible = ['single','quarterly','monthly'].filter(k => d.divisions[k] && d.divisions[k].feasible);
+  const startCadence = d.divisions[d.recommended.cadence]?.feasible
+    ? d.recommended.cadence : feasible[0];
+  desk = { cadence: startCadence, interior: d.recommended.interior, d };
   el.hidden = false;
+  if (!startCadence){
+    document.getElementById('desk-tabs')!.innerHTML = '';
+    document.getElementById('foliobar')!.innerHTML = '';
+    document.getElementById('interior-row')!.innerHTML = '';
+    (document.getElementById('pv-price') as HTMLElement).textContent = '';
+    document.getElementById('desk-verdict')!.textContent =
+      'This archive does not divide cleanly on its own; reserve a spot and we will plan the volumes by hand.';
+    return;
+  }
   const publicPosts = d.public_posts ?? d.posts;
   reason.textContent = 'What we read: ' + publicPosts + ' ' + kindLabel(d, publicPosts) + ' · ' +
     d.words.toLocaleString('en-US') + ' words · ' + fmt(d.from) + ' – ' + fmt(d.to);
@@ -824,9 +855,7 @@ function drawDesk(){
     b.addEventListener('click', () => { desk.interior = key; beacon('plan_interior'); drawDesk(); });
     row.appendChild(b);
   }
-  const ship = n <= 1 ? PRICES.shipping
-    : (PRICES.shipping_set && (PRICES.shipping_set[String(n)] ??
-       (n >= 4 ? PRICES.shipping_set['4'] : PRICES.shipping_set['2']))) || PRICES.shipping;
+  const ship = shipFor(n);
   (document.getElementById('pv-price') as HTMLElement).textContent =
     'Readers pay print cost plus $' + ship.toFixed(2) +
     (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
@@ -955,8 +984,15 @@ f.addEventListener('submit', async (e)=>{
 <script>
 /* touch devices cannot hover: a tap opens the book */
 const bw = document.getElementById('bookwrap');
-if (bw && matchMedia('(hover: none)').matches){
-  bw.addEventListener('click', () => bw.classList.toggle('open'));
+if (bw){
+  const toggle = () => {
+    bw.classList.toggle('open');
+    bw.setAttribute('aria-pressed', String(bw.classList.contains('open')));
+  };
+  if (matchMedia('(hover: none)').matches) bw.addEventListener('click', toggle);
+  bw.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+  });
 }
 </script>
 </body>
