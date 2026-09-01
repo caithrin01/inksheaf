@@ -53,6 +53,8 @@ export async function onRequest({ request, env }) {
 }
 
 function parseHost(raw) {
+  const handle = /(?:^|\/\/)(?:www\.)?substack\.com\/@([a-z0-9_-]{2,64})/i.exec(String(raw));
+  if (handle) return handle[1].toLowerCase() + ".substack.com";
   let u;
   try { u = new URL(raw.includes("://") ? raw : "https://" + raw); } catch { return null; }
   const h = u.hostname.toLowerCase();
@@ -77,7 +79,7 @@ async function fetchArchive(host, env) {
         const nextHost = parseHost(direct.redirect.startsWith("http")
           ? direct.redirect : `https://${host}${direct.redirect}`);
         if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
-        return { ok: false, error: "redirect", status: 502,
+        return { ok: false, error: "redirect", status: 422,
           message: "That address redirects somewhere we could not follow. Try the publication's final URL." };
       }
       if (direct.ok) page = direct.page;
@@ -95,6 +97,9 @@ async function fetchArchive(host, env) {
             const pay = JSON.parse(stale.payload);
             if (pay.summary_version === 3) return { ok: true, data: { ...pay, stale: true } };
           }
+          if (/unavailable|unreachable|upstream 404|invalid upstream JSON/.test(String(via.error || "")))
+            return { ok: false, error: "not_substack", status: 422,
+              message: "Could not find a Substack archive there. Check the address?" };
           return archiveUnavailable(via.error);
         }
         relayed = true;
@@ -102,7 +107,7 @@ async function fetchArchive(host, env) {
         posts.length = 0;
         posts.push(...via.posts);
         break;
-      } else return { ok: false, error: "not_substack", status: 502, upstream: direct.status,
+      } else return { ok: false, error: "not_substack", status: 422, upstream: direct.status,
         message: "Could not read an archive there. Is this a Substack publication URL?" };
     }
     if (!page.length) break;
