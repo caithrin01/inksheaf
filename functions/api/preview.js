@@ -79,6 +79,10 @@ async function fetchArchive(host, env) {
         const nextHost = parseHost(direct.redirect.startsWith("http")
           ? direct.redirect : `https://${host}${direct.redirect}`);
         if (nextHost && nextHost !== host && hops < 2) { hops++; host = nextHost; continue; }
+        /* self-redirects and path rewrites dead-end here; some Substack custom domains
+           (generalist.com) loop on the apex while www serves the archive, so spend one
+           hop on www before giving up */
+        if (!host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
         /* a same-host path redirect on the archive API means this is not Substack
            (Substack never rewrites its own API path; Ghost and WordPress do) */
         return { ok: false, error: "not_substack", status: 422,
