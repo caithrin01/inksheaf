@@ -62,7 +62,7 @@ ok("abort shows the hand-built offer", astroSrc.includes("taking too long to rea
    "choice:caithrin" and "oncaithrin.com" together (found on production 2026-09-01, same
    class as the noscript bug A13 caught). Refuse any letter or punctuation flush against
    an opening <a>, or a closing </a> flush against a letter. */
-const glued = [...html.matchAll(/[A-Za-z:;,.]<a\s[^>]*>|<\/a>[A-Za-z]/g)].map(m => m[0].slice(0, 30));
+const glued = [...html.matchAll(/[A-Za-z:;,.]<a\s[^>]*>|<\/a>(?:[A-Za-z]|&(?:middot|mdash|ndash|bull);)/g)].map(m => m[0].slice(0, 30));
 ok("no text glued to a link by the compressor", glued.length === 0, glued.join(" | "));
 
 /* contact + attribution */
