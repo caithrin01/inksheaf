@@ -132,6 +132,8 @@ async function drive(page, pasted) {
     big: document.getElementById("pv-big").textContent.trim(),
     sub: document.getElementById("pv-sub").textContent.trim(),
     verdict: document.getElementById("desk-verdict").textContent.trim(),
+    labels: [...document.querySelectorAll(".folio-seg .fs-dates")].map(x => x.textContent.trim()),
+    plannedBy: (document.getElementById("plan-by") || {}).textContent || "",
     cta: !document.getElementById("pv-cta").hidden && document.getElementById("pv-cta").offsetParent !== null,
     mast: document.getElementById("pv-mast").textContent.trim(),
   }));
@@ -158,9 +160,16 @@ function judge(truth, r) {
       if (!truth.capped && Math.abs(words - truth.words) > Math.max(200, truth.words * 0.02))
         return { verdict: "FAIL", note: `words ${words} on page, ${truth.words} in the independent read` };
       if (!r.verdict) notes.push("desk verdict empty");
+      /* the plan on the shelf: labels from the window's vocabulary, at most twelve volumes */
+      const LABEL = /^(Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
+      if (r.labels && r.labels.length) {
+        const bad = r.labels.filter(l => !LABEL.test(l));
+        if (bad.length) notes.push(`labels off the vocabulary: ${bad.slice(0, 3).join(", ")}`);
+        if (r.labels.length > 12) notes.push(`${r.labels.length} volumes on the shelf`);
+      } else if (!/by hand/.test(r.verdict)) notes.push("no volumes on the shelf");
       if (pagesOnPage && !truth.capped && Math.abs(pagesOnPage - truth.est_pages) > 2 && !/shelf|volumes/.test(r.big))
         return { verdict: "FAIL", note: `${pagesOnPage} pages on page, ${truth.est_pages} in the independent read` };
-      return { verdict: notes.length ? "FAIL" : "PASS", note: notes.join("; ") || `${posts} posts, ${words} words` };
+      return { verdict: notes.length ? "FAIL" : "PASS", note: (notes.join("; ") || `${posts} posts, ${words} words`) + (r.plannedBy ? ` · ${r.plannedBy.toLowerCase()}` : "") };
     }
     if (addressMsg) return { verdict: "FAIL", note: `live archive called not-Substack: "${r.err.slice(0, 80)}"` };
     if (outageMsg) return { verdict: "DEGRADED", note: r.handoff ? "outage message with hand-built route" : "outage message, hand-built route missing" };

@@ -126,9 +126,30 @@ if (cai.ok) {
 } else console.log("SKIP caithrin reachable-state");
 const hcr = await (await fetch(base + "/api/preview?url=heathercoxrichardson.substack.com")).json();
 if (hcr.ok) {
-  ok("HCR is a capped read, so the page's capped copy is reachable", hcr.capped === true);
+  /* since 2026-09-01 the relay reads HCR's whole window; the flag must still be true to the read */
+  ok("HCR capped flag is boolean and matches the read", typeof hcr.capped === "boolean" && (hcr.capped || (hcr.editorial && hcr.editorial.totals.posts > 300)), "capped=" + hcr.capped + " posts=" + (hcr.editorial && hcr.editorial.totals.posts));
   const rec = hcr.divisions[hcr.recommended.cadence];
   ok("HCR recommended set size is not a measured shipping point", !prices.shipping_by_volumes[String(rec.volumes.length)], "n=" + rec.volumes.length);
 } else console.log("SKIP HCR reachable-state");
+
+/* ---------- the editorial plan (plan-end-to-end-v1): every gate host carries one that passes the checker ---------- */
+const LABEL = /^(Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
+for (const [name, d] of [["caithrin", cai], ["HCR", hcr], ["ACX", acx]]) {
+  if (!d.ok) continue;
+  const ed = d.editorial;
+  ok(name + ": editorial plan present", !!(ed && ed.plan && Array.isArray(ed.plan.routes)));
+  if (!ed || !ed.plan) continue;
+  ok(name + ": checker passed", Array.isArray(ed.errors) && ed.errors.length === 0, (ed.errors || []).slice(0, 2).join("; "));
+  ok(name + ": window is four completed quarters", !!(ed.window && /^[A-Z][a-z]{2} \d{4} – [A-Z][a-z]{2} \d{4}$/.test(ed.window.span)), ed.window && ed.window.span);
+  ok(name + ": the quarter in progress is stated", !!(ed.window && ed.window.in_progress && /^Q[1-4] \d{4}$/.test(ed.window.in_progress.label)));
+  const rec = ed.plan.routes.filter(r => r.recommended);
+  ok(name + ": exactly one golden route when any route binds", ed.plan.routes.length === 0 || rec.length === 1, "routes=" + ed.plan.routes.length);
+  for (const r of ed.plan.routes) {
+    ok(name + " " + r.cadence + ": every label in the vocabulary", r.volumes.every(v => LABEL.test(v.label)), r.volumes.map(v => v.label).filter(l => !LABEL.test(l)).join(", "));
+    ok(name + " " + r.cadence + ": every volume 32 to 300 pages", r.volumes.every(v => v.est_pages >= 32 && v.est_pages <= 300), r.volumes.map(v => v.label + ":" + v.est_pages).join(" "));
+    ok(name + " " + r.cadence + ": prices derived per volume", r.volumes.every(v => v.price && typeof v.price.bw === "number" && typeof v.price.color === "number"));
+  }
+  ok(name + ": planned by the editor or honestly by the calendar", ed.planned_by === "editor" || (ed.planned_by === "calendar" && typeof ed.reason === "string"));
+}
 
 console.log(`HONESTY GATE: ${n} checks passed`);
