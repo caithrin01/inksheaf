@@ -28,6 +28,12 @@ A cadence whose volumes would number fewer than two is never a route; list it in
 
 When the window holds no public posts but "paid_posts_in_window" is above zero, say so plainly to the writer: their posts are for paid subscribers, the preview can only read public ones, and a Substack export is the way in; never say the archive came through empty. When the window holds nothing at all, say the archive has no public posts in the window.
 
+When the input says "compact": true (over 150 posts), do not list post ids: give each volume its "periods" by the window's labels and leave "post_ids" empty; name exclusions by id only when you have a reason. Use "by_month" (posts, words, estimated pages, footnotes, images, bylines per month) to shape the volumes.
+
+When the window's label is "Everything so far" (a publication younger than a quarter), the only route is a single volume with that label; offer no other cadence.
+
+Before offering a route, check every volume's size against "by_month": a volume under 32 estimated pages is never offered; fold it into a neighbour (join the labels with " – ") or leave that cadence out of "routes" with the reason. Every volume has a label from the window's labels; never an empty label. Contributors come only from the bylines in the rows; when a row has no byline, name no one for it, and never use the publication's name as a person.
+
 Kinds: ${KIND_HINTS}. Contributors: everyone with a byline, principal first. Notes policy per volume from the footnote counts. Interior: colour only when the images carry the writing (recipes, photo essays, illustrated posts); otherwise black and white, and say why in one sentence.
 
 Sentences are for the writer, plain and specific, no flattery, no exclamation marks. British or American spelling as the writer uses.`;
@@ -41,7 +47,7 @@ export function calendarFallback(input) {
   const name = input.publication.name;
   const inPeriod = (p, from, to) => { const d = String(p.post_date).slice(0, 10); return d >= from && d < to; };
   const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
-  const vol = (label, subtitle, ps, why) => ({ label, title: name, subtitle, post_ids: ps.map(postId), parts: null, notes_policy: "endnotes_per_article", why, _posts: ps });
+  const vol = (label, subtitle, ps, why) => ({ label, title: name, subtitle, post_ids: ps.map(postId), periods: [], parts: null, notes_policy: "endnotes_per_article", why, _posts: ps });
   const pages = ps => volumePages(ps);
   /* split a period's posts into parts under the cap, at post boundaries */
   const splitParts = (label, span, ps) => {
@@ -128,7 +134,8 @@ function compact(input) {
 }
 
 /* Returns { plan, planned_by: "editor"|"calendar", attempts, errors, usage, model } */
-export async function planEdition({ posts, identity, host, nowMs = Date.now(), capped = false, apiKey, openrouterKey, client, log = () => {} }) {
+export async function planEdition({ posts, identity, host, nowMs = Date.now(), capped = false, apiKey, openrouterKey, client, log = () => {}, deadlineMs = 0 }) {
+  const started = Date.now();
   const input = buildEditorInput({ posts, identity, host, nowMs, capped });
   const out = { plan_version: PLAN_VERSION, model: EDITOR_MODEL, attempts: 0, errors: [], attempt_errors: [], usage: null, window: input.window, totals: input.totals };
   const ec = client ? { client, model: EDITOR_MODEL, via: "given" } : editorClient({ apiKey, openrouterKey });
@@ -140,6 +147,8 @@ export async function planEdition({ posts, identity, host, nowMs = Date.now(), c
   const messages = [{ role: "user", content: "Plan this edition. Input follows as JSON.\n\n" + JSON.stringify(compact(input)) }];
   let lastErrors = [];
   for (let attempt = 1; attempt <= 2; attempt++) {
+    /* a second attempt only when the caller's wall clock allows it (Cloudflare answers 524 at 100 s) */
+    if (attempt === 2 && deadlineMs && Date.now() - started > deadlineMs * 0.55) { log("editor", "no time for a second attempt"); break; }
     out.attempts = attempt;
     let res;
     try {

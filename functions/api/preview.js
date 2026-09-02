@@ -21,6 +21,7 @@ import { editionWindow } from "../lib/edition-window.js";
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
     return json({ ok: false, error: "method not allowed" }, 405, { allow: "GET" });
+  armFault(env);
 
   const raw = new URL(request.url).searchParams.get("url") || "";
   const host = parseHost(raw);
@@ -224,7 +225,14 @@ export async function fetchArchive(host, env) {
   return { ok: true, data, posts, identity };
 }
 
+/* Fault injection for the journeys (plan-end-to-end-v1, phase 5): the local server is started
+   with FAULT_SWITCH=1 and FAULT=<name>; production never carries FAULT_SWITCH, so this is inert
+   there. Names: direct_fail (every direct read answers 503), relay_fail (relay answers 503),
+   relay_slow (relay answers after 20 s), editor_fail (the editor throws). */
+let FAULT = null;
+export function armFault(env) { FAULT = env && env.FAULT_SWITCH === "1" ? (env.FAULT || null) : null; return FAULT; }
 async function fetchDirectArchive(host, offset) {
+  if (FAULT === "direct_fail") return { ok: false, status: 503, retryable: true };
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
@@ -242,6 +250,8 @@ async function fetchDirectArchive(host, offset) {
 
 async function fetchRelayedAll(host, env, timeoutMs, since) {
   if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
+  if (FAULT === "relay_fail") return { ok: false, error: "upstream unavailable (injected)" };
+  if (FAULT === "relay_slow") await new Promise(r => setTimeout(r, Math.min(20000, timeoutMs - 500)));
   const bucket = Math.floor(Date.now() / 300000);
   const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all:${bucket}`);
   const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +

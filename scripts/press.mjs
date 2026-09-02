@@ -36,14 +36,18 @@ const hmac = m => createHmac("sha256", SECRET).update(m).digest("hex");
 
 async function status(st, extra = {}) {
   if (!SECRET) return log("status", `${st} (no secret, not reported)`);
-  const r = await fetch(`${SITE}/api/press-status`, { method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}`), run: process.env.GITHUB_RUN_ID || null, ...extra }) });
-  log("status", `${st} -> ${r.status}`);
+  /* a status report that fails must never stop the press; the email is the deliverable */
+  try {
+    const r = await fetch(`${SITE}/api/press-status`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}`), run: process.env.GITHUB_RUN_ID || null, ...extra }) });
+    log("status", `${st} -> ${r.status}`);
+  } catch (e) { log("status", `${st} not reported: ${String(e.message || e).slice(0, 80)}`); }
 }
 
 /* the volumes to build: the chosen route's, or one volume of the window when no plan carried */
 const volumes = plan && Array.isArray(plan.volumes) && plan.volumes.length
   ? plan.volumes : [{ label: "The edition", subtitle: "", post_ids: null, est_pages: null }];
+const ROMAN_N = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 const interior = plan?.interior === "color" ? "color" : "bw";
 const POD_ID = prices.pods[interior].pod_package_id; // 6x9 perfect bound, black-and-white or full colour
 
@@ -60,11 +64,14 @@ function buildVolume(v, i, { proof }) {
   if (v.post_ids && v.post_ids.length) { const f = `${DIR}/${base}.posts.json`; writeFileSync(f, JSON.stringify(v.post_ids)); args.push("--posts", f); }
   else if (plan?.window?.from) { args.push("--after", plan.window.from); if (plan.window.to) args.push("--before", plan.window.to); }
   if (existsSync(brandPath)) args.push("--brand-file", brandPath);
+  if (plan?.dedication && i === 0) args.push("--dedication", String(plan.dedication).slice(0, 300));
+  if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
   sh("node", args);
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
   sh("bash", ["scripts/render-book.sh", html, `${process.cwd()}/${pdf}`]);
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
+  if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
   return { html, pdf, report, pages };
 }
 

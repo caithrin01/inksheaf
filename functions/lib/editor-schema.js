@@ -11,7 +11,8 @@ const Volume = z.object({
   label: z.string().describe("The period name from the window given: exactly one of the offered quarter, half, month or year labels, or two adjacent ones joined by ' – ' when folded."),
   title: z.string().describe("Title printed on this volume's title page and spine. Usually the publication name."),
   subtitle: z.string().describe("Subtitle under the title: the period in words, or a theme when the volume has one."),
-  post_ids: z.array(z.number().int()).describe("Every post bound in this volume, in reading order."),
+  post_ids: z.array(z.number().int()).describe("Every post bound in this volume, in reading order. For an archive over 150 posts leave this empty and name periods instead."),
+  periods: z.array(z.string()).describe("Whole periods bound in this volume, by the window's own labels (\"Jul 2025\", \"Q3 2025\", \"H1 2026\", or the year label). Code expands them to posts in date order, minus the excluded. Empty when post_ids are given."),
   parts: z.array(z.object({ name: z.string(), post_ids: z.array(z.number().int()) })).nullable()
     .describe("Named parts when the archive has clear series or sections; null for a plain chronological volume."),
   notes_policy: z.enum(NOTES).describe("footnotes at the page foot when notes are short and few; endnotes_per_article when long; back_of_book for a letters magazine; none when there are no notes."),

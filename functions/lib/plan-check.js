@@ -9,7 +9,8 @@ const labelsOf = (w, cadence) =>
   : cadence === "monthly" ? w.months.map(m => m.label)
   : [w.label];
 const boundsOf = (w, cadence, label) => {
-  const list = cadence === "quarterly" ? w.quarters : cadence === "half" ? w.halves : cadence === "monthly" ? w.months : [{ label: w.label, fromIso: w.fromIso, toIso: w.toIso }];
+  /* a quarterly route may fold two quarters into a half-year and call it so; a monthly route may fold into a quarter */
+  const list = cadence === "quarterly" ? [...w.quarters, ...w.halves] : cadence === "half" ? w.halves : cadence === "monthly" ? [...w.months, ...w.quarters] : [{ label: w.label, fromIso: w.fromIso, toIso: w.toIso }];
   const parts = label.split(" – ").map(s => s.trim().replace(/\s·\s(?:[IVX]+|\d+)$/, ""));
   const found = parts.map(p => list.find(x => x.label === p)).filter(Boolean);
   if (found.length !== parts.length) return null;
@@ -19,6 +20,8 @@ const boundsOf = (w, cadence, label) => {
 /* input: the object from buildEditorInput. raw: the model's parsed output. */
 export function checkPlan(raw, input) {
   const errors = [];
+  /* hand-built and calendar plans may omit "periods"; the model's schema requires it */
+  try { for (const r of raw.routes || []) for (const v of r.volumes || []) if (!Array.isArray(v.periods)) v.periods = []; } catch {}
   const parsed = EditorialPlan.safeParse(raw);
   if (!parsed.success) return { ok: false, errors: parsed.error.issues.map(i => `schema: ${i.path.join(".")} ${i.message}`) };
   const plan = structuredClone(parsed.data);
@@ -28,9 +31,28 @@ export function checkPlan(raw, input) {
   const progressIds = new Set(input._partition.inProgress.map(p => postId(p)));
   const excludedIds = new Set(plan.excluded.map(e => e.post_id));
   for (const e of plan.excluded) if (!byId.has(e.post_id)) errors.push(`excluded post ${e.post_id} is not in the window`);
-  if (byId.size && plan.excluded.length > Math.max(1, byId.size * 0.1) && plan.kind !== "notes")
-    errors.push(`excluded ${plan.excluded.length} of ${byId.size} posts; over 10% needs kind "notes"`);
+  /* exclusions need a reason each; over half the archive needs the kind to be "notes"
+     (ACX excludes 70 of 167 as open threads, rightly; 2026-09-02) */
+  for (const e of plan.excluded) if (!String(e.reason || "").trim()) errors.push(`excluded post ${e.post_id} has no reason`);
+  if (byId.size && plan.excluded.length > byId.size * 0.5 && plan.kind !== "notes")
+    errors.push(`excluded ${plan.excluded.length} of ${byId.size} posts; over half needs kind "notes"`);
 
+  /* periods -> post ids: whole periods by the window's labels, in date order, minus exclusions */
+  const allLabels = (cadence) => (cadence === "single" ? [w] : cadence === "half" ? w.halves : cadence === "quarterly" ? w.quarters : w.months);
+  const inWindowSorted = [...input._partition.inWindow].sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
+  for (const route of plan.routes) for (const v of route.volumes) {
+    if ((!v.post_ids || !v.post_ids.length) && Array.isArray(v.periods) && v.periods.length) {
+      const ids = [];
+      for (const label of v.periods) {
+        const per = [...w.months, ...w.quarters, ...w.halves, { label: w.label, fromIso: w.fromIso, toIso: w.toIso }].find(x => x.label === label);
+        if (!per) { errors.push(`${route.cadence} "${v.label}": period "${label}" is not one of the window's labels`); continue; }
+        for (const p of inWindowSorted) { const d = String(p.post_date).slice(0, 10); const pid = postId(p); if (d >= per.fromIso && d < per.toIso && !excludedIds.has(pid) && !ids.includes(pid)) ids.push(pid); }
+      }
+      v.post_ids = ids;
+    }
+    if (!Array.isArray(v.periods)) v.periods = [];
+  }
+  if (w.everythingSoFar) for (const r of plan.routes) if (r.cadence !== "single") errors.push(`${r.cadence}: the window is everything so far; only a single volume exists`);
   const rec = plan.routes.filter(r => r.recommended);
   if (plan.routes.length && rec.length !== 1) errors.push(`exactly one recommended route required, found ${rec.length}`);
   const seenCadence = new Set();

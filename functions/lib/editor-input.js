@@ -85,7 +85,14 @@ export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
     part.inWindow = sorted; part.inProgress = [];
   }
   const w = part.window;
-  const rows = part.inWindow.map(shapePost).sort((a, b) => a.date.localeCompare(b.date));
+  let rows = part.inWindow.map(shapePost).sort((a, b) => a.date.localeCompare(b.date));
+  /* over 150 posts the model plans by period, so rows shrink to what a period decision needs
+     and the model is told to name periods rather than list ids (the 524 on HCR, 2026-09-02) */
+  const compact = rows.length > 150;
+  if (compact) rows = rows.map(r => ({ id: r.id, date: r.date, title: r.title.slice(0, 70), words: r.words, by: r.by, section: r.section, footnotes: r.footnotes, images: r.images }));
+  const months = {};
+  for (const r of rows) { const k = r.date.slice(0, 7); const m = months[k] || (months[k] = { month: k, posts: 0, words: 0, footnotes: 0, images: 0, bylines: {} }); m.posts++; m.words += r.words; m.footnotes += r.footnotes || 0; m.images += r.images || 0; for (const b of r.by || []) m.bylines[b] = (m.bylines[b] || 0) + 1; }
+  const by_month = Object.values(months).map(m => ({ ...m, est_pages: Math.round(m.words / PAGE_WORDS + m.posts + 8), bylines: Object.entries(m.bylines).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([n, c]) => `${n} ${c}`) }));
   const progress = part.inProgress.map(shapePost);
   const totalPages = volumePages(part.inWindow);
   const periods = {
@@ -101,6 +108,7 @@ export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
     window: { label: w.label, span: w.span, from: w.fromIso, to: w.toIso, periods,
       in_progress: { label: w.inProgress.label, span: w.inProgress.span, posts: progress.length } },
     totals: { posts: rows.length, words: rows.reduce((s, r) => s + r.words, 0), estimated_pages: totalPages },
+    compact, by_month,
     constraints: { pages_formula: `pages = words/${PAGE_WORDS} + posts + 8, floor ${MIN_PAGES}`, min_pages: MIN_PAGES, max_pages: MAX_PAGES, hard_max: HARD_MAX,
       print_cost: { bw: `$${prices.pods.bw.base} + $${prices.pods.bw.per_page}/page`, color: `$${prices.pods.color.base} + $${prices.pods.color.per_page}/page` } },
     posts: rows,

@@ -728,8 +728,8 @@ function renderPreview(d: any){
   }));
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   const ED = d.editorial && d.editorial.plan;
-  if (ED && ED.routes && ED.routes.length){
-    const golden = ED.routes.find((r: any) => r.recommended) || ED.routes[0];
+  if (ED && ED.sentences){
+    const golden = (ED.routes && (ED.routes.find((r: any) => r.recommended) || ED.routes[0])) || { volumes: [] };
     const w = d.editorial.window || {};
     const t = d.editorial.totals || {};
     (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;

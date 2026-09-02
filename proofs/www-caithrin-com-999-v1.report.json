@@ -6,7 +6,7 @@
   "omittedPaid": 0,
   "podcastPosts": 0,
   "declineSignals": [],
-  "selection": {
+  "planSelection": {
     "posts": 23,
     "found": 23,
     "missing": []
@@ -21,6 +21,11 @@
     "mappedFrom": "SF Pro Display",
     "warnings": []
   },
+  "pubName": "caithrin",
+  "author": "Caithrin",
+  "authors": [
+    "Caithrin"
+  ],
   "kind": "essays",
   "mediaOnly": 0,
   "included": 23,

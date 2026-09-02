@@ -34,10 +34,13 @@ export async function drawSample(n, seed) {
   return out;
 }
 /* Direct archive read, newest first, paging by the count received, back to `untilIso`. */
-export async function readArchive(host, { maxPosts = 150, untilIso = "1970-01-01" } = {}) {
+export async function readArchive(host, { maxPosts = 1800, untilIso = "1970-01-01" } = {}) {
   const posts = [];
+  let h = host, hopped = false;
   for (let offset = 0; posts.length < maxPosts; ) {
-    const r = await fetchWithBackoff(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`);
+    const r = await fetchWithBackoff(`https://${h}/api/v1/archive?sort=new&offset=${offset}&limit=25`, { redirect: "manual" });
+    /* custom domains often serve the archive on www only (astralcodexten.com answers 404 on the apex) */
+    if ((r.status === 404 || (r.status >= 300 && r.status < 400)) && !hopped && !h.startsWith("www.")) { hopped = true; h = "www." + h; continue; }
     if (!r.ok) throw new Error(`archive ${r.status}`);
     const page = await r.json();
     if (!Array.isArray(page) || !page.length) break;

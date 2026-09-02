@@ -20,7 +20,7 @@ import { chromium, webkit, firefox } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { summarizeArchive } from "../functions/lib/preview-summary.js";
 import { editionWindow } from "../functions/lib/edition-window.js";
-import { partition, volumePages } from "../functions/lib/editor-input.js";
+import { buildEditorInput } from "../functions/lib/editor-input.js";
 
 const engineName = process.argv[2] || "chromium";
 const base = (process.argv[3] || "https://inksheaf.com").replace(/\/$/, "");
@@ -117,17 +117,16 @@ async function truthFor(host) {
   const s = summarizeArchive(posts, { publicationName: null, theme: null }, h, cutoff, !reachedWindow);
   if (!s) return { kind: "empty", detail: "no public posts in window" };
   /* the numbers the page prints are the edition window's, from the same partition the editor uses */
-  const part = partition(posts, Date.now());
-  const inWindow = part.inWindow;
-  const words = inWindow.reduce((a, p) => a + (Number(p.wordcount) || 0), 0);
-  return { kind: "book", posts: inWindow.length, words, est_pages: volumePages(inWindow), capped: !reachedWindow, host: h, trailing: { posts: s.posts, words: s.words } };
+  const inp = buildEditorInput({ posts, identity: { publicationName: null }, host: h, nowMs: Date.now(), capped: !reachedWindow });
+  return { kind: "book", posts: inp.totals.posts, words: inp.totals.words, est_pages: inp.totals.estimated_pages, capped: !reachedWindow, host: h, trailing: { posts: s.posts, words: s.words } };
 }
 
 async function drive(page, pasted) {
   const errs = [];
   const onErr = e => errs.push("pageerror: " + String(e).slice(0, 160));
   /* the dev server has no D1, so /api/event answers 500; that is the local setup, not the page */
-  const onCon = m => { if (m.type() === "error" && !/api\/(event|signup)/.test((m.location()?.url || "") + m.text())) errs.push("console: " + m.text().slice(0, 160) + " " + (m.location()?.url || "")); };
+  /* a 5xx from /api/preview is the outage the page reports in words; the verdict comes from the page's message, not the console */
+  const onCon = m => { if (m.type() === "error" && !/api\/(event|signup|preview|plan)/.test((m.location()?.url || "") + m.text())) errs.push("console: " + m.text().slice(0, 160) + " " + (m.location()?.url || "")); };
   page.on("pageerror", onErr); page.on("console", onCon);
   const t0 = Date.now();
   await page.goto(base + "/", { waitUntil: "domcontentloaded" });
@@ -172,7 +171,7 @@ function judge(truth, r) {
         return { verdict: "FAIL", note: `words ${words} on page, ${truth.words} in the independent read` };
       if (!r.verdict) notes.push("desk verdict empty");
       /* the plan on the shelf: labels from the window's vocabulary, at most twelve volumes */
-      const LABEL = /^(Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
+      const LABEL = /^(Everything so far|Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
       if (r.labels && r.labels.length) {
         const bad = r.labels.filter(l => !LABEL.test(l));
         if (bad.length) notes.push(`labels off the vocabulary: ${bad.slice(0, 3).join(", ")}`);

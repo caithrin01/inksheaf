@@ -27,6 +27,8 @@ const TOP = argOf("--top") ? +argOf("--top") : null;
 // --posts <file.json>: an exact post list (ids or slugs, in reading order) from an editorial
 // plan (plan-end-to-end-v1). The listing is filtered to it and ordered by it.
 const POSTS_FILE = argOf("--posts");
+// --dedication "text": one line on its own page before the contents (the change page)
+const DEDICATION = (argOf("--dedication") || "").trim().slice(0, 300);
 const ONLY = POSTS_FILE ? JSON.parse(readFileSync(POSTS_FILE, "utf-8")).map(String) : null;
 const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
 const BRAND_FILE = process.argv.includes("--brand-file")
@@ -92,7 +94,7 @@ if (ONLY) {
   const keyOf = p => rank.has(String(p.id)) ? String(p.id) : rank.has(String(p.slug)) ? String(p.slug) : null;
   const missing = ONLY.filter(k => !posts.some(p => String(p.id) === k || String(p.slug) === k));
   posts.splice(0, posts.length, ...posts.filter(p => keyOf(p) !== null).sort((a, b) => rank.get(keyOf(a)) - rank.get(keyOf(b))));
-  report.selection = { posts: ONLY.length, found: posts.length, missing };
+  report.planSelection = { posts: ONLY.length, found: posts.length, missing };
 }
 const seenSlugs = new Set();
 for (let i = 0; i < posts.length; ) {
@@ -208,6 +210,7 @@ for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCoun
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
+report.pubName = pubName; report.author = author; report.authors = authors.slice(0, 6);
 const dominantShare = full.length ? (byCount[author] || 0) / full.length : 1;
 
 /* ---------- content kind: what the pieces ARE drives every label ---------- */
@@ -388,7 +391,8 @@ const qrInk = await QRCode.toDataURL("https://inksheaf.pages.dev", { margin: 0, 
 const dates = full.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
 const dfmt = t => new Date(t).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 const dayfmt = t => new Date(t).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-const range = `${dfmt(dates[0])} – ${dfmt(dates[dates.length - 1])}`;
+// a volume inside one month reads "July 2025", not "July 2025 – July 2025"
+const range = dfmt(dates[0]) === dfmt(dates[dates.length - 1]) ? dfmt(dates[0]) : `${dfmt(dates[0])} – ${dfmt(dates[dates.length - 1])}`;
 const year = new Date(dates[dates.length - 1]).getUTCFullYear();
 const y0 = new Date(dates[0]).getUTCFullYear();
 const spanMonths = (dates[dates.length - 1] - dates[0]) / 2629800000;
@@ -398,6 +402,10 @@ let kindLabel = spanMonths <= 4 ? `Quarterly · ${year}`
   : `Collected ${capNoun} · ${yspan}`;
 let volLabel = spanMonths <= 4 ? `The ${year} Quarterly` : (spanMonths >= 10 && spanMonths <= 14) ? `The ${year} Annual` : `Collected ${capNoun}`;
 if (report.selection) { kindLabel = `Selected ${capNoun} · ${yspan}`; volLabel = `Selected ${capNoun}`; }
+// --vol-label "Q3 2025" [--vol-of "I of IV"]: the plan's own name for this volume (the press)
+{ const VL = argOf("--vol-label"), VO = argOf("--vol-of");
+  const escv = x => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (VL) { volLabel = escv(VL); kindLabel = `${escv(VL)}${VO ? ` · Vol. ${escv(VO)}` : ""}`; } }
 const totalWords = full.reduce((s, p) => s + (p.wordcount || 0), 0);
 for (const p2 of full) if ((p2.title || "").length > 120)
   report.skips.push({ slug: p2.slug, reason: "title over 120 chars kept, check running head", kept: true });
@@ -532,6 +540,7 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
   padding-top:.16in; display:flex; justify-content:space-between; font-size:8.5pt; color:${B.coverInk2 || "var(--faint)"} }
 .fm{ page: frontmatter; break-after:page }
 .halftitle{ text-align:center; padding-top:2.6in; font-size:15pt; letter-spacing:.04em }
+.dedication{ text-align:center; padding-top:2.9in; font-style:italic; font-size:13pt; max-width:3.6in; margin:0 auto }
 .titlepage{ text-align:center; padding-top:1.9in }
 .titlepage .t{ font-size:24pt; font-weight:560 }
 .titlepage .s{ font-size:10.5pt; color:var(--faint); margin-top:.22in }
@@ -601,7 +610,8 @@ ${PRINT_INTERIOR ? "" : `
 
 <div class="fm titlepage">
   <div class="t">${esc(pubName)}</div>
-  <div class="s">${volLabel} · ${range}</div>
+  <div class="s">${(() => { const VL = argOf("--vol-label"), VO = argOf("--vol-of"); const one = /^(\w+ \d{4}) – \1$/.exec(range); const r = one ? one[1] : range;
+    return VL ? `${VO ? `Vol. ${VO} · ` : ""}${r}` : `${volLabel} · ${r}`; })()}</div>
   ${(multi || author.toLowerCase() !== pubName.toLowerCase()) ? `<div class="a">${esc(authorLine)}</div>` : ""}
 </div>
 
@@ -627,6 +637,7 @@ ${PRINT_INTERIOR ? "" : `
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 
+${DEDICATION ? `<div class="fm dedication">${esc(DEDICATION)}</div>` : ""}
 <div class="fm toc">
   <h3>Contents</h3>
   ${tocRows}

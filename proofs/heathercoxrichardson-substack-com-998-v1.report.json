@@ -1,0 +1,37 @@
+{
+  "host": "heathercoxrichardson.substack.com",
+  "listed": 998,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 419,
+  "declineSignals": [],
+  "planSelection": {
+    "posts": 31,
+    "found": 31,
+    "missing": []
+  },
+  "estPages": 199,
+  "brand": {
+    "accent": "#3f5885",
+    "headingFont": "Source Serif 4",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#FFFFFF",
+    "coverPlate": false,
+    "mappedFrom": null,
+    "warnings": []
+  },
+  "kind": "letters",
+  "mediaOnly": 0,
+  "included": 31,
+  "parts": [
+    "July 2025"
+  ],
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0,
+  "dateRange": [
+    "2025-07-01",
+    "2025-07-31"
+  ]
+}

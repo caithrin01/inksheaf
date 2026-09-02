@@ -54,3 +54,44 @@ jobs:
           name: relay-sample-${{ github.run_id }}
           path: relay-evidence/
           if-no-files-found: ignore
+
+  random-battery:
+    # thirty publications drawn from Substack's listings, pasted the way a writer would, judged
+    # against an independent read of the edition window (plan-end-to-end-v1, phase 5)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Random battery against production
+        run: node scripts/test-random-substacks.mjs chromium https://inksheaf.com --n=30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: random-battery-${{ github.run_id }}
+          path: evidence/random/*.md
+          if-no-files-found: ignore
+  editor-fixtures:
+    # the ten edge-case archives through the editor; every one must plan on the first or
+    # second attempt, and the index is kept as an artifact for reading
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - name: Fixtures through the editor
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          VAULT: ${{ github.workspace }}/evidence/planner
+        run: node scripts/test-editor-live.mjs --random=0 --seed=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editor-fixtures-${{ github.run_id }}
+          path: evidence/planner/*
+          if-no-files-found: ignore

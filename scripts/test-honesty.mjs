@@ -133,7 +133,7 @@ if (hcr.ok) {
 } else console.log("SKIP HCR reachable-state");
 
 /* ---------- the editorial plan (plan-end-to-end-v1): every gate host carries one that passes the checker ---------- */
-const LABEL = /^(Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
+const LABEL = /^(Everything so far|Q[1-4] \d{4}|H[12] \d{4}|[A-Z][a-z]{2} \d{4}|\d{4}(–\d{2})?|Q[1-4] \d{4} – Q[1-4] \d{4})( – [A-Z][a-z]{2} \d{4})?( · [IVX]+)?$/;
 for (const [name, d] of [["caithrin", cai], ["HCR", hcr], ["ACX", acx]]) {
   if (!d.ok) continue;
   const ed = d.editorial;

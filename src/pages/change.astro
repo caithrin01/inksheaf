@@ -1,7 +1,8 @@
 ---
-// The "Change something" page from the proof email. Shows the plan the writer chose and takes
-// their changes in their own words; a person applies them and re-proofs (plan-end-to-end-v1,
-// phase 2 first cut: the editing controls come after the press is proven end to end).
+// "Change something", from the proof email (plan-end-to-end-v1, phase 2 and 5). The writer
+// leaves posts out, retitles a volume, switches to another set the editor offered, switches
+// the interior, adds a dedication; the plan is re-derived from the archive, checked against
+// the cap, saved, and a new proof is started. Anything else goes to a person in their words.
 ---
 <html lang="en">
 <head>
@@ -9,50 +10,99 @@
 <title>Change something · Inksheaf</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 <style>
-:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--faint:rgba(33,28,21,.65);--card:#f4efe2}
-@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--faint:rgba(233,223,200,.6);--card:#1c1710}}
-*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.12rem}
-.sheet{max-width:40rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}
-.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}
-.plan{margin:1.6rem 0;padding:1rem 1.2rem;border:1px solid var(--rule);background:var(--card)}
-.plan b{font-weight:560}.vol{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid rgba(128,128,128,.25);padding:.35rem 0}
-label{display:block;margin:1.6rem 0 .4rem}textarea{width:100%;min-height:9rem;font:inherit;padding:.7rem;background:var(--card);color:var(--ink);border:1px solid var(--rule)}
-button{margin-top:1rem;font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.8rem;padding:.8rem 1.6rem;background:var(--ink);color:var(--paper);border:1px solid var(--ink);cursor:pointer}
-button:hover{background:var(--red);border-color:var(--red)}.note{color:var(--faint);font-size:.92rem}.err{color:var(--red);min-height:1.4em;margin-top:.6rem}
+:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--hair:rgba(33,28,21,.15);--faint:rgba(33,28,21,.65);--card:#f4efe2}
+@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--hair:rgba(233,223,200,.15);--faint:rgba(233,223,200,.6);--card:#1c1710}}
+*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.1rem}
+.sheet{max-width:44rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}h2{font-weight:500;font-size:1.2rem;margin:2rem 0 .5rem}
+.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}.note{color:var(--faint);font-size:.92rem}
+.vol{margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--rule);background:var(--card)}.vol .head{display:flex;justify-content:space-between;gap:1rem;align-items:baseline}
+.vol .head b{font-weight:560}.vol input.title{width:100%;font:inherit;padding:.3rem .5rem;margin-top:.4rem;background:var(--paper);color:var(--ink);border:1px solid var(--hair)}
+.posts{margin-top:.5rem;font-size:.95rem}.posts label{display:flex;gap:.6rem;align-items:baseline;padding:.15rem 0;border-top:1px solid var(--hair)}.posts label span.d{color:var(--faint);font-size:.8rem;min-width:5.6rem}
+.posts label.out{color:var(--faint);text-decoration:line-through}
+.routes label,.interior label{display:block;padding:.2rem 0}textarea{width:100%;min-height:5rem;font:inherit;font-size:.95rem;padding:.5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
+button{font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;padding:.75rem 1.4rem;background:var(--ink);color:var(--paper);border:1px solid var(--ink);cursor:pointer;margin-top:1rem;margin-right:.6rem}
+button.ghost{background:transparent;color:var(--ink)}button:hover{background:var(--red);border-color:var(--red);color:var(--paper)}button:disabled{opacity:.5;cursor:not-allowed}
+.err{color:var(--red);min-height:1.4em;margin-top:.6rem}.sum{margin-top:1rem;font-size:.98rem}
 </style></head>
 <body><main class="sheet">
 <p class="eyebrow">Inksheaf · your edition</p>
-<h1 id="h">Change something</h1>
+<h1>Change something</h1>
 <p id="lead" class="note">Loading your plan…</p>
-<div class="plan" id="plan" hidden></div>
-<form id="f" hidden>
-  <label for="req">What should change? Leave posts out, retitle a volume, switch to a different set, add a dedication, anything.</label>
-  <textarea id="req" name="request" required placeholder="Leave out the two housekeeping posts from March, and call the second volume ‘Spring’."></textarea>
-  <button type="submit">Send the changes</button>
+<section id="work" hidden>
+  <h2>The set</h2>
+  <div class="routes" id="routes"></div>
+  <h2>The volumes</h2>
+  <p class="note">Untick a post to leave it out. Rename a volume by typing over its title.</p>
+  <div id="vols"></div>
+  <h2>Interior</h2>
+  <div class="interior"><label><input type="radio" name="interior" value="bw" /> Black and white</label><label><input type="radio" name="interior" value="color" /> Colour</label></div>
+  <h2>Dedication</h2>
+  <p class="note">One line, printed on its own page before the contents. Leave it empty for none.</p>
+  <input id="ded" type="text" maxlength="200" style="width:100%;font:inherit;padding:.4rem .5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)" />
+  <p class="sum" id="sum"></p>
+  <button type="button" id="apply">Apply and send a new proof</button>
+  <button type="button" class="ghost" id="other">Something else</button>
   <div class="err" id="err" role="alert"></div>
-</form>
-<p class="note" id="done" hidden>Got it. A person applies your changes, re-proofs the edition, and emails you the new pages, usually the same day. Nothing prints until you approve.</p>
+  <form id="f" hidden>
+    <h2>Tell us in your words</h2>
+    <textarea id="req" required placeholder="Move the March essays into the spring volume and call it ‘Spring’."></textarea>
+    <button type="submit">Send the changes</button>
+  </form>
+  <p class="note" id="done" hidden></p>
+</section>
 </main>
 <script>
 const q = new URLSearchParams(location.search); const id = q.get('id'), sig = q.get('sig');
 const $ = (s) => document.querySelector(s);
+const NAME = { single: 'One volume', half: 'Half-year set', quarterly: 'Quarterly', monthly: 'Monthly' };
+let plan = null, titles = {}, routes = null;
+const money = n => '$' + Number(n).toFixed(2);
+function render() {
+  const rs = $('#routes');
+  if (routes && routes.length > 1) rs.innerHTML = routes.map(r => `<label><input type="radio" name="cadence" value="${r.cadence}" ${r.cadence === plan.cadence ? 'checked' : ''} /> ${NAME[r.cadence] || r.cadence} · ${r.volumes.length === 1 ? r.volumes[0].est_pages + ' pages' : r.volumes.length + ' volumes'} · ${money(r.price ? r.price[plan.interior] : 0)}${r.recommended ? ' · the editor’s pick' : ''}</label>`).join('');
+  else rs.innerHTML = `<p class="note">${NAME[plan.cadence] || plan.cadence}. No other set was offered for this archive.</p>`;
+  $('#vols').innerHTML = plan.volumes.map((v, i) => `<div class="vol" data-i="${i}"><div class="head"><b>${v.label}</b><span class="note">${v.posts ?? v.post_ids.length} posts · ${v.est_pages ?? '?'}pp</span></div>
+    <input class="title" name="title" data-label="${v.label}" value="${(v.title || '').replace(/"/g, '&quot;')}" placeholder="Volume title" />
+    <div class="posts">${v.post_ids.map(pid => { const t = titles[pid] || {}; return `<label><input type="checkbox" name="keep" value="${pid}" checked /><span class="d">${t.date || ''}</span><span>${(t.title || 'Post ' + pid).replace(/</g, '&lt;')}</span></label>`; }).join('')}</div></div>`).join('');
+  document.querySelector(`input[name=interior][value=${plan.interior === 'color' ? 'color' : 'bw'}]`).checked = true;
+  $('#ded').value = plan.dedication || '';
+  $('#vols').addEventListener('change', e => { if (e.target.name === 'keep') e.target.closest('label').classList.toggle('out', !e.target.checked); summarize(); });
+  $('#routes').addEventListener('change', summarize); document.querySelector('.interior').addEventListener('change', summarize);
+  summarize();
+}
+function summarize() {
+  const excluded = [...document.querySelectorAll('input[name=keep]:not(:checked)')].length;
+  const cadence = (document.querySelector('input[name=cadence]:checked') || {}).value || plan.cadence;
+  const interior = document.querySelector('input[name=interior]:checked').value;
+  $('#sum').textContent = `${NAME[cadence] || cadence}, ${interior === 'color' ? 'colour' : 'black and white'}${excluded ? ', ' + excluded + ' post' + (excluded === 1 ? '' : 's') + ' left out' : ''}. Pages and prices are re-derived when you apply; nothing prints until you approve the new proof.`;
+}
 (async () => {
   const r = await fetch(`/api/change?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
   const d = await r.json().catch(() => ({}));
   if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your proof email again, or write to caithrin@caithrin.com.'; return; }
-  const p = d.plan;
+  plan = d.plan; titles = d.titles || {}; routes = d.routes;
   $('#lead').textContent = `${d.publication_url.replace(/^https?:\/\//, '')} · ${d.status}`;
-  const box = $('#plan'); box.hidden = false;
-  if (p && Array.isArray(p.volumes) && p.volumes.length) {
-    box.innerHTML = `<b>${p.cadence === 'single' ? 'One volume' : p.cadence === 'half' ? 'Half-year set' : p.cadence === 'quarterly' ? 'Quarterly set' : p.cadence === 'monthly' ? 'Monthly set' : p.cadence}</b> · ${p.interior === 'color' ? 'colour' : 'black and white'} interior` +
-      p.volumes.map(v => `<div class="vol"><span>${v.label}${v.subtitle ? ' · ' + v.subtitle : ''}</span><span>${v.posts ?? (v.post_ids || []).length} posts · ${v.est_pages ?? '?'}pp</span></div>`).join('');
-  } else box.innerHTML = '<b>Planned by hand</b> · a person is shaping this edition.';
-  $('#f').hidden = false;
+  if (!plan || !Array.isArray(plan.volumes) || !plan.volumes.length) { $('#lead').textContent += ' · planned by hand: tell us below what should change.'; $('#work').hidden = false; $('#apply').hidden = true; $('#other').hidden = true; $('#f').hidden = false; document.querySelectorAll('#work h2, #routes, #vols, .interior, #ded, #sum, .note').forEach(el => { if (!el.closest('#f')) el.hidden = true; }); return; }
+  $('#work').hidden = false; render();
 })();
+$('#apply').addEventListener('click', async () => {
+  const exclude = [...document.querySelectorAll('input[name=keep]:not(:checked)')].map(i => Number(i.value));
+  const titlesOut = {}; for (const i of document.querySelectorAll('input.title')) if (i.value.trim()) titlesOut[i.dataset.label] = i.value.trim();
+  const cadence = (document.querySelector('input[name=cadence]:checked') || {}).value || plan.cadence;
+  const interior = document.querySelector('input[name=interior]:checked').value;
+  $('#apply').disabled = true; $('#err').textContent = '';
+  const r = await fetch('/api/change', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, changes: { exclude, titles: titlesOut, cadence: cadence !== plan.cadence ? cadence : null, interior, dedication: $('#ded').value.trim() } }) });
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('#apply').disabled = false; $('#err').textContent = d.error || 'That did not apply.'; return; }
+  $('#work').querySelectorAll('h2, #routes, #vols, .interior, #ded, #sum, #apply, #other, .note').forEach(el => el.hidden = true);
+  $('#done').hidden = false;
+  $('#done').textContent = d.reproof === 'started' ? 'Applied. A new proof is being made and lands in your inbox in a few minutes: ' + d.plan.volumes.map(v => v.label + ' ' + v.est_pages + 'pp').join(', ') + '.' : 'Applied. A person makes the new proof and emails it to you today: ' + d.plan.volumes.map(v => v.label + ' ' + v.est_pages + 'pp').join(', ') + '.';
+});
+$('#other').addEventListener('click', () => { $('#f').hidden = false; $('#req').focus(); });
 $('#f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const r = await fetch('/api/change', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, request: $('#req').value }) });
-  if (r.ok) { $('#f').hidden = true; $('#done').hidden = false; }
+  if (r.ok) { $('#f').hidden = true; $('#done').hidden = false; $('#done').textContent = 'Got it. A person applies your changes, re-proofs the edition, and emails you the new pages, usually the same day.'; }
   else $('#err').textContent = 'That did not send. Reply to your proof email instead.';
 });
 </script></body></html>
