@@ -161,8 +161,47 @@ Inksheaf`;
   await sendMail({ to: OPERATOR, subject: `press: ${allValid ? "files validated, ready to list" : "files built"} for ${host} (#${ID})`,
     text: `Reservation #${ID} approved.\n${URL_}\n${TO}\n\n` + built.map(b => `${b.label}: ${b.pages} pages, interior ${b.interiorKey}` + (b.coverKey ? `, cover ${b.coverKey}, validation ${b.validation.interior}/${b.validation.cover}` : "")).join("\n") +
       `\n\nNext: the Lulu listing (wizard). Files are in the proof store for seven days.` });
-  await status(allValid ? "validated" : "listing", { message: `${built.length} volume(s) built${allValid ? ", all NORMALIZED" : ""}` });
+  await status(allValid ? "validated" : "listing", { message: `${built.length} volume(s) built${allValid ? ", all NORMALIZED" : ""}`,
+    files: built.map(b => ({ label: b.label, pages: b.pages, interiorKey: b.interiorKey, coverKey: b.coverKey || null, validated: !!(b.validation && b.validation.interior === "NORMALIZED" && b.validation.cover === "NORMALIZED") })) });
   console.log(`PRESS ${allValid ? "validated" : "built"} #${ID} ${host}: ${built.map(b => b.label + " " + b.pages + "pp").join(", ")}`);
+} else if (EVENT === "invoice") {
+  /* no Stripe on this deploy: the invoice goes by email and a person confirms payment */
+  const inv = JSON.parse(process.env.INVOICE_JSON || "{}");
+  const lines = (inv.quotes || []).map(x => `${x.name}, ${x.city} ${x.state}: ${x.quantity} × ${volumes.length === 1 ? "copy" : "set"}, $${Number(x.total).toFixed(2)}`).join("\n");
+  const t = inv.totals || {};
+  const text = `Invoice for mailing #${process.env.MAILING_ID} of ${host}\n\n${lines}\n\nPrinting: $${Number(t.print).toFixed(2)}\nShipping (${String(inv.level || "").toLowerCase().replace("_", " ")}): $${Number(t.shipping).toFixed(2)}\n${t.tax != null ? `Tax: $${Number(t.tax).toFixed(2)}\n` : ""}Total, at cost: $${Number(t.total).toFixed(2)}${t.estimated ? " (estimated from the measured cost table; the printer's exact figure follows)" : ""}\n\nNothing is marked up; this is what the printer charges. Reply to this email to pay by the method that suits you, and the parcels print as soon as it lands. You get one email per parcel with its tracking number.\n\nInksheaf`;
+  await sendMail({ to: TO, subject: `Invoice: ${t.copies} ${volumes.length === 1 ? "copies" : "sets"} of ${host}, $${Number(t.total).toFixed(2)} at cost`, text });
+  await sendMail({ to: OPERATOR, subject: `press: invoice #${process.env.MAILING_ID} for ${host} (#${ID}), $${Number(t.total).toFixed(2)}`, text: `${URL_}\n${TO}\n\n${text}\n\nWhen paid: workflow_dispatch press with event mail and this mailing id.` });
+  await status("invoiced", { message: `mailing ${process.env.MAILING_ID}: $${Number(t.total).toFixed(2)}` });
+  console.log(`PRESS invoice sent #${ID} mailing ${process.env.MAILING_ID}`);
+} else if (EVENT === "mail") {
+  /* REAL MONEY: one Lulu print job per address, only for a paid mailing, only from validated files */
+  const lulu = makeClient({ production: true });
+  const addresses = JSON.parse(process.env.ADDRESSES_JSON || "[]");
+  let files = null; try { files = (JSON.parse(process.env.FILES_JSON || "null") || {}).files || null; } catch {}
+  if (!files || !files.length || !files.every(f => f.validated && f.interiorKey && f.coverKey)) { console.error("no validated files for this edition; mailing not placed"); await status("mail-blocked", { message: "no validated files" }); process.exit(3); }
+  if (!addresses.length) { console.error("no addresses"); process.exit(2); }
+  const level = process.env.LEVEL || "MAIL";
+  const placed = [];
+  for (let i = 0; i < addresses.length; i++) {
+    const a = addresses[i];
+    const address = { name: a.name, street1: a.street1, street2: a.street2 || undefined, city: a.city, state_code: a.state_code, postcode: a.postcode, country_code: "US", phone_number: a.phone || "+1 415 555 0100" };
+    const externalId = `inksheaf-${ID}-m${process.env.MAILING_ID}-${i + 1}`;
+    try {
+      const job = await lulu.api("/print-jobs/", { external_id: externalId, contact_email: OPERATOR, shipping_level: level, shipping_address: address,
+        line_items: files.map(f => ({ external_id: `${externalId}-${f.label.replace(/\W+/g, "-")}`, title: `${host} · ${f.label}`, quantity: Number(a.quantity) || 1,
+          printable_normalization: { pod_package_id: POD_ID, interior: { source_url: signedProofUrl(f.interiorKey, 24 * 3600) }, cover: { source_url: signedProofUrl(f.coverKey, 24 * 3600) } } })) });
+      placed.push({ address: `${a.name}, ${a.city} ${a.state_code}`, jobId: job.id, status: job.status?.name });
+      log("mail", `${externalId}: job ${job.id} ${job.status?.name}`);
+    } catch (e) { placed.push({ address: `${a.name}, ${a.city} ${a.state_code}`, error: String(e.message).slice(0, 200) }); log("mail", `${externalId} FAILED: ${String(e.message).slice(0, 120)}`); }
+  }
+  writeFileSync(`${DIR}/mail-${process.env.MAILING_ID}.json`, JSON.stringify({ id: ID, mailing: process.env.MAILING_ID, placed }, null, 1));
+  const okN = placed.filter(p => p.jobId).length;
+  await sendMail({ to: TO, subject: `Printing: ${okN} of ${placed.length} parcels of ${host} are with the printer`,
+    text: `Your mailing is with the printer.\n\n` + placed.map(p => `${p.address}: ${p.jobId ? "print job " + p.jobId : "not placed (" + p.error + "); a person is on it"}`).join("\n") + `\n\nYou get one email per parcel with its tracking number when it ships.\n\nInksheaf` });
+  await sendMail({ to: OPERATOR, subject: `press: ${okN}/${placed.length} print jobs placed for ${host} mailing #${process.env.MAILING_ID}`, text: JSON.stringify(placed, null, 1) });
+  await status(okN === placed.length ? "printing" : "mail-partial", { message: `${okN}/${placed.length} jobs placed`, jobs: placed });
+  console.log(`PRESS mail #${ID} mailing ${process.env.MAILING_ID}: ${okN}/${placed.length} jobs placed`);
 } else if (EVENT === "change") {
   const req = process.env.CHANGE_REQUEST || "(empty)";
   await sendMail({ to: OPERATOR, subject: `press: change requested for ${host} (#${ID})`,

@@ -4,7 +4,7 @@ name: press
 # them privately, emails the writer, and reports status to the site.
 on:
   repository_dispatch:
-    types: [press, list, change]
+    types: [press, list, change, invoice, mail]
   workflow_dispatch:
     inputs:
       event: { description: "press or list", default: "press" }
@@ -30,6 +30,11 @@ jobs:
           WRITER_EMAIL: ${{ github.event.client_payload.email || inputs.email }}
           PLAN_JSON: ${{ github.event.client_payload.plan_json }}
           CHANGE_REQUEST: ${{ github.event.client_payload.request }}
+          MAILING_ID: ${{ github.event.client_payload.mailing_id }}
+          INVOICE_JSON: ${{ toJSON(github.event.client_payload.invoice) }}
+          ADDRESSES_JSON: ${{ toJSON(github.event.client_payload.addresses) }}
+          FILES_JSON: ${{ github.event.client_payload.files }}
+          LEVEL: ${{ github.event.client_payload.level }}
           ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
           PROOF_STORE_TOKEN: ${{ secrets.INKSHEAF_PROOF_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

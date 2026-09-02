@@ -1,0 +1,109 @@
+---
+// The mailing screen (plan-end-to-end-v1, phase 4): copies of the edition to readers'
+// addresses, priced by Lulu per address, at cost. Payment: Stripe when the deploy has keys,
+// otherwise an invoice by email settled by hand. Nothing is ordered from this page directly.
+---
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mail copies · Inksheaf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--hair:rgba(33,28,21,.15);--faint:rgba(33,28,21,.65);--card:#f4efe2}
+@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--hair:rgba(233,223,200,.15);--faint:rgba(233,223,200,.6);--card:#1c1710}}
+*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.1rem}
+.sheet{max-width:46rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}h2{font-weight:500;font-size:1.25rem;margin-top:2rem}
+.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}.note{color:var(--faint);font-size:.92rem}
+.edition{margin:1.2rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);background:var(--card)}.edition b{font-weight:560}
+table{width:100%;border-collapse:collapse;margin-top:.8rem;font-size:.95rem}th{text-align:left;font-weight:500;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:.3rem .3rem;border-bottom:1px solid var(--rule)}
+td{padding:.25rem .3rem;border-bottom:1px solid var(--hair);vertical-align:top}input{width:100%;font:inherit;font-size:.95rem;padding:.35rem .4rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
+input.q{width:3.6rem;text-align:center}.tot{text-align:right;white-space:nowrap}.err{color:var(--red);font-size:.85rem}
+.row-actions button,.actions button{font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.74rem;padding:.6rem 1.1rem;background:transparent;color:var(--ink);border:1px solid var(--rule);cursor:pointer;margin-top:.9rem;margin-right:.5rem}
+.actions button.main{background:var(--ink);color:var(--paper);border-color:var(--ink)}.actions button.main:hover{background:var(--red);border-color:var(--red)}button:disabled{opacity:.5;cursor:not-allowed}
+.invoice{margin-top:1.6rem;padding:1rem 1.2rem;border:1px solid var(--rule);background:var(--card)}.invoice .line{display:flex;justify-content:space-between;padding:.2rem 0}.invoice .total{border-top:1px solid var(--rule);margin-top:.4rem;padding-top:.5rem;font-weight:560}
+.hidden{display:none}textarea{width:100%;min-height:6rem;font:inherit;font-size:.95rem;padding:.5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
+</style></head>
+<body><main class="sheet">
+<p class="eyebrow">Inksheaf · mail copies to readers</p>
+<h1 id="h">Send copies of your edition</h1>
+<p id="lead" class="note">Loading your edition…</p>
+<div class="edition" id="edition" hidden></div>
+
+<section id="work" hidden>
+<h2>Where they go</h2>
+<p class="note">One row per address, US only during the beta. Paste a list below instead if you have one: one address per line as <i>name, street, city, ST, ZIP, copies</i>.</p>
+<table id="tbl"><thead><tr><th>Name</th><th>Street</th><th>City</th><th>ST</th><th>ZIP</th><th>Copies</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+<div class="row-actions"><button type="button" id="add">Add an address</button><button type="button" id="pasteBtn">Paste a list</button></div>
+<textarea id="paste" class="hidden" placeholder="Ada Lovelace, 12 Analytical St, Boston, MA, 02108, 2"></textarea>
+<h2>Shipping</h2>
+<label><input type="radio" name="level" value="MAIL" checked style="width:auto" /> Mail, the slowest and cheapest</label><br />
+<label><input type="radio" name="level" value="PRIORITY_MAIL" style="width:auto" /> Priority mail</label><br />
+<label><input type="radio" name="level" value="GROUND" style="width:auto" /> Ground, tracked</label>
+<div class="actions"><button type="button" class="main" id="quote">Price it</button><span class="note" id="qnote"></span></div>
+<div class="invoice hidden" id="invoice"></div>
+<div class="actions"><button type="button" class="main hidden" id="pay">Pay and print</button><span class="note" id="paynote"></span></div>
+<div class="err" id="err" role="alert"></div>
+<p class="note" id="done" hidden>Sent. You will get the invoice and, once paid, one email per parcel with its tracking number.</p>
+</section>
+</main>
+<script>
+const q = new URLSearchParams(location.search); const id = q.get('id'), sig = q.get('sig');
+const $ = (s) => document.querySelector(s);
+const money = (n) => '$' + Number(n).toFixed(2);
+let volumes = [], payment = 'invoice', lastQuote = null;
+function row(a = {}) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input name="name" value="${esc(a.name)}" /></td><td><input name="street1" value="${esc(a.street1)}" /></td><td><input name="city" value="${esc(a.city)}" /></td><td><input name="state_code" maxlength="2" value="${esc(a.state_code)}" style="width:3.2rem" /></td><td><input name="postcode" value="${esc(a.postcode)}" style="width:5.6rem" /></td><td><input class="q" name="quantity" type="number" min="1" max="50" value="${a.quantity || 1}" /></td><td><button type="button" class="rm" aria-label="Remove this address" style="border:0;background:none;cursor:pointer;color:var(--faint)">×</button></td>`;
+  tr.querySelector('.rm').addEventListener('click', () => tr.remove());
+  $('#rows').appendChild(tr);
+}
+const esc = (s) => String(s ?? '').replace(/"/g, '&quot;');
+function addresses() { return [...$('#rows').querySelectorAll('tr')].map(tr => Object.fromEntries([...tr.querySelectorAll('input')].map(i => [i.name, i.value.trim()]))).filter(a => a.name || a.street1); }
+$('#add').addEventListener('click', () => row());
+$('#pasteBtn').addEventListener('click', () => { $('#paste').classList.toggle('hidden'); $('#paste').focus(); });
+$('#paste').addEventListener('change', () => {
+  for (const line of $('#paste').value.split('\n')) { const p = line.split(',').map(s => s.trim()); if (p.length >= 5) row({ name: p[0], street1: p[1], city: p[2], state_code: p[3], postcode: p[4], quantity: p[5] || 1 }); }
+  $('#paste').value = ''; $('#paste').classList.add('hidden');
+});
+(async () => {
+  const r = await fetch(`/api/change?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your listing email again, or write to caithrin@caithrin.com.'; return; }
+  volumes = (d.plan && d.plan.volumes) || [];
+  $('#lead').textContent = d.publication_url.replace(/^https?:\/\//, '');
+  const e = $('#edition'); e.hidden = false;
+  e.innerHTML = `<b>${volumes.length === 1 ? 'One volume' : volumes.length + ' volumes'}</b> · ${d.plan?.interior === 'color' ? 'colour' : 'black and white'} · 6×9 perfect bound` + volumes.map(v => `<div>${v.label} · ${v.est_pages}pp</div>`).join('');
+  $('#work').hidden = false; row();
+})();
+$('#quote').addEventListener('click', async () => {
+  const list = addresses(); $('#err').textContent = '';
+  if (!list.length) { $('#err').textContent = 'Add at least one address.'; return; }
+  $('#quote').disabled = true; $('#qnote').textContent = 'Asking the printer…';
+  const level = document.querySelector('input[name=level]:checked').value;
+  const r = await fetch('/api/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, level, addresses: list }) });
+  const d = await r.json().catch(() => ({}));
+  $('#quote').disabled = false; $('#qnote').textContent = '';
+  if (!d.ok) { $('#err').textContent = d.error === 'no plan to price' ? 'This edition has no priced plan yet; reply to your email and we will price it by hand.' : 'Could not price that: ' + (d.error || r.status); return; }
+  lastQuote = d; payment = d.payment;
+  const inv = $('#invoice'); inv.classList.remove('hidden');
+  const t = d.totals;
+  inv.innerHTML = `<div class="eyebrow">Invoice${t.estimated ? ' · estimated from the measured cost table' : ' · Lulu\'s prices'}</div>` +
+    d.quotes.map(x => `<div class="line"><span>${esc(x.address.name)}, ${esc(x.address.city)} ${esc(x.address.state_code)} · ${x.quantity} × ${volumes.length === 1 ? 'copy' : 'set'}</span><span>${x.ok ? money(x.total) : '<span class="err">' + esc(x.error) + '</span>'}</span></div>`).join('') +
+    `<div class="line"><span>Printing, ${t.copies} ${volumes.length === 1 ? 'copies' : 'sets'}</span><span>${money(t.print)}</span></div><div class="line"><span>Shipping, ${d.level.toLowerCase().replace('_', ' ')}</span><span>${money(t.shipping)}</span></div>` +
+    (t.tax != null ? `<div class="line"><span>Tax</span><span>${money(t.tax)}</span></div>` : '') +
+    `<div class="line total"><span>Total, at cost</span><span>${money(t.total)}</span></div><p class="note">Nothing is marked up. Inksheaf pays the printer this exact amount.</p>`;
+  const bad = d.quotes.filter(x => !x.ok).length;
+  $('#pay').classList.toggle('hidden', !!bad || !t.copies);
+  $('#pay').textContent = payment === 'stripe' ? 'Pay and print' : 'Send me the invoice';
+  $('#paynote').textContent = bad ? 'Fix the addresses marked above, then price it again.' : payment === 'stripe' ? 'Card payment; the parcels print once it clears.' : 'We email the invoice; the parcels print once it is paid.';
+});
+$('#pay').addEventListener('click', async () => {
+  if (!lastQuote) return;
+  $('#pay').disabled = true;
+  const r = await fetch('/api/mail', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, level: lastQuote.level, addresses: addresses() }) });
+  const d = await r.json().catch(() => ({}));
+  if (d.ok && d.checkout_url) { location.href = d.checkout_url; return; }
+  if (d.ok) { $('#work').querySelectorAll('section > *:not(#done)').forEach(el => {}); $('#done').hidden = false; $('#pay').classList.add('hidden'); return; }
+  $('#pay').disabled = false; $('#err').textContent = 'That did not go through: ' + (d.error || r.status);
+});
+</script></body></html>
