@@ -361,6 +361,23 @@ function clean(html, slug) {
   // namespace footnote ids per article so links stay unique
   s = s.replaceAll('id="footnote-', `id="fn-${slug}-`)
        .replaceAll('href="#footnote-', `href="#fn-${slug}-`);
+  // Source notes written into the body (Caithrin's "sources & notes (AI generated)" sections and
+  // the like): scripts/lib/notes-detect.mjs finds the trailing block that reads as citations,
+  // by structure first, heading words second, a model for the ambiguous band. The block becomes
+  // <section class="srcnotes">; plain "- " paragraphs inside become a list. The renderers set it
+  // small and unindented, and the notes policy can move it to the back of the book.
+  const decided = NOTES.get(slug);
+  /* the decision was made on the raw body; the offsets are found again on the cleaned string */
+  const nd = decided ? (detectNotes(s) || null) : null;
+  if (decided && !nd) report.notesLost = (report.notesLost || 0) + 1;
+  if (nd) {
+    const head = s.slice(nd.start).match(/^<(h[2-4])[^>]*>([\s\S]*?)<\/\1>/i);
+    let rest = s.slice(nd.start + (head ? head[0].length : 0)).replace(/^<hr[^>]*>/i, "");
+    rest = rest.replace(/<p>\s*[-–•]\s+([\s\S]*?)<\/p>/g, "<li><p>$1</p></li>");
+    rest = rest.replace(/(?<!<[uo]l>\s*)((?:<li>[\s\S]*?<\/li>\s*)+)(?!\s*<\/[uo]l>)/g, "<ul>$1</ul>"); /* only runs of items outside a list */
+    s = s.slice(0, nd.start) + `<section class="srcnotes"><h2 class="srcnotes-h">${esc(decided.heading || nd.heading || "Sources & notes")}</h2>${rest}</section>`;
+    report.srcnotes = (report.srcnotes || 0) + 1;
+  }
   // first real paragraph gets an explicit opener class; Paged.js drops :first-of-type::first-letter
   s = s.replace(/<p\b(?![^>]*class=)([^>]*)>/, '<p class="opener"$1>');
   // verse: paragraphs with manual line breaks set ragged, unindented, unhyphenated
@@ -456,6 +473,14 @@ if (partOf) {
   tocRows = full.map((p, i) => tocRow(p, i)).join("\n");
 }
 
+/* source-notes decisions, one per post, before cleaning (the model call is async) */
+const { detectNotes, askModel } = await import("./lib/notes-detect.mjs");
+const NOTES = new Map(); report.notesBlocks = [];
+for (const p of full) {
+  let d = detectNotes(p.body_html || ""); let how = d ? d.method : null;
+  if (d && d.method === "ambiguous") { const m = await askModel(d.heading, (p.body_html || "").slice(d.start)); how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null; }
+  if (d) { NOTES.set(p.slug, d); report.notesBlocks.push({ slug: p.slug, heading: d.heading, score: d.score, method: how }); }
+}
 let lastPart = null;
 const articles = full.map((p, i) => {
   let divider = "";
@@ -597,6 +622,10 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .footnote{ font-size:8.5pt; color:#3a352c }
 .footnote-content p{ text-indent:0; text-align:left }
 .footnote-container{ border-top:1px solid var(--rule); margin-top:1em; padding-top:.5em }
+.srcnotes{ border-top:1px solid var(--rule); margin-top:1.2em; padding-top:.6em; font-size:8.5pt; color:#3a352c }
+.srcnotes h2{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--rubric); margin:0 0 .5em }
+.srcnotes p{ text-indent:0; text-align:left; hyphens:none; margin:0 0 .35em } .srcnotes ul{ margin:.2em 0 .2em 1em } .srcnotes li{ text-align:left; margin:.15em 0 }
+.srcnotes a{ word-break:break-all }
 /* ---------- end matter ---------- */
 .getmore{ page: frontmatter; break-before:page }
 .getmore .qr{ display:flex; gap:.5in; margin:.4in 0 }

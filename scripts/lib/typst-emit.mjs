@@ -54,7 +54,7 @@ export function emitTypst(html, opts = {}) {
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [];
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "";
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -91,7 +91,12 @@ export function emitTypst(html, opts = {}) {
           if (note) { endnotes.push({ num, note }); }
           return `#super[${esc(num)}]`;
         }
-        return inner();
+        const href = attr(n, "href"); const txt = inner();
+        if (ctx.notes && href && /^https?:/.test(href) && !/^https?:\/\//.test(textOf(n).trim())) {
+          const host = href.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
+          return `${txt} #text(fill: faint)[(${esc(host)})]`;
+        }
+        return txt;
       }
       case "img": return ""; /* an image inside a paragraph is lifted out by the block pass */
       case "span": case "mark": case "small": case "abbr": case "cite": case "q": case "time": case "label": return inner();
@@ -115,6 +120,7 @@ export function emitTypst(html, opts = {}) {
   function list(n, ordered, depth = 0) {
     const pad = "  ".repeat(depth); let s = "";
     for (const li of kids(n)) {
+      if (isEl(li) && (li.name === "ul" || li.name === "ol")) { s += list(li, li.name === "ol", depth); continue; } /* a list nested directly in a list */
       if (!isEl(li) || li.name !== "li") continue;
       const sub = kids(li).filter(k => isEl(k) && (k.name === "ul" || k.name === "ol"));
       const own = kids(li).filter(k => !(isEl(k) && (k.name === "ul" || k.name === "ol")));
@@ -131,6 +137,13 @@ export function emitTypst(html, opts = {}) {
     if (n.name === "script" || n.name === "style") return "";
     if (has(n, "footnote") && n.name === "div") return ""; /* collected beforehand */
     if (has(n, "footnote-container")) return "";
+    if (has(n, "srcnotes")) {
+      const hEl = find(n, k => isEl(k) && /^h[2-4]$/.test(k.name)); const label = hEl ? textOf(hEl).trim() : "Sources & notes";
+      const inner = kids(n).filter(k => !(isEl(k) && /^h[2-4]$/.test(k.name))).map(block).join("");
+      const blk = `#block(above: 1.2em, width: 100%)[#line(length: 100%, stroke: 0.5pt + rgb("${RULE}")) #v(0.35em) #text(size: 8pt, tracking: 0.2em, fill: rubric)[${esc(label.toUpperCase())}] #v(0.4em) #set text(size: 8.5pt, fill: rgb("#3a352c")); #set par(first-line-indent: 0em, justify: false, hanging-indent: 0em); #set list(marker: [–], indent: 0em, body-indent: 0.5em)\n${inner}]\n\n`;
+      if (fnPolicy === "back_of_book") { backNotes.push({ title: curTitle, blk }); return ""; }
+      return blk;
+    }
     if (has(n, "embedcard")) return `#block(width: 100%, inset: (left: 9pt, y: 6pt), stroke: (left: 2pt + rgb("${RUBRIC}")), text(size: 8.5pt, fill: rgb("${FAINT}"))[${kids(n).map(k => inline(k)).join("")}])\n\n`;
     if (has(n, "gifnote")) return `#align(center, text(size: 7.5pt, fill: rgb("${FAINT}"))[${kids(n).map(k => inline(k)).join("")}])\n\n`;
     if (has(n, "imgmissing")) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[${esc(textOf(n).trim())}])\n\n`;
@@ -186,7 +199,7 @@ export function emitTypst(html, opts = {}) {
     const num = head && find(head, k => has(k, "artnum")); const title = head && find(head, k => has(k, "arttitle"));
     const sub = head && find(head, k => has(k, "artsub")); const meta = head && find(head, k => has(k, "artmeta"));
     const bodyEl = find(sec, k => isEl(k) && has(k, "artbody")) || sec;
-    const T = title ? textOf(title).trim() : `Untitled ${index + 1}`;
+    const T = title ? textOf(title).trim() : `Untitled ${index + 1}`; curTitle = T;
     let s = `#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${str(meta ? textOf(meta).replace(/\s+/g, " ").trim() : "")})\n`;
     s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artstart>]\n`;
     s += kids(bodyEl).map(block).join("");
@@ -281,6 +294,10 @@ export function emitTypst(html, opts = {}) {
   for (const s of sections) {
     if (s.part) { const k = textOf(find(s.part, x => has(x, "partkind")) || {}).trim(), t = textOf(find(s.part, x => has(x, "parttitle")) || {}).trim(); out.push(`#partpage(${str(k)}, ${str(t)})\n`); }
     else out.push(article(s.article, ai++));
+  }
+  if (backNotes.length) {
+    out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[NOTES]\n#v(0.8em)\n#set par(first-line-indent: 0em, justify: false)\n`);
+    for (const b of backNotes) out.push(`#text(size: 9.5pt, weight: 600)[${esc(b.title)}]\n${b.blk}`);
   }
   if (fm.appendix) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[FROM THE COMMENTS]\n#v(0.8em)\n`);

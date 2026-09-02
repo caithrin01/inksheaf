@@ -22,8 +22,14 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Typst renderer tools (typst binary, poppler for the blank measure, Pillow)
+        run: |
+          curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
+          sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
+          sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
       - name: Press
         env:
+          BOOK_ENGINE: typst
           PRESS_EVENT: ${{ github.event.client_payload.event || inputs.event }}
           SIGNUP_ID: ${{ github.event.client_payload.signup_id || inputs.signup_id }}
           PUBLICATION_URL: ${{ github.event.client_payload.publication_url || inputs.publication_url }}
