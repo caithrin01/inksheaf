@@ -69,4 +69,11 @@ ok("fallback: quarters that all split are ruled out and the months are offered",
 ok("rule: a volume over the cap is refused", (() => { const big = buildEditorInput({ posts: [mk("2025-08-03", 1500), mk("2025-08-20", 1500), ...Array.from({ length: 12 }, (_, i) => mk(`2026-0${(i % 3) + 4}-${String(i + 1).padStart(2, "0")}`, 9000))], identity, host: "b", nowMs: sep1 }); const p = { ...strip(calendarFallback(big)) }; p.routes = [{ cadence: "quarterly", recommended: true, why: "x", volumes: [{ label: "Q3 2025", title: "t", subtitle: "s", post_ids: big.posts.filter(r => r.date < "2025-10-01").map(r => r.id), parts: null, notes_policy: "none", why: "w" }, { label: "Q2 2026", title: "t", subtitle: "s", post_ids: big.posts.filter(r => r.date >= "2026-04-01").map(r => r.id), parts: null, notes_policy: "none", why: "w" }] }]; p.infeasible = []; const r = checkPlan(p, big); return !r.ok && r.errors.some(e => /past the 300-page cap/.test(e)); })());
 ok("rule: folded label of two adjacent quarters is accepted", (() => { const p = strip(good()); const q = p.routes.find(r => r.cadence === "quarterly"); const [a, b] = q.volumes.splice(0, 2); q.volumes.unshift({ ...a, label: "Q3 2025 – Q4 2025", post_ids: [...a.post_ids, ...b.post_ids] }); return checkPlan(p, input).ok; })());
 
+/* younger than a quarter: everything so far is the window */
+{
+  const young4 = buildEditorInput({ posts: [mk("2026-08-07", 1400), mk("2026-08-14", 1500), mk("2026-08-21", 1300), mk("2026-08-28", 1500)], identity, host: "y", nowMs: sep1 });
+  const fy = checkPlan(calendarFallback(young4), young4);
+  ok("younger than a quarter: window is everything so far", young4.window.label === "Everything so far" && young4.posts.length === 4 && young4.in_progress_posts.length === 0, young4.window.label);
+  ok("younger than a quarter: one book, checker passes", fy.ok && fy.plan.routes.length === 1 && fy.plan.routes[0].cadence === "single" && /Everything so far/.test(fy.plan.sentences.plan_headline), fy.errors.join("; "));
+}
 console.log(`plan-check: ${n} checks, ${process.exitCode ? "FAIL" : "all pass"}`);

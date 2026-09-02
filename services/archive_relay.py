@@ -96,7 +96,9 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
         combined, complete = read_archive(lambda off: fetch_page(host, off, HTTPException), cutoff, max_offset=1800 if since else 700)
         combined = [slim(p) for p in combined]
         body = json.dumps(combined).encode()
-        if len(body) > MAX_BYTES:
+        # a fifteen-month daily letter is about 1,500 slim rows; the 2 MB page cap does not
+        # apply to the combined read (michaelpopok answered "response too large", 2026-09-02)
+        if len(body) > MAX_BYTES * 4:
             raise HTTPException(status_code=502, detail="response too large")
         try:
             results[host + "|" + since] = {"at": _t.time(), "body": body, "complete": complete}
@@ -171,8 +173,8 @@ def slim(p):
     return {
         "id": p.get("id"),
         "slug": str(p.get("slug") or "")[:200],
-        "subtitle": str(p.get("subtitle") or "")[:200],
-        "truncated_body_text": str(p.get("truncated_body_text") or "")[:240],
+        "subtitle": str(p.get("subtitle") or "")[:120],
+        "truncated_body_text": str(p.get("truncated_body_text") or "")[:160],
         # counts the editor reads; the body itself never leaves the relay (size)
         "footnotes": len(_re.findall(r'class="footnote-anchor"', body)),
         "links": len(_re.findall(r'<a\b[^>]*href="https?:', body)),

@@ -19,6 +19,8 @@
 import { chromium, webkit, firefox } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { summarizeArchive } from "../functions/lib/preview-summary.js";
+import { editionWindow } from "../functions/lib/edition-window.js";
+import { partition, volumePages } from "../functions/lib/editor-input.js";
 
 const engineName = process.argv[2] || "chromium";
 const base = (process.argv[3] || "https://inksheaf.com").replace(/\/$/, "");
@@ -80,9 +82,13 @@ async function fetchWithBackoff(url, opts) {
 /* independent read: the same archive endpoint, from this machine, same paging rule as the API */
 async function truthFor(host) {
   const cutoff = Date.now() - WINDOW_DAYS * 86400e3;
+  /* the page states the edition window (four completed quarters); read back to its start,
+     up to 1,800 rows like the relay, and call the read capped only when it stopped short */
+  const windowStart = editionWindow(Date.now()).from.getTime();
+  const readBack = Math.min(cutoff, windowStart);
   const posts = [];
-  let h = host, hops = 0;
-  for (let offset = 0; offset < MAX_POSTS; ) {
+  let h = host, hops = 0, reachedWindow = false;
+  for (let offset = 0; offset < 1800; ) {
     let r;
     try {
       r = await fetchWithBackoff(`https://${h}/api/v1/archive?sort=new&offset=${offset}&limit=25`,
@@ -103,13 +109,18 @@ async function truthFor(host) {
     if (!page.length) break;
     posts.push(...page);
     offset += page.length;
-    if (Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
+    if (Date.parse(page[page.length - 1].post_date || 0) < readBack) { reachedWindow = true; break; }
   }
+  if (!posts.length || Date.parse(posts[posts.length - 1].post_date || 0) < readBack) reachedWindow = true;
   const identityPost = posts.find(p => p && p.post_date && Date.parse(p.post_date) >= cutoff && (p.type === "newsletter" || !p.type));
   if (!identityPost) return { kind: "empty", detail: `${posts.length} posts read, none in window` };
-  const s = summarizeArchive(posts, { publicationName: null, theme: null }, h, cutoff, posts.length >= MAX_POSTS);
+  const s = summarizeArchive(posts, { publicationName: null, theme: null }, h, cutoff, !reachedWindow);
   if (!s) return { kind: "empty", detail: "no public posts in window" };
-  return { kind: "book", posts: s.posts, words: s.words, est_pages: s.est_pages, capped: posts.length >= MAX_POSTS, host: h };
+  /* the numbers the page prints are the edition window's, from the same partition the editor uses */
+  const part = partition(posts, Date.now());
+  const inWindow = part.inWindow;
+  const words = inWindow.reduce((a, p) => a + (Number(p.wordcount) || 0), 0);
+  return { kind: "book", posts: inWindow.length, words, est_pages: volumePages(inWindow), capped: !reachedWindow, host: h, trailing: { posts: s.posts, words: s.words } };
 }
 
 async function drive(page, pasted) {
@@ -150,7 +161,7 @@ function judge(truth, r) {
   const emptyMsg = /looks empty|no public essays/i.test(r.err);
   if (truth.kind === "book") {
     if (r.personalized) {
-      const posts = Number((/^(\d+)\+? public/.exec(r.sub) || [])[1]);
+      const posts = Number((/(\d+)\+? public/.exec(r.sub) || [])[1]);
       const words = Number(((/([\d,]+) words/.exec(r.sub) || [])[1] || "").replace(/,/g, ""));
       const pagesOnPage = Number(((/([\d,]+)-page/.exec(r.big) || [])[1] || "").replace(/,/g, ""));
       if (!truth.capped && Math.abs(posts - truth.posts) > 1)

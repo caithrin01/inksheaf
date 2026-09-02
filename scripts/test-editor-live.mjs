@@ -15,7 +15,7 @@ const FIXTURES = !process.argv.includes("--no-fixtures");
 const VAULT = process.env.VAULT || `${process.env.HOME}/Library/Mobile Documents/com~apple~CloudDocs/Caithrin/05-Projects/Substack Magazine/evidence/planner`;
 const NOW = Date.now();
 const w = editionWindow(NOW);
-if (!process.env.ANTHROPIC_API_KEY) { console.error("ANTHROPIC_API_KEY is not set; the editor would fall back to the calendar for every row."); process.exit(2); }
+if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENROUTER_API_KEY) { console.error("ANTHROPIC_API_KEY or OPENROUTER_API_KEY is not set; the editor would fall back to the calendar for every row."); process.exit(2); }
 
 /* ---------- synthetic edge cases ---------- */
 let nextId = 5000;

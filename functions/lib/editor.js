@@ -7,6 +7,16 @@ import { buildEditorInput, KIND_HINTS, volumePages, rawPages, printCost, postId 
 import { checkPlan } from "./plan-check.js";
 
 export const EDITOR_MODEL = "claude-opus-5";
+/* Caithrin's account is OpenRouter (2026-09-02): the Anthropic SDK speaks to it through its
+   Anthropic-compatible endpoint, structured output included, at the same price. An Anthropic
+   key still works when present. */
+export function editorClient({ apiKey, openrouterKey } = {}) {
+  const or = openrouterKey || (typeof process !== "undefined" ? process.env?.OPENROUTER_API_KEY : undefined);
+  const an = apiKey || (typeof process !== "undefined" ? process.env?.ANTHROPIC_API_KEY : undefined);
+  if (an) return { client: new Anthropic({ apiKey: an }), model: EDITOR_MODEL, via: "anthropic" };
+  if (or) return { client: new Anthropic({ baseURL: "https://openrouter.ai/api", apiKey: or, defaultHeaders: { "HTTP-Referer": "https://inksheaf.com", "X-Title": "Inksheaf editor" } }), model: "anthropic/" + EDITOR_MODEL, via: "openrouter" };
+  return null;
+}
 
 export const SYSTEM = `You are the editor at Inksheaf. A writer has pasted their Substack. From the archive rows and the window you are given, plan their printed edition: a 6x9 perfect-bound book or set, at cost, for the writer and their readers.
 
@@ -92,6 +102,7 @@ export function calendarFallback(input) {
   for (const r of input.posts) for (const b of r.by) bylines[b] = (bylines[b] || 0) + 1;
   const contributors = Object.entries(bylines).sort((a, b) => b[1] - a[1]).map(([n, c], i) => ({ name: n, role: i === 0 ? "principal" : "contributor", posts: c }));
   const headline = !golden ? "Your archive needs a hand-planned edition."
+    : w.everythingSoFar ? "Everything so far is one book."
     : golden.cadence === "single" ? "Your year is one book."
     : golden.cadence === "half" ? "Your year is a pair of half-year volumes."
     : golden.cadence === "quarterly" ? "Your year is a quarterly set." : "Your year is a monthly set.";
@@ -109,15 +120,15 @@ function compact(input) {
 }
 
 /* Returns { plan, planned_by: "editor"|"calendar", attempts, errors, usage, model } */
-export async function planEdition({ posts, identity, host, nowMs = Date.now(), capped = false, apiKey, client, log = () => {} }) {
+export async function planEdition({ posts, identity, host, nowMs = Date.now(), capped = false, apiKey, openrouterKey, client, log = () => {} }) {
   const input = buildEditorInput({ posts, identity, host, nowMs, capped });
   const out = { plan_version: PLAN_VERSION, model: EDITOR_MODEL, attempts: 0, errors: [], usage: null, window: input.window, totals: input.totals };
-  const key = apiKey || (typeof process !== "undefined" ? process.env?.ANTHROPIC_API_KEY : undefined);
-  if (!client && !key) {
+  const ec = client ? { client, model: EDITOR_MODEL, via: "given" } : editorClient({ apiKey, openrouterKey });
+  if (!ec) {
     const fb = checkPlan(calendarFallback(input), input);
     return { ...out, planned_by: "calendar", reason: "no api key", plan: fb.plan, errors: fb.errors };
   }
-  const anthropic = client || new Anthropic({ apiKey: key });
+  const anthropic = ec.client; out.model = ec.model; out.via = ec.via;
   const messages = [{ role: "user", content: "Plan this edition. Input follows as JSON.\n\n" + JSON.stringify(compact(input)) }];
   let lastErrors = [];
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -125,7 +136,7 @@ export async function planEdition({ posts, identity, host, nowMs = Date.now(), c
     let res;
     try {
       res = await anthropic.messages.parse({
-        model: EDITOR_MODEL, max_tokens: 16000, system: SYSTEM, messages,
+        model: ec.model, max_tokens: 16000, system: SYSTEM, messages,
         output_config: { format: zodOutputFormat(EditorialPlan), effort: "medium" },
       });
     } catch (e) {

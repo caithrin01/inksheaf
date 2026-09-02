@@ -145,7 +145,7 @@ check("slim counts footnotes", _p.get("footnotes") == 2)
 check("slim counts external links only", _p.get("links") == 1)
 check("slim counts images", _p.get("images") == 1)
 check("slim drops the body", "body_html" not in _p)
-check("slim trims the excerpt", len(_p.get("truncated_body_text", "")) == 240)
+check("slim trims the excerpt", len(_p.get("truncated_body_text", "")) == 160)
 
 print(f"\n{passed} pass, {failed} fail")
 sys.exit(1 if failed else 0)

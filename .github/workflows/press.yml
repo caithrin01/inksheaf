@@ -41,6 +41,7 @@ jobs:
           LULU_CLIENT_KEY: ${{ secrets.LULU_CLIENT_KEY }}
           LULU_CLIENT_SECRET: ${{ secrets.LULU_CLIENT_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPERATOR_EMAIL: caithrin@caithrin.com
           SITE_BASE: https://inksheaf.com
         run: node scripts/press.mjs

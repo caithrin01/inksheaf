@@ -1,6 +1,6 @@
 // Shapes an archive into the editor's input: compact rows the model can read, plus the
 // window, the constraints and the price table. Nothing here calls a model.
-import { editionWindow } from "./edition-window.js";
+import { editionWindow, spanLabel as spanLabelOf } from "./edition-window.js";
 import prices from "./print-prices.json" with { type: "json" };
 
 export const PAGE_WORDS = 270;
@@ -74,6 +74,16 @@ export function partition(posts, nowMs) {
 
 export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
   const part = partition(posts, nowMs);
+  /* A publication younger than a quarter has nothing in the completed quarters. Its edition
+     is everything so far: launch to today, one window, no periods, nothing "in progress". */
+  if (!part.inWindow.length && part.inProgress.length) {
+    const sorted = [...part.inProgress].sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
+    const first = new Date(String(sorted[0].post_date)), today = new Date(nowMs + 864e5);
+    const from = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1));
+    part.window = { ...part.window, fromIso: from.toISOString().slice(0, 10), toIso: today.toISOString().slice(0, 10), label: "Everything so far",
+      span: spanLabelOf(from, today), quarters: [], halves: [], months: [], inProgress: { label: part.window.inProgress.label, fromIso: today.toISOString().slice(0, 10), toIso: today.toISOString().slice(0, 10), span: "", everythingSoFar: true }, everythingSoFar: true };
+    part.inWindow = sorted; part.inProgress = [];
+  }
   const w = part.window;
   const rows = part.inWindow.map(shapePost).sort((a, b) => a.date.localeCompare(b.date));
   const progress = part.inProgress.map(shapePost);

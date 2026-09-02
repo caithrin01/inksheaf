@@ -181,14 +181,22 @@ async function fetchArchive(host, env) {
        in progress and never reaches the window (HCR: 109 posts, 8 in the window, 2026-09-01).
        When the budget runs out before the window start, the relay reads the rest. */
     if (offset >= MAX_POSTS && Date.parse(page[page.length - 1].post_date || 0) >= readBack && env.ARCHIVE_RELAY_TOKEN) {
-      const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
-      if (remaining >= RELAY_MIN_ATTEMPT_MS) {
-        const via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining), since);
-        relayMeta = { attempts: 1, latency_ms: Date.now() - t0 };
-        if (via && via.ok && via.posts.length > posts.length) {
-          relayed = true; relayComplete = via.complete;
-          posts.length = 0; posts.push(...via.posts);
-        }
+      /* two tries: Substack answers 429 to the relay's first big read now and then
+         (michaelpopok, 2026-09-02) and the second lands on a fresh egress IP */
+      let via = null, attempts = 0;
+      for (;;) {
+        const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
+        if (remaining < RELAY_MIN_ATTEMPT_MS || attempts >= 2) break;
+        via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining), since);
+        attempts++;
+        if (via.ok) break;
+        if (Date.now() - t0 + RELAY_WAITS_MS[0] + RELAY_MIN_ATTEMPT_MS > RELAY_BUDGET_MS) break;
+        await new Promise(r => setTimeout(r, RELAY_WAITS_MS[0]));
+      }
+      relayMeta = { attempts, latency_ms: Date.now() - t0 };
+      if (via && via.ok && via.posts.length > posts.length) {
+        relayed = true; relayComplete = via.complete;
+        posts.length = 0; posts.push(...via.posts);
       }
       break;
     }
@@ -207,7 +215,7 @@ async function fetchArchive(host, env) {
   data.fetch_mode = relayed ? "relay" : "direct";
   // The editor plans the edition (plan-end-to-end-v1). Without a key it plans by the calendar.
   const tEd = Date.now();
-  const editorial = await planEdition({ posts, identity, host, capped, apiKey: env.ANTHROPIC_API_KEY });
+  const editorial = await planEdition({ posts, identity, host, capped, apiKey: env.ANTHROPIC_API_KEY, openrouterKey: env.OPENROUTER_API_KEY });
   data.editorial = { ...editorial, editor_ms: Date.now() - tEd };
   data.summary_version = 6;
   if (relayMeta) Object.assign(data, relayMeta);
@@ -247,7 +255,7 @@ async function fetchRelayedAll(host, env, timeoutMs, since) {
       return { ok: false, error: `relay ${r.status} ${String(detail).slice(0, 60)}` };
     }
     const complete = r.headers.get("x-archive-complete") !== "0";
-    const value = JSON.parse(await readLimitedText(r));
+    const value = JSON.parse(await readLimitedText(r, MAX_BYTES * 4));
     return Array.isArray(value) ? { ok: true, posts: value, complete } : { ok: false, error: "invalid relay shape" };
   } catch (e) { clearTimeout(timer); return { ok: false, error: String(e?.message || e) }; }
 }
@@ -312,9 +320,9 @@ function publicationFromPost(post, host) {
     || pubs[0];
 }
 
-async function readLimitedText(resp) {
+async function readLimitedText(resp, cap = MAX_BYTES) {
   const declared = Number(resp.headers.get("content-length") || 0);
-  if (declared > MAX_BYTES) throw new Error("response too large");
+  if (declared > cap) throw new Error("response too large");
   if (!resp.body?.getReader) throw new Error("streaming body unavailable");
   const reader = resp.body.getReader();
   const chunks = [];
@@ -323,7 +331,7 @@ async function readLimitedText(resp) {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_BYTES) { await reader.cancel(); throw new Error("response too large"); }
+    if (size > cap) { await reader.cancel(); throw new Error("response too large"); }
     chunks.push(value);
   }
   const all = new Uint8Array(size);
