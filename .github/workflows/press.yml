@@ -35,6 +35,7 @@ jobs:
           PUBLICATION_URL: ${{ github.event.client_payload.publication_url || inputs.publication_url }}
           WRITER_EMAIL: ${{ github.event.client_payload.email || inputs.email }}
           PLAN_JSON: ${{ github.event.client_payload.plan_json }}
+          VERSION_ID: ${{ github.event.client_payload.version_id }}
           CHANGE_REQUEST: ${{ github.event.client_payload.request }}
           MAILING_ID: ${{ github.event.client_payload.mailing_id }}
           INVOICE_JSON: ${{ toJSON(github.event.client_payload.invoice) }}
@@ -51,6 +52,18 @@ jobs:
           OPERATOR_EMAIL: caithrin@caithrin.com
           SITE_BASE: https://inksheaf.com
         run: node scripts/press.mjs
+      - name: Record failure (Codex audit P0-7)
+        if: failure()
+        env:
+          SIGNUP_ID: ${{ github.event.client_payload.signup_id || inputs.signup_id }}
+          VERSION_ID: ${{ github.event.client_payload.version_id }}
+          ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
+          SITE_BASE: https://inksheaf.com
+        run: |
+          node -e '
+            const c=require("crypto"); const id=Number(process.env.SIGNUP_ID); const s=process.env.ARCHIVE_RELAY_TOKEN; if(!id||!s) process.exit(0);
+            const sig=c.createHmac("sha256",s).update(`${id}:failed`).digest("hex");
+            fetch(process.env.SITE_BASE+"/api/press-status",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({signup_id:id,status:"failed",sig,message:"the press run failed; see the run",run:process.env.GITHUB_RUN_ID,error:"workflow failure",version_id:Number(process.env.VERSION_ID)||undefined,version_status:process.env.VERSION_ID?"failed":undefined})}).then(r=>console.log("failed recorded",r.status)).catch(e=>console.log("could not record",e.message));'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

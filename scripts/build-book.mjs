@@ -233,6 +233,11 @@ const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) =>
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
 report.pubName = pubName; report.author = author; report.authors = authors.slice(0, 6); report.isbn = ISBN || null;
+/* the edition version's inputs (Codex audit P0-1): the posts in book order and a hash of each
+   body as fetched, so a later run can tell whether what it would print is what was approved */
+{ const { createHash: ch } = await import("node:crypto");
+  report.postOrder = full.map(p => ({ id: p.id ?? p.slug, slug: p.slug }));
+  report.bodyHashes = Object.fromEntries(full.map(p => [String(p.id ?? p.slug), ch("sha256").update(String(p.body_html || "")).digest("hex")])); }
 const dominantShare = full.length ? (byCount[author] || 0) / full.length : 1;
 
 /* ---------- content kind: what the pieces ARE drives every label ---------- */
@@ -758,7 +763,7 @@ ${PRINT_INTERIOR ? "" : `
   small letter, and each essay ends with its links as short addresses and a code to the essay
   online. Source notes the author wrote into an essay stay with it. Web-only embeds become
   printed source notes; media-only pieces remain in the online edition.</p>
-  <div class="colophon">${ISBN ? `ISBN ${esc(ISBN)} · ` : ""}Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
+  <div class="colophon">${ISBN ? `ISBN ${esc(ISBN)} · ` : ""}Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 

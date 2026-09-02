@@ -1,5 +1,6 @@
 // POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
 import { dispatchPress } from "../lib/press-dispatch.js";
+import { sendVerification } from "./verify.js";
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
   "founding_count","price_range","interview_ok","concern","plan_json"];
@@ -58,8 +59,16 @@ export async function onRequest({ request, env }) {
   ).run();
   const row = await env.DB.prepare("SELECT id FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1")
     .bind(email, url).first().catch(() => null);
-  if (row?.id) await dispatchPress(env, { event: "press", signup_id: row.id, publication_url: url, email, plan_json: clean.plan_json || null });
-  return ok();
+  /* No press run without verification (Codex audit P0-8): the confirmation goes to the
+     publication's own Substack address; the press starts when its link is opened. Journey test
+     reservations (+journeytest@) neither send nor dispatch. */
+  if (!row?.id) return ok();
+  if (/\+journeytest@caithrin\.com$/i.test(email)) { await env.DB.prepare("UPDATE signups SET dispatch_status = 'test' WHERE id = ?").bind(row.id).run().catch(() => {}); return new Response(JSON.stringify({ ok: true, id: row.id, press: "test" }), { headers: { "content-type": "application/json" } }); }
+  await env.DB.prepare("UPDATE signups SET dispatch_status = 'awaiting-verification' WHERE id = ?").bind(row.id).run().catch(() => {});
+  const v = await sendVerification(env, { id: row.id, publication_url: url, email }, new URL(request.url).origin);
+  await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, 'awaiting-verification', ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = 'awaiting-verification', detail = excluded.detail, updated_at = datetime('now')`)
+    .bind(row.id, JSON.stringify({ message: v.ok ? `confirmation sent to ${v.sent_to}` : `confirmation not sent: ${v.error}` })).run().catch(() => {});
+  return new Response(JSON.stringify({ ok: true, id: row.id, press: "verify", sent_to: v.ok ? v.sent_to : null, sent: !!v.sent, fallback: v.ok ? v.fallback : "about-code", error: v.ok ? null : v.error }), { headers: { "content-type": "application/json" } });
 }
 const ok  = () => new Response(JSON.stringify({ ok: true }),
   { headers: { "content-type": "application/json" } });

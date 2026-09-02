@@ -16,9 +16,16 @@ const RELAY_MIN_ATTEMPT_MS = 4000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
 import { planEdition } from "../lib/editor.js";
+import { spend, ipKey, LIMITS } from "../lib/quota.js";
 import { editionWindow } from "../lib/edition-window.js";
 
 export async function onRequest({ request, env }) {
+  /* quotas on this expensive read (Codex audit P0-8): per caller and per publication, per hour */
+  {
+    const hostQ = parseHost(new URL(request.url).searchParams.get("url") || "");
+    const [ip, byHost] = await Promise.all([ipKey(request).then(k => spend(env, k, LIMITS.preview_ip)), hostQ ? spend(env, `preview:${hostQ}`, LIMITS.preview_host) : { ok: true }]);
+    if (!ip.ok || !byHost.ok) return new Response(JSON.stringify({ ok: false, error: "quota", status: 429, message: "That is a lot of previews for one hour. Try again a little later." }), { status: 429, headers: { "content-type": "application/json" } });
+  }
   if (request.method !== "GET")
     return json({ ok: false, error: "method not allowed" }, 405, { allow: "GET" });
   armFault(env);

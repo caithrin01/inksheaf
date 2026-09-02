@@ -567,7 +567,8 @@ footer a{color:inherit}
         <div class="err" id="err" role="alert"></div>
       </form>
       <div class="done" id="done">
-        <h3>Your print run is reserved.</h3>
+        <h3 id="done-h">One more step: confirm from your publication's inbox.</h3>
+        <p id="done-verify">We sent a confirmation link to <b id="done-to">your publication's Substack address</b>, the address your newsletter sends from; Substack forwards it to the publication's owner. Open it and the proof is made. Nothing is printed or sent until then. If it does not arrive in ten minutes, write to caithrin@caithrin.com and we will confirm you another way.</p>
         <p>We reply to every signup within a few days with the timeline and, if your archive is public, the first proof pages of your own edition. Want to skip the queue? Reply with a link to the one post you&rsquo;d most like to see on paper.</p>
       </div>
     </section>
@@ -1173,6 +1174,9 @@ f.addEventListener('submit', async (e)=>{
     (f as HTMLElement).style.display='none';
     (document.querySelector('.steps') as HTMLElement).style.display='none';
     document.getElementById('done')!.style.display='block';
+    try { const j = await r.clone().json(); if (j && j.press === 'verify' && j.sent_to) document.getElementById('done-to')!.textContent = j.sent_to;
+      else if (j && j.press === 'verify') { document.getElementById('done-h')!.textContent = 'Reserved, and one more step.'; document.getElementById('done-verify')!.textContent = 'We could not find your publication\'s Substack address to send the confirmation to. Write to caithrin@caithrin.com and we confirm you by the About-page code.'; }
+      else if (j && j.press === 'test') { document.getElementById('done-h')!.textContent = 'Test reservation recorded.'; document.getElementById('done-verify')!.textContent = 'No confirmation is sent for a test address.'; } } catch {}
   } else {
     document.getElementById('err')!.textContent = 'Something failed on our side. Email caithrin@caithrin.com and we will add you by hand.';
   }
