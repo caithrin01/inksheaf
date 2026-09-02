@@ -1,7 +1,7 @@
 // The checker: every invariant an editorial plan must satisfy, plus the derived numbers
 // (posts, words, pages, price) per volume. The model proposes; this decides.
 import { EditorialPlan } from "./editor-schema.js";
-import { volumePages, printCost, MIN_PAGES, MAX_PAGES, HARD_MAX } from "./editor-input.js";
+import { volumePages, rawPages, printCost, postId, MIN_PAGES, MAX_PAGES, HARD_MAX } from "./editor-input.js";
 
 const labelsOf = (w, cadence) =>
   cadence === "quarterly" ? w.quarters.map(q => q.label)
@@ -10,7 +10,7 @@ const labelsOf = (w, cadence) =>
   : [w.label];
 const boundsOf = (w, cadence, label) => {
   const list = cadence === "quarterly" ? w.quarters : cadence === "half" ? w.halves : cadence === "monthly" ? w.months : [{ label: w.label, fromIso: w.fromIso, toIso: w.toIso }];
-  const parts = label.split(" – ").map(s => s.trim());
+  const parts = label.split(" – ").map(s => s.trim().replace(/\s·\s(?:[IVX]+|\d+)$/, ""));
   const found = parts.map(p => list.find(x => x.label === p)).filter(Boolean);
   if (found.length !== parts.length) return null;
   return { fromIso: found[0].fromIso, toIso: found[found.length - 1].toIso };
@@ -23,16 +23,16 @@ export function checkPlan(raw, input) {
   if (!parsed.success) return { ok: false, errors: parsed.error.issues.map(i => `schema: ${i.path.join(".")} ${i.message}`) };
   const plan = structuredClone(parsed.data);
   const w = input._partition.window;
-  const byId = new Map(input._partition.inWindow.map(p => [Number(p.id), p]));
+  const byId = new Map(input._partition.inWindow.map(p => [postId(p), p]));
   const rowById = new Map(input.posts.map(r => [r.id, r]));
-  const progressIds = new Set(input._partition.inProgress.map(p => Number(p.id)));
+  const progressIds = new Set(input._partition.inProgress.map(p => postId(p)));
   const excludedIds = new Set(plan.excluded.map(e => e.post_id));
   for (const e of plan.excluded) if (!byId.has(e.post_id)) errors.push(`excluded post ${e.post_id} is not in the window`);
   if (byId.size && plan.excluded.length > Math.max(1, byId.size * 0.1) && plan.kind !== "notes")
     errors.push(`excluded ${plan.excluded.length} of ${byId.size} posts; over 10% needs kind "notes"`);
 
   const rec = plan.routes.filter(r => r.recommended);
-  if (rec.length !== 1) errors.push(`exactly one recommended route required, found ${rec.length}`);
+  if (plan.routes.length && rec.length !== 1) errors.push(`exactly one recommended route required, found ${rec.length}`);
   const seenCadence = new Set();
   for (const route of plan.routes) {
     if (seenCadence.has(route.cadence)) errors.push(`cadence ${route.cadence} appears twice`);
@@ -64,8 +64,8 @@ export function checkPlan(raw, input) {
       const words = posts.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
       if (pages > HARD_MAX) errors.push(`${route.cadence} "${v.label}": ${pages} pages is past the bindery's ${HARD_MAX}`);
       else if (pages > MAX_PAGES) errors.push(`${route.cadence} "${v.label}": ${pages} pages is past the ${MAX_PAGES}-page cap`);
-      if (posts.length && pages < MIN_PAGES) errors.push(`${route.cadence} "${v.label}": under ${MIN_PAGES} pages`);
-      const notes = posts.reduce((s, p) => s + (rowById.get(Number(p.id))?.footnotes || 0), 0);
+      if (posts.length && rawPages(posts) < MIN_PAGES && route.volumes.length > 1) errors.push(`${route.cadence} "${v.label}": under ${MIN_PAGES} pages`);
+      const notes = posts.reduce((s, p) => s + (rowById.get(postId(p))?.footnotes || 0), 0);
       if (v.notes_policy === "none" && notes > 0) errors.push(`${route.cadence} "${v.label}": notes_policy none but ${notes} footnotes exist`);
       Object.assign(v, { posts: posts.length, words, est_pages: pages,
         price: { bw: printCost(pages, "bw"), color: printCost(pages, "color") }, from: posts[0] ? String(posts[0].post_date).slice(0, 10) : null,

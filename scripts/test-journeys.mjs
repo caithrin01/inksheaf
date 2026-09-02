@@ -110,15 +110,23 @@ await journey("A6 second publication fully replaces the first", {}, async page =
   const sub = await page.evaluate(() => document.getElementById("pv-sub").textContent);
   assert.ok(/Letters from an American/i.test(mast), "cover is HCR: " + mast);
   assert.ok(!/caithrin/i.test(sub), "no stale caithrin in payoff");
-  /* HCR is a capped read (audit gate 3): nothing on the desk may read as final */
-  assert.ok(/estimates until we read the rest/.test(sub), "capped sentence present: " + sub.slice(-120));
+  /* Audit gate 3: a capped read may not read as final; a full read may not hedge as if capped.
+     Since 2026-09-01 the relay reads HCR's whole window, so the API decides which it is. */
+  const api = await (await page.request.get(base + "/api/preview?url=heathercoxrichardson.substack.com")).json();
   assert.ok(!/covers the full year/.test(sub), "old full-year claim gone");
-  const big = await page.evaluate(() => document.getElementById("pv-big").textContent);
-  assert.ok(/so far|at least|about/.test(big), "headline hedged when capped: " + big);
   const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
-  assert.ok(/about \d+ (volumes|issues)|of about \d+ pages/.test(verdict), "verdict hedged when capped: " + verdict.slice(0, 80));
   const price = await page.evaluate(() => document.getElementById("pv-price").textContent);
-  assert.ok(/plus about \$\d+ shipping/.test(price), "shipping is 'about' when capped or unmeasured: " + price.slice(0, 80));
+  if (api.capped) {
+    assert.ok(/estimates until we read the rest/.test(sub), "capped sentence present: " + sub.slice(-120));
+    assert.ok(/about \d+ (volumes|issues)|of about \d+ pages/.test(verdict), "verdict hedged when capped: " + verdict.slice(0, 80));
+    assert.ok(/plus about \$\d+ shipping/.test(price), "shipping is 'about' when capped or unmeasured: " + price.slice(0, 80));
+  } else {
+    assert.ok(!/estimates until we read the rest/.test(sub), "no capped sentence on a full read: " + sub.slice(-120));
+    assert.ok(/\d+ (volumes|issues) of \d+ to \d+ pages|one (issue|volume) of \d+ pages/.test(verdict), "verdict exact on a full read: " + verdict.slice(0, 80));
+    const n = (verdict.match(/(\d+) (volumes|issues)/) || [])[1];
+    const measured = ["1", "2", "4", "8"].includes(String(n || 1));
+    assert.ok(measured ? /plus \$\d+\.\d\d shipping/.test(price) : /plus about \$\d+ shipping/.test(price), "shipping exact only at measured set sizes: " + price.slice(0, 80));
+  }
 });
 
 await journey("A6b uncapped single volume quotes measured shipping exactly", {}, async page => {
@@ -141,12 +149,19 @@ await journey("A7 failure after success clears the desk, keeps the book", {}, as
 
 await journey("A8 concierge state handoff (ACX)", {}, async page => {
   await preview(page, "astralcodexten.com");
+  /* ACX is the largest archive in the gate. Either the plan binds it (every volume under the
+     cap, the plan carried into the reservation) or it is honestly handed to a person. */
   const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
-  assert.ok(/by hand/.test(verdict), "concierge verdict: " + verdict.slice(0, 60));
   await page.click("#pv-cta"); await page.waitForTimeout(500);
   const plan = JSON.parse(await page.evaluate(() => document.getElementById("plan_json").value));
-  assert.equal(plan.cadence, "concierge");
-  assert.equal(plan.needs_hand_plan, true);
+  if (/by hand/.test(verdict)) {
+    assert.equal(plan.cadence, "concierge");
+    assert.equal(plan.needs_hand_plan, true);
+  } else {
+    assert.ok(plan.cadence && plan.cadence !== "concierge" && Array.isArray(plan.volumes) && plan.volumes.length >= 1, "plan carried: " + JSON.stringify(plan).slice(0, 80));
+    assert.ok(plan.volumes.every(v => v.est_pages <= 300 && v.label), "every volume binds under the cap with a label");
+    assert.ok(plan.volumes.every(v => Array.isArray(v.post_ids) && v.post_ids.length), "every volume names its posts");
+  }
 });
 
 await journey("A9 deep link reproduces a preview", {}, async page => {

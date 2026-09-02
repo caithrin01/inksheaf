@@ -50,7 +50,7 @@ def valid_host(host: str) -> bool:
 @app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=60,
               max_inputs=1, cloud="gcp")
 @modal.fastapi_endpoint(method="GET")
-def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold: int = 0):
+def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold: int = 0, since: str = ""):
     from fastapi import HTTPException, Response
 
     expected = os.environ.get("ARCHIVE_RELAY_TOKEN", "")
@@ -72,7 +72,7 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
         hit = None
         if not cold:   # cold=1 (signed callers only) forces a fresh read, for the reliability sample
             try:
-                hit = results.get(host)
+                hit = results.get(host + "|" + since)
             except Exception:
                 hit = None
         if hit and _t.time() - hit["at"] < RESULT_TTL:
@@ -82,13 +82,24 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
                                      "X-Relay-Result": "reused"})
         # fetch the trailing year by date, not by post count; up to 28 pages, four at a time
         cutoff = (_t.time() - 366 * 86400) * 1000
-        combined, complete = read_archive(lambda off: fetch_page(host, off, HTTPException), cutoff)
+        # since=YYYY-MM-DD (2026-09-01): the edition window is four completed quarters, up to
+        # 15 months back, so the Pages Function may ask for more than the trailing year.
+        if since:
+            try:
+                import datetime as _dt
+                since_ms = _dt.datetime.strptime(since, "%Y-%m-%d").replace(tzinfo=_dt.timezone.utc).timestamp() * 1000
+                cutoff = min(cutoff, since_ms)
+            except ValueError:
+                pass
+        # a daily letter needs about 1,100 posts to cover fifteen months (HCR: 723 posts reached
+        # only 2025-11-05 at the old 700 cap, 2026-09-01)
+        combined, complete = read_archive(lambda off: fetch_page(host, off, HTTPException), cutoff, max_offset=1800 if since else 700)
         combined = [slim(p) for p in combined]
         body = json.dumps(combined).encode()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=502, detail="response too large")
         try:
-            results[host] = {"at": _t.time(), "body": body, "complete": complete}
+            results[host + "|" + since] = {"at": _t.time(), "body": body, "complete": complete}
         except Exception:
             pass
         return Response(content=body, media_type="application/json",
@@ -155,7 +166,17 @@ def slim(p):
         pub = (u.get("publication") or {}) if isinstance(u, dict) else {}
         return {"publication": {k: pub.get(k) for k in
                 ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop")}}
+    body = str(p.get("body_html") or "")
+    import re as _re
     return {
+        "id": p.get("id"),
+        "slug": str(p.get("slug") or "")[:200],
+        "subtitle": str(p.get("subtitle") or "")[:200],
+        "truncated_body_text": str(p.get("truncated_body_text") or "")[:240],
+        # counts the editor reads; the body itself never leaves the relay (size)
+        "footnotes": len(_re.findall(r'class="footnote-anchor"', body)),
+        "links": len(_re.findall(r'<a\b[^>]*href="https?:', body)),
+        "images": len(_re.findall(r'<img\b', body, _re.I)),
         "title": str(p.get("title") or "")[:200],
         "wordcount": p.get("wordcount"),
         "post_date": p.get("post_date"),

@@ -16,6 +16,7 @@ const RELAY_MIN_ATTEMPT_MS = 4000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
 import { planEdition } from "../lib/editor.js";
+import { editionWindow } from "../lib/edition-window.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
@@ -86,7 +87,13 @@ function parseHost(raw) {
 
 async function fetchArchive(host, env) {
   const posts = [];
+  /* The summary keeps its trailing-year cutoff (the batteries compare against it); the read
+     itself reaches back to the edition window's start (four completed quarters, up to 15
+     months) so the editor sees every post it may bind. */
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 3600 * 1000;
+  const windowStart = editionWindow(Date.now()).from.getTime();
+  const readBack = Math.min(cutoff, windowStart);
+  const since = new Date(readBack).toISOString().slice(0, 10);
   let hops = 0;
   let relayed = false;
   let relayComplete = true;
@@ -125,7 +132,7 @@ async function fetchArchive(host, env) {
         for (;;) {
           const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
           if (remaining < RELAY_MIN_ATTEMPT_MS) break;
-          via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining));
+          via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining), since);
           attempts++;
           if (via.ok) break;
           const wait = RELAY_WAITS_MS[attempts - 1];
@@ -169,7 +176,22 @@ async function fetchArchive(host, env) {
     if (!page.length) break;
     posts.push(...page);
     offset += page.length;
-    if (page.length && Date.parse(page[page.length - 1].post_date || 0) < cutoff) break;
+    if (page.length && Date.parse(page[page.length - 1].post_date || 0) < readBack) break;
+    /* The direct read has a 150-post budget. A daily publication spends it inside the quarter
+       in progress and never reaches the window (HCR: 109 posts, 8 in the window, 2026-09-01).
+       When the budget runs out before the window start, the relay reads the rest. */
+    if (offset >= MAX_POSTS && Date.parse(page[page.length - 1].post_date || 0) >= readBack && env.ARCHIVE_RELAY_TOKEN) {
+      const remaining = RELAY_BUDGET_MS - (Date.now() - t0);
+      if (remaining >= RELAY_MIN_ATTEMPT_MS) {
+        const via = await fetchRelayedAll(host, env, Math.min(RELAY_ATTEMPT_MS, remaining), since);
+        relayMeta = { attempts: 1, latency_ms: Date.now() - t0 };
+        if (via && via.ok && via.posts.length > posts.length) {
+          relayed = true; relayComplete = via.complete;
+          posts.length = 0; posts.push(...via.posts);
+        }
+      }
+      break;
+    }
   }
 
   const identityPost = posts.find(p => p && p.post_date && Date.parse(p.post_date) >= cutoff
@@ -208,12 +230,12 @@ async function fetchDirectArchive(host, offset) {
   } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502, threw: true }; }
 }
 
-async function fetchRelayedAll(host, env, timeoutMs) {
+async function fetchRelayedAll(host, env, timeoutMs, since) {
   if (!env.ARCHIVE_RELAY_TOKEN) return { ok: false, error: "relay secret unavailable" };
   const bucket = Math.floor(Date.now() / 300000);
   const signature = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:all:${bucket}`);
   const relayUrl = "https://caithrin--inksheaf-archive-relay-archive.modal.run" +
-    `?host=${encodeURIComponent(host)}&mode=all&sig=${signature}`;
+    `?host=${encodeURIComponent(host)}&mode=all&sig=${signature}` + (since ? `&since=${since}` : "");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {

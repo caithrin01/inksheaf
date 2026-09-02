@@ -250,11 +250,42 @@ ol.how li+li::before{top:1.2rem}
 .folio-seg .fs-pages{font-size:.95rem;font-weight:560;color:var(--ink)}
 .folio-seg .fs-price{font-size:.62rem;color:var(--faint)}
 .desk-verdict{margin-top:.9rem;min-height:1.2em}
+/* ---------- the shelf: every volume a spine, width by page count ---------- */
+.plan-what{max-width:52ch;margin:0 auto 1.4rem;color:var(--faint)}
+.desk-tab .sub{display:block;font-size:.62rem;letter-spacing:.06em;text-transform:none;color:var(--faint);margin-top:.2rem}
+.route-why{max-width:52ch;margin:0 auto 1.2rem;font-style:italic}
+.shelf{display:flex;align-items:flex-end;justify-content:center;gap:10px;max-width:38rem;margin:0 auto;padding:0 .6rem;position:relative;height:auto}
+.shelf::after{content:"";position:absolute;left:0;right:0;bottom:2.55rem;height:0;border-top:3px solid var(--rule);box-shadow:0 3px 0 rgba(0,0,0,.08)}
+.shelf .folio-seg{display:flex;flex-direction:column;align-items:center;background:none;border:0;min-width:0;flex-grow:0!important;position:static;padding:0}
+.shelf .folio-seg::after{display:none}
+.spine{writing-mode:vertical-rl;transform:rotate(180deg);height:clamp(150px,24vw,196px);width:var(--w,40px);background:var(--card);border:1px solid var(--rule);border-radius:1px 3px 3px 1px;display:flex;align-items:center;justify-content:space-between;padding:.7rem .15rem;box-shadow:inset -2px 0 0 rgba(255,255,255,.45),inset 2px 0 0 rgba(0,0,0,.08),-2px 3px 0 rgba(0,0,0,.08);transition:transform .35s,box-shadow .35s;position:relative;z-index:1}
+.spine .fs-dates{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+.spine .fs-vol{font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.spine::before{content:"";position:absolute;left:.3rem;right:.3rem;top:.35rem;border-top:1px solid var(--hair)}
+.spine::after{content:"";position:absolute;left:.3rem;right:.3rem;bottom:.35rem;border-top:1px solid var(--hair)}
+.folio-seg:hover .spine{transform:rotate(180deg) translateX(3px)}
+.plaque{height:2.55rem;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-top:.5rem}
+.plaque .fs-pages{font-size:.9rem;font-weight:560;color:var(--ink);line-height:1.1}
+.plaque .fs-price{font-size:.62rem;color:var(--faint)}
+.plan-progress{margin-top:.8rem}
+.interior-why{margin-top:.5rem;max-width:52ch;margin-inline:auto}
+.plan-by{margin-top:.6rem;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase}
+@media (max-width:560px){
+  .shelf{flex-direction:column;align-items:stretch;gap:6px;padding:0}
+  .shelf::after{display:none}
+  .shelf .folio-seg{flex-direction:row;justify-content:space-between;align-items:center;border-bottom:1px solid var(--hair);padding:.35rem 0}
+  .spine{writing-mode:horizontal-tb;transform:none;height:auto;width:auto!important;flex:1;padding:.5rem .7rem;box-shadow:inset 0 -2px 0 rgba(0,0,0,.08)}
+  .spine::before,.spine::after{display:none}
+  .folio-seg:hover .spine{transform:none}
+  .plaque{height:auto;flex-direction:row;gap:.6rem;padding:0 0 0 .8rem;align-items:baseline}
+  .plaque .fs-price{display:inline}
+}
 .interior-row{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.3rem}
 .int-opt{background:transparent;border:1px solid var(--rule);cursor:pointer;font-family:inherit;
   font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:500;
   padding:.75rem 1.3rem;color:var(--faint);transition:all .25s;text-align:center}
 .int-opt[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
+.int-opt .fl{color:var(--red);margin-right:.4rem}
 .desk-tab:focus-visible,.int-opt:focus-visible,.tryrow button:focus-visible,button.main:focus-visible,.pv-cta:focus-visible,.snip-copy:focus-visible{outline:2px solid var(--red);outline-offset:3px}
 .int-opt:hover{color:var(--ink)}
 /* newsletter snippet generator */
@@ -390,11 +421,16 @@ footer a{color:inherit}
         <div class="pv-big" id="pv-big"></div>
         <p class="pv-sub" id="pv-sub"></p>
         <div class="desk" id="desk" hidden>
-          <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="How the edition divides"></div>
-          <div class="foliobar" id="foliobar" role="list" aria-label="How the volumes divide"></div>
+          <p class="plan-what" id="plan-what"></p>
+          <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="Ways to bind it"></div>
+          <p class="route-why" id="route-why"></p>
+          <div class="shelf foliobar" id="foliobar" role="list" aria-label="The volumes"></div>
           <div class="desk-verdict note" id="desk-verdict"></div>
+          <p class="plan-progress note" id="plan-progress"></p>
           <div class="interior-row" id="interior-row" aria-label="Interior printing"></div>
+          <p class="interior-why note" id="interior-why"></p>
           <div class="pv-price" id="pv-price"></div>
+          <p class="plan-by note" id="plan-by"></p>
         </div>
         <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
         <p class="pv-note note">Lulu prints each copy when a reader orders it, takes their payment and ships it. Nothing prints until you&rsquo;ve approved the proof.</p>
@@ -691,13 +727,25 @@ function renderPreview(d: any){
     block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
   }));
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
+  const ED = d.editorial && d.editorial.plan;
+  if (ED && ED.routes && ED.routes.length){
+    const golden = ED.routes.find((r: any) => r.recommended) || ED.routes[0];
+    const w = d.editorial.window || {};
+    const t = d.editorial.totals || {};
+    (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
+    (document.getElementById('pv-sub') as HTMLElement).textContent =
+      ED.sentences.plan_sub + ' ' + (t.posts || 0) + ' public ' + kindLabel(d, t.posts || 0) + ', ' + (t.words || 0).toLocaleString('en-US') + ' words, ' + (w.span || '') + '. ' +
+      (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
+      (d.capped ? 'This preview read your newest ' + publicPosts + ' ' + kindLabel(d, publicPosts) + '; the printed edition uses them all. Pages and prices below are estimates until we read the rest. ' : '') +
+      (golden.volumes.length > 1 ? 'That is ' + (d.capped ? 'about ' : '') + golden.volumes.length + ' ' + unitOf(d, golden.volumes.length) + ' of ' + Math.min(...golden.volumes.map((v: any) => v.est_pages)) + ' to ' + Math.max(...golden.volumes.map((v: any) => v.est_pages)) + ' pages.' : 'Typeset at 6×9 with contents, running headers and your own cover.');
+  } else
   (document.getElementById('pv-big') as HTMLElement).innerHTML =
     recD && recD.volumes.length > 1
     ? ((d.young || d.capped) ? 'Your archive so far is ' : 'Your year is ') + (d.form || 'a set') + ': <b>' + (d.capped ? 'about ' : '') + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
     : over
     ? 'Your year is ' + (d.capped ? 'at least ' : '') + 'a <b>' + d.est_pages.toLocaleString('en-US') + '-page shelf</b>.'
     : 'Your archive is already ' + (d.capped ? 'at least ' : '') + 'a <b>' + d.est_pages + '-page book</b>.';
-  (document.getElementById('pv-sub') as HTMLElement).textContent =
+  if (!ED) (document.getElementById('pv-sub') as HTMLElement).textContent =
     publicPosts + (d.capped ? '+' : '') + ' public ' + kindLabel(d, publicPosts) + ', ' +
     d.words.toLocaleString('en-US') + ' words, ' + fmt(d.from) + ' to ' + fmt(d.to) + '. ' +
     (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
@@ -753,7 +801,125 @@ function shipFor(n: number){
   return Math.max(PRICES.shipping, base + slope * n);
 }
 function aUnit(d: any){ const u = d.unit || 'volume'; return (/^[aeiou]/.test(u) ? 'an ' : 'a ') + u; }
+/* ---------- the plan screen: the editor's plan on a shelf ---------- */
+const CAD_NAME: any = { single: 'One volume', half: 'Half-year set', quarterly: 'Quarterly', monthly: 'Monthly' };
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+let plan: any = null;
+function money(n: number){ return '$' + n.toFixed(2); }
+function renderPlan(d: any){
+  const ed = d.editorial, P = ed.plan;
+  const el = document.getElementById('desk') as HTMLElement;
+  const reason = document.getElementById('pv-reason') as HTMLElement;
+  el.hidden = false;
+  desk = null;
+  const golden = P.routes.find((r: any) => r.recommended) || P.routes[0];
+  plan = { d, ed, P, cadence: golden ? golden.cadence : null, interior: P.interior.recommended === 'color' ? 'color' : 'bw' };
+  reason.textContent = 'What you write: ' + P.kind + (P.rhythm ? ' · ' + P.rhythm : '');
+  (document.getElementById('plan-what') as HTMLElement).textContent = P.description;
+  if (!golden){
+    document.getElementById('desk-tabs')!.innerHTML = '';
+    document.getElementById('foliobar')!.innerHTML = '';
+    document.getElementById('interior-row')!.innerHTML = '';
+    (document.getElementById('pv-price') as HTMLElement).textContent = '';
+    (document.getElementById('route-why') as HTMLElement).textContent = '';
+    document.getElementById('desk-verdict')!.textContent =
+      'This archive does not divide cleanly on its own; reserve a spot and we will plan the volumes by hand.';
+    return;
+  }
+  drawPlan();
+}
+function drawPlan(){
+  const { d, ed, P } = plan;
+  const route = P.routes.find((r: any) => r.cadence === plan.cadence);
+  const tabs = document.getElementById('desk-tabs')!;
+  tabs.innerHTML = '';
+  for (const key of ['single','half','quarterly','monthly']){
+    const r = P.routes.find((x: any) => x.cadence === key);
+    const inf = P.infeasible.find((x: any) => x.cadence === key);
+    if (!r && !inf) continue;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'desk-tab'; b.setAttribute('role','tab');
+    b.setAttribute('aria-selected', String(plan.cadence === key));
+    if (r && r.recommended){
+      const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766'; fl.setAttribute('aria-hidden', 'true');
+      b.appendChild(fl);
+    }
+    b.appendChild(document.createTextNode(CAD_NAME[key]));
+    if (r){
+      const sub = document.createElement('span'); sub.className = 'sub'; sub.setAttribute('aria-hidden', 'true');
+      const inParts = r.volumes.some((v: any) => /\s·\s[IVX]+$/.test(v.label));
+      sub.textContent = r.volumes.length === 1 ? r.volumes[0].est_pages + ' pages · ' + money(r.price[plan.interior])
+        : r.volumes.length + ' volumes' + (inParts ? ', in parts' : '') + ' · ' + money(r.price[plan.interior]);
+      b.appendChild(sub);
+      b.addEventListener('click', () => { plan.cadence = key; beacon('plan_cadence'); drawPlan(); });
+    } else { b.disabled = true; b.title = inf.reason; }
+    tabs.appendChild(b);
+  }
+  (document.getElementById('route-why') as HTMLElement).textContent = (route.recommended ? 'The golden route. ' : '') + route.why;
+  const bar = document.getElementById('foliobar')!;
+  bar.innerHTML = '';
+  route.volumes.forEach((v: any, i: number) => {
+    const seg = document.createElement('div'); seg.className = 'folio-seg'; seg.setAttribute('role','listitem');
+    const price = v.price[plan.interior];
+    seg.setAttribute('aria-label', v.label + ', ' + v.est_pages + ' pages, ' + money(price) + ' at cost');
+    const sp = document.createElement('div'); sp.className = 'spine';
+    sp.style.setProperty('--w', Math.max(30, Math.min(74, Math.round(v.est_pages * 0.34))) + 'px');
+    const l1 = document.createElement('span'); l1.className = 'fs-dates'; l1.textContent = v.label;
+    const l0 = document.createElement('span'); l0.className = 'fs-vol'; l0.textContent = route.volumes.length > 1 ? 'Vol. ' + (ROMAN[i] || i + 1) : (v.subtitle || '');
+    sp.append(l0, l1);
+    const pl = document.createElement('div'); pl.className = 'plaque';
+    const l2 = document.createElement('div'); l2.className = 'fs-pages'; l2.textContent = (d.capped ? 'about ' : '') + v.est_pages + 'pp';
+    const l3 = document.createElement('div'); l3.className = 'fs-price'; l3.textContent = money(price);
+    pl.append(l2, l3);
+    seg.append(sp, pl);
+    bar.appendChild(seg);
+  });
+  const n = route.volumes.length;
+  const lo = Math.min(...route.volumes.map((v: any) => v.est_pages)), hi = Math.max(...route.volumes.map((v: any) => v.est_pages));
+  let vtext = (route.recommended ? 'Our recommendation: ' : 'Your pick: ') +
+    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + (d.capped ? 'about ' : '') + lo + ' pages.'
+     : (d.capped ? 'about ' : '') + n + ' ' + unitOf(d, n) + ' of ' + (d.capped ? 'about ' : '') + lo + ' to ' + hi + ' pages.');
+  if (n > 1) vtext += ' Each volume carries its own title page, contents and notes.';
+  for (const inf of P.infeasible) vtext += ' ' + CAD_NAME[inf.cadence] + ' is ruled out: ' + inf.reason + '.';
+  document.getElementById('desk-verdict')!.textContent = vtext;
+  const ip = ed.window && ed.window.in_progress;
+  (document.getElementById('plan-progress') as HTMLElement).textContent = ip
+    ? (ip.posts ? ip.label + ' is in progress: ' + ip.posts + ' ' + kindLabel(d, ip.posts) + ' so far. They join the next edition.'
+               : ip.label + ' has no posts yet; it opens the next edition.')
+    : '';
+  const row = document.getElementById('interior-row')!;
+  row.innerHTML = '';
+  for (const [key, name] of [['color','Colour'],['bw','Black & white']] as const){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'int-opt';
+    b.setAttribute('aria-pressed', String(plan.interior === key));
+    if (P.interior.recommended === key){
+      const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766'; fl.setAttribute('aria-hidden', 'true'); b.appendChild(fl);
+    }
+    b.appendChild(document.createTextNode(name + ' · ' + money(route.price[key] / n) + ' ' + aUnit(d)));
+    b.setAttribute('aria-label', name + ', ' + money(route.price[key] / n) + ' ' + aUnit(d) + (P.interior.recommended === key ? ', recommended' : ''));
+    b.addEventListener('click', () => { plan.interior = key; beacon('plan_interior'); drawPlan(); });
+    row.appendChild(b);
+  }
+  (document.getElementById('interior-why') as HTMLElement).textContent = P.interior.why;
+  const ship = shipFor(n);
+  const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
+  (document.getElementById('pv-price') as HTMLElement).textContent =
+    'At cost: ' + (d.capped ? 'about ' : '') + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' for the book') +
+    ', plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US, to one address. ' +
+    'Readers pay the same. Nothing is marked up in the beta.';
+  (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : 'Planned by the calendar';
+  const year = d.to.slice(0, 4);
+  (document.getElementById('pv-kind') as HTMLElement).textContent =
+    (plan.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[plan.cadence]) + ' · ' + (ed.window ? ed.window.label : year);
+  const publicPosts = d.public_posts ?? d.posts;
+  (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
+    ? 'Vol. I of ' + n + ' · ' + route.volumes[0].label + ' · ' + route.volumes[0].est_pages + ' pages'
+    : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + route.volumes[0].est_pages + ' pages';
+}
 function renderDesk(d: any){
+  if (d.editorial && d.editorial.plan) return renderPlan(d);
+  plan = null;
   const el = document.getElementById('desk') as HTMLElement;
   const reason = document.getElementById('pv-reason') as HTMLElement;
   if (!d.divisions || !d.recommended){
@@ -899,7 +1065,17 @@ tryhandoff.addEventListener('click', ()=>{
 
 (document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
   const d = previewData;
-  if (d && desk && d.divisions){
+  if (d && plan && plan.P){
+    const route = plan.P.routes.find((r: any) => r.cadence === plan.cadence);
+    (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = plan.cadence || 'concierge';
+    (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
+      plan_version: plan.ed.plan_version, planned_by: plan.ed.planned_by, cadence: plan.cadence || 'concierge', interior: plan.interior,
+      window: plan.ed.window ? { label: plan.ed.window.label, from: plan.ed.window.from, to: plan.ed.window.to } : null,
+      kind: plan.P.kind, running_head: plan.P.running_head, dedication_post_id: plan.P.dedication_post_id,
+      contributors: plan.P.contributors, excluded: plan.P.excluded,
+      volumes: route ? route.volumes.map((v: any) => ({ label: v.label, title: v.title, subtitle: v.subtitle, notes_policy: v.notes_policy, parts: v.parts, est_pages: v.est_pages, posts: v.posts, price: v.price, post_ids: v.post_ids })) : [],
+      needs_hand_plan: !route || undefined, form: d.form, unit: d.unit, prices_measured: PRICES.measured });
+  } else if (d && desk && d.divisions){
     const div = desk.cadence && d.divisions[desk.cadence];
     (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({

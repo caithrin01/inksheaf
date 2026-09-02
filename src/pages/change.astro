@@ -1,0 +1,58 @@
+---
+// The "Change something" page from the proof email. Shows the plan the writer chose and takes
+// their changes in their own words; a person applies them and re-proofs (plan-end-to-end-v1,
+// phase 2 first cut: the editing controls come after the press is proven end to end).
+---
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Change something · Inksheaf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--faint:rgba(33,28,21,.65);--card:#f4efe2}
+@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--faint:rgba(233,223,200,.6);--card:#1c1710}}
+*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.12rem}
+.sheet{max-width:40rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}
+.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}
+.plan{margin:1.6rem 0;padding:1rem 1.2rem;border:1px solid var(--rule);background:var(--card)}
+.plan b{font-weight:560}.vol{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid rgba(128,128,128,.25);padding:.35rem 0}
+label{display:block;margin:1.6rem 0 .4rem}textarea{width:100%;min-height:9rem;font:inherit;padding:.7rem;background:var(--card);color:var(--ink);border:1px solid var(--rule)}
+button{margin-top:1rem;font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.8rem;padding:.8rem 1.6rem;background:var(--ink);color:var(--paper);border:1px solid var(--ink);cursor:pointer}
+button:hover{background:var(--red);border-color:var(--red)}.note{color:var(--faint);font-size:.92rem}.err{color:var(--red);min-height:1.4em;margin-top:.6rem}
+</style></head>
+<body><main class="sheet">
+<p class="eyebrow">Inksheaf · your edition</p>
+<h1 id="h">Change something</h1>
+<p id="lead" class="note">Loading your plan…</p>
+<div class="plan" id="plan" hidden></div>
+<form id="f" hidden>
+  <label for="req">What should change? Leave posts out, retitle a volume, switch to a different set, add a dedication, anything.</label>
+  <textarea id="req" name="request" required placeholder="Leave out the two housekeeping posts from March, and call the second volume ‘Spring’."></textarea>
+  <button type="submit">Send the changes</button>
+  <div class="err" id="err" role="alert"></div>
+</form>
+<p class="note" id="done" hidden>Got it. A person applies your changes, re-proofs the edition, and emails you the new pages, usually the same day. Nothing prints until you approve.</p>
+</main>
+<script>
+const q = new URLSearchParams(location.search); const id = q.get('id'), sig = q.get('sig');
+const $ = (s) => document.querySelector(s);
+(async () => {
+  const r = await fetch(`/api/change?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your proof email again, or write to caithrin@caithrin.com.'; return; }
+  const p = d.plan;
+  $('#lead').textContent = `${d.publication_url.replace(/^https?:\/\//, '')} · ${d.status}`;
+  const box = $('#plan'); box.hidden = false;
+  if (p && Array.isArray(p.volumes) && p.volumes.length) {
+    box.innerHTML = `<b>${p.cadence === 'single' ? 'One volume' : p.cadence === 'half' ? 'Half-year set' : p.cadence === 'quarterly' ? 'Quarterly set' : p.cadence === 'monthly' ? 'Monthly set' : p.cadence}</b> · ${p.interior === 'color' ? 'colour' : 'black and white'} interior` +
+      p.volumes.map(v => `<div class="vol"><span>${v.label}${v.subtitle ? ' · ' + v.subtitle : ''}</span><span>${v.posts ?? (v.post_ids || []).length} posts · ${v.est_pages ?? '?'}pp</span></div>`).join('');
+  } else box.innerHTML = '<b>Planned by hand</b> · a person is shaping this edition.';
+  $('#f').hidden = false;
+})();
+$('#f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await fetch('/api/change', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, request: $('#req').value }) });
+  if (r.ok) { $('#f').hidden = true; $('#done').hidden = false; }
+  else $('#err').textContent = 'That did not send. Reply to your proof email instead.';
+});
+</script></body></html>

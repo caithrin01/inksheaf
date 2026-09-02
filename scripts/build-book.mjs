@@ -5,7 +5,7 @@
 // Honest limits (recorded in evidence): footnotes render as per-article endnotes;
 // images stay RGB; embeds become source cards. Proofs are watermarked.
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
 import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
@@ -24,6 +24,10 @@ const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
 const TOP = argOf("--top") ? +argOf("--top") : null;
+// --posts <file.json>: an exact post list (ids or slugs, in reading order) from an editorial
+// plan (plan-end-to-end-v1). The listing is filtered to it and ordered by it.
+const POSTS_FILE = argOf("--posts");
+const ONLY = POSTS_FILE ? JSON.parse(readFileSync(POSTS_FILE, "utf-8")).map(String) : null;
 const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
@@ -53,11 +57,20 @@ if (FIXTURE) {
   listing.push(...fx.map(p => ({ audience: "everyone", type: "newsletter", ...p })));
 }
 if (!FIXTURE)
-for (let offset = 0; ; offset += 25) {
+// Page by the count received: Substack's first page answers 23 for limit=25 and offset counts
+// posts, so a fixed stride of 25 skipped posts 23 and 24 of every archive (found 2026-09-01
+// on the caithrin edition: the plan named 23 posts, the build found 21).
+for (let offset = 0; ; ) {
   const page = await j(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`);
+  offset += Array.isArray(page) ? page.length : 25;
   if (!Array.isArray(page) || !page.length) break;
   listing.push(...page);
-  if (listing.length > 400) break;
+  /* stop when the read has what it needs: every planned post, or the window's start, or a
+     daily letter's fifteen months (about 1,500 rows); never at an arbitrary 400 */
+  if (ONLY && ONLY.every(k => listing.some(p => String(p.id) === k || String(p.slug) === k))) break;
+  const oldest = page[page.length - 1]?.post_date || "";
+  if (AFTER && oldest && Date.parse(oldest) < Date.parse(AFTER)) break;
+  if (listing.length > 1800) break;
   await new Promise(r => setTimeout(r, 400));
 }
 const report = { host, listed: listing.length, skips: [], deadImages: [],
@@ -74,6 +87,13 @@ const posts = listing
             && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
 if (AFTER || BEFORE) report.window = { after: AFTER, before: BEFORE };
+if (ONLY) {
+  const rank = new Map(ONLY.map((k, i) => [k, i]));
+  const keyOf = p => rank.has(String(p.id)) ? String(p.id) : rank.has(String(p.slug)) ? String(p.slug) : null;
+  const missing = ONLY.filter(k => !posts.some(p => String(p.id) === k || String(p.slug) === k));
+  posts.splice(0, posts.length, ...posts.filter(p => keyOf(p) !== null).sort((a, b) => rank.get(keyOf(a)) - rank.get(keyOf(b))));
+  report.selection = { posts: ONLY.length, found: posts.length, missing };
+}
 const seenSlugs = new Set();
 for (let i = 0; i < posts.length; ) {
   if (seenSlugs.has(posts[i].slug)) { report.skips.push({ slug: posts[i].slug, reason: "duplicate slug" }); posts.splice(i, 1); }

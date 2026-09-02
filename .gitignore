@@ -39,3 +39,4 @@ assets/
 .wrangler/
 proofs/oversized-*
 proofs/heavy-*
+proofs/press/

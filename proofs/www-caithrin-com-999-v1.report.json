@@ -1,0 +1,35 @@
+{
+  "host": "www.caithrin.com",
+  "listed": 44,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "selection": {
+    "posts": 23,
+    "found": 23,
+    "missing": []
+  },
+  "estPages": 166,
+  "brand": {
+    "accent": "#63543a",
+    "headingFont": "Inter",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#1D1E1D",
+    "coverPlate": false,
+    "mappedFrom": "SF Pro Display",
+    "warnings": []
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "included": 23,
+  "parts": [],
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0,
+  "dateRange": [
+    "2025-07-18",
+    "2026-06-26"
+  ]
+}

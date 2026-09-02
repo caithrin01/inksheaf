@@ -1,4 +1,5 @@
-// POST /api/signup — store one beta signup in D1. No cookies, no IP stored.
+// POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
+import { dispatchPress } from "../lib/press-dispatch.js";
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
   "founding_count","price_range","interview_ok","concern","plan_json"];
@@ -8,7 +9,7 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ ok:false, error:"method not allowed" }),
       { status: 405, headers: { "content-type":"application/json", "allow":"POST" } });
 
-  if (Number(request.headers.get("content-length") || 0) > 16_384) return bad("request too large", 413);
+  if (Number(request.headers.get("content-length") || 0) > 32_768) return bad("request too large", 413);
   const recent = await env.DB.prepare(
     "SELECT count(*) n FROM signups WHERE created_at > datetime('now','-60 seconds')"
   ).first().catch(() => ({ n: 0 }));
@@ -33,7 +34,7 @@ export async function onRequest({ request, env }) {
   const clean = {};
   for (const k of FIELDS) clean[k] = body[k] == null ? null : String(body[k]).slice(0, 300);
   /* plan_json is a JSON document, not a form field; it gets its own cap */
-  clean.plan_json = body.plan_json == null ? null : String(body.plan_json).slice(0, 4096);
+  clean.plan_json = body.plan_json == null ? null : String(body.plan_json).slice(0, 24000);
   clean.publication_url = url;
   clean.email = email;
   clean.posts_per_year = Number.parseInt(clean.posts_per_year, 10) || null;
@@ -53,8 +54,11 @@ export async function onRequest({ request, env }) {
     clean.publication_url, clean.name, clean.role, clean.email, clean.archive_type,
     clean.frequency, clean.posts_per_year, clean.cadence_pref, clean.us_subscribers,
     clean.expected_orders, clean.founding_count, clean.price_range, clean.interview_ok,
-    clean.concern, String(clean.plan_json || "").slice(0, 4096) || null, JSON.stringify(clean)
+    clean.concern, String(clean.plan_json || "").slice(0, 24000) || null, JSON.stringify(clean)
   ).run();
+  const row = await env.DB.prepare("SELECT id FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1")
+    .bind(email, url).first().catch(() => null);
+  if (row?.id) await dispatchPress(env, { event: "press", signup_id: row.id, publication_url: url, email, plan_json: clean.plan_json || null });
   return ok();
 }
 const ok  = () => new Response(JSON.stringify({ ok: true }),

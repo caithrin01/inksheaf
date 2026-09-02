@@ -29,7 +29,7 @@ export const EditorialPlan = z.object({
   kind: z.enum(KINDS),
   rhythm: z.string().describe("How often and when they publish, in plain words: 'weekly, most Sundays'."),
   description: z.string().describe("One sentence about what this publication is, written for its author, no flattery."),
-  routes: z.array(Route).min(1).max(4).describe("The golden route first and recommended, then up to three alternatives. Include every cadence that binds; mark the rest absent."),
+  routes: z.array(Route).max(4).describe("The golden route first and recommended, then up to three alternatives. Include every cadence that binds; mark the rest absent."),
   infeasible: z.array(z.object({ cadence: z.enum(CADENCES), reason: z.string() }))
     .describe("Cadences left out and the plain reason: 'one volume would run about 690 pages'."),
   contributors: z.array(z.object({ name: z.string(), role: z.enum(["principal","contributor","guest"]), posts: z.number().int() }))

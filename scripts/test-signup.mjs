@@ -48,9 +48,9 @@ assert.ok(!log2.find(x => x.sql.includes("INSERT INTO signups")), "honeypot stor
 /* oversized plan_json is truncated, not fatal */
 const log3 = [];
 const res3 = await onRequest({ request: req({ publication_url: "https://b.substack.com",
-  email: "b@example.com", plan_json: "x".repeat(9000) }), env: { DB: mockDB(log3) } });
+  email: "b@example.com", plan_json: "x".repeat(30000) }), env: { DB: mockDB(log3) } });
 assert.equal(res3.status, 200);
 const ins3 = log3.find(x => x.sql.includes("INSERT INTO signups"));
-assert.ok(ins3.args.some(a => typeof a === "string" && a.length === 4096), "plan_json capped at 4096");
+assert.ok(ins3.args.some(a => typeof a === "string" && a.length === 24000), "plan_json capped at 24000");
 
 console.log("PASS SIGNUP unit: plan_json bound, honeypot inert, oversize capped");

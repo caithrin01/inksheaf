@@ -1,0 +1,45 @@
+name: press
+# The press: started by a reservation (event press) or an approval (event list). Builds the
+# proof pages or the final files with the same pipeline that made the dogfood book, stores
+# them privately, emails the writer, and reports status to the site.
+on:
+  repository_dispatch:
+    types: [press, list, change]
+  workflow_dispatch:
+    inputs:
+      event: { description: "press or list", default: "press" }
+      signup_id: { description: "signups.id", required: true }
+      publication_url: { description: "https://...", required: true }
+      email: { description: "writer's email", required: true }
+concurrency: press-${{ github.event.client_payload.signup_id || inputs.signup_id }}
+jobs:
+  press:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Press
+        env:
+          PRESS_EVENT: ${{ github.event.client_payload.event || inputs.event }}
+          SIGNUP_ID: ${{ github.event.client_payload.signup_id || inputs.signup_id }}
+          PUBLICATION_URL: ${{ github.event.client_payload.publication_url || inputs.publication_url }}
+          WRITER_EMAIL: ${{ github.event.client_payload.email || inputs.email }}
+          PLAN_JSON: ${{ github.event.client_payload.plan_json }}
+          CHANGE_REQUEST: ${{ github.event.client_payload.request }}
+          ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
+          INKSHEAF_PROOF_TOKEN: ${{ secrets.INKSHEAF_PROOF_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPERATOR_EMAIL: caithrin@caithrin.com
+          SITE_BASE: https://inksheaf.com
+        run: node scripts/press.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: press-${{ github.run_id }}
+          path: proofs/press/**/*.json
+          if-no-files-found: ignore

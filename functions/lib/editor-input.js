@@ -7,10 +7,11 @@ export const PAGE_WORDS = 270;
 export const MIN_PAGES = 32, MAX_PAGES = 300, HARD_MAX = 800;
 export const KIND_HINTS = "essays, letters (date-titled dispatches), recipes, poems, stories, reviews, dispatches, serial (one continuing work), notes (short posts), mixed";
 
-export function volumePages(posts) {
+export function rawPages(posts) {
   const words = posts.reduce((s, p) => s + (Number(p.wordcount) || 0), 0);
-  return Math.max(MIN_PAGES, Math.round(words / PAGE_WORDS + posts.length + 8));
+  return Math.round(words / PAGE_WORDS + posts.length + 8);
 }
+export function volumePages(posts) { return Math.max(MIN_PAGES, rawPages(posts)); }
 export function printCost(pages, interior = "bw") {
   const pod = prices.pods[interior] || prices.pods.bw;
   return Math.round((pod.base + pod.per_page * pages) * 100) / 100;
@@ -18,11 +19,22 @@ export function printCost(pages, interior = "bw") {
 
 const count = (html, re) => (String(html || "").match(re) || []).length;
 
+/* A post's identity: the archive's id, or a stable hash of its slug when a slimmed relay
+   record has none. The build step re-reads the archive and maps back the same way. */
+export function postId(p) {
+  const n = Number(p && p.id);
+  if (Number.isFinite(n) && n > 0) return n;
+  const key = String((p && (p.slug || p.canonical_url || p.title)) || "");
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h || 1;
+}
+
 /* One compact row per post. ids are the archive's own post ids. */
 export function shapePost(p) {
   const body = p.body_html || "";
   return {
-    id: Number(p.id),
+    id: postId(p),
     date: String(p.post_date || "").slice(0, 10),
     title: String(p.title || "").slice(0, 140),
     subtitle: String(p.subtitle || p.description || "").slice(0, 160),
@@ -33,9 +45,9 @@ export function shapePost(p) {
     audience: p.audience || "everyone",
     type: p.type || "newsletter",
     image: !!p.cover_image,
-    images: count(body, /<img\b/gi),
-    footnotes: count(body, /class="footnote-anchor"/gi),
-    links: count(body, /<a\b[^>]*href="https?:/gi),
+    images: p.images != null ? Number(p.images) || 0 : count(body, /<img\b/gi),
+    footnotes: p.footnotes != null ? Number(p.footnotes) || 0 : count(body, /class="footnote-anchor"/gi),
+    links: p.links != null ? Number(p.links) || 0 : count(body, /<a\b[^>]*href="https?:/gi),
     excerpt: String(p.truncated_body_text || "").replace(/\s+/g, " ").slice(0, 200),
   };
 }
@@ -44,8 +56,11 @@ export function shapePost(p) {
 export function partition(posts, nowMs) {
   const w = editionWindow(nowMs);
   const inWindow = [], inProgress = [], older = [], paid = [], podcasts = [];
+  const seen = new Set();
   for (const p of posts) {
     if (!p || !p.post_date) continue;
+    /* archive pages can overlap when Substack's listing shifts mid-read; one record per post */
+    const key = postId(p); if (seen.has(key)) continue; seen.add(key);
     const d = String(p.post_date).slice(0, 10);
     if (p.type === "podcast") { podcasts.push(p); continue; }
     if (p.type && p.type !== "newsletter") continue;

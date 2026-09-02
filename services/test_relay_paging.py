@@ -40,7 +40,7 @@ _modal.fastapi_endpoint = lambda *a, **k: (lambda f: f)
 sys.modules["modal"] = _modal
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from archive_relay import read_archive  # noqa: E402
+from archive_relay import read_archive, slim  # noqa: E402
 
 NOW = datetime(2026, 9, 1, 12, tzinfo=timezone.utc)
 CUTOFF_MS = (NOW - timedelta(days=366)).timestamp() * 1000
@@ -133,6 +133,19 @@ check("capped read: still no gaps", [p["id"] for p in posts] == list(range(len(p
 # 5. an empty archive
 posts, complete = read_archive(FakeSubstack([]), CUTOFF_MS, pause=0)
 check("empty archive: nothing read, complete", posts == [] and complete)
+
+
+# slim keeps what the editor reads (2026-09-01): the id, slug, excerpt and counts; never the body
+_p = slim({"id": 42, "slug": "hello", "title": "T", "wordcount": "900", "post_date": "2026-01-02T00:00:00Z",
+           "audience": "everyone", "type": "newsletter", "subtitle": "S", "truncated_body_text": "x" * 500,
+           "body_html": '<img src=a><a class="footnote-anchor" href="#f1">1</a><a class="footnote-anchor" href="#f2">2</a><a href="https://x">l</a><a href="#local">n</a>'})
+check("slim keeps the id", _p.get("id") == 42)
+check("slim keeps the slug", _p.get("slug") == "hello")
+check("slim counts footnotes", _p.get("footnotes") == 2)
+check("slim counts external links only", _p.get("links") == 1)
+check("slim counts images", _p.get("images") == 1)
+check("slim drops the body", "body_html" not in _p)
+check("slim trims the excerpt", len(_p.get("truncated_body_text", "")) == 240)
 
 print(f"\n{passed} pass, {failed} fail")
 sys.exit(1 if failed else 0)
