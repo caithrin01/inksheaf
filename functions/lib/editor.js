@@ -24,6 +24,10 @@ You decide judgment, not arithmetic. Pages and prices are computed from your pos
 
 Routes: offer the golden route first and mark it recommended, then the alternatives that bind. Volume labels come only from the window's period labels you are given; when a period is too thin (under the minimum pages) fold it into its neighbour and join the two labels with " – " (a half-year label when two quarters make one). When a period is too fat (over the cap), that cadence is infeasible unless a finer cadence exists; say so in "infeasible" with the page count in words. A single volume is only offered when the whole window binds under the cap.
 
+A cadence whose volumes would number fewer than two is never a route; list it in "infeasible" with the reason. A folded label such as "Sep 2025 – Oct 2025" must not sit beside a volume for the same period.
+
+When the window holds no public posts but "paid_posts_in_window" is above zero, say so plainly to the writer: their posts are for paid subscribers, the preview can only read public ones, and a Substack export is the way in; never say the archive came through empty. When the window holds nothing at all, say the archive has no public posts in the window.
+
 Kinds: ${KIND_HINTS}. Contributors: everyone with a byline, principal first. Notes policy per volume from the footnote counts. Interior: colour only when the images carry the writing (recipes, photo essays, illustrated posts); otherwise black and white, and say why in one sentence.
 
 Sentences are for the writer, plain and specific, no flattery, no exclamation marks. British or American spelling as the writer uses.`;
@@ -101,7 +105,9 @@ export function calendarFallback(input) {
   const bylines = {};
   for (const r of input.posts) for (const b of r.by) bylines[b] = (bylines[b] || 0) + 1;
   const contributors = Object.entries(bylines).sort((a, b) => b[1] - a[1]).map(([n, c], i) => ({ name: n, role: i === 0 ? "principal" : "contributor", posts: c }));
-  const headline = !golden ? "Your archive needs a hand-planned edition."
+  const paidOnly = !posts.length && input.publication.paid_posts_in_window > 0;
+  const headline = paidOnly ? "Your posts are for paid subscribers."
+    : !golden ? "Your archive needs a hand-planned edition."
     : w.everythingSoFar ? "Everything so far is one book."
     : golden.cadence === "single" ? "Your year is one book."
     : golden.cadence === "half" ? "Your year is a pair of half-year volumes."
@@ -110,7 +116,9 @@ export function calendarFallback(input) {
     kind: "essays", rhythm: "", description: `${name}: ${posts.length} public posts in ${w.span}.`,
     routes, infeasible, contributors, excluded: [], interior: { recommended: "bw", why: "Black and white by default; choose colour if your images carry the writing." },
     dedication_post_id: null, running_head: "publication",
-    sentences: { plan_headline: headline, plan_sub: `${posts.length} posts, about ${totalPages} pages, ${w.span}.`, proof_email_opening: "Here are the first pages of your edition." },
+    sentences: { plan_headline: headline,
+      plan_sub: paidOnly ? `${input.publication.paid_posts_in_window} posts in ${w.span} are for paid subscribers, which the preview cannot read. Send a Substack export and we build from it.` : `${posts.length} posts, about ${totalPages} pages, ${w.span}.`,
+      proof_email_opening: "Here are the first pages of your edition." },
   };
 }
 

@@ -76,4 +76,12 @@ ok("rule: folded label of two adjacent quarters is accepted", (() => { const p =
   ok("younger than a quarter: window is everything so far", young4.window.label === "Everything so far" && young4.posts.length === 4 && young4.in_progress_posts.length === 0, young4.window.label);
   ok("younger than a quarter: one book, checker passes", fy.ok && fy.plan.routes.length === 1 && fy.plan.routes[0].cadence === "single" && /Everything so far/.test(fy.plan.sentences.plan_headline), fy.errors.join("; "));
 }
+/* overlapping periods in one route are refused */
+ok("rule: overlapping folded periods refused", (() => { const p = strip(good()); const m = p.routes.find(r => r.cadence === "monthly"); if (!m) return false; const a = m.volumes[0], b = m.volumes[1]; a.label = a.label + " – " + b.label; a.post_ids = [...a.post_ids, ...b.post_ids.slice(0, 1)]; b.post_ids = b.post_ids.slice(1); const r = checkPlan(p, input); return !r.ok && r.errors.some(e => /overlap in time/.test(e)); })());
+/* paid-only window: the calendar says so */
+{
+  const paid = buildEditorInput({ posts: [mk("2026-01-05", 900, { audience: "only_paid" }), mk("2026-02-05", 900, { audience: "only_paid" })], identity, host: "paid", nowMs: sep1 });
+  const fp = checkPlan(calendarFallback(paid), paid);
+  ok("paid-only: headline names paid subscribers", fp.ok && /paid subscribers/.test(fp.plan.sentences.plan_headline) && /export/.test(fp.plan.sentences.plan_sub), fp.plan && fp.plan.sentences.plan_headline);
+}
 console.log(`plan-check: ${n} checks, ${process.exitCode ? "FAIL" : "all pass"}`);

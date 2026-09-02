@@ -72,6 +72,13 @@ export function checkPlan(raw, input) {
         to: posts.length ? String(posts[posts.length - 1].post_date).slice(0, 10) : null });
     }
     for (const id of byId.keys()) if (!seen.has(id) && !excludedIds.has(id)) errors.push(`${route.cadence}: post ${id} is bound nowhere and not excluded`);
+    /* a folded label may not overlap another volume's period (eval 2026-09-02: "Sep 2025 – Oct 2025" beside "Oct 2025") */
+    const spans = route.volumes.map(v => ({ label: v.label, b: boundsOf(w, route.cadence, v.label) })).filter(x => x.b);
+    for (let a = 0; a < spans.length; a++) for (let c = a + 1; c < spans.length; c++) {
+      const A = spans[a], C = spans[c];
+      const sameLabel = A.label.replace(/\s·\s[IVX]+$/, "") === C.label.replace(/\s·\s[IVX]+$/, "");
+      if (!sameLabel && A.b.fromIso < C.b.toIso && C.b.fromIso < A.b.toIso) errors.push(`${route.cadence}: "${A.label}" and "${C.label}" overlap in time`);
+    }
     if (route.volumes.length < 2 && route.cadence !== "single") errors.push(`${route.cadence}: fewer than two volumes; should be listed as infeasible`);
     route.est_pages = route.volumes.reduce((s, v) => s + (v.est_pages || 0), 0);
     route.price = { bw: Math.round(route.volumes.reduce((s, v) => s + v.price.bw, 0) * 100) / 100,
