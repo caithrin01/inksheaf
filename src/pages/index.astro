@@ -763,6 +763,41 @@ function renderPreview(d: any){
   void (pv as HTMLElement).offsetWidth;
   pv.classList.add('on', 'personalized');
   revealBook(d);
+  askTheEditor(d);
+}
+/* The calendar plan paints first. When the deploy has an editor, ask it in a second request
+   (15 to 100 s of model time) and swap its plan onto the shelf when it lands; the shelf says
+   which plan it is showing the whole time. A failure leaves the calendar plan in place. */
+let editorAsk: string | null = null;
+async function askTheEditor(d: any){
+  const ed = d.editorial;
+  if (!ed || !ed.pending || ed.planned_by === 'editor') return;
+  const host = d.host; editorAsk = host;
+  const by = document.getElementById('plan-by') as HTMLElement;
+  by.textContent = 'Planned by the calendar · our editor is reading your archive';
+  const started = Date.now();
+  while (Date.now() - started < 150000 && editorAsk === host){
+    try {
+      const r = await fetch('/api/plan?url=' + encodeURIComponent('https://' + host));
+      if (r.status === 404) break;
+      const j = await r.json();
+      if (!j.ok) break;
+      if (j.served !== 'pending' && j.editorial){
+        if (editorAsk !== host || !previewData || previewData.host !== host) return;
+        previewData.editorial = j.editorial;
+        if (j.editorial.plan && j.editorial.plan.routes && j.editorial.plan.routes.length){
+          renderPlan(previewData);
+          const ED = j.editorial.plan;
+          (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
+          const status = document.getElementById('pv-status') as HTMLElement;
+          status.textContent = 'Our editor has planned your edition: ' + ED.sentences.plan_headline;
+        }
+        return;
+      }
+      await new Promise(res => setTimeout(res, (j.retry_in || 4) * 1000));
+    } catch { break; }
+  }
+  if (editorAsk === host) by.textContent = 'Planned by the calendar';
 }
 /* The reveal must land on the book: scroll it to the top of the viewport, move focus to it
    so keyboard and screen-reader users arrive where sighted users are looking, and announce
@@ -908,7 +943,7 @@ function drawPlan(){
     'At cost: ' + (d.capped ? 'about ' : '') + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' for the book') +
     ', plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US, to one address. ' +
     'Readers pay the same. Nothing is marked up in the beta.';
-  (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : 'Planned by the calendar';
+  (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : (ed.pending ? 'Planned by the calendar · our editor is reading your archive' : 'Planned by the calendar');
   const year = d.to.slice(0, 4);
   (document.getElementById('pv-kind') as HTMLElement).textContent =
     (plan.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[plan.cadence]) + ' · ' + (ed.window ? ed.window.label : year);

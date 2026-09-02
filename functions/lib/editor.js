@@ -122,7 +122,7 @@ function compact(input) {
 /* Returns { plan, planned_by: "editor"|"calendar", attempts, errors, usage, model } */
 export async function planEdition({ posts, identity, host, nowMs = Date.now(), capped = false, apiKey, openrouterKey, client, log = () => {} }) {
   const input = buildEditorInput({ posts, identity, host, nowMs, capped });
-  const out = { plan_version: PLAN_VERSION, model: EDITOR_MODEL, attempts: 0, errors: [], usage: null, window: input.window, totals: input.totals };
+  const out = { plan_version: PLAN_VERSION, model: EDITOR_MODEL, attempts: 0, errors: [], attempt_errors: [], usage: null, window: input.window, totals: input.totals };
   const ec = client ? { client, model: EDITOR_MODEL, via: "given" } : editorClient({ apiKey, openrouterKey });
   if (!ec) {
     const fb = checkPlan(calendarFallback(input), input);
@@ -150,7 +150,8 @@ export async function planEdition({ posts, identity, host, nowMs = Date.now(), c
     const check = checkPlan(res.parsed_output, input);
     if (check.ok) return { ...out, planned_by: "editor", plan: check.plan, errors: [] };
     lastErrors = check.errors;
-    log("editor", `attempt ${attempt} failed ${check.errors.length} rules`);
+    out.attempt_errors.push(check.errors.slice(0, 12));
+    log("editor", `attempt ${attempt} failed ${check.errors.length} rules: ${check.errors.slice(0, 3).join(" | ")}`);
     messages.push({ role: "assistant", content: res.content },
       { role: "user", content: "Your plan broke these rules. Fix every one and return the whole plan again:\n- " + check.errors.slice(0, 40).join("\n- ") });
   }

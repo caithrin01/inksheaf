@@ -72,7 +72,7 @@ export async function onRequest({ request, env }) {
   return json({ ok: true, cached: false, served: "origin", ...result.data });
 }
 
-function parseHost(raw) {
+export function parseHost(raw) {
   const handle = /(?:^|\/\/)(?:www\.)?substack\.com\/@([a-z0-9_-]{2,64})/i.exec(String(raw));
   if (handle) return handle[1].toLowerCase() + ".substack.com";
   let u;
@@ -85,7 +85,7 @@ function parseHost(raw) {
   return h;
 }
 
-async function fetchArchive(host, env) {
+export async function fetchArchive(host, env) {
   const posts = [];
   /* The summary keeps its trailing-year cutoff (the batteries compare against it); the read
      itself reaches back to the edition window's start (four completed quarters, up to 15
@@ -213,13 +213,15 @@ async function fetchArchive(host, env) {
   if (!data) return { ok: false, error: "empty", status: 200,
     message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
   data.fetch_mode = relayed ? "relay" : "direct";
-  // The editor plans the edition (plan-end-to-end-v1). Without a key it plans by the calendar.
+  // The plan the page paints at once is the calendar's (milliseconds). The editor's plan takes
+  // 15 to 100 s of model time, so it is a second request (/api/plan) that the page asks for
+  // after the reveal and swaps in; `pending` says one is worth asking for.
   const tEd = Date.now();
-  const editorial = await planEdition({ posts, identity, host, capped, apiKey: env.ANTHROPIC_API_KEY, openrouterKey: env.OPENROUTER_API_KEY });
-  data.editorial = { ...editorial, editor_ms: Date.now() - tEd };
+  const editorial = await planEdition({ posts, identity, host, capped });
+  data.editorial = { ...editorial, editor_ms: Date.now() - tEd, pending: !!(env.OPENROUTER_API_KEY || env.ANTHROPIC_API_KEY) };
   data.summary_version = 6;
   if (relayMeta) Object.assign(data, relayMeta);
-  return { ok: true, data };
+  return { ok: true, data, posts, identity };
 }
 
 async function fetchDirectArchive(host, offset) {
