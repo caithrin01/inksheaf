@@ -126,9 +126,10 @@ export async function fetchArchive(host, env) {
         if (direct.threw && !(await hostExists(host)))
           return { ok: false, error: "not_substack", status: 422,
             message: "Could not find a Substack archive there. Check the address?" };
-        /* an apex that resolves but never answers (programmablemutter.com, 2026-09-02): many
-           Substack custom domains live only on www, so spend one hop there before the relay */
-        if (direct.threw && !host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
+        /* an apex that resolves but does not serve the archive (programmablemutter.com, 2026-09-02,
+           a retryable failure rather than a thrown one on the edge): many Substack custom domains
+           live only on www, so spend one hop there before the relay */
+        if (!host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
         /* one batch call: the relay fetches and paces every page server-side */
         /* each relay request lands on a fresh container (max_inputs=1), so each retry
            is a new egress IP against Substack's per-IP scoring */
