@@ -31,7 +31,9 @@ let plan = null; try { plan = JSON.parse(process.env.PLAN_JSON || "null"); } cat
 const slug = host.replace(/\W+/g, "-");
 const DIR = `proofs/press/${ID}`; mkdirSync(DIR, { recursive: true });
 const log = (s, m) => console.error(`[${s}] ${m}`);
-const sh = (cmd, args) => execFileSync(cmd, args, { stdio: ["ignore", "pipe", "inherit"] }).toString();
+/* a failing command must leave its own words in the log, not just node's stack */
+const sh = (cmd, args) => { try { return execFileSync(cmd, args, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
+  catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-12).join("\n")); throw new Error(`${cmd} ${args.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
 const hmac = m => createHmac("sha256", SECRET).update(m).digest("hex");
 
 async function status(st, extra = {}) {
