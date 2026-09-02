@@ -5,7 +5,10 @@
 // mid-size *.substack.com archives, spaced 15s, cold=1 so the relay's 10-minute result
 // store is bypassed, measured from this process's wall clock
 // (Workers freeze Date.now() between I/O, so the API's latency_ms is not this number).
-// Pass: 19/20 succeed and p95 under 30s. Writes the latency table to the evidence dir.
+// Pass: 19/20 succeed, p95 under 30s, and every relay list matches a direct contiguous
+// read of the same host to the post (the relay once paged fixed offsets and lost two posts
+// per archive; the random battery found it on 2026-09-01, this sample had only counted).
+// Writes the latency table to the evidence dir.
 // Token: ARCHIVE_RELAY_TOKEN or ~/.secrets/inksheaf-relay-token.
 // Usage: node scripts/test-relay-sample.mjs [--quick]   (--quick: 5 requests, same spacing)
 import { createHmac } from "node:crypto";
@@ -31,6 +34,26 @@ function token() {
 const secret = token();
 const sign = m => createHmac("sha256", secret).update(m).digest("hex");
 
+/* the reference read: offset advances by the posts received, as the Pages Function does.
+   Posts are compared by date and title inside the year window (the relay strips ids), so a
+   list of the right length with the wrong posts in it still fails. */
+const CUTOFF = Date.now() - 366 * 86400e3;
+const key = p => `${p.post_date}|${String(p.title || "").slice(0, 200)}`;
+const inWindow = posts => posts.filter(p => Date.parse(p.post_date || 0) >= CUTOFF);
+async function directKeys(host) {
+  const posts = [];
+  for (let offset = 0; offset < 700; ) {
+    const r = await fetch(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`,
+      { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return null;
+    const page = await r.json();
+    if (!Array.isArray(page) || !page.length) break;
+    posts.push(...page); offset += page.length;
+    if (Date.parse(page[page.length - 1].post_date || 0) < CUTOFF) break;
+  }
+  return new Set(inWindow(posts).map(key));
+}
+
 const rows = [];
 for (let i = 0; i < N; i++) {
   if (i) await new Promise(r => setTimeout(r, SPACING_MS));
@@ -51,6 +74,14 @@ for (let i = 0; i < N; i++) {
       row.ok = Array.isArray(posts);
       row.posts = row.ok ? posts.length : null;
       row.complete = r.headers.get("x-archive-complete") !== "0";
+      const direct = row.ok ? await directKeys(host).catch(() => null) : null;
+      if (direct) {
+        const relayKeys = new Set(inWindow(posts).map(key));
+        row.missing = [...direct].filter(k => !relayKeys.has(k)).length;
+        row.extra = [...relayKeys].filter(k => !direct.has(k)).length;
+        row.direct = direct.size;
+        if (row.missing || row.extra) { row.ok = false; row.error = `relay list misses ${row.missing} and adds ${row.extra} of the ${direct.size} posts a direct read returns`; }
+      }
     } else { row.ok = false; row.error = text.slice(0, 80); }
   } catch (e) {
     row.ms = Math.round(performance.now() - t0);
@@ -62,9 +93,11 @@ for (let i = 0; i < N; i++) {
 }
 
 const okRows = rows.filter(r => r.ok);
-const sorted = okRows.map(r => r.ms).sort((a, b) => a - b);
+const mismatched = rows.filter(r => r.missing || r.extra).length;
+/* latency is measured on every answered request, mismatched lists included */
+const sorted = rows.filter(r => r.status === 200 && r.posts != null).map(r => r.ms).sort((a, b) => a - b);
 const pct = p => sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)] : null;
-const summary = { date: new Date().toISOString(), requests: N, ok: okRows.length,
+const summary = { date: new Date().toISOString(), requests: N, ok: okRows.length, mismatched,
   p50_ms: pct(0.5), p95_ms: pct(0.95), max_ms: sorted.at(-1) ?? null,
   by_host: Object.fromEntries(HOSTS.map(h => {
     const hs = rows.filter(r => r.host === h);
@@ -83,7 +116,7 @@ try {
 
 console.log(`\n| host | ok | mean |\n|---|---|---|`);
 for (const [h, s] of Object.entries(summary.by_host)) console.log(`| ${h} | ${s.ok}/${s.of} | ${s.mean_ms}ms |`);
-console.log(`\nok ${summary.ok}/${N}, p50 ${summary.p50_ms}ms, p95 ${summary.p95_ms}ms, max ${summary.max_ms}ms`);
+console.log(`\nok ${summary.ok}/${N}, ${mismatched} relay lists differ from the direct read, p50 ${summary.p50_ms}ms, p95 ${summary.p95_ms}ms, max ${summary.max_ms}ms`);
 
 const pass = summary.ok >= MIN_OK && summary.p95_ms !== null && summary.p95_ms < P95_MAX_MS;
 console.log(pass ? `RELAY SAMPLE PASS (${MIN_OK}/${N} needed, p95 under ${P95_MAX_MS / 1000}s)`

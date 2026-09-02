@@ -82,34 +82,8 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
                                      "X-Relay-Result": "reused"})
         # fetch the trailing year by date, not by post count; up to 28 pages, four at a time
         cutoff = (_t.time() - 366 * 86400) * 1000
-        combined, complete = [], True
-        from concurrent.futures import ThreadPoolExecutor
-        from datetime import datetime
-        offsets = list(range(0, 700, 25))
-        done = False
-        with ThreadPoolExecutor(max_workers=PAGE_BATCH) as pool:
-            for b in range(0, len(offsets), PAGE_BATCH):
-                batch = offsets[b:b + PAGE_BATCH]
-                pages = list(pool.map(lambda off: fetch_page(host, off, HTTPException), batch))
-                for off, page in zip(batch, pages):
-                    if not page:
-                        done = True
-                        break
-                    combined.extend(slim(p) for p in page)
-                    oldest = page[-1].get("post_date") or ""
-                    try:
-                        oldest_ms = datetime.fromisoformat(oldest.replace("Z", "+00:00")).timestamp() * 1000
-                        if oldest_ms < cutoff:
-                            done = True
-                            break
-                    except (ValueError, AttributeError):
-                        pass
-                if done:
-                    break
-                if batch[-1] >= 675:
-                    complete = False
-                    break
-                _t.sleep(BATCH_PAUSE)
+        combined, complete = read_archive(lambda off: fetch_page(host, off, HTTPException), cutoff)
+        combined = [slim(p) for p in combined]
         body = json.dumps(combined).encode()
         if len(body) > MAX_BYTES:
             raise HTTPException(status_code=502, detail="response too large")
@@ -125,6 +99,54 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
     body = json.dumps(fetch_page(host, offset, HTTPException)).encode()
     return Response(content=body, media_type="application/json",
                     headers={"Cache-Control": "private, max-age=300"})
+
+
+def _post_ms(page):
+    from datetime import datetime
+    oldest = page[-1].get("post_date") or ""
+    try:
+        return datetime.fromisoformat(oldest.replace("Z", "+00:00")).timestamp() * 1000
+    except (ValueError, AttributeError):
+        return None
+
+
+def read_archive(fetch, cutoff_ms, batch_size=PAGE_BATCH, pause=BATCH_PAUSE, max_offset=700):
+    """Read archive pages back to cutoff_ms. Returns (posts, complete).
+
+    Substack's offset counts posts, and a page can come back shorter than the limit asked
+    for: since at least 2026-09-01 the first page answers 23 for limit=25 on every
+    publication measured, while offset=23 continues cleanly. Reading fixed offsets
+    0, 25, 50 skipped two real posts per archive (random battery, 14 of 30 hosts, all +2).
+    So the first page is read alone and every later batch starts at the count read so far;
+    a short page inside a batch discards the pages after it and resyncs from its end.
+    """
+    import time as _t
+    from concurrent.futures import ThreadPoolExecutor
+    combined, next_off, done = [], 0, False
+
+    def take(off, page):
+        nonlocal next_off, done
+        if not page:
+            done = True
+            return False
+        combined.extend(page)
+        next_off = off + len(page)
+        oldest_ms = _post_ms(page)
+        if oldest_ms is not None and oldest_ms < cutoff_ms:
+            done = True
+            return False
+        return len(page) >= 25
+
+    take(0, fetch(0))
+    with ThreadPoolExecutor(max_workers=batch_size) as pool:
+        while not done and next_off < max_offset:
+            _t.sleep(pause)
+            batch = [next_off + 25 * i for i in range(batch_size)]
+            pages = list(pool.map(fetch, batch))
+            for off, page in zip(batch, pages):
+                if not take(off, page):
+                    break
+    return combined, done or next_off < max_offset
 
 
 def slim(p):
