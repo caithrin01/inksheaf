@@ -32,6 +32,18 @@ export function esc(s) {
 const str = s => JSON.stringify(String(s ?? "")); /* a Typst string literal */
 
 /* image dimensions from the file header (JPEG SOF, PNG IHDR); null when unknown */
+/* the image format from the bytes, since the cache names files by a guessed extension */
+export function imageFormat(path) {
+  try {
+    const head = readFileSync(path).subarray(0, 16);
+    if (head[0] === 0x89 && head[1] === 0x50) return "png";
+    if (head[0] === 0xff && head[1] === 0xd8) return "jpg";
+    if (head[0] === 0x47 && head[1] === 0x49 && head[2] === 0x46) return "gif";
+    if (head[0] === 0x52 && head[1] === 0x49 && head[2] === 0x46 && head[8] === 0x57 && head[9] === 0x45) return "webp";
+    if (/^\s*<(\?xml|svg)/.test(head.toString("latin1"))) return "svg";
+  } catch {}
+  return null;
+}
 export function imageSize(path) {
   try {
     const b = readFileSync(path);
@@ -108,6 +120,7 @@ export function emitTypst(html, opts = {}) {
   function figureOf(imgEl, caption) {
     const src = attr(imgEl, "src"); if (!src) return "";
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
+    const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
     const dim = imageSize(path); let size = `width: 100%`;
     if (dim && dim.w && dim.h) {
       const hAtFull = textWidth * dim.h / dim.w; const cap = textHeight * 0.72; /* an image never takes more than 72% of a page */
@@ -115,7 +128,7 @@ export function emitTypst(html, opts = {}) {
       else if (dim.w < 700) size = `width: ${Math.min(100, Math.round(dim.w / (textWidth * 150) * 100))}%`; /* small images stay small: 150 px per inch floor */
     }
     const cap = caption ? `, caption: [${caption}]` : "";
-    return `#figure(placement: auto, image(${str(src)}, ${size})${cap})\n\n`;
+    return `#figure(placement: auto, image(${str(src)}, format: ${str(fmt)}, ${size})${cap})\n\n`;
   }
   function list(n, ordered, depth = 0) {
     const pad = "  ".repeat(depth); let s = "";
