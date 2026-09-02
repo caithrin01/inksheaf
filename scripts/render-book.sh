@@ -46,7 +46,8 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
       const figH=(fig.h||0)/72, onCloser=fig.page===e.page;
       const closerNeeds=pg.ink_rows*TEXT_H+0.3, prevFree=prev.blank*TEXT_H;
       const need = onCloser ? closerNeeds - prevFree : closerNeeds - prevFree; /* what must be freed on the page before */
-      const newH = Math.round((figH - Math.max(0, need) - 0.15)*100)/100;
+      if (need <= 0.05) continue; /* the tail already has room on the page before; scaling would change nothing */
+      const newH = Math.round((figH - need - 0.15)*100)/100;
       d.tail.push({ page:e.page, id:fig.id, figH:Math.round(figH*100)/100, onCloser, prevFree:Math.round(prevFree*100)/100, closerNeeds:Math.round(closerNeeds*100)/100, newH });
       if (newH >= 1.4 && newH < figH - 0.05) d.fit.push({ page:e.page-1, id:fig.id, height:newH, closer:true }); }
     if (d.tail.length) console.log("TAIL " + d.tail.map(t=>`p${t.page} ${t.id} ${t.figH}in ${t.newH>=1.4?"-> "+t.newH+"in":"kept"}`).join("; "));

@@ -176,7 +176,7 @@ export function emitTypst(html, opts = {}) {
         if (t.length > 60) t = t.slice(0, 57).replace(/\s+\S*$/, "") + "…";
         return `[#super[${esc(L)}]], [${esc(t)} #h(4pt) #box(text(fill: faint, size: 7.5pt)[${esc(u)}])]`; }).join(", ");
       return `#block(above: 1.2em, width: 100%, breakable: true)[#block(sticky: true)[#line(length: 100%, stroke: 0.5pt + rgb("${RULE}")) #v(0.35em) #text(size: 8pt, tracking: 0.2em, fill: rubric)[LINKS]] #v(0.35em) #set text(size: 8.5pt, fill: rgb("#3a352c")); #set par(first-line-indent: 0em, justify: false, leading: 0.5em)
-#grid(columns: (1fr, ${qrSrc ? "0.8in" : "0pt"}), gutter: 8pt, [#grid(columns: (1.3em, 1fr), row-gutter: 0.22em, ${rows})], [${qrSrc ? `#image(${str(qrSrc)}, width: 0.7in) #v(-0.15em) #text(size: 6.5pt, fill: faint)[${esc(shortEssay)}]` : ""}])]\n\n`;
+#grid(columns: (1fr, ${qrSrc ? "0.8in" : "0pt"}), gutter: 8pt, [#grid(columns: (1.3em, 1fr), row-gutter: 0.22em, ${rows})], [${qrSrc ? `#block(breakable: false)[#image(${str(qrSrc)}, width: 0.7in) #v(-0.15em) #text(size: 6.5pt, fill: faint)[${esc(shortEssay)}]]` : ""}])]\n\n`;
     }
     if (has(n, "srcnotes")) {
       const hEl = find(n, k => isEl(k) && /^h[2-4]$/.test(k.name)); const label = hEl ? textOf(hEl).trim() : "Sources & notes";
