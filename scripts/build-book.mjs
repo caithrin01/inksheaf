@@ -744,6 +744,16 @@ report.deadImages.sort();
 
 mkdirSync("proofs", { recursive: true });
 writeFileSync(OUT, htmlOut);
+/* --engine typst (or BOOK_ENGINE=typst): the same document, emitted as a Typst book beside the
+   HTML; render-book.sh compiles it. --notes footnotes|endnotes_per_article (the plan's policy). */
+const ENGINE = argOf("--engine") || process.env.BOOK_ENGINE || "paged";
+if (ENGINE === "typst") {
+  const { emitTypst } = await import("./lib/typst-emit.mjs");
+  const { dirname } = await import("node:path");
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName });
+  writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
+  report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article";
+} else report.engine = "paged";
 { // the printed span, from the posts actually included (consumers: pipeline copy/cover steps)
   const ds = full.map(a => a.post_date || a.date).filter(Boolean).sort();
   if (ds.length) report.dateRange = [String(ds[0]).slice(0, 10), String(ds[ds.length - 1]).slice(0, 10)];
