@@ -182,7 +182,11 @@ Inksheaf`;
   await sendMail({ to: OPERATOR, subject: `press: proof sent for ${host} (#${ID}, version ${versionId})`,
     text: `Reservation #${ID}\n${URL_}\n${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\n` + vols.map(x => `${x.label}: ${x.pages} pages, ${x.key}, ${x.sha256.slice(0, 12)}`).join("\n") + `\nproof ${proofUrl}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n` });
   const leftOut = vols.flatMap(x => x.leftOut);
-  await status("proofed", { proof_key: vols[0].key, message: `version ${versionId}: ${totalPages} pages, ${n} volume(s)`, left_out: leftOut, version_id: versionId });
+  /* the estimate against the typeset book (Codex audit P0-2): recorded, and over 15% it is said */
+  const est = Number(plan?.est_pages) || vols.reduce((t, x, i) => t + (Number(volumes[i]?.est_pages) || 0), 0);
+  const estErr = est ? Math.round(Math.abs(totalPages - est) / totalPages * 100) : null;
+  if (estErr != null && estErr > 15) log("estimate", `plan said ${est} pages, the book is ${totalPages}: ${estErr}% off, over the 15% tolerance; the writer was told and the price is for ${totalPages}`);
+  await status("proofed", { proof_key: vols[0].key, message: `version ${versionId}: ${totalPages} pages, ${n} volume(s)${estErr != null ? `, estimate ${est} (${estErr}% off)` : ""}`, left_out: leftOut, version_id: versionId, estimate: est || null, estimate_error_pct: estErr });
   writeFileSync(`${DIR}/press.json`, JSON.stringify({ id: ID, host, pages: totalPages, key: vols[0].key, volumes: n, interior, version_id: versionId }, null, 1));
   console.log(`PRESS proofed #${ID} ${host}: version ${versionId}, ${totalPages} pages, ${n} volume(s), proof ${vols[0].key}`);
 } else if (EVENT === "list") {

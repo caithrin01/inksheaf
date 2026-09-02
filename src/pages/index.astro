@@ -377,7 +377,7 @@ footer a{color:inherit}
         <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="off" />
         <button id="trybtn" type="button">Show my book</button>
       </div>
-      <div class="tryhint note">We look at your public archive only: the list of posts, not the posts themselves. Nothing is stored except the count, for 24 hours.</div>
+      <div class="tryhint note">We read your public archive: the list of posts and, for the plan, their public text. The plan is kept for 24 hours so this page can reload; a reservation keeps your address, the address and the plan until the book is done or you ask us to delete it. Paid posts are never read.</div>
       <div class="tryerr" id="tryerr" role="alert"></div>
       <button class="tryhandoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
     </div>
@@ -949,9 +949,10 @@ function drawPlan(){
   (document.getElementById('pv-kind') as HTMLElement).textContent =
     (plan.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[plan.cadence]) + ' · ' + (ed.window ? ed.window.label : year);
   const publicPosts = d.public_posts ?? d.posts;
+  (window as any).__chosenCadence = plan.cadence; /* the handoff prints the chosen route's counts */
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
     ? 'Vol. I of ' + n + ' · ' + route.volumes[0].label + ' · ' + route.volumes[0].est_pages + ' pages'
-    : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + route.volumes[0].est_pages + ' pages';
+    : (route.volumes[0].posts ?? (route.volumes[0].post_ids || []).length ?? publicPosts) + ' ' + kindLabel(d, route.volumes[0].posts ?? publicPosts) + ' · est. ' + route.volumes[0].est_pages + ' pages';
 }
 function renderDesk(d: any){
   if (d.editorial && d.editorial.plan) return renderPlan(d);
@@ -1126,8 +1127,11 @@ tryhandoff.addEventListener('click', ()=>{
     (f.elements.namedItem('posts_per_year') as HTMLInputElement).value = String(publicPosts);
     (f.elements.namedItem('frequency') as HTMLInputElement).value =
       publicPosts >= 200 ? 'daily' : publicPosts >= 40 ? 'weekly' : publicPosts >= 10 ? 'monthly' : 'irregular';
+    const chosen = (d.editorial && d.editorial.plan && d.editorial.plan.routes || []).find((r: any) => r.cadence === (window as any).__chosenCadence) || null;
+    const chosenPages = chosen ? chosen.volumes.reduce((t: number, v: any) => t + (v.est_pages || 0), 0) : d.est_pages;
+    const chosenPosts = chosen ? chosen.volumes.reduce((t: number, v: any) => t + (v.posts ?? (v.post_ids || []).length), 0) : (d.public_posts ?? d.posts);
     document.getElementById('carried')!.textContent =
-      d.publication + ' · ' + d.est_pages + ' estimated pages. Leave one email for the first proof pages.';
+      d.publication + ' · ' + chosenPosts + ' pieces in the chosen set · about ' + chosenPages + ' pages, estimated until the proof is typeset. Leave one email for the proof.';
     show(2);
   }
   document.getElementById('beta')!.scrollIntoView({behavior:'smooth'});

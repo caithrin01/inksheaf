@@ -4,7 +4,9 @@
 // Design approved by Caithrin 2026-09-02 (plan-formatting-v1 section 7).
 export function normalizeUrl(u) {
   try {
-    const url = new URL(String(u).trim());
+    /* HTML entities first (Codex audit P1-2): an href copied out of body_html may carry &amp; */
+    const decoded = String(u).trim().replace(/&amp;/g, "&").replace(/&#38;/g, "&").replace(/&#x26;/gi, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+    const url = new URL(decoded);
     if (!/^https?:$/.test(url.protocol)) return null;
     for (const k of [...url.searchParams.keys()]) if (/^(utm_|fbclid|gclid|ref$|action$|r$|s$|source$|mc_)/i.test(k)) url.searchParams.delete(k);
     url.hash = ""; url.hostname = url.hostname.toLowerCase();

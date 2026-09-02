@@ -797,8 +797,9 @@ ${commentPicks.length ? `<div class="fm appendix">
   <h3>Get more</h3>
   <p><b>Read on.</b> New essays appear first at ${host.replace(/^www\./, "")}. A free subscription
   delivers each new piece by email, and the paid archive lives there too.</p>
-  <p><b>Order copies.</b> The publication links readers to its Lulu listing. Lulu takes payment,
-  prints each copy on demand and ships to US addresses.</p>
+  <p><b>Order copies.</b> If the author has set up a page for this book at Lulu, the short link and
+  code below lead to it; Lulu prints each copy on demand at cost and ships it. If not, this copy was
+  printed for the author.</p>
   ${homeLinks.length ? `<div class="morelinks"><b>More from ${esc(pubName)}.</b> ${homeLinks.map(l =>
     `${esc(l.title || l.url)} (${esc(String(l.url || "").replace(/^https?:\/\//, "").split("?")[0].replace(/\/$/, "").slice(0, 60))})`).join(" · ")}</div>` : ""}
   <div class="qr">
