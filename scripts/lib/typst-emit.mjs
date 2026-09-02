@@ -126,9 +126,30 @@ export function emitTypst(html, opts = {}) {
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
     const dim = imageSize(path); let size = `width: 100%`;
     if (dim && dim.w && dim.h) {
-      const hAtFull = textWidth * dim.h / dim.w; const cap = textHeight * 0.72; /* an image never takes more than 72% of a page */
-      if (hAtFull > cap) size = `height: ${cap.toFixed(2)}in`;
-      else if (dim.w < 700) size = `width: ${Math.min(100, Math.round(dim.w / (textWidth * 150) * 100))}%`; /* small images stay small: 150 px per inch floor */
+      /* Size by role, the way a book designer does (Caithrin, 2026-09-02: "graphs need to be
+         large but things like Byron are big for what they are"). Substack shows every image at
+         column width; a page does not. Signals, all deterministic: the alt text Substack writes
+         for each image, the aspect ratio, a caption, and the pixel width.
+           reading (chart, table, screenshot, map, diagram, code, slide, text): full width;
+           picture (photo, portrait, painting, poster, cover, logo, cartoon): landscape 75%,
+             square 62%, portrait 50%;
+           unknown: landscape 100%, square 70%, portrait 55%;
+         a caption lifts a picture one step; a small source never grows past 150 px per inch;
+         nothing taller than 60% of the text block unless it is for reading (72%). */
+      const alt = (attr(imgEl, "alt") || "").toLowerCase();
+      const aspect = dim.w / dim.h;
+      const reading = /\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
+      const picture = /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
+      let pct;
+      if (reading) pct = 100;
+      else if (picture) pct = aspect >= 1.3 ? 75 : aspect >= 0.8 ? 62 : 50;
+      else pct = aspect >= 1.3 ? 100 : aspect >= 0.8 ? 70 : 55;
+      if (caption && !reading) pct = Math.min(100, pct + 15);
+      pct = Math.min(pct, Math.round(dim.w / (textWidth * 150) * 100)); /* the 150 ppi floor */
+      pct = Math.max(30, pct);
+      const hAt = textWidth * pct / 100 * dim.h / dim.w; const cap = textHeight * (reading ? 0.72 : 0.6);
+      size = hAt > cap ? `height: ${cap.toFixed(2)}in` : `width: ${pct}%`;
+      imgEl.attribs["data-role"] = reading ? "reading" : picture ? "picture" : "unknown"; imgEl.attribs["data-pct"] = String(pct);
     }
     const capTxt = caption ? `, caption: [${caption}]` : "";
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;

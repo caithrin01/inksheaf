@@ -113,7 +113,7 @@ export async function fetchArchive(host, env) {
         /* self-redirects and path rewrites dead-end here; some Substack custom domains
            (generalist.com) loop on the apex while www serves the archive, so spend one
            hop on www before giving up */
-        if (!host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
+        if (!host.startsWith("www.") && !/\.substack\.com$/.test(host) && host.split(".").length <= 2 && direct.status !== 429 && hops < 2) { hops++; host = "www." + host; continue; }
         /* a same-host path redirect on the archive API means this is not Substack
            (Substack never rewrites its own API path; Ghost and WordPress do) */
         return { ok: false, error: "not_substack", status: 422,
@@ -128,7 +128,9 @@ export async function fetchArchive(host, env) {
             message: "Could not find a Substack archive there. Check the address?" };
         /* an apex that resolves but does not serve the archive (programmablemutter.com, 2026-09-02,
            a retryable failure rather than a thrown one on the edge): many Substack custom domains
-           live only on www, so spend one hop there before the relay */
+           live only on www, so spend one hop there before the relay. Custom apex domains only:
+           never a *.substack.com host, never a deeper name, never on a 429 (gate 22 failed on
+           Letters from an American when the hop fired on a rate limit) */
         if (!host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
         /* one batch call: the relay fetches and paces every page server-side */
         /* each relay request lands on a fresh container (max_inputs=1), so each retry
