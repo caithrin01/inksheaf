@@ -34,7 +34,7 @@ When the window's label is "Everything so far" (a publication younger than a qua
 
 Before offering a route, check every volume's size against "by_month": a volume under 32 estimated pages is never offered; fold it into a neighbour (join the labels with " – ") or leave that cadence out of "routes" with the reason. Every volume has a label from the window's labels; never an empty label. Contributors come only from the bylines in the rows; when a row has no byline, name no one for it, and never use the publication's name as a person.
 
-Kinds: ${KIND_HINTS}. Contributors: everyone with a byline, principal first. Notes policy per volume from the footnote counts. Interior: colour only when the images carry the writing (recipes, photo essays, illustrated posts); otherwise black and white, and say why in one sentence.
+Kinds: ${KIND_HINTS}. Contributors: everyone with a byline, principal first. The input's "cut_by_rule" posts are already out (cross-posts, threads, podcasts): never list them. Its "flagged_for_judgement" posts carry a signal (a Mailbag tag, a housekeeping-shaped slug, under 200 words): decide each on its words and title, keep the essays, exclude the housekeeping with the reason. Notes policy per volume from the footnote counts. Interior: colour only when the images carry the writing (recipes, photo essays, illustrated posts); otherwise black and white, and say why in one sentence.
 
 Sentences are for the writer, plain and specific, no flattery, no exclamation marks. British or American spelling as the writer uses.`;
 

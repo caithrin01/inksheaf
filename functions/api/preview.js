@@ -131,7 +131,7 @@ export async function fetchArchive(host, env) {
            live only on www, so spend one hop there before the relay. Custom apex domains only:
            never a *.substack.com host, never a deeper name, never on a 429 (gate 22 failed on
            Letters from an American when the hop fired on a rate limit) */
-        if (!host.startsWith("www.") && hops < 2) { hops++; host = "www." + host; continue; }
+
         /* one batch call: the relay fetches and paces every page server-side */
         /* each relay request lands on a fresh container (max_inputs=1), so each retry
            is a new egress IP against Substack's per-IP scoring */

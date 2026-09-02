@@ -1,7 +1,7 @@
 // Shapes an archive into the editor's input: compact rows the model can read, plus the
 // window, the constraints and the price table. Nothing here calls a model.
 import { editionWindow, spanLabel as spanLabelOf } from "./edition-window.js";
-import { ruleCut } from "./cuts.js";
+import { ruleCut, ruleFlag } from "./cuts.js";
 import prices from "./print-prices.json" with { type: "json" };
 
 export const PAGE_WORDS = 270;
@@ -108,7 +108,8 @@ export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
   return {
     publication: { host, name: identity?.publicationName || host, about: identity?.about || null,
       paid_posts_in_window: part.paid.filter(p => { const d = String(p.post_date).slice(0, 10); return d >= w.fromIso && d < w.toIso; }).length,
-      podcasts_in_window: part.podcasts.length, cut_by_rule: part.cut.map(c => ({ id: postId(c.post), title: String(c.post.title || "").slice(0, 80), reason: c.reason })).slice(0, 40), read_capped: !!capped },
+      podcasts_in_window: part.podcasts.length, cut_by_rule: part.cut.map(c => ({ id: postId(c.post), title: String(c.post.title || "").slice(0, 80), reason: c.reason })).slice(0, 40),
+      flagged_for_judgement: part.inWindow.map(p => ({ p, why: ruleFlag(p) })).filter(x => x.why).map(x => ({ id: postId(x.p), title: String(x.p.title || "").slice(0, 80), signal: x.why })).slice(0, 40), read_capped: !!capped },
     window: { label: w.label, span: w.span, from: w.fromIso, to: w.toIso, periods,
       in_progress: { label: w.inProgress.label, span: w.inProgress.span, posts: progress.length } },
     totals: { posts: rows.length, words: rows.reduce((s, r) => s + r.words, 0), estimated_pages: totalPages },

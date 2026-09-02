@@ -1,4 +1,4 @@
-import { ruleCut } from "../functions/lib/cuts.js";
+import { ruleCut, ruleFlag } from "../functions/lib/cuts.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const H = "www.example.com";
 ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.example.com/p/an-essay" }, H) === null, "an ordinary essay is kept");
@@ -8,7 +8,10 @@ ok(ruleCut({ type: "newsletter", canonical_url: "https://example.com/p/x" }, H) 
 ok(ruleCut({ type: "podcast" }, H) === "a podcast episode", "podcast");
 ok(ruleCut({ type: "thread" }, H) === "a discussion thread", "thread type");
 ok(ruleCut({ type: "newsletter", postTags: [{ name: "Threads" }] }, H) === 'tagged "Threads"', "Threads tag");
-ok(ruleCut({ type: "newsletter", postTags: ["Mailbag"] }, H) === 'tagged "Mailbag"', "Mailbag tag as string");
+ok(ruleCut({ type: "newsletter", postTags: ["Mailbag"] }, H) === null && ruleFlag({ type: "newsletter", postTags: ["Mailbag"] }) === 'tagged "Mailbag"', "Mailbag is a flag for the editor, not a cut");
+ok(ruleFlag({ type: "newsletter", slug: "state-of-the-newsletter-2026", wordcount: 900 }) === "housekeeping-shaped slug", "state-of-the slug flagged");
+ok(ruleFlag({ type: "newsletter", slug: "a-real-essay", wordcount: 150 }) === "under 200 words", "very short post flagged");
+ok(ruleFlag({ type: "newsletter", slug: "a-real-essay", wordcount: 2000 }) === null, "an essay is not flagged");
 ok(ruleCut({ type: "newsletter", slug: "open-thread-449" }, H) === "an open thread", "open thread slug");
 ok(ruleCut({ type: "newsletter", slug: "hidden-open-thread-3021" }, H) === "an open thread", "hidden open thread slug");
 ok(ruleCut({ type: "newsletter", slug: "the-open-threads-of-history" }, H) === null, "a slug that merely contains the words is kept");

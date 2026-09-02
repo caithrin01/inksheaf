@@ -214,7 +214,16 @@ if (COVER_PHOTO && brand?.cover_photo_url) {
 if (brand) report.brand = { accent: B.accent, headingFont: B.headingFont, bodyFont: B.bodyFont,
   coverBg: B.coverBg, coverPlate: !!coverPlate, mappedFrom: brand.heading_font_mapped_from, warnings: brand.warnings };
 const byCount = {};
-for (const p2 of full) { const n = p2.publishedBylines?.[0]?.name; if (n) byCount[n] = (byCount[n] || 0) + 1; }
+/* every byline counts, not only the first (co-authored posts kept losing a name); a guest is
+   is_guest on the byline. Guest posts leave the book by default (Caithrin, 2026-09-02: a guest
+   owns the piece), named in the edition note; --include-guests keeps them with a label. */
+const bylinesOf = p2 => (Array.isArray(p2.publishedBylines) ? p2.publishedBylines : []).filter(b => b && b.name);
+const isGuestPost = p2 => { const bs = bylinesOf(p2); return bs.length > 0 && bs.every(b => b.is_guest); };
+report.guestCuts = [];
+if (!process.argv.includes("--include-guests")) {
+  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i])) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
+}
+for (const p2 of full) for (const b of bylinesOf(p2)) byCount[b.name] = (byCount[b.name] || 0) + 1;
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
@@ -476,7 +485,7 @@ function decodeEntities(s) { return String(s || "")
   .replace(/&amp;/g, "&"); }
 
 function tocRow(p, i) {
-  const b = p.publishedBylines?.[0]?.name;
+  const b = bylinesOf(p).map(x => x.name).join(", ");
   const showBy = multi && b && (dominantShare < 0.5 || b !== author);
   let label = esc(p.title);
   if (p._dateTitled) {
@@ -541,12 +550,12 @@ const articles = full.map((p, i) => {
     if (t !== lastPart) { lastPart = t;
       divider = `<section class="part" id="part-${partTitles.indexOf(t)}"><div class="partkind">${esc(volLabel)}</div><h2 class="parttitle">${esc(t)}</h2></section>\n`; }
   }
-  const b = p.publishedBylines?.[0]?.name;
+  const b = bylinesOf(p).map(x => x.name).join(", ");
   const showBy = multi && b && (dominantShare < 0.5 || b !== author);
   const meta = [
     p._dateTitled ? null : dayfmt(Date.parse(p.post_date)),
     (p.wordcount || 0) >= 50 ? (p.wordcount || 0).toLocaleString("en-US") + " words" : null,
-    showBy ? "by " + esc(b) : null,
+    showBy ? (isGuestPost(p) ? "guest post by " : "by ") + esc(b) : null,
   ].filter(Boolean).join(" · ");
   return divider + `
 <section class="article" id="art-${i}">
@@ -739,6 +748,7 @@ ${PRINT_INTERIOR ? "" : `
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
   ${report.ruleCuts.length ? `<p>${report.ruleCuts.length === 1 ? "One piece was" : report.ruleCuts.length + " pieces were"} left out by rule: ${(() => { const by = {}; for (const c of report.ruleCuts) by[c.reason] = (by[c.reason] || 0) + 1; return Object.entries(by).map(([r, n]) => n > 1 ? `${n} ${r.replace(/^an? /, "")}s` : r).join(", "); })()}.</p>` : ""}
+  ${report.guestCuts.length ? `<p>${report.guestCuts.length === 1 ? "One guest post is" : report.guestCuts.length + " guest posts are"} not included, because a guest owns their piece: ${report.guestCuts.map(g => `“${esc(g.title)}” by ${esc(g.by)}`).join("; ")}.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Linked words carry a
   small letter, and each essay ends with its links as short addresses and a code to the essay
   online. Source notes the author wrote into an essay stay with it. Web-only embeds become

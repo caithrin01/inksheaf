@@ -1,8 +1,11 @@
 // Which posts never go into a book, by rule (plan-formatting-v1 section 8). Every cut carries a
 // reason in the writer's words, so the About note and the change page can name it. Judgement
-// calls (a "state of the publication" essay, a thank-you note) are the editor's, not this file's.
+// calls (a "state of the publication" essay, a thank-you note, a mailbag) are the editor's: ruleFlag names
+// the signals it should weigh, ruleCut only what never belongs.
 // Fields from research-formatting part 2: type, restacked_post_id, canonical_url, postTags, slug.
-const TAGS = /^(threads?|open threads?|mailbag|discussion|watch|listen|podcast|audio|video|housekeeping|announcements?)$/i;
+const TAGS = /^(threads?|open threads?|discussion|watch|listen|podcast|audio|video)$/i;
+/* tags that mean "look closer", not "leave out": a Slow Boring mailbag is a full essay */
+const SOFT = /^(mailbag|housekeeping|announcements?|links?|roundup|digest|weekly|newsletter|programming note|meta)$/i;
 const SLUG = /(^|-)(open-thread|discussion-post|discussion-thread|mailbag|sunday-thread|weekly-thread|comment-thread|office-hours)(-|\d|$)/i;
 
 export function ruleCut(post, host = "") {
@@ -23,5 +26,15 @@ export function ruleCut(post, host = "") {
   const tag = tags.find(t => TAGS.test(t));
   if (tag) return `tagged "${tag}"`;
   if (SLUG.test(String(post.slug || ""))) return "an open thread";
+  return null;
+}
+
+/* a signal for the editor, never a cut: the tag or slug that suggests housekeeping */
+export function ruleFlag(post) {
+  const tags = Array.isArray(post?.postTags) ? post.postTags.map(t => String(t && (t.name || t)).trim()) : [];
+  const tag = tags.find(t => SOFT.test(t));
+  if (tag) return `tagged "${tag}"`;
+  if (/(^|-)(mailbag|housekeeping|programming-note|announcement|state-of-the|thank-you|year-in-review|roundup)(-|$)/i.test(String(post?.slug || ""))) return "housekeeping-shaped slug";
+  if ((post?.wordcount || 0) > 0 && post.wordcount < 200) return "under 200 words";
   return null;
 }
