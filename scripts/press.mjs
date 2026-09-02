@@ -83,6 +83,7 @@ function buildVolume(v, i, { proof }) {
   if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
   const fitted = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
+  for (const line of String(fitted.out || "").split("\n").filter(l => /^(BLANK|TAIL|OK )/.test(l))) log("render", `${v.label}: ${line}`); /* the measure lines belong in the run log */
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
   report.fit = { pass: fitted.pass, deferred: fitted.defer };
   registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));

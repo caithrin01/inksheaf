@@ -244,8 +244,7 @@ export function emitTypst(html, opts = {}) {
     const sub = head && find(head, k => has(k, "artsub")); const meta = head && find(head, k => has(k, "artmeta"));
     const bodyEl = find(sec, k => isEl(k) && has(k, "artbody")) || sec;
     const T = title ? textOf(title).trim() : `Untitled ${index + 1}`; curTitle = T;
-    let s = `#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${str(meta ? textOf(meta).replace(/\s+/g, " ").trim() : "")}${index === 0 ? ", first: true" : ""})\n`;
-    s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artstart>]\n`;
+    let s = `#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${str(meta ? textOf(meta).replace(/\s+/g, " ").trim() : "")}${index === 0 ? ", first: true" : ""}, index: ${index + 1})\n`;
     s += kids(bodyEl).map(block).join("");
     /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
     s += kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join("");
@@ -332,7 +331,7 @@ export function emitTypst(html, opts = {}) {
 #set enum(indent: 1em, spacing: 0.5em)
 #set footnote.entry(separator: line(length: 30%, stroke: 0.5pt + rgb("${RULE}")), indent: 0em, gap: 0.5em)
 #show footnote.entry: set text(size: 8.5pt)
-#let arthead(n, title, sub, meta, first: false) = {
+#let arthead(n, title, sub, meta, first: false, index: 0) = {
   if not first { place.flush() } /* no float from the previous essay crosses into this one */
   pagebreak(weak: true)
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
@@ -340,6 +339,7 @@ export function emitTypst(html, opts = {}) {
   v(0.55in)
   if n != none { text(font: "EB Garamond 12", size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
+  context [#metadata((n: index, page: here().page())) <artstart>] /* the opener page, measured here in the head */
   block(below: 0.55em, [#set par(leading: 0.42em); #text(font: "EB Garamond 12", size: 18pt, weight: 500, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
