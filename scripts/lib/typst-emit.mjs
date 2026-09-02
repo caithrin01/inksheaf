@@ -87,27 +87,29 @@ export function emitTypst(html, opts = {}) {
     if (!isEl(n)) return "";
     const inner = () => kids(n).map(k => inline(k, ctx)).join("");
     switch (n.name) {
-      case "em": case "i": return `#emph[${inner()}]`;
-      case "strong": case "b": return `#strong[${inner()}]`;
-      case "u": return `#underline[${inner()}]`;
-      case "s": case "del": case "strike": return `#strike[${inner()}]`;
-      case "sup": return `#super[${inner()}]`;
-      case "sub": return `#sub[${inner()}]`;
-      case "code": return `#raw(${str(textOf(n))})`;
+      /* every inline call ends with ";", which Typst consumes; without it a "(" or "[" in the
+         text that follows is read as arguments (Programmable Mutter, 2026-09-02) */
+      case "em": case "i": return `#emph[${inner()}];`;
+      case "strong": case "b": return `#strong[${inner()}];`;
+      case "u": return `#underline[${inner()}];`;
+      case "s": case "del": case "strike": return `#strike[${inner()}];`;
+      case "sup": return `#super[${inner()}];`;
+      case "sub": return `#sub[${inner()}];`;
+      case "code": return `#raw(${str(textOf(n))});`;
       case "br": return " \\\n";
       case "a": {
-        if (attr(n, "data-link")) return `${inner()}#super[${esc(attr(n, "data-link"))}]`;
+        if (attr(n, "data-link")) return `${inner()}#super[${esc(attr(n, "data-link"))}];`;
         if (has(n, "fn") || has(n, "footnote-anchor")) {
           const num = textOf(n).trim(); const key = (attr(n, "href") || "").replace(/^#/, "");
           const note = fnMap.get(key);
-          if (note && fnPolicy === "footnotes") return `#footnote[${note}]`;
+          if (note && fnPolicy === "footnotes") return `#footnote[${note}];`;
           if (note) { endnotes.push({ num, note }); }
-          return `#super[${esc(num)}]`;
+          return `#super[${esc(num)}];`;
         }
         const href = attr(n, "href"); const txt = inner();
         if (ctx.notes && href && /^https?:/.test(href) && !/^https?:\/\//.test(textOf(n).trim())) {
           const host = href.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
-          return `${txt} #text(fill: faint)[(${esc(host)})]`;
+          return `${txt} #text(fill: faint)[(${esc(host)})];`;
         }
         return txt;
       }
