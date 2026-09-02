@@ -10,6 +10,7 @@
 //          report status "listing" with the keys; the listing itself is phase 3.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { fit } from "./lib/fit.mjs";
 import { createHmac } from "node:crypto";
 import { PDFDocument } from "pdf-lib";
 import { sendMail } from "./lib/mail.mjs";
@@ -69,9 +70,9 @@ function buildVolume(v, i, { proof }) {
   if (plan?.dedication && i === 0) args.push("--dedication", String(plan.dedication).slice(0, 300));
   if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
-  sh("node", args);
+  const fitted = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
-  sh("bash", ["scripts/render-book.sh", html, `${process.cwd()}/${pdf}`]);
+  report.fit = { pass: fitted.pass, deferred: fitted.defer };
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
   return { html, pdf, report, pages };

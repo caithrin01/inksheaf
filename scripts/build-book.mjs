@@ -20,6 +20,8 @@ const PRINT_INTERIOR = process.argv.includes("--print-interior");
 const MODE = (process.argv.includes("--images-print") || PRINT_INTERIOR) ? "print" : "proof";
 const NO_BRAND = process.argv.includes("--no-brand");
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
+const IMG_MAX = Math.max(1.5, Math.min(5.5, Number(argOf("--img-max")) || 4.2)); /* inches; the fit loop (--defer) handles placement */
+const DEFER = String(argOf("--defer") || "").split(",").map(x => x.trim()).filter(Boolean);
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
@@ -333,13 +335,27 @@ function clean(html, slug) {
   s = s.replace(/<div[^>]*class="[^"]*tweet[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
     `<div class="embedcard">A post from X, viewable in the online edition.</div>`);
   // images: proof mode keeps Substack CDN JPEGs (small); print mode uses decoded S3 originals
+  let figN = 0;
   s = s.replace(/<img[^>]+>/gi, tag => {
     const src = (tag.match(/src="([^"]+)"/) || [])[1] || "";
     const alt = (tag.match(/alt="([^"]*)"/) || [])[1] || "";
     if (!src) return "";
     const out = MODE === "print" ? decodeCdn(src) : src.replace(/w_\d+/, "w_1100").replace("f_auto", "f_jpg").replace("q_auto:good", "q_80").replace(",fl_progressive:steep", "");
-    return `<img src="${out}" alt="${alt}">`;
+    return `<img src="${out}" alt="${alt}" data-fig="${slug}:${++figN}">`;
   });
+  /* --defer a:3,b:1 : an image the renderer found pushed whole to the next page (leaving the
+     page it left mostly white) moves past the next two paragraphs, so the text fills the page
+     and the image opens the next one. The fit loop in scripts/lib/fit.mjs supplies the list. */
+  for (const id of DEFER) {
+    if (!id.startsWith(slug + ":")) continue;
+    const fig = new RegExp(`(<figure\\b[^>]*>(?:(?!<\\/figure>)[\\s\\S])*?<img[^>]*data-fig="${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>[\\s\\S]*?<\\/figure>|<img[^>]*data-fig="${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>(?:\\s*<div class="gifnote">[^<]*<\\/div>)?)`);
+    const m = s.match(fig); if (!m) continue;
+    const block = m[0]; const start = m.index; let rest = s.slice(start + block.length);
+    let cut = 0, seen = 0;
+    const re = /<\/p>/g; let t; while (seen < 2 && (t = re.exec(rest))) { cut = re.lastIndex; seen++; }
+    if (!seen) continue;
+    s = s.slice(0, start) + rest.slice(0, cut) + block + rest.slice(cut);
+  }
   // anchors: keep text, drop link boxes styling issues; footnote anchors keep their number
   s = s.replace(/<a([^>]*class="footnote-anchor"[^>]*)>/gi, "<a$1 class=\"fn\">");
   // namespace footnote ids per article so links stay unique
@@ -506,8 +522,11 @@ p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:none; orphans
 
 .about p, .getmore p{ text-indent:0 }
 a{ color:inherit; text-decoration:none }
-img{ max-width:100%; height:auto; display:block; margin:.9em auto }
-figure{ margin:1em 0 } figcaption{ font-size:8.5pt; color:var(--faint); text-align:center; margin-top:.35em }
+/* an image must always fit under an opener head, or Paged.js pushes it whole to the next page
+   and leaves the page it left mostly white (blank-page detector, 2026-09-02); --img-max caps it */
+img{ max-width:100%; max-height:${IMG_MAX}in; width:auto; height:auto; display:block; margin:.9em auto }
+figure{ margin:1em 0; break-inside:avoid }
+h2, h3, h4{ break-after:avoid; page-break-after:avoid } figcaption{ font-size:8.5pt; color:var(--faint); text-align:center; margin-top:.35em }
 blockquote{ margin:.9em 1.4em; font-size:9.8pt; color:#3a352c }
 h1,h2,h3,h4{ line-height:1.15; font-weight:var(--headweight); font-family:var(--headfont), "Source Serif 4", serif }
 hr{ border:0; text-align:center; margin:1.2em 0 }
