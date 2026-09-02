@@ -31,7 +31,7 @@ jobs:
           PLAN_JSON: ${{ github.event.client_payload.plan_json }}
           CHANGE_REQUEST: ${{ github.event.client_payload.request }}
           ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
-          INKSHEAF_PROOF_TOKEN: ${{ secrets.INKSHEAF_PROOF_TOKEN }}
+          PROOF_STORE_TOKEN: ${{ secrets.INKSHEAF_PROOF_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPERATOR_EMAIL: caithrin@caithrin.com
