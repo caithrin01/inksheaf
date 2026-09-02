@@ -104,7 +104,7 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
     : divisions.quarterly.feasible ? "quarterly"
     : divisions.monthly.feasible ? "monthly" : "concierge";
   return {
-    summary_version: 5,
+    summary_version: 6,
     form: FORM_NAMES[kind] || "a collected edition",
     unit: ISSUE_KINDS.has(kind) ? "issue" : "volume",
     span_months: Math.round(spanMonths * 10) / 10,

@@ -15,6 +15,7 @@ const RELAY_WAITS_MS = [2500, 6000];
 const RELAY_MIN_ATTEMPT_MS = 4000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
+import { planEdition } from "../lib/editor.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET")
@@ -38,7 +39,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 5) return json({ ok: true, cached: true, served: "cache", ...pay });
+    if (pay.summary_version === 6) return json({ ok: true, cached: true, served: "cache", ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -138,7 +139,7 @@ async function fetchArchive(host, env) {
             "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
           if (stale){
             const pay = JSON.parse(stale.payload);
-            if (pay.summary_version === 5) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
+            if (pay.summary_version === 6) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
           }
           /* The direct read failed on a retryable status (429, 5xx, timeout, DNS) and the
              relay failed too. The relay's error text cannot tell a dead domain from an
@@ -182,6 +183,11 @@ async function fetchArchive(host, env) {
   if (!data) return { ok: false, error: "empty", status: 200,
     message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
   data.fetch_mode = relayed ? "relay" : "direct";
+  // The editor plans the edition (plan-end-to-end-v1). Without a key it plans by the calendar.
+  const tEd = Date.now();
+  const editorial = await planEdition({ posts, identity, host, capped, apiKey: env.ANTHROPIC_API_KEY });
+  data.editorial = { ...editorial, editor_ms: Date.now() - tEd };
+  data.summary_version = 6;
   if (relayMeta) Object.assign(data, relayMeta);
   return { ok: true, data };
 }

@@ -89,7 +89,7 @@ try {
 
   // 3. stale cache still serves through an outage
   directStatus = 503;
-  r = await call({ DB: fakeDb({ summary_version: 5, marker: "stale-row", host: HOST }), ARCHIVE_RELAY_TOKEN: TOKEN });
+  r = await call({ DB: fakeDb({ summary_version: 6, marker: "stale-row", host: HOST }), ARCHIVE_RELAY_TOKEN: TOKEN });
   ok("stale cache row served during an outage", r.status === 200 && r.body.marker === "stale-row" && r.body.stale === true,
     `status ${r.status} error ${r.body.error}`);
 

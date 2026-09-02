@@ -13,7 +13,7 @@ const summarize = posts => summarizeArchive(posts, { publicationName: null, them
 
 const personal = summarize(Array.from({ length: 27 }, (_, i) => post(`Essay ${i + 1}`, 1900)));
 assert.equal(personal.public_posts, 27);
-assert.equal(personal.summary_version, 5);
+assert.equal(personal.summary_version, 6);
 assert.equal(personal.est_pages, 227);
 assert.equal(personal.cadence, "Annual");
 assert.equal(personal.kind, "essays");

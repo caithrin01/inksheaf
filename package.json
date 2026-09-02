@@ -11,7 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "pipeline": "node scripts/pipeline.mjs",
-    "test:preview:unit": "node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-preview-outage.mjs && python3 services/test_relay_paging.py && node scripts/test-signup.mjs",
+    "test:preview:unit": "node scripts/test-plan-check.mjs && node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-preview-outage.mjs && python3 services/test_relay_paging.py && node scripts/test-signup.mjs",
     "test:random": "node scripts/test-random-substacks.mjs chromium http://localhost:8788 --n=30",
     "test:preview:live": "node scripts/test-live-preview.mjs",
     "test:preview": "npm run test:preview:unit && npm run test:preview:live",
@@ -19,12 +19,16 @@
     "test:signup": "node scripts/test-signup.mjs",
     "test:honesty": "node scripts/test-honesty.mjs",
     "test:relay": "node scripts/test-relay-sample.mjs",
-    "test:design": "node scripts/test-design.mjs"
+    "test:design": "node scripts/test-design.mjs",
+    "test:plan": "node scripts/test-plan-check.mjs",
+    "eval:editor": "node scripts/test-editor-live.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "astro": "^7.2.6",
     "pdf-lib": "^1.17.1",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "zod": "^4.5.4"
   },
   "allowScripts": {
     "esbuild": true

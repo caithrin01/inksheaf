@@ -45,7 +45,7 @@ async function call(query, env) {
   return { status: r.status, body: await r.json() };
 }
 
-const cachedPayload = { summary_version: 5, marker: "from-cache" };
+const cachedPayload = { summary_version: 6, marker: "from-cache" };
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log(`ok   ${name}`); } else { fail++; console.log(`FAIL ${name}`); } };
 
