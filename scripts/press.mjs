@@ -58,6 +58,18 @@ const POD_ID = prices.pods[interior].pod_package_id; // 6x9 perfect bound, black
 const brandPath = `${DIR}/brand.json`;
 if (!existsSync(brandPath)) { try { sh("node", ["scripts/brand-lift.mjs", host, "--out", brandPath]); } catch (e) { log("brand", "lift failed, default brand: " + String(e.message).slice(0, 80)); } }
 
+
+/* the short links a volume prints go to the site's links table so inksheaf.com/l/<code> answers;
+   a failure here is logged, never fatal: the codes derive from the targets and can be re-registered */
+async function registerLinks(report) {
+  const rows = [...(report.links || []).map(l => ({ code: l.code, target: l.target, kind: "link", slug: l.slug, letter: l.letter })),
+    ...(report.essayLinks || []).map(l => ({ code: l.code, target: l.target, kind: "essay", slug: l.slug, letter: "" }))];
+  if (!rows.length || !SECRET) return;
+  const r = await fetch(`${SITE}/api/links`, { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ signup_id: ID, sig: hmac(`links:${ID}`), links: rows }) });
+  const j = await r.json().catch(() => ({}));
+  log("links", `${rows.length} rows -> ${r.status}${j.registered != null ? `, ${j.registered} registered` : ""}`);
+}
 function buildVolume(v, i, { proof }) {
   const base = `${slug}-${ID}-v${i + 1}`;
   const html = `proofs/${base}.html`, pdf = `${DIR}/${base}.pdf`;
@@ -73,6 +85,7 @@ function buildVolume(v, i, { proof }) {
   const fitted = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
   report.fit = { pass: fitted.pass, deferred: fitted.defer };
+  registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
   return { html, pdf, report, pages };

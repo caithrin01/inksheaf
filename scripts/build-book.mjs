@@ -7,6 +7,7 @@
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
+import { normalizeUrl, linkCode, SHORT_HOST } from "../functions/lib/links.js";
 import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
 const RAW = process.argv[2] || "https://www.caithrin.com";
@@ -356,6 +357,23 @@ function clean(html, slug) {
     if (!seen) continue;
     s = s.slice(0, start) + rest.slice(0, cut) + block + rest.slice(cut);
   }
+  // links (plan-formatting-v1 section 7, approved 2026-09-02): linked words stay plain with a
+  // small superscript letter; the essay's "Links" note lists letter, text and a short URL
+  // (inksheaf.com/l/<code>); one QR per essay to the essay online. Image links and footnote
+  // anchors are not lettered. The letters and targets are collected here; the note is built by
+  // the caller once the codes (async) exist.
+  const found = []; let li = 0;
+  const letter = i => { let n = i, out = ""; do { out = "abcdefghijklmnopqrstuvwxyz"[n % 26] + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; };
+  s = s.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (m, attrs, inner) => {
+    if (/class="[^"]*(footnote-anchor|fn)\b/.test(attrs) || /<img\b/i.test(inner)) return m;
+    const href = (attrs.match(/href="([^"]+)"/) || [])[1] || ""; const target = normalizeUrl(href);
+    if (!target) return inner; /* an anchor without a usable target keeps its words only */
+    const text = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (!text) return inner;
+    let L = found.find(f => f.target === target)?.letter; if (!L) { L = letter(li++); found.push({ letter: L, target, text: text.slice(0, 120) }); }
+    return `<a href="${href}" data-link="${L}">${inner}</a>`;
+  });
+  LINKS.set(slug, found);
   // anchors: keep text, drop link boxes styling issues; footnote anchors keep their number
   s = s.replace(/<a([^>]*class="footnote-anchor"[^>]*)>/gi, "<a$1 class=\"fn\">");
   // namespace footnote ids per article so links stay unique
@@ -476,10 +494,37 @@ if (partOf) {
 /* source-notes decisions, one per post, before cleaning (the model call is async) */
 const { detectNotes, askModel } = await import("./lib/notes-detect.mjs");
 const NOTES = new Map(); report.notesBlocks = [];
+const LINKS = new Map(); report.links = []; report.essayLinks = [];
 for (const p of full) {
   let d = detectNotes(p.body_html || ""); let how = d ? d.method : null;
   if (d && d.method === "ambiguous") { const m = await askModel(d.heading, (p.body_html || "").slice(d.start)); how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null; }
   if (d) { NOTES.set(p.slug, d); report.notesBlocks.push({ slug: p.slug, heading: d.heading, score: d.score, method: how }); }
+}
+
+/* the link note for each article, inserted after its body: lettered rows with short URLs, and
+   one QR to the essay online through the same redirect. Codes come from the target, so the note
+   is right before the press registers the rows. */
+async function withLinkNotes(articlesHtml) {
+  let out = articlesHtml;
+  for (const p of full) {
+    const found = LINKS.get(p.slug) || [];
+    const canon = normalizeUrl(p.canonical_url || `https://${host}/p/${p.slug}`);
+    const essayCode = canon ? await linkCode(canon) : null;
+    if (essayCode) report.essayLinks.push({ slug: p.slug, code: essayCode, target: canon });
+    if (!found.length) continue;
+    const rows = [];
+    for (const f of found) { const code = await linkCode(f.target); report.links.push({ slug: p.slug, letter: f.letter, code, target: f.target, text: f.text });
+      rows.push(`<li><span class="lk">${f.letter}</span><span class="lk-text">${esc(f.text)}</span><span class="lk-url">${SHORT_HOST}${code}</span></li>`); }
+    const qr = essayCode ? await QRCode.toDataURL(`https://${SHORT_HOST}${essayCode}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } }) : null;
+    const note = `<section class="linknote"><h2 class="linknote-h">Links</h2><ul>${rows.join("")}</ul>${qr ? `<div class="lk-qr"><img src="${qr}" alt="QR: this essay online"><span class="lk-essay">${SHORT_HOST}${essayCode}</span></div>` : ""}</section>`;
+    const marker = `<section class="article" id="art-${full.indexOf(p)}">`;
+    const i = out.indexOf(marker); if (i < 0) continue;
+    const end = out.indexOf("</section>", out.indexOf('<div class="artbody">', i));
+    const bodyEnd = out.indexOf("</div>\n</section>", i); /* the artbody closes right before the section */
+    const at = bodyEnd > -1 ? bodyEnd + "</div>".length : end;
+    out = out.slice(0, at) + "\n" + note + out.slice(at);
+  }
+  return out;
 }
 let lastPart = null;
 const articles = full.map((p, i) => {
@@ -626,6 +671,12 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .srcnotes h2{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--rubric); margin:0 0 .5em }
 .srcnotes p{ text-indent:0; text-align:left; hyphens:none; margin:0 0 .35em } .srcnotes ul{ margin:.2em 0 .2em 1em } .srcnotes li{ text-align:left; margin:.15em 0 }
 .srcnotes a{ word-break:break-all }
+a[data-link]::after{ content: attr(data-link); font-size:.62em; vertical-align:super; color:var(--rubric); margin-left:.05em }
+.linknote{ border-top:1px solid var(--rule); margin-top:1.2em; padding-top:.5em; font-size:8.5pt; color:#3a352c; display:grid; grid-template-columns:1fr .95in; gap:.1in }
+.linknote h2{ grid-column:1 / -1; font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--rubric); margin:0 0 .3em }
+.linknote ul{ list-style:none; margin:0; padding:0 } .linknote li{ display:grid; grid-template-columns:1.3em 1fr; text-align:left; margin:.12em 0 }
+.linknote .lk{ color:var(--rubric); font-size:.8em; vertical-align:super } .linknote .lk-url{ color:var(--faint); font-size:7.5pt; margin-left:.4em; white-space:nowrap }
+.linknote .lk-qr{ text-align:center; font-size:6.5pt; color:var(--faint) } .linknote .lk-qr img{ width:.85in; height:.85in; margin:0 auto .05in }
 /* ---------- end matter ---------- */
 .getmore{ page: frontmatter; break-before:page }
 .getmore .qr{ display:flex; gap:.5in; margin:.4in 0 }
@@ -691,7 +742,7 @@ ${DEDICATION ? `<div class="fm dedication">${esc(DEDICATION)}</div>` : ""}
   ${tocRows}
 </div>
 
-${articles}
+${await withLinkNotes(articles)}
 
 ${commentPicks.length ? `<div class="fm appendix">
   <h3>From the comments</h3>
@@ -779,7 +830,10 @@ const ENGINE = argOf("--engine") || process.env.BOOK_ENGINE || "paged";
 if (ENGINE === "typst") {
   const { emitTypst } = await import("./lib/typst-emit.mjs");
   const { dirname } = await import("node:path");
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName });
+  /* --fit-figs slug:3=2.1,other:1=3.4 : figures the fit loop asks to scale to a height (inches) */
+  const fitFigs = Object.fromEntries(String(argOf("--fit-figs") || "").split(",").filter(Boolean).map(x => { const i = x.lastIndexOf("="); return [x.slice(0, i), Number(x.slice(i + 1))]; }).filter(([k, v]) => k && v > 0));
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs });
+  if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
   writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
   report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article";
 } else report.engine = "paged";

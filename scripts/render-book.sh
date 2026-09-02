@@ -26,6 +26,15 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     console.log([...skip].sort((a,b)=>a-b).join(","));' "$MAP" "$ENDS" "$PAGES")
   BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
   echo "$BL"
+  # for each short page, the first figure on the next page and the height that was left: the fit
+  # loop rebuilds with --fit-figs so that figure sits in flow at that height (engine: typst)
+  FIGS=$(typst query --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
+  node -e '
+    const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const figs=JSON.parse(process.argv[2]||"[]");
+    const TEXT_H=7.44; d.engine="typst"; d.fit=[];
+    for (const b of d.bad) { const nx=figs.find(x=>x.page===b.page+1); if (!nx) continue;
+      const h=Math.max(1.2, Math.round((b.blank*TEXT_H-0.7)*100)/100); d.fit.push({ page:b.page, id:nx.id, height:h }); }
+    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS"
   if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 1; fi
   SIZE=$(wc -c < "$PDF" | tr -d ' ')
   echo "OK $PAGES $(basename "$PDF") $SIZE bytes typst $(( $(date +%s) - START ))s"

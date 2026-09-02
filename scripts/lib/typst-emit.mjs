@@ -62,7 +62,7 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.76, textHeight = 7.5 } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {} } = opts;
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
@@ -96,6 +96,7 @@ export function emitTypst(html, opts = {}) {
       case "code": return `#raw(${str(textOf(n))})`;
       case "br": return " \\\n";
       case "a": {
+        if (attr(n, "data-link")) return `${inner()}#super[${esc(attr(n, "data-link"))}]`;
         if (has(n, "fn") || has(n, "footnote-anchor")) {
           const num = textOf(n).trim(); const key = (attr(n, "href") || "").replace(/^#/, "");
           const note = fnMap.get(key);
@@ -127,16 +128,26 @@ export function emitTypst(html, opts = {}) {
       if (hAtFull > cap) size = `height: ${cap.toFixed(2)}in`;
       else if (dim.w < 700) size = `width: ${Math.min(100, Math.round(dim.w / (textWidth * 150) * 100))}%`; /* small images stay small: 150 px per inch floor */
     }
-    const cap = caption ? `, caption: [${caption}]` : "";
-    return `#figure(placement: auto, image(${str(src)}, format: ${str(fmt)}, ${size})${cap})\n\n`;
+    const capTxt = caption ? `, caption: [${caption}]` : "";
+    const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
+    const id = attr(imgEl, "data-fig") || src;
+    const tag = `#context [#metadata((id: ${str(id)}, page: here().page())) <fig>]\n`;
+    /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
+       at the height that was left, so the page before it stays full; every other figure floats */
+    const fitH = fitFigs[id];
+    if (fitH) return `${tag}#figure(${img(`height: ${Number(fitH).toFixed(2)}in, width: auto`)}${capTxt})\n\n`;
+    return `${tag}#figure(placement: auto, ${img(size)}${capTxt})\n\n`;
   }
+  /* images inside list items are hoisted after the list: a float cannot live inside an item */
+  let hoisted = [];
   function list(n, ordered, depth = 0) {
     const pad = "  ".repeat(depth); let s = "";
     for (const li of kids(n)) {
       if (isEl(li) && (li.name === "ul" || li.name === "ol")) { s += list(li, li.name === "ol", depth); continue; } /* a list nested directly in a list */
       if (!isEl(li) || li.name !== "li") continue;
       const sub = kids(li).filter(k => isEl(k) && (k.name === "ul" || k.name === "ol"));
-      const own = kids(li).filter(k => !(isEl(k) && (k.name === "ul" || k.name === "ol")));
+      for (const im of findAll(li, k => isEl(k) && k.name === "img")) { const fig = im.parent && find(li, k => isEl(k) && k.name === "figure" && find(k, x => x === im)); const fc = fig && find(fig, k => isEl(k) && k.name === "figcaption"); hoisted.push(figureOf(im, fc ? kids(fc).map(k => inline(k)).join("").trim() : "")); }
+      const own = kids(li).filter(k => !(isEl(k) && (k.name === "ul" || k.name === "ol" || k.name === "figure" || k.name === "img" || (k.name === "div" && find(k, x => isEl(x) && x.name === "img")))));
       const text = own.map(k => isEl(k) && k.name === "p" ? kids(k).map(x => inline(x)).join("") : inline(k)).join("").trim();
       s += `${pad}${ordered ? "+" : "-"} ${text || " "}\n`;
       for (const sl of sub) s += list(sl, sl.name === "ol", depth + 1);
@@ -150,6 +161,16 @@ export function emitTypst(html, opts = {}) {
     if (n.name === "script" || n.name === "style") return "";
     if (has(n, "footnote") && n.name === "div") return ""; /* collected beforehand */
     if (has(n, "footnote-container")) return "";
+    if (has(n, "linknote")) {
+      const items = findAll(n, k => isEl(k) && k.name === "li");
+      const qr = find(n, k => isEl(k) && k.name === "img"); const qrSrc = qr ? localImage(attr(qr, "src")) : null;
+      const shortEssay = textOf(find(n, k => has(k, "lk-essay")) || {}).trim();
+      const rows = items.map(li => { const L = textOf(find(li, k => has(k, "lk")) || {}).trim(); const t = kids(find(li, k => has(k, "lk-text")) || li).map(x => inline(x)).join("").trim(); const u = textOf(find(li, k => has(k, "lk-url")) || {}).trim();
+        const shown = /^https?:\\\/\\\//.test(t) || /^https?:\/\//.test(textOf(find(li, k => has(k, "lk-text")) || {}).trim()) ? esc(textOf(find(li, k => has(k, "lk-text")) || {}).trim().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0]) : t;
+        return `[#super[${esc(L)}]], [${shown} #h(4pt) #text(fill: faint, size: 7.5pt)[${esc(u)}]]`; }).join(", ");
+      return `#block(above: 1.2em, width: 100%, breakable: true)[#line(length: 100%, stroke: 0.5pt + rgb("${RULE}")) #v(0.35em) #text(size: 8pt, tracking: 0.2em, fill: rubric)[LINKS] #v(0.4em) #set text(size: 8.5pt, fill: rgb("#3a352c")); #set par(first-line-indent: 0em, justify: false)
+#grid(columns: (1fr, ${qrSrc ? "0.95in" : "0pt"}), gutter: 10pt, [#grid(columns: (1.4em, 1fr), row-gutter: 0.28em, ${rows})], [${qrSrc ? `#image(${str(qrSrc)}, width: 0.85in) #v(-0.1em) #text(size: 6.5pt, fill: faint)[${esc(shortEssay)}]` : ""}])]\n\n`;
+    }
     if (has(n, "srcnotes")) {
       const hEl = find(n, k => isEl(k) && /^h[2-4]$/.test(k.name)); const label = hEl ? textOf(hEl).trim() : "Sources & notes";
       const inner = kids(n).filter(k => !(isEl(k) && /^h[2-4]$/.test(k.name))).map(block).join("");
@@ -171,8 +192,7 @@ export function emitTypst(html, opts = {}) {
       }
       case "h1": case "h2": return `== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
       case "h3": case "h4": case "h5": case "h6": return `=== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
-      case "ul": return list(n, false) + "\n";
-      case "ol": return list(n, true) + "\n";
+      case "ul": case "ol": { hoisted = []; const l = list(n, n.name === "ol"); const h = hoisted.join(""); hoisted = []; return l + "\n" + h; }
       case "blockquote": return `#quote(block: true)[\n${kids(n).map(block).join("").trim()}\n]\n\n`;
       case "pre": return `#raw(block: true, ${str(textOf(n).replace(/\n$/, ""))})\n\n`;
       case "hr": return `#v(0.4em)\n#align(center, text(fill: rgb("${RUBRIC}"), size: 10pt)[❦])\n#v(0.4em)\n\n`;
@@ -190,6 +210,7 @@ export function emitTypst(html, opts = {}) {
         return `#block(width: 100%, text(size: 8pt)[#table(columns: ${ncol}, stroke: 0.5pt + rgb("${RULE}"), ${cells.join(", ")})])\n\n`;
       }
       case "br": return "";
+      case "a": return find(n, k => isEl(k) && k.name === "img") ? kids(n).map(block).join("") : (() => { const t = inline(n).trim(); return t ? t + "\n\n" : ""; })();
       case "div": case "section": case "article": case "main": case "header": case "footer": case "aside": case "nav": case "picture": case "span":
         return kids(n).map(block).join("");
       case "iframe": case "audio": case "video": case "source": case "button": case "form": case "input": case "svg": return "";
@@ -216,6 +237,8 @@ export function emitTypst(html, opts = {}) {
     let s = `#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${str(meta ? textOf(meta).replace(/\s+/g, " ").trim() : "")})\n`;
     s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artstart>]\n`;
     s += kids(bodyEl).map(block).join("");
+    /* the link note sits after the body inside the section */
+    s += kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join("");
     if (endnotes.length) {
       s += `#v(0.8em)\n#line(length: 30%, stroke: 0.5pt + rgb("${RULE}"))\n#v(0.3em)\n#set text(size: 8.5pt)\n#set par(first-line-indent: 0em)\n`;
       s += endnotes.map(e => `#box(width: 1.4em)[#super[${esc(e.num)}]] ${e.note}\n\n`).join("");

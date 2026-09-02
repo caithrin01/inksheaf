@@ -19,3 +19,14 @@ CREATE TABLE IF NOT EXISTS preview_cache (
   fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
   payload TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS links (
+  code TEXT PRIMARY KEY,
+  target TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'link',
+  signup_id INTEGER,
+  slug TEXT,
+  letter TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  hits INTEGER NOT NULL DEFAULT 0,
+  last_hit TEXT
+);

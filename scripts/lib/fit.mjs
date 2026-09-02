@@ -5,20 +5,30 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-export function fit({ args, html, pdf, log = () => {}, passes = 3 }) {
+export function fit({ args, html, pdf, log = () => {}, passes = 4 }) {
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
-  const defer = new Set(); let extra = [];
+  const defer = new Set(); let extra = []; const fitFigs = {};
   for (let pass = 1; pass <= passes; pass++) {
-    const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...extra];
+    const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
+    const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try { const out = sh("bash", ["scripts/render-book.sh", html, pdf]); return { ok: true, pass, defer: [...defer], out: out.trim() }; }
     catch (e) {
-      let bad = []; try { bad = JSON.parse(readFileSync(pagesFile, "utf-8")).bad || []; } catch {}
+      let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}
       if (!bad.length) throw e; /* a failure that is not the detector stays a failure */
       log(`pass ${pass}: pages over the blank limit ${bad.map(b => `${b.page} (${Math.round(b.blank * 100)}%)`).join(", ")}`);
+      if (pj.engine === "typst") {
+        /* Typst: scale the figure that fell after each short page to the height that was left */
+        const fits = (pj.fit || []).filter(f => !(f.id in fitFigs));
+        if (!fits.length) throw new Error(`${bad.length} page(s) over the blank limit with no figure to fit: ${bad.map(b => b.page).join(", ")}`);
+        for (const f of fits) fitFigs[f.id] = f.height;
+        log(`pass ${pass}: fitting ${fits.map(f => `${f.id} to ${f.height}in`).join(", ")}`);
+        if (pass === passes) throw new Error(`${bad.length} page(s) still over the blank limit after ${passes} passes: ${bad.map(b => b.page).join(", ")}`);
+        continue;
+      }
       const next = bad.map(b => b.defer).filter(Boolean).filter(id => !defer.has(id));
       if (!next.length && pass < passes) extra = ["--img-max", "2.6"]; /* nothing to defer: the cap is the last lever */
       next.forEach(id => defer.add(id));
