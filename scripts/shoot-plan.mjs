@@ -3,7 +3,7 @@ const S = process.argv[2];
 const b = await chromium.launch(); 
 for (const [host, w] of [["heathercoxrichardson.substack.com", 1200], ["caithrin.com", 1200], ["heathercoxrichardson.substack.com", 390]]) {
   const page = await b.newPage({ viewport: { width: w, height: 1000 }, deviceScaleFactor: 1.3 });
-  await page.goto(`http://localhost:8789/?pub=${host}`);
+  await page.goto(`${process.env.SHOOT_BASE || "http://localhost:8789"}/?pub=${host}`);
   await page.waitForFunction(() => document.getElementById("preview").classList.contains("personalized") || document.getElementById("tryerr").textContent.length > 3, null, { timeout: 120000 });
   await page.waitForTimeout(1800);
   const err = await page.evaluate(() => document.getElementById("tryerr").textContent);
