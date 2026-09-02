@@ -36,6 +36,12 @@ button.ghost{background:transparent;color:var(--ink)}button:hover{background:var
   <div id="vols"></div>
   <h2>Interior</h2>
   <div class="interior"><label><input type="radio" name="interior" value="bw" /> Black and white</label><label><input type="radio" name="interior" value="color" /> Colour</label></div>
+  <h2>Left out</h2>
+  <p class="note" id="leftnote">Pieces the rules or the editor left out, each with the reason. Tick one to bring it back.</p>
+  <div class="posts" id="left"></div>
+  <h2>ISBN</h2>
+  <p class="note">Optional. Your own ISBN, ten or thirteen digits; it goes on the copyright page and as a barcode on the back cover. Leave it empty to print without one.</p>
+  <input id="isbn" type="text" maxlength="20" inputmode="numeric" placeholder="978-…" style="width:100%;font:inherit;padding:.4rem .5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)" />
   <h2>Dedication</h2>
   <p class="note">One line, printed on its own page before the contents. Leave it empty for none.</p>
   <input id="ded" type="text" maxlength="200" style="width:100%;font:inherit;padding:.4rem .5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)" />
@@ -55,7 +61,7 @@ button.ghost{background:transparent;color:var(--ink)}button:hover{background:var
 const q = new URLSearchParams(location.search); const id = q.get('id'), sig = q.get('sig');
 const $ = (s) => document.querySelector(s);
 const NAME = { single: 'One volume', half: 'Half-year set', quarterly: 'Quarterly', monthly: 'Monthly' };
-let plan = null, titles = {}, routes = null;
+let plan = null, titles = {}, routes = null, leftOut = [], isbn = null;
 const money = n => '$' + Number(n).toFixed(2);
 function render() {
   const rs = $('#routes');
@@ -66,6 +72,9 @@ function render() {
     <div class="posts">${v.post_ids.map(pid => { const t = titles[pid] || {}; return `<label><input type="checkbox" name="keep" value="${pid}" checked /><span class="d">${t.date || ''}</span><span>${(t.title || 'Post ' + pid).replace(/</g, '&lt;')}</span></label>`; }).join('')}</div></div>`).join('');
   document.querySelector(`input[name=interior][value=${plan.interior === 'color' ? 'color' : 'bw'}]`).checked = true;
   $('#ded').value = plan.dedication || '';
+  $('#isbn').value = isbn || '';
+  $('#left').innerHTML = leftOut.length ? leftOut.map(x => `<label><input type="checkbox" name="include" value="${x.slug}" ${x.included ? 'checked' : ''} /><span class="d">${x.kind === 'guest' ? 'guest' : x.kind === 'editor' ? 'editor' : 'rule'}</span><span>${(x.title || x.slug).replace(/</g, '&lt;')}<span class="note"> · ${String(x.reason).replace(/</g, '&lt;')}</span></span></label>`).join('') : `<p class="note">Nothing was left out.</p>`;
+  if (!leftOut.length) $('#leftnote').hidden = true;
   $('#vols').addEventListener('change', e => { if (e.target.name === 'keep') e.target.closest('label').classList.toggle('out', !e.target.checked); summarize(); });
   $('#routes').addEventListener('change', summarize); document.querySelector('.interior').addEventListener('change', summarize);
   summarize();
@@ -80,7 +89,7 @@ function summarize() {
   const r = await fetch(`/api/change?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
   const d = await r.json().catch(() => ({}));
   if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your proof email again, or write to caithrin@caithrin.com.'; return; }
-  plan = d.plan; titles = d.titles || {}; routes = d.routes;
+  plan = d.plan; titles = d.titles || {}; routes = d.routes; leftOut = d.left_out || []; isbn = d.isbn || null;
   $('#lead').textContent = `${d.publication_url.replace(/^https?:\/\//, '')} · ${d.status}`;
   if (!plan || !Array.isArray(plan.volumes) || !plan.volumes.length) { $('#lead').textContent += ' · planned by hand: tell us below what should change.'; $('#work').hidden = false; $('#apply').hidden = true; $('#other').hidden = true; $('#f').hidden = false; document.querySelectorAll('#work h2, #routes, #vols, .interior, #ded, #sum, .note').forEach(el => { if (!el.closest('#f')) el.hidden = true; }); return; }
   $('#work').hidden = false; render();
@@ -90,11 +99,13 @@ $('#apply').addEventListener('click', async () => {
   const titlesOut = {}; for (const i of document.querySelectorAll('input.title')) if (i.value.trim()) titlesOut[i.dataset.label] = i.value.trim();
   const cadence = (document.querySelector('input[name=cadence]:checked') || {}).value || plan.cadence;
   const interior = document.querySelector('input[name=interior]:checked').value;
+  const include = [...document.querySelectorAll('input[name=include]:checked')].map(i => i.value);
+  const isbnOut = $('#isbn').value.trim();
   $('#apply').disabled = true; $('#err').textContent = '';
-  const r = await fetch('/api/change', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, changes: { exclude, titles: titlesOut, cadence: cadence !== plan.cadence ? cadence : null, interior, dedication: $('#ded').value.trim() } }) });
+  const r = await fetch('/api/change', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, changes: { exclude, include, isbn: isbnOut, titles: titlesOut, cadence: cadence !== plan.cadence ? cadence : null, interior, dedication: $('#ded').value.trim() } }) });
   const d = await r.json().catch(() => ({}));
   if (!d.ok) { $('#apply').disabled = false; $('#err').textContent = d.error || 'That did not apply.'; return; }
-  $('#work').querySelectorAll('h2, #routes, #vols, .interior, #ded, #sum, #apply, #other, .note').forEach(el => el.hidden = true);
+  $('#work').querySelectorAll('h2, #routes, #vols, #left, #isbn, .interior, #ded, #sum, #apply, #other, .note').forEach(el => el.hidden = true);
   $('#done').hidden = false;
   $('#done').textContent = d.reproof === 'started' ? 'Applied. A new proof is being made and lands in your inbox in a few minutes: ' + d.plan.volumes.map(v => v.label + ' ' + v.est_pages + 'pp').join(', ') + '.' : 'Applied. A person makes the new proof and emails it to you today: ' + d.plan.volumes.map(v => v.label + ' ' + v.est_pages + 'pp').join(', ') + '.';
 });

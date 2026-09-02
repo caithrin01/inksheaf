@@ -12,7 +12,7 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import QRCode from "qrcode";
 
-const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--meta" && all[i - 1] !== "--brand");
+const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--meta" && all[i - 1] !== "--brand" && all[i - 1] !== "--isbn");
 const [W, H, OUT] = [+pos[0], +pos[1], pos[2]];
 if (!W || !H || !OUT) { console.error("usage: cover-wrap.mjs <w_pt> <h_pt> <out.html> [plate] [--meta m.json] [--brand b.json]"); process.exit(2); }
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
@@ -45,6 +45,14 @@ const frame = (side, inset) => side === "front"
   ? `top:${BLEED + inset}pt; bottom:${BLEED + inset}pt; left:${inset}pt; right:${BLEED + inset}pt`
   : `top:${BLEED + inset}pt; bottom:${BLEED + inset}pt; left:${BLEED + inset}pt; right:${inset}pt`;
 
+/* --isbn 978…: an EAN-13 barcode on the back cover, bottom right, the size Lulu expects
+   (about 1.75 x 1 in with quiet zones); the number is printed under the bars by bwip-js */
+const isbnRaw = String(argOf("--isbn") || "").replace(/[^0-9Xx]/g, "");
+let barcode = "";
+if (/^97[89]\d{10}$/.test(isbnRaw)) {
+  const bwipjs = (await import("bwip-js")).default;
+  barcode = bwipjs.toSVG({ bcid: "ean13", text: isbnRaw, includetext: false, height: 20, scale: 2, paddingwidth: 8, paddingheight: 4 });
+} else if (isbnRaw) console.error("--isbn ignored on the cover: not a 13-digit ISBN:", isbnRaw);
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -75,6 +83,9 @@ h1{ font-weight:500; font-size:38pt; line-height:1.12; margin:.12in 0 0; color:$
 .back .desc{ font-size:11pt; line-height:1.6; color:${INK}; opacity:.82 }
 .back .qr{ position:absolute; bottom:${BLEED + 62 + 34}pt; left:${BLEED + 54}pt }
 .back .qr img{ width:.85in; height:.85in }
+.back .barcode{ position:absolute; bottom:${BLEED + 62 + 34}pt; right:54pt; width:1.75in; background:#fff; padding:4pt }
+.back .barcode svg{ width:100%; height:auto; display:block }
+.back .barcode .isbn{ font-family:Inter, sans-serif; font-size:7pt; letter-spacing:.06em; color:#111; text-align:center; margin-bottom:2pt }
 .back .imprint{ position:absolute; bottom:${BLEED + 62}pt; left:${BLEED + 54}pt; right:54pt; font-family:Inter,sans-serif;
   font-size:7pt; letter-spacing:.12em; text-transform:uppercase; color:${MUTED}; border-top:1pt solid ${RED}; padding-top:.12in }
 </style></head><body>
@@ -84,6 +95,7 @@ h1{ font-weight:500; font-size:38pt; line-height:1.12; margin:.12in 0 0; color:$
   ${META.blurb ? `<div class="blurb">${esc(META.blurb)}</div>` : ""}
   <div class="desc">${esc(META.desc)}</div>
   <div class="qr"><img src="${qr}"></div>
+  ${barcode ? `<div class="barcode"><div class="isbn">ISBN ${esc(String(argOf("--isbn")).trim())}</div>${barcode}</div>` : ""}
   <div class="imprint">${esc(host)} · Printed by Inksheaf · inksheaf.com</div>
 </div>
 <div class="panel spine">${spine}</div>
@@ -100,4 +112,4 @@ h1{ font-weight:500; font-size:38pt; line-height:1.12; margin:.12in 0 0; color:$
 </div>
 </body></html>`;
 writeFileSync(OUT, html);
-console.log(JSON.stringify({ W, H, SPINE, out: OUT, spineTextShown: !!spine, design: "ivory" }));
+console.log(JSON.stringify({ W, H, SPINE, out: OUT, spineTextShown: !!spine, design: "ivory", barcode: !!barcode }));

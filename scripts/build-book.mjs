@@ -25,6 +25,11 @@ const NO_BRAND = process.argv.includes("--no-brand");
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
 const IMG_MAX = Math.max(1.5, Math.min(5.5, Number(argOf("--img-max")) || 4.2)); /* inches; the fit loop (--defer) handles placement */
 const DEFER = String(argOf("--defer") || "").split(",").map(x => x.trim()).filter(Boolean);
+/* --include slug,slug: the writer's reversals of rule cuts and guest cuts, from the change page */
+const INCLUDE = new Set(String(argOf("--include") || "").split(",").map(x => x.trim()).filter(Boolean));
+/* --isbn 978…: printed on the copyright page; the cover wrap draws its barcode (a free Lulu ISBN needs both) */
+const ISBN = (() => { const raw = String(argOf("--isbn") || "").replace(/[^0-9Xx]/g, ""); return /^(97[89]\d{10}|\d{9}[0-9Xx])$/.test(raw) ? raw.replace(/^(\d{3})(\d)(\d{2,5})(\d{2,7})(\d)$/, (m, a, b, c, d, e) => `${a}-${b}-${c}-${d}-${e}`) : ""; })();
+if (argOf("--isbn") && !ISBN) console.error("--isbn ignored: not a 10- or 13-digit ISBN:", argOf("--isbn"));
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
 const COVER_PHOTO = process.argv.includes("--cover-photo");
@@ -89,7 +94,7 @@ const shortPosts = listing.filter(p => (p.wordcount || 0) < 150).length;
 if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-style publication");
 /* cuts by rule, each with its reason, named in the edition note (functions/lib/cuts.js) */
 report.ruleCuts = [];
-for (const p of listing) { const why = ruleCut(p, host); if (why && p.audience === "everyone") report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
+for (const p of listing) { const why = ruleCut(p, host); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
 const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
 const posts = listing
   .filter(p => p.audience === "everyone" && !cutSlugs.has(p.slug))
@@ -221,13 +226,13 @@ const bylinesOf = p2 => (Array.isArray(p2.publishedBylines) ? p2.publishedByline
 const isGuestPost = p2 => { const bs = bylinesOf(p2); return bs.length > 0 && bs.every(b => b.is_guest); };
 report.guestCuts = [];
 if (!process.argv.includes("--include-guests")) {
-  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i])) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
+  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
 }
 for (const p2 of full) for (const b of bylinesOf(p2)) byCount[b.name] = (byCount[b.name] || 0) + 1;
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
-report.pubName = pubName; report.author = author; report.authors = authors.slice(0, 6);
+report.pubName = pubName; report.author = author; report.authors = authors.slice(0, 6); report.isbn = ISBN || null;
 const dominantShare = full.length ? (byCount[author] || 0) / full.length : 1;
 
 /* ---------- content kind: what the pieces ARE drives every label ---------- */
@@ -753,7 +758,7 @@ ${PRINT_INTERIOR ? "" : `
   small letter, and each essay ends with its links as short addresses and a code to the essay
   online. Source notes the author wrote into an essay stay with it. Web-only embeds become
   printed source notes; media-only pieces remain in the online edition.</p>
-  <div class="colophon">Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
+  <div class="colophon">${ISBN ? `ISBN ${esc(ISBN)} · ` : ""}Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
 

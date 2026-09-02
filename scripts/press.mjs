@@ -80,6 +80,10 @@ function buildVolume(v, i, { proof }) {
   else if (plan?.window?.from) { args.push("--after", plan.window.from); if (plan.window.to) args.push("--before", plan.window.to); }
   if (existsSync(brandPath)) args.push("--brand-file", brandPath);
   if (plan?.dedication && i === 0) args.push("--dedication", String(plan.dedication).slice(0, 300));
+  /* a writer's own ISBN (one per volume, plan.isbn or plan.isbns[i]): copyright page and back-cover barcode */
+  const isbn = (Array.isArray(plan?.isbns) ? plan.isbns[i] : null) || (volumes.length === 1 ? plan?.isbn : null);
+  if (isbn) args.push("--isbn", String(isbn).slice(0, 20));
+  if (Array.isArray(plan?.include) && plan.include.length) args.push("--include", plan.include.map(x => String(x).replace(/[^a-z0-9-]/gi, "")).filter(Boolean).join(","));
   if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
   const fitted = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
@@ -134,7 +138,10 @@ Inksheaf`;
     attachments: [{ filename: `${slug}-first-pages.pdf`, content: first }] });
   await sendMail({ to: OPERATOR, subject: `press: proof sent for ${host} (#${ID})`,
     text: `Reservation #${ID}\n${URL_}\n${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nfirst volume ${pages} pages\nproof ${proofUrl}\nrun ${process.env.GITHUB_RUN_ID || "local"}` });
-  await status("proofed", { proof_key: key, message: `${pages} pages, ${n} volume(s)` });
+  /* what left the book, for the change page: rule cuts and guest posts from the build, with reasons */
+  const leftOut = [...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })),
+    ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))];
+  await status("proofed", { proof_key: key, message: `${pages} pages, ${n} volume(s)`, left_out: leftOut });
   writeFileSync(`${DIR}/press.json`, JSON.stringify({ id: ID, host, pages, key, volumes: n, interior }, null, 1));
   console.log(`PRESS proofed #${ID} ${host}: ${pages} pages, ${n} volume(s), proof ${key}`);
 } else if (EVENT === "list") {
@@ -161,6 +168,7 @@ Inksheaf`;
       const metaPath = `${DIR}/${base}.cover.json`; writeFileSync(metaPath, JSON.stringify(meta));
       const coverHtml = `${DIR}/${base}.cover.html`, coverPdf = `${DIR}/${base}.cover.pdf`;
       const cargs = ["scripts/cover-wrap.mjs", String(W), String(H), coverHtml, "--meta", metaPath];
+      if (report.isbn) cargs.push("--isbn", report.isbn);
       if (existsSync(brandPath)) cargs.push("--brand", brandPath);
       sh("node", cargs);
       const browser = await chromium.launch();
