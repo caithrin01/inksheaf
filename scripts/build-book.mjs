@@ -8,6 +8,8 @@
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
 import { normalizeUrl, linkCode, SHORT_HOST } from "../functions/lib/links.js";
+import { transformComponents } from "./lib/components.mjs";
+import { ruleCut } from "../functions/lib/cuts.js";
 import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
 const RAW = process.argv[2] || "https://www.caithrin.com";
@@ -85,9 +87,12 @@ report.podcastPosts = listing.filter(p => p.type === "podcast").length;
 if (report.podcastPosts > listing.length / 2) report.declineSignals.push("podcast-first publication");
 const shortPosts = listing.filter(p => (p.wordcount || 0) < 150).length;
 if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-style publication");
+/* cuts by rule, each with its reason, named in the edition note (functions/lib/cuts.js) */
+report.ruleCuts = [];
+for (const p of listing) { const why = ruleCut(p, host); if (why && p.audience === "everyone") report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
+const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
 const posts = listing
-  .filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type)
-    && p.is_published !== false && !p.restacked_post_id)
+  .filter(p => p.audience === "everyone" && !cutSlugs.has(p.slug))
   .filter(p => (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER))
             && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
@@ -313,7 +318,9 @@ function stripBalancedDivs(html, classRe) {
   return out;
 }
 function clean(html, slug) {
-  let s = html;
+  /* Substack blocks by their own data-component-name first (scripts/lib/components.mjs): removed,
+     substituted, or left alone and counted; the regex cleaners below are the second line */
+  let s = transformComponents(html, report);
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "")
        .replace(/<form[\s\S]*?<\/form>/gi, "");
   s = stripBalancedDivs(s, "embedded-publication-wrap|embedded-post-wrap|\\bcomment\\b|digest-post-embed|subscription-widget|poll-embed|community-module|image-link-expand|install-substack-app");
@@ -611,6 +618,8 @@ p.verse{ text-align:left; text-indent:0; hyphens:none }
 table{ width:100%; border-collapse:collapse; font-size:8pt; margin:.9em 0 }
 td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word; text-align:left }
 .imgmissing{ border:1px dashed var(--rubric); color:var(--faint); font-size:8.5pt; padding:1em; text-align:center; margin:.9em 0 }
+.tweet-print{ margin:.9em 1.2em; font-size:9.8pt } .tweet-print .tweet-by{ text-indent:0; font-size:8.5pt; color:var(--faint); margin-top:.2em }
+.latex-print{ text-align:center; text-indent:0; font-size:9.5pt }
 .embedcard{ border:1px solid var(--rule); border-left:3px solid var(--rubric); padding:.6em .8em;
   font-size:8.5pt; color:var(--faint); margin:.9em 0; word-break:break-all }
 
@@ -729,6 +738,7 @@ ${PRINT_INTERIOR ? "" : `
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
+  ${report.ruleCuts.length ? `<p>${report.ruleCuts.length === 1 ? "One piece was" : report.ruleCuts.length + " pieces were"} left out by rule: ${(() => { const by = {}; for (const c of report.ruleCuts) by[c.reason] = (by[c.reason] || 0) + 1; return Object.entries(by).map(([r, n]) => n > 1 ? `${n} ${r.replace(/^an? /, "")}s` : r).join(", "); })()}.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Linked words carry a
   small letter, and each essay ends with its links as short addresses and a code to the essay
   online. Source notes the author wrote into an essay stay with it. Web-only embeds become

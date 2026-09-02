@@ -1,0 +1,16 @@
+import { ruleCut } from "../functions/lib/cuts.js";
+let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
+const H = "www.example.com";
+ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.example.com/p/an-essay" }, H) === null, "an ordinary essay is kept");
+ok(ruleCut({ type: "restack", restacked_post_id: 5 }, H) === "a cross-post from another publication", "restack");
+ok(ruleCut({ type: "newsletter", canonical_url: "https://other.substack.com/p/x" }, H) === "first published at other.substack.com", "foreign canonical host");
+ok(ruleCut({ type: "newsletter", canonical_url: "https://example.com/p/x" }, H) === null, "apex and www are the same host");
+ok(ruleCut({ type: "podcast" }, H) === "a podcast episode", "podcast");
+ok(ruleCut({ type: "thread" }, H) === "a discussion thread", "thread type");
+ok(ruleCut({ type: "newsletter", postTags: [{ name: "Threads" }] }, H) === 'tagged "Threads"', "Threads tag");
+ok(ruleCut({ type: "newsletter", postTags: ["Mailbag"] }, H) === 'tagged "Mailbag"', "Mailbag tag as string");
+ok(ruleCut({ type: "newsletter", slug: "open-thread-449" }, H) === "an open thread", "open thread slug");
+ok(ruleCut({ type: "newsletter", slug: "hidden-open-thread-3021" }, H) === "an open thread", "hidden open thread slug");
+ok(ruleCut({ type: "newsletter", slug: "the-open-threads-of-history" }, H) === null, "a slug that merely contains the words is kept");
+ok(ruleCut({ type: "newsletter", is_published: false }, H) === "unpublished", "unpublished");
+console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

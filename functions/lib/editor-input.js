@@ -1,6 +1,7 @@
 // Shapes an archive into the editor's input: compact rows the model can read, plus the
 // window, the constraints and the price table. Nothing here calls a model.
 import { editionWindow, spanLabel as spanLabelOf } from "./edition-window.js";
+import { ruleCut } from "./cuts.js";
 import prices from "./print-prices.json" with { type: "json" };
 
 export const PAGE_WORDS = 270;
@@ -53,9 +54,9 @@ export function shapePost(p) {
 }
 
 /* Split posts into the window, the quarter in progress, and older. Public newsletters only. */
-export function partition(posts, nowMs) {
+export function partition(posts, nowMs, host = "") {
   const w = editionWindow(nowMs);
-  const inWindow = [], inProgress = [], older = [], paid = [], podcasts = [];
+  const inWindow = [], inProgress = [], older = [], paid = [], podcasts = [], cut = [];
   const seen = new Set();
   for (const p of posts) {
     if (!p || !p.post_date) continue;
@@ -63,17 +64,20 @@ export function partition(posts, nowMs) {
     const key = postId(p); if (seen.has(key)) continue; seen.add(key);
     const d = String(p.post_date).slice(0, 10);
     if (p.type === "podcast") { podcasts.push(p); continue; }
-    if (p.type && p.type !== "newsletter") continue;
+    /* cuts by rule (functions/lib/cuts.js): cross-posts, threads, tagged housekeeping; each with
+       its reason, so the plan and the change page can name what the editor never saw */
+    const why = ruleCut(p, host);
+    if (why) { cut.push({ post: p, reason: why }); continue; }
     if (p.audience && p.audience !== "everyone") { paid.push(p); continue; }
     if (d >= w.fromIso && d < w.toIso) inWindow.push(p);
     else if (d >= w.toIso) inProgress.push(p);
     else older.push(p);
   }
-  return { window: w, inWindow, inProgress, older, paid, podcasts };
+  return { window: w, inWindow, inProgress, older, paid, podcasts, cut };
 }
 
 export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
-  const part = partition(posts, nowMs);
+  const part = partition(posts, nowMs, host);
   /* A publication younger than a quarter has nothing in the completed quarters. Its edition
      is everything so far: launch to today, one window, no periods, nothing "in progress". */
   if (!part.inWindow.length && part.inProgress.length) {
@@ -104,7 +108,7 @@ export function buildEditorInput({ posts, identity, host, nowMs, capped }) {
   return {
     publication: { host, name: identity?.publicationName || host, about: identity?.about || null,
       paid_posts_in_window: part.paid.filter(p => { const d = String(p.post_date).slice(0, 10); return d >= w.fromIso && d < w.toIso; }).length,
-      podcasts_in_window: part.podcasts.length, read_capped: !!capped },
+      podcasts_in_window: part.podcasts.length, cut_by_rule: part.cut.map(c => ({ id: postId(c.post), title: String(c.post.title || "").slice(0, 80), reason: c.reason })).slice(0, 40), read_capped: !!capped },
     window: { label: w.label, span: w.span, from: w.fromIso, to: w.toIso, periods,
       in_progress: { label: w.inProgress.label, span: w.inProgress.span, posts: progress.length } },
     totals: { posts: rows.length, words: rows.reduce((s, r) => s + r.words, 0), estimated_pages: totalPages },

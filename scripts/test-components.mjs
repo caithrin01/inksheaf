@@ -1,0 +1,33 @@
+// The component pass against one sample per Substack block, in the markup recorded from live
+// posts on 2026-09-02 (research-formatting part 2). A new widget shape fails here first.
+import { transformComponents } from "./lib/components.mjs";
+let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
+const run = (html) => { const r = {}; const out = transformComponents(html, r); return { out, r }; };
+let t;
+t = run(`<p>Before.</p><div class="subscription-widget-wrap-editor" data-component-name="SubscribeWidgetToDOM"><div class="subscription-widget show-subscribe"><div class="preamble"><p class="cta-caption">Thanks for reading!</p></div><form class="subscription-widget-subscribe"><input class="email-input"><input type="submit" class="button primary" value="Subscribe"></form></div></div><p>After.</p>`);
+ok(!/subscription-widget|Subscribe/.test(t.out) && /Before\.[\s\S]*After\./.test(t.out), "subscribe widget removed, prose kept");
+t = run(`<p class="button-wrapper" data-component-name="ButtonCreateButton" data-attrs='{"url":"https://x.substack.com/subscribe","text":"Subscribe now","action":null,"class":null}'><a class="button primary" href="https://x.substack.com/subscribe"><span>Subscribe now</span></a></p>`);
+ok(!/Subscribe now/.test(t.out), "button removed");
+t = run(`<div class="twitter-embed" data-component-name="Twitter2ToDOM" data-attrs='{"url":"https://x.com/a/status/1","full_text":"Line one.\\nLine two.","username":"someone","name":"Some One","date":"2026-08-27T10:00:00.000Z"}'></div>`);
+ok(/<blockquote class="tweet-print"><p>Line one\.<br>Line two\.<\/p><p class="tweet-by">— Some One @someone, 2026-08-27, on X<\/p><\/blockquote>/.test(t.out), "tweet becomes a set quotation: " + t.out.slice(0, 160));
+t = run(`<div class="embedded-post-wrap" data-attrs='{"id":1,"url":"https://other.substack.com/p/thing?utm_source=x","publication_name":"Other Letter","title":"The Thing","truncated_body_text":"..."}'><div class="embedded-post"><div class="embedded-post-title">The Thing</div></div></div>`);
+ok(/<div class="embedcard">Other Letter: The Thing · other\.substack\.com\/p\/thing<\/div>/.test(t.out), "embedded post becomes a citation line: " + t.out.slice(0, 160));
+t = run(`<div id="youtube2-abc123def45" class="youtube-wrap" data-component-name="Youtube2ToDOM" data-attrs='{"videoId":"abc123def45","startTime":null,"endTime":null}'><div class="youtube-inner"><iframe src="https://www.youtube-nocookie.com/embed/abc123def45"></iframe></div></div>`);
+ok(/<div class="embedcard">Video: youtu\.be\/abc123def45<\/div>/.test(t.out) && !/iframe/.test(t.out), "youtube becomes a video line");
+t = run(`<div class="latex-rendered" data-component-name="LatexBlockToDOM" data-attrs='{"persistentExpression":"E = mc^2","id":"x"}'></div>`);
+ok(/<p class="latex-print"><code>E = mc\^2<\/code><\/p>/.test(t.out), "latex keeps its source");
+t = run(`<div class="poll-embed" data-component-name="PollToDOM" data-attrs='{"id":5}'></div><p>x</p>`);
+ok(t.out === "<p>x</p>", "poll removed: " + t.out);
+t = run(`<span class="mention-wrap" data-attrs='{"name":"Henry Farrell","id":9}'></span> wrote`);
+ok(/<span>Henry Farrell<\/span> wrote/.test(t.out), "mention becomes the name: " + t.out);
+t = run(`<div class="image-gallery-embed" data-attrs='{"gallery":{"images":[{"type":"image","src":"https://s3/a.jpg"},{"type":"image","src":"https://s3/b.jpg"}],"caption":""}}'></div>`);
+ok((t.out.match(/<img /g) || []).length === 2, "gallery becomes its images: " + t.out.slice(0, 120));
+t = run(`<div class="datawrapper-wrap" data-attrs='{"thumbnail_url_full":"https://dw/chart.png","title":"GDP"}'></div>`);
+ok(/<figure><img src="https:\/\/dw\/chart\.png" alt="GDP"><\/figure>/.test(t.out), "datawrapper becomes its static image");
+t = run(`<div class="captioned-image-container"><figure><a class="image-link image2 is-viewable-img" href="https://cdn/x.jpg" data-component-name="Image2ToDOM"><div class="image2-inset"><picture><img src="https://cdn/x.jpg" alt="A chart"></picture><div class="image-link-expand"><button>expand</button></div></div></a><figcaption class="image-caption">Cap</figcaption></figure></div>`);
+ok(/<img src="https:\/\/cdn\/x\.jpg" alt="A chart">/.test(t.out) && !/image-link-expand|<button/.test(t.out) && /<figcaption class="image-caption">Cap<\/figcaption>/.test(t.out), "image block kept, expand chrome dropped");
+t = run(`<div class="new-widget" data-component-name="FutureBlockToDOM"><p>keep me</p></div>`);
+ok(/keep me/.test(t.out) && t.r.components.FutureBlockToDOM === 1, "unknown block left alone and counted: " + JSON.stringify(t.r.components));
+t = run(`<div class="file-embed-wrapper"><a class="file-embed-button" href="https://cdn/paper.pdf"><span class="file-embed-details-h1">paper.pdf</span></a></div>`);
+ok(/Attachment: paper\.pdf · cdn\/paper\.pdf/.test(t.out), "file embed becomes an attachment line: " + t.out.slice(0, 120));
+console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);
