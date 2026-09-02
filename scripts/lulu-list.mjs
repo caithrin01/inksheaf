@@ -12,6 +12,34 @@
 //   /account/wizard/<id>/pricing   list price (floor = print cost), payee (required even at $0)
 //   /account/wizard/<id>/review    review, publish, then access level (Select Access)
 //
+// Recorded from the driven run of 2026-09-02 (project p6mekjn, caithrin 2025–26), step by step:
+//   start:     Print Book is preselected; goal "Publish Your Book" (radio) creates the draft and
+//              the URL becomes /account/wizard/<id>/start; "Lulu Bookstore" is ticked by default,
+//              "Lulu Direct" not. Title input; language is a search box (type "English", pick
+//              the first option); category is a fixed list opened by the magnifier (no free
+//              text matches "Essays"): pick the store category. Button "Add Copyright Info".
+//   copyright: title carried; subtitle input; contributor row: role "By (author)", first and
+//              last name inputs; licence "All Rights Reserved" with holder name and year inputs;
+//              ISBN: leave both radios unselected (a free ISBN demands the number on the
+//              copyright page and a barcode on the cover). Button "Design Your Book".
+//   design:    interior <input type=file>; Lulu validates (about 30 s) and reports pages and
+//              warnings; then Standard Black & White, 60# White Uncoated, Paperback Perfect
+//              Bound, Matte, in that order (each unlocks the next); the cover <input type=file>
+//              appears with the required dimensions once the specs are set; normalising takes
+//              about 30 s. Button "Add Book Details".
+//   details:   description textarea (50 characters minimum); BISAC main category search
+//              (type the exact path, e.g. "LITERARY COLLECTIONS / Essays", pick the option);
+//              keywords: type one, press Enter, repeat (chips); audience is a native <select>
+//              ("General/Trade - Adult fiction and nonfiction"); explicit-content checkbox
+//              off. Button "Add Pricing and Payees".
+//   pricing:   set price by "Revenue Goal" 0.00; UNTICK "Global Distribution Revenue" (with it
+//              on, the minimum doubles and the writer earns revenue); the minimum then equals
+//              the print cost; type each currency's minimum into its list-price box (select
+//              the field's text first: it prefills a digit); payees: "Select from Existing
+//              Payees" → tick the payee → "Add Payees" (share 100%). Button "Final Review".
+//   review:    shows the cover, specs, print cost, "Print-Ready Files"; Publish is here, and
+//              Select Access is set after publishing from the project page.
+//
 // Modes:
 //   --explore            open each step, save a screenshot and the interactive tree to
 //                        evidence/lulu-wizard/, stop before anything is created
