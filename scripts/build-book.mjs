@@ -96,6 +96,9 @@ if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-
 report.ruleCuts = [];
 for (const p of listing) { const why = ruleCut(p, host); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
 const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
+/* the accounting invariant's terms (Codex audit P1-4): public pieces in the window before any cut */
+report.eligiblePublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type) && p.is_published !== false
+  && (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER)) && (!BEFORE || Date.parse(p.post_date) < Date.parse(BEFORE))).length;
 const posts = listing
   .filter(p => p.audience === "everyone" && !cutSlugs.has(p.slug))
   .filter(p => (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER))
@@ -232,6 +235,7 @@ for (const p2 of full) for (const b of bylinesOf(p2)) byCount[b.name] = (byCount
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
 const author = authors[0] || pubName;
+report.editorExcluded = report.planSelection ? Math.max(0, report.eligiblePublic - report.ruleCuts.length - (report.planSelection.requested || full.length)) : 0;
 report.pubName = pubName; report.author = author; report.authors = authors.slice(0, 6); report.isbn = ISBN || null;
 /* the edition version's inputs (Codex audit P0-1): the posts in book order and a hash of each
    body as fetched, so a later run can tell whether what it would print is what was approved */
@@ -749,9 +753,13 @@ ${PRINT_INTERIOR ? "" : `
      report.retrievalFailures = lost; return ""; })()}
   ${report.selection ? `<p>This volume holds the ${full.length} ${noun} readers responded to most,
   chosen by reactions from the ${report.selection.from} published at ${host.replace(/^www\./, "")}
-  over ${typeof archiveRange !== "undefined" ? archiveRange : range}, printed in the order they first appeared.</p>` : `<p>This volume collects ${report.retrievalFailures ? `${full.length} of the ${full.length + report.retrievalFailures} public ${noun}` : `every public ${nounOne}`} published at ${host.replace(/^www\./, "")} from
+  over ${typeof archiveRange !== "undefined" ? archiveRange : range}, printed in the order they first appeared.</p>` : (() => {
+    /* the accounting invariant (Codex audit P1-4): eligible = included + rule cuts + editor exclusions + guest cuts + retrieval failures; "every" only when nothing was left out */
+    const eligible = report.eligiblePublic || 0, cuts = (report.ruleCuts || []).length + (report.guestCuts || []).length + (report.editorExcluded || 0) + (report.retrievalFailures || 0);
+    const every = eligible > 0 && eligible === full.length && cuts === 0;
+    return `<p>This volume collects ${every ? "every public" : `${full.length} of the ${eligible || full.length + cuts} public`} ${every ? noun : noun} published at ${host.replace(/^www\./, "")} from
   ${range}${author.toLowerCase() !== pubName.toLowerCase() ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
-  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.</p>`}
+  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.${cuts ? ` ${cuts === 1 ? "One piece is" : cuts + " pieces are"} not included${(report.editorExcluded || 0) ? ", " + ((report.editorExcluded === 1) ? "one" : report.editorExcluded) + " by the editor's choice" : ""}; the reasons follow.` : ""}</p>`; })()}
   ${report.retrievalFailures ? `<p>${report.retrievalFailures} ${report.retrievalFailures === 1 ? nounOne : noun} could not be
   retrieved while this proof was built and will appear in the production edition.</p>` : ""}
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}

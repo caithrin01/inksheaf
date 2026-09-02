@@ -22,8 +22,10 @@ export async function onRequest({ request, env }) {
   const vid = Number(body.version_id);
   if (vid) {
     const vs = ["proofed", "approved", "building-final", "validated", "listing-pending", "listed", "failed", "superseded"].includes(body.version_status) ? body.version_status : null;
-    await env.DB.prepare(`UPDATE edition_versions SET status = COALESCE(?, status), quote_json = COALESCE(?, quote_json), listing_url = COALESCE(?, listing_url), error = COALESCE(?, error), run_id = COALESCE(?, run_id), updated_at = datetime('now') WHERE id = ? AND signup_id = ?`)
-      .bind(vs, body.quote ? JSON.stringify(body.quote).slice(0, 4000) : null, body.listing_url ? String(body.listing_url).slice(0, 300) : null, body.error ? String(body.error).slice(0, 300) : null, body.run ? String(body.run).slice(0, 40) : null, vid, id).run().catch(() => {});
+    /* a version that advances past a failure clears the old error; a failure records its own */
+    const clears = ["validated", "listing-pending", "listed"].includes(vs);
+    await env.DB.prepare(`UPDATE edition_versions SET status = COALESCE(?, status), quote_json = COALESCE(?, quote_json), listing_url = COALESCE(?, listing_url), error = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, error) END, run_id = COALESCE(?, run_id), updated_at = datetime('now') WHERE id = ? AND signup_id = ?`)
+      .bind(vs, body.quote ? JSON.stringify(body.quote).slice(0, 4000) : null, body.listing_url ? String(body.listing_url).slice(0, 300) : null, clears ? 1 : 0, body.error ? String(body.error).slice(0, 300) : null, body.run ? String(body.run).slice(0, 40) : null, vid, id).run().catch(() => {});
   }
   return json({ ok: true });
 }

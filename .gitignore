@@ -40,3 +40,4 @@ assets/
 proofs/oversized-*
 proofs/heavy-*
 proofs/press/
+.dev.vars

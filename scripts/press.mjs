@@ -198,7 +198,7 @@ Inksheaf`;
   const vjson = await vres.json().catch(() => ({}));
   if (!vres.ok || !vjson.ok) throw new Error(`version ${VERSION_ID} not readable: ${vres.status}`);
   const ver = vjson.version;
-  if (ver.status !== "approved") throw new Error(`version ${VERSION_ID} is ${ver.status}, not approved`);
+  if (!["approved", "building-final"].includes(ver.status)) throw new Error(`version ${VERSION_ID} is ${ver.status}, not approved`); /* building-final: a retry after a failed dispatch */
   await status("building-final", { version_id: VERSION_ID });
   const vvols = JSON.parse(ver.volumes || "[]"), hashes = JSON.parse(ver.body_hashes || "{}");
   /* the bodies, as they are now, against the version */

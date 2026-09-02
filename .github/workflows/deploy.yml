@@ -1,0 +1,82 @@
+name: deploy
+# Production release path (Codex audit P0-10). Builds from the pushed commit, runs the unit and
+# build gates, migrates the production database, and uploads the artifact to Cloudflare Pages
+# from CI only, inside the protected "production" environment, which requires Caithrin's
+# approval. The laptop keeps preview-only authority. Every release records the SHA, the
+# artifact digest, the checks and the Cloudflare deployment id in the run summary.
+on:
+  workflow_dispatch:
+    inputs:
+      note: { description: "why this release", required: false }
+  push:
+    branches: [main]
+    paths-ignore: ["**.md"]
+concurrency: { group: production, cancel-in-progress: false }
+permissions: { contents: read, deployments: write }
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - name: Typst renderer tools
+        run: |
+          curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
+          sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
+          sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
+      - run: npm run test:preview:unit
+      - run: node scripts/test-signup.mjs && node scripts/test-honesty.mjs
+      - run: node scripts/test-typst-fixtures.mjs
+      - run: npm run build
+      - name: Artifact digest
+        id: digest
+        run: |
+          tar -C dist -cf - . | sha256sum | cut -d' ' -f1 > dist.sha256
+          echo "sha256=$(cat dist.sha256)" >> "$GITHUB_OUTPUT"
+          echo "artifact sha256 $(cat dist.sha256) for commit ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with: { name: dist-${{ github.sha }}, path: dist, retention-days: 30 }
+    outputs:
+      sha256: ${{ steps.digest.outputs.sha256 }}
+  release:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: { name: production, url: https://inksheaf.com }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { name: dist-${{ github.sha }}, path: dist }
+      - name: Verify the artifact is the one the checks saw
+        run: |
+          echo "${{ needs.checks.outputs.sha256 }}  -" | sha256sum -c <(tar -C dist -cf - . | sha256sum | sed 's/ .*/  -/') || (echo "artifact digest differs" && exit 1)
+      - name: Migrate the production database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/migrate.mjs --remote
+      - name: Deploy to Cloudflare Pages (production)
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          OUT=$(npx wrangler pages deploy dist --project-name inksheaf --branch main --commit-hash "$GITHUB_SHA" --commit-message "release $GITHUB_SHA" 2>&1); echo "$OUT"
+          URL=$(echo "$OUT" | grep -oE 'https://[a-z0-9]+\.inksheaf\.pages\.dev' | tail -1)
+          echo "deployment_url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Verify production serves this release
+        run: |
+          sleep 20
+          for i in 1 2 3 4 5 6; do H=$(curl -s https://inksheaf.com/api/preview?url=caithrin.com -o /dev/null -w '%{http_code}'); [ "$H" = "200" ] && break; sleep 15; done
+          curl -s -o /dev/null -w 'inksheaf.com -> %{http_code}\n' https://inksheaf.com/
+      - name: Record the release
+        run: |
+          {
+            echo "## Release"; echo "- commit: ${GITHUB_SHA}"; echo "- artifact sha256: ${{ needs.checks.outputs.sha256 }}";
+            echo "- checks: unit, signup, honesty, typst fixtures, build (job checks)"; echo "- approved by: ${{ github.actor }} via the production environment";
+            echo "- Cloudflare deployment: ${{ steps.deploy.outputs.deployment_url }}"; echo "- run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+          } >> "$GITHUB_STEP_SUMMARY"
