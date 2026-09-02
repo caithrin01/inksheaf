@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-export function fit({ args, html, pdf, log = () => {}, passes = 4 }) {
+export function fit({ args, html, pdf, log = () => {}, passes = 6 }) {
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
@@ -15,14 +15,24 @@ export function fit({ args, html, pdf, log = () => {}, passes = 4 }) {
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
-    try { const out = sh("bash", ["scripts/render-book.sh", html, pdf]); return { ok: true, pass, defer: [...defer], out: out.trim() }; }
+    try {
+      const out = sh("bash", ["scripts/render-book.sh", html, pdf]);
+      /* Typst: a clean render may still name an essay tail whose figure has not been fitted yet;
+         that is one more pass, and a figure is fitted once, so the loop cannot oscillate */
+      let pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); } catch {}
+      /* a figure may be fitted again only to a smaller height: the sequence is monotone, so it ends */
+      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => f.closer && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
+      if (tails.length && pass < passes) { for (const f of tails) fitFigs[f.id] = f.height; log(`pass ${pass}: clean; fitting essay tails ${tails.map(f => `${f.id} to ${f.height}in`).join(", ")}`); continue; }
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, out: out.trim() };
+    }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}
+      if (pj.engine === "typst" && !bad.length && (pj.fit || []).length) bad = (pj.fit || []).map(f => ({ page: f.page, blank: 0, closer: true }));
       if (!bad.length) throw e; /* a failure that is not the detector stays a failure */
-      log(`pass ${pass}: pages over the blank limit ${bad.map(b => `${b.page} (${Math.round(b.blank * 100)}%)`).join(", ")}`);
+      log(`pass ${pass}: ${bad.map(b => b.closer ? `${b.page} (closing page holds only a figure)` : `${b.page} (${Math.round(b.blank * 100)}%)`).join(", ")}`);
       if (pj.engine === "typst") {
         /* Typst: scale the figure that fell after each short page to the height that was left */
-        const fits = (pj.fit || []).filter(f => !(f.id in fitFigs));
+        const fits = (pj.fit || []).filter(f => !(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1);
         if (!fits.length) throw new Error(`${bad.length} page(s) over the blank limit with no figure to fit: ${bad.map(b => b.page).join(", ")}`);
         for (const f of fits) fitFigs[f.id] = f.height;
         log(`pass ${pass}: fitting ${fits.map(f => `${f.id} to ${f.height}in`).join(", ")}`);

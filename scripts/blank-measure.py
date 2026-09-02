@@ -18,10 +18,16 @@ files = sorted(glob.glob(f"{d}/p-*.png"))
 pages = []
 for i, f in enumerate(files, 1):
     im = Image.open(f).convert("L"); w, h = im.size; px = im.load()
-    top, bot = int(h * 0.12), int(h * 0.92); last = top
+    top, bot = int(h * 0.12), int(h * 0.92); last = top; first = None; rows = 0; hole = 0; run = 0; hole_at = 0
     for y in range(top, bot):
-        if any(px[x, y] < 200 for x in range(int(w * 0.1), int(w * 0.9), 2)): last = y
-    pages.append({"page": i, "blank": round((bot - last) / (bot - top), 3), "exempt": i in skip})
+        if any(px[x, y] < 200 for x in range(int(w * 0.1), int(w * 0.9), 2)):
+            if first is not None and run > hole: hole, hole_at = run, y - run
+            run = 0; last = y; rows += 1
+            if first is None: first = y
+        else: run += 1
+    pages.append({"page": i, "blank": round((bot - last) / (bot - top), 3), "exempt": i in skip,
+                  "ink_top": round(((first if first is not None else bot) - top) / (bot - top), 3), "ink_rows": round(rows / (bot - top), 3),
+                  "hole": round(hole / (bot - top), 3), "hole_at": round((hole_at - top) / (bot - top), 3)})
 bad = [p for p in pages if not p["exempt"] and p["blank"] > limit]
 body = [p["blank"] for p in pages if not p["exempt"]]
 if out: json.dump({"limit": limit, "bad": bad, "pages": pages}, open(out, "w"))

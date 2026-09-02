@@ -30,11 +30,28 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   # loop rebuilds with --fit-figs so that figure sits in flow at that height (engine: typst)
   FIGS=$(typst query --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
   node -e '
-    const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const figs=JSON.parse(process.argv[2]||"[]");
-    const TEXT_H=7.44; d.engine="typst"; d.fit=[];
+    const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const figs=JSON.parse(process.argv[2]||"[]"); const ends=JSON.parse(process.argv[3]||"[]");
+    const TEXT_H=7.44; d.engine="typst"; d.fit=[]; d.tail=[];
+    /* short body pages: the figure that fell onto the next page is scaled to the space left, less
+       1.2in for figure spacing and a subheading that may stick to it */
     for (const b of d.bad) { const nx=figs.find(x=>x.page===b.page+1); if (!nx) continue;
-      const h=Math.max(1.2, Math.round((b.blank*TEXT_H-0.7)*100)/100); d.fit.push({ page:b.page, id:nx.id, height:h }); }
-    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS"
+      const h=Math.max(1.2, Math.round((b.blank*TEXT_H-1.2)*100)/100); d.fit.push({ page:b.page, id:nx.id, height:h }); }
+    /* one rule for how an essay ends. Its tail is whatever sits on its last page when that page
+       holds little (a quarter of the text block or less): a figure alone, a note alone, a line and
+       a figure. The essay'"'"'s last figure is scaled so the tail fits on the page before, using the
+       figure'"'"'s own height from Typst and the free space measured on the page before. If the figure
+       would end up under 1.4in it is left alone: a small plate page beats a postage stamp. */
+    for (const e of ends) { const pg=d.pages[e.page-1], prev=d.pages[e.page-2]; if (!pg||!prev||pg.ink_rows>0.25) continue;
+      const fig=[...figs].reverse().find(x=>x.page===e.page||x.page===e.page-1); if (!fig||d.fit.some(x=>x.id===fig.id)) continue;
+      const figH=(fig.h||0)/72, onCloser=fig.page===e.page;
+      const closerNeeds=pg.ink_rows*TEXT_H+0.3, prevFree=prev.blank*TEXT_H;
+      const need = onCloser ? closerNeeds - prevFree : closerNeeds - prevFree; /* what must be freed on the page before */
+      const newH = Math.round((figH - Math.max(0, need) - 0.15)*100)/100;
+      d.tail.push({ page:e.page, id:fig.id, figH:Math.round(figH*100)/100, onCloser, prevFree:Math.round(prevFree*100)/100, closerNeeds:Math.round(closerNeeds*100)/100, newH });
+      if (newH >= 1.4 && newH < figH - 0.05) d.fit.push({ page:e.page-1, id:fig.id, height:newH, closer:true }); }
+    if (d.tail.length) console.log("TAIL " + d.tail.map(t=>`p${t.page} ${t.id} ${t.figH}in ${t.newH>=1.4?"-> "+t.newH+"in":"kept"}`).join("; "));
+    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS" "$ENDS"
+  # tails are recorded for the fit loop, never a failure here: only the blank gate fails a render
   if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 1; fi
   SIZE=$(wc -c < "$PDF" | tr -d ' ')
   echo "OK $PAGES $(basename "$PDF") $SIZE bytes typst $(( $(date +%s) - START ))s"

@@ -25,7 +25,7 @@ image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi")
 volume = modal.Volume.from_name("inksheaf-proofs", create_if_missing=True)
 ROOT = "/proofs"
 KEY = re.compile(r"^proofs/[a-z0-9][a-z0-9-]{0,63}/[a-z]-[0-9a-f]{12}\.pdf$")
-MAX_BYTES = 60_000_000
+MAX_BYTES = 150_000_000  # a 44-essay print interior at 300 ppi is about 30 MB; raised from 60 MB on 2026-09-02
 PURGE_AFTER = 7 * 86400
 
 

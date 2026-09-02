@@ -514,7 +514,7 @@ async function withLinkNotes(articlesHtml) {
     if (!found.length) continue;
     const rows = [];
     for (const f of found) { const code = await linkCode(f.target); report.links.push({ slug: p.slug, letter: f.letter, code, target: f.target, text: f.text });
-      rows.push(`<li><span class="lk">${f.letter}</span><span class="lk-text">${esc(f.text)}</span><span class="lk-url">${SHORT_HOST}${code}</span></li>`); }
+      rows.push(`<li><span class="lk">${f.letter}</span><span class="lk-text">${esc(f.text)}</span><span class="lk-url">${SHORT_HOST}${code}</span><span class="lk-target" data-target="${esc(f.target)}"></span></li>`); }
     const qr = essayCode ? await QRCode.toDataURL(`https://${SHORT_HOST}${essayCode}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } }) : null;
     const note = `<section class="linknote"><h2 class="linknote-h">Links</h2><ul>${rows.join("")}</ul>${qr ? `<div class="lk-qr"><img src="${qr}" alt="QR: this essay online"><span class="lk-essay">${SHORT_HOST}${essayCode}</span></div>` : ""}</section>`;
     const marker = `<section class="article" id="art-${full.indexOf(p)}">`;
@@ -729,9 +729,10 @@ ${PRINT_INTERIOR ? "" : `
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
-  <p>Everything here was written for the screen and is reset for paper. Linked text remains
-  readable in place. Some web-only embeds become printed source notes; media-only pieces remain
-  in the online edition.</p>
+  <p>Everything here was written for the screen and is reset for paper. Linked words carry a
+  small letter, and each essay ends with its links as short addresses and a code to the essay
+  online. Source notes the author wrote into an essay stay with it. Web-only embeds become
+  printed source notes; media-only pieces remain in the online edition.</p>
   <div class="colophon">Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} · Proof edition ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
 </div>
@@ -804,6 +805,13 @@ async function worker() {
         if (!r.ok) throw new Error(r.status);
         wf(base, Buffer.from(await r.arrayBuffer()));
       }
+      /* print mode: originals over 2700 px wide are resampled (300 ppi across the text block is
+         1350 px) so the interior stays sharp and small; the resampled file replaces the base */
+      if (MODE === "print" && !ex(base + ".rs")) {
+        try { execF("python3", ["scripts/resample-image.py", base, base + ".tmp", "2700"], { stdio: "pipe" }); execF("mv", [base + ".tmp", base]);
+          if (ex(gray)) execF("rm", [gray]); /* the grey copy was made from the old file */ } catch (e) { report.resampleFailed = (report.resampleFailed || 0) + 1; }
+        wf(base + ".rs", "1");
+      }
       if (BW && !ex(gray)) {
         try {
           execF("sips", ["-m", "/System/Library/ColorSync/Profiles/Generic Gray Profile.icc",
@@ -832,7 +840,7 @@ if (ENGINE === "typst") {
   const { dirname } = await import("node:path");
   /* --fit-figs slug:3=2.1,other:1=3.4 : figures the fit loop asks to scale to a height (inches) */
   const fitFigs = Object.fromEntries(String(argOf("--fit-figs") || "").split(",").filter(Boolean).map(x => { const i = x.lastIndexOf("="); return [x.slice(0, i), Number(x.slice(i + 1))]; }).filter(([k, v]) => k && v > 0));
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs });
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, host: host.replace(/^www\./, "") });
   if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
   writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
   report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article";
