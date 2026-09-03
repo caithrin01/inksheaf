@@ -41,3 +41,11 @@ proofs/oversized-*
 proofs/heavy-*
 proofs/press/
 .dev.vars
+
+# overnight test-campaign and volume-orchestrator outputs (regenerable, never committed)
+proofs/overnight/
+proofs/vol/
+proofs/*.typ
+proofs/*.pages.json
+proofs/fixtures/*.pdf
+proofs/fixtures/*.typ

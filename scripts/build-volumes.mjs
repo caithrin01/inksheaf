@@ -10,6 +10,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { planDivisions } from "../functions/lib/preview-summary.js";
+import { fit } from "./lib/fit.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? (argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[i + 1] : true) : d; };
@@ -22,6 +23,7 @@ const WINDOW = flag("window", "all");
 const ENGINE = flag("engine", "typst");
 const BW = argv.includes("--interior-bw");
 const RENDER = argv.includes("--render");
+process.env.BOOK_ENGINE = ENGINE;  // render-book.sh (inside fit) selects typst from this
 const UA = { "user-agent": "Mozilla/5.0 inksheaf-volumes/1.0" };
 mkdirSync(OUTDIR, { recursive: true });
 
@@ -70,22 +72,27 @@ for (let i = 0; i < N; i++) {
   const vslug = `${slug}-v${i + 1}`;
   const html = `${OUTDIR}/${vslug}.html`, pdf = `${OUTDIR}/${vslug}.pdf`;
   const volOf = N > 1 ? `${roman(i + 1)} of ${roman(N)}` : "";
-  const args = [url, "--out", html, "--engine", ENGINE];
+  // build-book argv for fit() (fit prepends "node" and appends --defer/--fit-figs across passes)
+  const args = ["scripts/build-book.mjs", url, "--out", html, "--engine", ENGINE];
   if (BW) args.push("--interior-bw");
-  if (cadence !== "single") args.push("--after", v.from, "--before", v.to, "--vol-label", v.label);
+  // always bound the fetch to this volume's window; build-book does not know --window, so without
+  // --after/--before a "single" volume would pull the whole archive and hit the oversize refusal
+  args.push("--after", v.from, "--before", v.to);
+  if (cadence !== "single") args.push("--vol-label", v.label);
   if (volOf) args.push("--vol-of", volOf);
   const row = { vol: i + 1, label: v.label, window: cadence === "single" ? "(whole)" : `${v.from}..${v.to}`, est: v.est_pages, pages: "", status: "" };
-  try {
-    const b = execFileSync("node", ["scripts/build-book.mjs", ...args], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 600000 });
-    row.status = "built";
-    if (RENDER) {
-      try {
-        const r = execFileSync("bash", ["scripts/render-book.sh", html, pdf], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 600000, env: { ...process.env, BOOK_ENGINE: ENGINE, BLANK_MAX: "0.55" } });
-        row.pages = (r.match(/OK (\d+)/) || [])[1] || "";
-        row.status = row.pages ? "rendered" : "render?";
-      } catch (e) { row.status = "RENDER FAIL"; row.err = (String(e.stdout || "") + String(e.stderr || e.message)).split("\n").filter(l => /FAIL|TOFU|blank|RENDER/i.test(l)).slice(-2).join(" | ").slice(0, 160); }
-    }
-  } catch (e) { row.status = "BUILD FAIL"; row.err = String(e.stderr || e.message).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 160); }
+  if (!RENDER) {
+    // quick build-only pass (cadence check); no render/fit
+    try { execFileSync("node", args, { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 600000 }); row.status = "built"; }
+    catch (e) { row.status = "BUILD FAIL"; row.err = String(e.stderr || e.message).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 160); }
+  } else {
+    // production-fidelity: the fit loop (build -> render -> refit short figure pages), same as the press
+    try {
+      const res = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: m => process.stderr.write(`  [fit v${i + 1}] ${String(m).slice(0, 90)}\n`), passes: 6 });
+      row.pages = (String(res.out || "").match(/OK (\d+)/) || [])[1] || "";
+      row.status = res.ok ? "clean" : "render?";
+    } catch (e) { row.status = "RENDER FAIL"; row.err = String(e.message).split("\n").slice(-2).join(" | ").slice(0, 160); }
+  }
   rows.push(row);
   console.error(`vol ${i + 1}/${N} ${v.label}: ${row.status}${row.pages ? " " + row.pages + "pp" : ""}${row.err ? " — " + row.err : ""}`);
 }
