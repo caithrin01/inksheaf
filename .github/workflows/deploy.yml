@@ -26,6 +26,7 @@ jobs:
           curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
           sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
           sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
+          python3 -m pip install --quiet pymupdf
       - run: npm run test:preview:unit
       - run: node scripts/test-signup.mjs && node scripts/test-honesty.mjs
       - run: node scripts/test-typst-fixtures.mjs

@@ -13,8 +13,14 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 TYP="${HTML%.html}.typ"
 if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   START=$(date +%s)
-  OUT=$(typst compile --font-path "$HERE/fonts" "$TYP" "$PDF" 2>&1); RC=$?
+  # --ignore-system-fonts so the render uses ONLY the repo's fonts/, identical on a Mac and on CI;
+  # otherwise a Mac silently borrows a system CJK font and hides a missing-font bug that tofus on CI.
+  OUT=$(typst compile --font-path "$HERE/fonts" --ignore-system-fonts "$TYP" "$PDF" 2>&1); RC=$?
   if [ "$RC" -ne 0 ]; then echo "RENDER FAILED (typst rc=$RC)"; echo "$OUT" | grep -v "^warning: unknown font" | tail -12; exit 1; fi
+  # tofu gate: Typst emits no warning for uncovered glyphs and the blank gate cannot see a box, so
+  # scan the PDF for missing glyphs (glyph id 0). Catches CJK/accented text with no covering font.
+  TOFU=$(python3 "$HERE/scripts/tofu-check.py" "$PDF" 2>&1); TRC=$?
+  if [ "$TRC" -ne 0 ]; then echo "RENDER FAILED (tofu)"; echo "$TOFU" | tail -4; exit 1; fi
   PAGES=$(node -e 'const {PDFDocument}=require("pdf-lib");PDFDocument.load(require("fs").readFileSync(process.argv[1])).then(d=>console.log(d.getPageCount()))' "$PDF")
   MAP=$(typst query --font-path "$HERE/fonts" "$TYP" "<artstart>" --field value 2>/dev/null); ENDS=$(typst query --font-path "$HERE/fonts" "$TYP" "<artend>" --field value 2>/dev/null)
   SKIP=$(node -e '
