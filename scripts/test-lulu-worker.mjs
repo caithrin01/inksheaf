@@ -16,8 +16,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 // a Lulu response that carries every field any op reads (a superset is fine; callers read one key)
 const luluOK = { data: { createProject: { id: "P1", availableOperations: [] }, createDirectUploadURL: { uploadUrl: "https://lulu.test/upload", fileId: 5 },
   setInteriorFile: { id: "P1" }, setCoverFile: { id: "P1" }, patchProject: { id: "P1", luluBookstoreSellIntention: "DIRECT" }, createPayee: { id: "PAY" },
-  setProjectRevenueShares: [{ payeeId: "PAY", share: 100 }], publishLastVersion: { id: "P1", status: "IN_REVIEW" }, retireProject: { id: "P1" },
-  project: { id: "P1", status: "IN_REVIEW", shopUrl: "https://www.lulu.com/shop/p1.html", publicUrl: null } } };
+  setProjectRevenueShares: [{ payeeId: "PAY", share: 100 }], publishLastVersion: { id: "P1", status: "IN_REVIEW" }, retireProject: { id: "P1" }, deleteProject: { id: "P1" },
+  project: { id: "P1", status: "IN_REVIEW", canonicalUrlSlug: "p1", distributionData: [{ channel: "BOOKSTORE", productUrl: "https://www.lulu.com/shop/p1.html", productId: "p1", status: "IN_REVIEW" }] } } };
 
 const QUEUE = [{ signup_id: 9, version_id: 1, host: "weijinresearch.substack.com", print_mode: "bw",
   built: [{ label: "2025–2026", pubName: "Weijin Research", pages: 148, interiorKey: "proofs/i.pdf", coverKey: "proofs/c.pdf", sha256: "d" }] }];
@@ -61,6 +61,6 @@ ok(r.listed === 0 && r.failed === 1, `a Lulu failure counts as failed, not liste
 ok(!calls.some(c => c.url.includes("/api/listed")), "no /api/listed call when the listing failed");
 const ps = calls.find(c => c.url.includes("/api/press-status"));
 ok(ps && /automated listing failed/.test(ps.body.message), "press-status records the failure for the hand-made fallback");
-ok(calls.some(c => c.url.includes("api.lulu.com/graphql") && /retireProject/.test(c.body.query)), "the half-built project is retired on failure");
+ok(calls.some(c => c.url.includes("api.lulu.com/graphql") && /deleteProject/.test(c.body.query)), "the half-built draft is deleted on failure");
 
 console.log(`lulu-worker: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

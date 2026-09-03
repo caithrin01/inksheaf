@@ -67,7 +67,7 @@ const OPS = {
   setSelectAccess: `mutation($id:ID!,$sellIntention:SellIntentEnum){ patchProject(id:$id,input:{luluBookstoreSellIntention:$sellIntention}){ id luluBookstoreSellIntention } }`,
   retireProject: `mutation($projectId:ID!){ retireProject(projectId:$projectId){ id } }`,
   deleteProject: `mutation($projectId:ID!){ deleteProject(projectId:$projectId){ id } }`,
-  projectUrl: `query($id:ID!){ project(id:$id){ id status shopUrl publicUrl luluBookstoreSellIntention } }`,
+  projectUrl: `query($id:ID!){ project(id:$id){ id status luluBookstoreSellIntention canonicalUrlSlug distributionData { channel productUrl productId status } } }`,
 };
 
 // ---- token: capture off a real request, never scraped from storage ----
@@ -112,7 +112,7 @@ const DRY_DATA = {
   createDirectUploadURL: { createDirectUploadURL: { uploadUrl: "dry://upload", fileId: 0 } },
   createPayee: { createPayee: { id: "DRY-PAYEE", firstName: "", lastName: "" } },
   publishLastVersion: { publishLastVersion: { id: "DRY", status: "IN_REVIEW", availableOperations: [] } },
-  projectUrl: { project: { id: "DRY", status: "IN_REVIEW", shopUrl: "https://www.lulu.com/shop/dry", publicUrl: null } },
+  projectUrl: { project: { id: "DRY", status: "IN_REVIEW", canonicalUrlSlug: "dry", distributionData: [{ channel: "BOOKSTORE", productUrl: "https://www.lulu.com/shop/dry", productId: "dry", status: "IN_REVIEW" }] } },
 };
 async function gql(stage, op, variables) {
   if (DRY) { console.error(`[dry-run] ${stage}: ${op}\n  variables: ${JSON.stringify(variables)}`); return DRY_DATA[op] || { __dry: true }; }
@@ -198,8 +198,14 @@ export async function listEdition(manifest, opts = {}) {
       step("publish", { status: pub?.publishLastVersion?.status });
       await gql("access", "setSelectAccess", { id: projectId, sellIntention: "DIRECT" }); // DIRECT => Select Access
       step("selectAccess");
-      const u = await gql("url", "projectUrl", { id: projectId });
-      const url = u?.project?.shopUrl || u?.project?.publicUrl || null;
+      // the listing exists now; reading its URL is best-effort and must NOT reach the outer catch
+      // (a URL-read failure must never delete a listing that was already published)
+      let url = null;
+      try {
+        const u = await gql("url", "projectUrl", { id: projectId });
+        const dd = u?.project?.distributionData || [];
+        url = (dd.find(d => d.productUrl) || {}).productUrl || (u?.project?.canonicalUrlSlug ? `https://www.lulu.com/shop/${u.project.canonicalUrlSlug}` : null);
+      } catch (e) { url = null; }
       step("url", { url });
       return { ok: true, projectId, url, steps };
     }
