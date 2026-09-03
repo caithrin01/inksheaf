@@ -279,7 +279,10 @@ report.included = full.length;
 if (!report.included) {
   mkdirSync(OUT.split("/").slice(0, -1).join("/") || ".", { recursive: true });
   writeFileSync(OUT.replace(/\.html$/, ".report.json"), JSON.stringify(report, null, 2));
-  throw new Error("No printable public posts remained after filtering; refusing to build an empty book");
+  // graceful decline (not a crash): every post was filtered out (cross-posts, guests, housekeeping,
+  // paid, or too short), so there is nothing to bind. Exit 3 so a caller can tell this apart.
+  console.error("No printable public posts remained after filtering; nothing to bind. This publication cannot make a book from its public archive.");
+  process.exit(3);
 }
 
 /* excerpts + date-titled flags for navigable letters TOCs */
