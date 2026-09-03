@@ -318,7 +318,7 @@ export function emitTypst(html, opts = {}) {
   const coverPage = fm.cover ? `#page(margin: 0in, header: none, footer: none, fill: rgb("#f9f4e6"))[
   #place(top + left, dx: 16pt, dy: 16pt, rect(width: 6in - 32pt, height: 9in - 32pt, stroke: 1.5pt + rgb("${INK}")))
   #place(top + left, dx: 22pt, dy: 22pt, rect(width: 6in - 44pt, height: 9in - 44pt, stroke: 1pt + rgb("#a93b22")))
-  #align(center)[#v(1.6in) #text(font: ("EB Garamond 12", "Noto Serif SC"), size: 34pt, fill: rgb("${INK}"))[${esc(tp.t)}] #v(0.25in) #text(size: 8pt, tracking: 0.32em, fill: rgb("#a93b22"))[${esc(kindLine.toUpperCase())}] #v(0.2in) #text(fill: rgb("#a93b22"), size: 14pt)[❧] #v(0.2in) #text(size: 12pt, fill: rgb("${FAINT}"))[${esc(dates)}]]
+  #align(center)[#v(1.6in) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 34pt, fill: rgb("${INK}"))[${esc(tp.t)}] #v(0.25in) #text(size: 8pt, tracking: 0.32em, fill: rgb("#a93b22"))[${esc(kindLine.toUpperCase())}] #v(0.2in) #text(fill: rgb("#a93b22"), size: 14pt)[❧] #v(0.2in) #text(size: 12pt, fill: rgb("${FAINT}"))[${esc(dates)}]]
   #place(bottom + center, dy: -0.85in, text(size: 8pt, tracking: 0.2em, fill: rgb("${FAINT}"))[${esc(foot.toUpperCase())}])
   #counter(page).update(0)
 ]\n` : "";
@@ -339,7 +339,7 @@ export function emitTypst(html, opts = {}) {
       set text(size: 7.5pt, tracking: 0.14em, fill: faint)
       if calc.even(counter(page).get().first()) [#smallcaps[${esc(pubName.toLowerCase())}]] else if before.len() > 0 [#h(1fr) #emph(text(tracking: 0em, size: 8pt)[#before.last().body])] } } },
   footer: context { if inbody.get() [ #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
-#set text(font: ("Source Serif 4", "Noto Serif SC"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
+#set text(font: ("Source Serif 4", "Noto Serif SC", "Noto Emoji"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
 #set par(justify: true, leading: 0.66em, first-line-indent: 1.35em, spacing: 0.66em)
 #set heading(numbering: none, outlined: false)
 #show heading.where(level: 1): it => { }
@@ -361,14 +361,14 @@ export function emitTypst(html, opts = {}) {
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
   arttitle.update(title)
   v(0.55in)
-  if n != none { text(font: ("EB Garamond 12", "Noto Serif SC"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
+  if n != none { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
   context [#metadata((n: index, page: here().page())) <artstart>] /* the opener page, measured here in the head */
-  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC"), size: 18pt, weight: 500, title)])
+  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
-#let partpage(kind, title) = page(header: none, footer: none)[ #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC"), size: 22pt)[#title]] ]
+#let partpage(kind, title) = page(header: none, footer: none)[ #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
 #let fmpage(body) = page(header: none, footer: none, body)
 `;
 
@@ -377,8 +377,8 @@ export function emitTypst(html, opts = {}) {
      About (recto), dedication (recto), contents (recto); the body opens on a recto. In a proof the
      cover page comes first and the counter starts again after it, so left and right stay true. */
   if (coverPage) out.push(coverPage);
-  out.push(`#pagebreak(to: "odd", weak: true)\n#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
-  out.push(`#pagebreak(to: "odd")\n#v(2.5in) #align(center)[#text(font: ("EB Garamond 12", "Noto Serif SC"), size: 30pt)[${esc(tp.t || pubName)}] #v(0.35em) #text(size: 10pt, fill: faint)[${esc(tp.s)}] ${tp.a ? `#v(0.9in) #text(size: 10.5pt)[${esc(tp.a)}]` : ""}]\n`);
+  out.push(`#pagebreak(to: "odd", weak: true)\n#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
+  out.push(`#pagebreak(to: "odd")\n#v(2.5in) #align(center)[#text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt)[${esc(tp.t || pubName)}] #v(0.35em) #text(size: 10pt, fill: faint)[${esc(tp.s)}] ${tp.a ? `#v(0.9in) #text(size: 10.5pt)[${esc(tp.a)}]` : ""}]\n`);
   out.push(`#pagebreak()\n${copyrightPage}`);
   if (fm.dedication) out.push(`#pagebreak(to: "odd")\n#v(3in) #align(center, emph[${esc(textOf(fm.dedication).trim())}])\n`);
   if (epigraphTyp) out.push(`#pagebreak(to: "odd")\n#v(2.8in) #align(center, block(width: 3.4in, emph(text(size: 11pt)[${epigraphTyp}])))\n`);
