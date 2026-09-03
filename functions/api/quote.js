@@ -2,13 +2,14 @@
 // Body: { id, sig, level, addresses: [{ name, street1, street2?, city, state_code, postcode, quantity }] }
 // sig = hmac("mail:<id>") from the listing email. Answers Lulu's own numbers per address, or
 // the address error Lulu gives, never a guess. Nothing is ordered here.
-import { hmacHex } from "../lib/press-dispatch.js";
+import { hmacHex, mailingsEnabled } from "../lib/press-dispatch.js";
 import { luluClient } from "../lib/lulu.js";
 import prices from "../lib/print-prices.json" with { type: "json" };
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
   let body; try { body = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
+  if (!mailingsEnabled(env)) return json({ ok: false, error: "mailings are disabled for beta" }, 503);
   const id = Number(body.id), sig = String(body.sig || "");
   if (!id || !env.ARCHIVE_RELAY_TOKEN || sig !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `mail:${id}`)) return json({ ok: false, error: "bad link" }, 403);
   const row = await env.DB.prepare("SELECT plan_json, publication_url FROM signups WHERE id = ?").bind(id).first().catch(() => null);

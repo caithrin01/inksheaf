@@ -1,9 +1,11 @@
 // POST /api/stripe-webhook — Stripe says a mailing is paid. Verifies the signature, marks the
 // mailing paid, and starts the press run that places the print jobs (real money, only here).
-import { dispatchPress } from "../lib/press-dispatch.js";
+import { dispatchPress, mailingsEnabled } from "../lib/press-dispatch.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
+  // fail closed for beta: no mailing is processed, and 200 so Stripe does not retry a dead route
+  if (!mailingsEnabled(env)) return new Response("mailings disabled", { status: 200 });
   const raw = await request.text();
   const sigHeader = request.headers.get("stripe-signature") || "";
   if (!env.STRIPE_WEBHOOK_SECRET || !(await verify(raw, sigHeader, env.STRIPE_WEBHOOK_SECRET))) return new Response("bad signature", { status: 400 });

@@ -22,3 +22,13 @@ export async function hmacHex(secret, message) {
   return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 export async function signApproval(secret, signupId) { return hmacHex(secret, `approve:${signupId}`); }
+
+// Beta posture (Codex reopened control 3): the Stripe-backed mailing route is OFF in code, a real
+// gate rather than the absence of STRIPE_SECRET_KEY. Ordinary reader orders go Lulu-direct; nobody
+// holds money in beta. Flip MAILINGS_ENABLED to "1"/"true" only when publication-paid mailings are
+// deliberately in a cohort AND the webhook hardening (unique claim, amount reconciliation, safe
+// retry) is done. Fail closed: disabled unless explicitly enabled.
+export function mailingsEnabled(env) {
+  const v = String(env && env.MAILINGS_ENABLED || "").toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
