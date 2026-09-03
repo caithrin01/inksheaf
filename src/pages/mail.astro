@@ -66,13 +66,13 @@ $('#paste').addEventListener('change', () => {
   $('#paste').value = ''; $('#paste').classList.add('hidden');
 });
 (async () => {
-  const r = await fetch(`/api/change?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
+  const r = await fetch(`/api/mail-context?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
   const d = await r.json().catch(() => ({}));
   if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your listing email again, or write to caithrin@caithrin.com.'; return; }
-  volumes = (d.plan && d.plan.volumes) || [];
+  volumes = d.volumes || [];
   $('#lead').textContent = d.publication_url.replace(/^https?:\/\//, '');
   const e = $('#edition'); e.hidden = false;
-  e.innerHTML = `<b>${volumes.length === 1 ? 'One volume' : volumes.length + ' volumes'}</b> · ${d.plan?.interior === 'color' ? 'colour' : 'black and white'} · 6×9 perfect bound` + volumes.map(v => `<div>${v.label} · ${v.est_pages}pp</div>`).join('');
+  e.innerHTML = `<b>${volumes.length === 1 ? 'One volume' : volumes.length + ' volumes'}</b> · ${d.interior === 'color' ? 'colour' : 'black and white'} · 6×9 perfect bound` + volumes.map(v => `<div>${v.label} · ${v.pages}pp</div>`).join('');
   $('#work').hidden = false; row();
 })();
 $('#quote').addEventListener('click', async () => {

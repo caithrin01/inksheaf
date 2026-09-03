@@ -11,7 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "pipeline": "node scripts/pipeline.mjs",
-    "test:preview:unit": "node scripts/test-plan-check.mjs && node scripts/test-cuts.mjs && node scripts/test-components.mjs && node scripts/test-change.mjs && node scripts/test-approve.mjs && node scripts/test-version.mjs && node scripts/test-migrations.mjs && node scripts/test-typst-fixtures.mjs && node scripts/test-tofu.mjs && node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-preview-outage.mjs && python3 services/test_relay_paging.py && node scripts/test-lulu-gql.mjs && node scripts/test-lulu-worker.mjs && node scripts/test-list-queue.mjs && node scripts/test-mailings-flag.mjs && node scripts/test-signup.mjs",
+    "test:preview:unit": "node scripts/test-plan-check.mjs && node scripts/test-cuts.mjs && node scripts/test-components.mjs && node scripts/test-change.mjs && node scripts/test-approve.mjs && node scripts/test-version.mjs && node scripts/test-migrations.mjs && node scripts/test-typst-fixtures.mjs && node scripts/test-tofu.mjs && node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-preview-outage.mjs && python3 services/test_relay_paging.py && node scripts/test-lulu-gql.mjs && node scripts/test-lulu-worker.mjs && node scripts/test-list-queue.mjs && node scripts/test-mailings-flag.mjs && node scripts/test-mail-context.mjs && node scripts/test-quote-pages.mjs && node scripts/test-signup.mjs",
     "test:random": "node scripts/test-random-substacks.mjs chromium http://localhost:8788 --n=30",
     "test:preview:live": "node scripts/test-live-preview.mjs",
     "test:preview": "npm run test:preview:unit && npm run test:preview:live",

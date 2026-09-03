@@ -4,6 +4,7 @@
 // the address error Lulu gives, never a guess. Nothing is ordered here.
 import { hmacHex, mailingsEnabled } from "../lib/press-dispatch.js";
 import { luluClient } from "../lib/lulu.js";
+import { printCost } from "../lib/editor-input.js";
 import prices from "../lib/print-prices.json" with { type: "json" };
 
 export async function onRequest({ request, env }) {
@@ -12,12 +13,18 @@ export async function onRequest({ request, env }) {
   if (!mailingsEnabled(env)) return json({ ok: false, error: "mailings are disabled for beta" }, 503);
   const id = Number(body.id), sig = String(body.sig || "");
   if (!id || !env.ARCHIVE_RELAY_TOKEN || sig !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `mail:${id}`)) return json({ ok: false, error: "bad link" }, 403);
-  const row = await env.DB.prepare("SELECT plan_json, publication_url FROM signups WHERE id = ?").bind(id).first().catch(() => null);
-  if (!row) return json({ ok: false, error: "not found" }, 404);
-  let plan = null; try { plan = JSON.parse(row.plan_json || "null"); } catch {}
-  const volumes = (plan && Array.isArray(plan.volumes) && plan.volumes.length) ? plan.volumes : null;
-  if (!volumes || !volumes.every(v => v.est_pages)) return json({ ok: false, error: "no plan to price" }, 409);
-  const pod = prices.pods[plan.interior === "color" ? "color" : "bw"].pod_package_id;
+  // Price the APPROVED edition by its ACTUAL page count, never the plan estimate (Codex control 1,
+  // audit P0-2). A mailing prices the immutable finalized book; if none exists, refuse rather than
+  // quote off an estimate. The plan-page range stays labelled "estimated" for the pre-proof view.
+  const ver = await env.DB.prepare(
+    "SELECT pages, volumes, print_mode, quote_json, status FROM edition_versions WHERE signup_id = ? AND status IN ('approved','building-final','validated','listing-pending','listed') ORDER BY id DESC LIMIT 1")
+    .bind(id).first().catch(() => null);
+  if (!ver) return json({ ok: false, error: "no approved edition to price yet; approve your proof first" }, 409);
+  let volumes = []; try { volumes = JSON.parse(ver.volumes || "[]"); } catch {}
+  if (!volumes.length || !volumes.every(v => Number(v.pages) > 0)) return json({ ok: false, error: "the approved edition has no page count" }, 409);
+  let storedQuote = null; try { storedQuote = JSON.parse(ver.quote_json || "null"); } catch {}
+  const interior = ver.print_mode === "color" ? "color" : "bw";
+  const pod = prices.pods[interior].pod_package_id;
   const level = ["MAIL", "PRIORITY_MAIL", "GROUND", "EXPEDITED", "EXPRESS"].includes(body.level) ? body.level : "MAIL";
   const addresses = Array.isArray(body.addresses) ? body.addresses.slice(0, 50) : [];
   if (!addresses.length) return json({ ok: false, error: "no addresses" }, 400);
@@ -29,10 +36,11 @@ export async function onRequest({ request, env }) {
       city: String(a.city || "").slice(0, 60), state_code: String(a.state_code || "").toUpperCase().slice(0, 2), postcode: String(a.postcode || "").slice(0, 12),
       country_code: "US", phone_number: String(a.phone || "+1 415 555 0100").slice(0, 24) };
     if (!address.name || !address.street1 || !address.city || !address.state_code || !address.postcode) { out.push({ address, ok: false, error: "name, street, city, state and ZIP are needed" }); continue; }
-    const lineItems = volumes.map(v => ({ page_count: v.est_pages, pod_package_id: pod, quantity: qty }));
+    const lineItems = volumes.map(v => ({ page_count: Number(v.pages), pod_package_id: pod, quantity: qty }));
     if (!lulu) {
       /* no keys on this deploy: the measured cost table, so the page still shows numbers, marked estimated */
-      const print = volumes.reduce((s, v) => s + (v.price ? v.price[plan.interior === "color" ? "color" : "bw"] : 0), 0) * qty;
+      const perCopy = storedQuote && Number(storedQuote.print_cost) > 0 ? Number(storedQuote.print_cost) : volumes.reduce((s, v) => s + printCost(Number(v.pages), interior), 0);
+      const print = perCopy * qty;
       const ship = (prices.shipping_by_volumes[String(volumes.length)] || prices.shipping_mail) * qty;
       out.push({ address, ok: true, estimated: true, quantity: qty, print: r2(print), shipping: r2(ship), tax: null, total: r2(print + ship), currency: "USD" });
       continue;
@@ -48,7 +56,7 @@ export async function onRequest({ request, env }) {
   const good = out.filter(o => o.ok);
   const totals = { copies: good.reduce((s, o) => s + o.quantity, 0), print: r2(good.reduce((s, o) => s + o.print, 0)), shipping: r2(good.reduce((s, o) => s + o.shipping, 0)),
     tax: good.some(o => o.tax == null) ? null : r2(good.reduce((s, o) => s + o.tax, 0)), total: r2(good.reduce((s, o) => s + o.total, 0)), estimated: good.some(o => o.estimated) };
-  return json({ ok: true, id, volumes: volumes.map(v => ({ label: v.label, pages: v.est_pages })), interior: plan.interior, level, quotes: out, totals, payment: env.STRIPE_SECRET_KEY ? "stripe" : "invoice" });
+  return json({ ok: true, id, volumes: volumes.map(v => ({ label: v.label, pages: Number(v.pages) })), interior, level, quotes: out, totals, estimated_price: totals.estimated, payment: "lulu-direct" });
 }
 const num = x => Math.round((Number(x) || 0) * 100) / 100;
 const r2 = x => Math.round(x * 100) / 100;
