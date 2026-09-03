@@ -8,7 +8,7 @@ const TAGS = /^(threads?|open threads?|discussion|watch|listen|podcast|audio|vid
 const SOFT = /^(mailbag|housekeeping|announcements?|links?|roundup|digest|weekly|newsletter|programming note|meta)$/i;
 const SLUG = /(^|-)(open-thread|discussion-post|discussion-thread|mailbag|sunday-thread|weekly-thread|comment-thread|office-hours)(-|\d|$)/i;
 
-export function ruleCut(post, host = "") {
+export function ruleCut(post, host = "", ownDomains = []) {
   if (!post) return "empty";
   const type = post.type || "newsletter";
   if (type === "restack" || post.restacked_post_id) return "a cross-post from another publication";
@@ -20,7 +20,8 @@ export function ruleCut(post, host = "") {
   const h = host.replace(/^www\./, "").toLowerCase();
   if (h && /^https?:\/\//.test(canon)) {
     const ch = canon.replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "").toLowerCase();
-    if (ch && ch !== h) return `first published at ${ch}`;
+    const own = (Array.isArray(ownDomains) ? ownDomains : [...ownDomains]).map(d => String(d).replace(/^www\./, "").toLowerCase());
+    if (ch && ch !== h && !own.includes(ch)) return `first published at ${ch}`;
   }
   const tags = Array.isArray(post.postTags) ? post.postTags.map(t => String(t && (t.name || t)).trim()) : [];
   const tag = tags.find(t => TAGS.test(t));

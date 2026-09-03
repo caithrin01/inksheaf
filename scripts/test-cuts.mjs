@@ -5,6 +5,9 @@ ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.e
 ok(ruleCut({ type: "restack", restacked_post_id: 5 }, H) === "a cross-post from another publication", "restack");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://other.substack.com/p/x" }, H) === "first published at other.substack.com", "foreign canonical host");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://example.com/p/x" }, H) === null, "apex and www are the same host");
+ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com") === "first published at caithrin.com", "an author's own domain is cut when it is not named as own");
+ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === null, "an author's own domain is kept when passed as ownDomains (canonicalised-to-own-site writer)");
+ok(ruleCut({ type: "newsletter", canonical_url: "https://other.substack.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === "first published at other.substack.com", "a foreign Substack is still cut even with an own domain set");
 ok(ruleCut({ type: "podcast" }, H) === "a podcast episode", "podcast");
 ok(ruleCut({ type: "thread" }, H) === "a discussion thread", "thread type");
 ok(ruleCut({ type: "newsletter", postTags: [{ name: "Threads" }] }, H) === 'tagged "Threads"', "Threads tag");
