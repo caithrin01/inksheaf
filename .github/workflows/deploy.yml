@@ -1,13 +1,12 @@
 name: deploy
-# Production release path (Codex audit P0-10). Builds from the pushed commit, runs the unit and
-# build gates, migrates the production database, and uploads the artifact to Cloudflare Pages
-# from CI only, inside the protected "production" environment, which requires Caithrin's
-# approval. The laptop keeps preview-only authority. Every release records the SHA, the
-# artifact digest, the checks and the Cloudflare deployment id in the run summary.
+# Production release path (Codex audit P0-10). Pushes run checks only. A production release must
+# be started manually, PROJECT_STATUS must explicitly allow releases, and the protected
+# "production" environment must receive Caithrin's approval before its secrets become available.
+# Every release records the SHA, artifact digest, checks and Cloudflare deployment id.
 on:
   workflow_dispatch:
     inputs:
-      note: { description: "why this release", required: false }
+      note: { description: "why this release", required: true }
   push:
     branches: [main]
     paths-ignore: ["**.md"]
@@ -44,8 +43,42 @@ jobs:
           retention-days: 30
     outputs:
       sha256: ${{ steps.digest.outputs.sha256 }}
-  release:
+
+  release-policy:
+    # A push never enters the production environment. A manual run fails visibly here when the
+    # project is paused/executing, rather than making a missing release look like a green deploy.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce project release status and branch
+        env:
+          PROJECT_STATUS: ${{ vars.PROJECT_STATUS }}
+          RELEASE_NOTE: ${{ inputs.note }}
+        run: |
+          {
+            echo "## Production release policy"
+            echo "- requested ref: ${GITHUB_REF}"
+            echo "- commit: ${GITHUB_SHA}"
+            echo "- project status: ${PROJECT_STATUS:-not-set}"
+            echo "- reason: ${RELEASE_NOTE}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Production releases must run from main; got $GITHUB_REF"
+            exit 1
+          fi
+
+          case "$PROJECT_STATUS" in
+            release-candidate|live) ;;
+            *)
+              echo "::error::Production release disabled: PROJECT_STATUS is '${PROJECT_STATUS:-not-set}'. Set it to release-candidate or live before requesting a release."
+              exit 1
+              ;;
+          esac
+
+  release:
+    needs: [checks, release-policy]
     runs-on: ubuntu-latest
     environment:
       name: production
