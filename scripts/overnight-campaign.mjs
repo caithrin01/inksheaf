@@ -68,17 +68,17 @@ function buildAndRender(host) {
   catch (e) {
     if (e.killed || e.signal) { out.buildErr = "build TIMEOUT (>480s)"; return out; }
     const err = String(e.stderr || e.message);
-    // oversized publication: retry with a 3-month window so the render path is still exercised
+    // oversized: the refusal counts total posts BEFORE fetch, so a narrower --window can't avoid it
+    // (build-book wants explicit --after/--before or --force-pages). Log it as the known refusal.
     if (/REFUSED|bindery limit|over the recommended/i.test(err)) {
-      out.oversizedAt = WINDOW; usedWindow = "3m";
-      try { b = tryBuild(host, html, "3m"); }
-      catch (e2) { if (e2.killed || e2.signal) { out.buildErr = "build TIMEOUT (>480s, 3m retry)"; return out; } out.buildErr = ("oversized; 3m retry also failed: " + String(e2.stderr || e2.message).split("\n").filter(l => !/^\s*at /.test(l)).slice(-1)[0]).slice(0, 220); return out; }
-    } else {
-      const lines = err.split("\n").filter(Boolean);
-      const meaningful = lines.filter(l => /Error:|refusing|No printable|not_substack|fetch failed|WARNING/i.test(l) && !/^\s*at /.test(l));
-      out.buildErr = (meaningful.slice(-2).join(" | ") || lines.filter(l => !/^\s*at /.test(l)).slice(-2).join(" | ")).slice(0, 220);
+      const est = (err.match(/~(\d+)pp estimated from (\d+) posts/) || []);
+      out.buildErr = est.length ? `oversized (refused): ~${est[1]}pp / ${est[2]} posts` : "oversized (refused, >800pp)";
       return out;
     }
+    const lines = err.split("\n").filter(Boolean);
+    const meaningful = lines.filter(l => /Error:|refusing|No printable|not_substack|fetch failed|WARNING/i.test(l) && !/^\s*at /.test(l));
+    out.buildErr = (meaningful.slice(-2).join(" | ") || lines.filter(l => !/^\s*at /.test(l)).slice(-2).join(" | ")).slice(0, 220);
+    return out;
   }
   { const m = b.match(/(\d+) listed; (\d+) printable/); const w = b.match(/articles: (\d+) .* words: (\d+)/);
     out.built = true; out.window = usedWindow; out.listed = m ? +m[1] : null; out.printable = m ? +m[2] : null; out.articles = w ? +w[1] : null; out.words = w ? +w[2] : null;
