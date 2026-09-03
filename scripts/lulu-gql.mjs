@@ -31,6 +31,7 @@
 
 import { readFileSync, writeFileSync, existsSync, chmodSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { createHash } from "node:crypto";
 
 const BASE = "https://api.lulu.com";
 const GQL = `${BASE}/graphql/`;
@@ -56,15 +57,16 @@ const OPS = {
   updateCategoriesAndKeywords: `mutation($id:ID!,$category:String,$bisacCategories:[BisacCategoryInput],$keywords:[String]){ patchProject(id:$id,input:{category:$category,bisacCategories:$bisacCategories,keywords:$keywords}){ id } }`,
   updateAudience: `mutation($id:ID!,$audience:String,$adultRating:String){ patchProject(id:$id,input:{audience:$audience,adultRating:$adultRating}){ id } }`,
   createDirectUploadURL: `mutation($input:FileUploadInput!){ createDirectUploadURL(input:$input){ uploadUrl fileId } }`,
-  setInteriorFile: `mutation($projectId:ID!,$fileId:Int!){ setInteriorFile(projectId:$projectId,fileId:$fileId){ id interiorFile{ status pageCount isStalled errors{ message } } } }`,
-  setCoverFile: `mutation($projectId:ID!,$fileId:Int!,$coverType:CoverTypeEnum){ setCoverFile(projectId:$projectId,fileId:$fileId,coverType:$coverType){ id uploadedCover{ status errors{ message } } } }`,
+  setInteriorFile: `mutation($projectId:ID!,$fileId:Int!){ setInteriorFile(projectId:$projectId,fileId:$fileId){ id interiorFile{ status pageCount isStalled } } }`,
+  setCoverFile: `mutation($projectId:ID!,$fileId:Int!,$coverType:CoverTypeEnum){ setCoverFile(projectId:$projectId,fileId:$fileId,coverType:$coverType){ id uploadedCover{ status } } }`,
   patchRevenueGoal: `mutation($id:ID!,$input:RevenueGoalInput){ patchRevenueGoal(id:$id,input:$input){ id pricing{ priceType minimumPrice{ amount currency } listPrice{ amount currency } isValid } } }`,
   patchListPrice: `mutation($id:ID!,$input:ListPriceInput!){ patchListPrice(id:$id,input:$input){ id pricing{ listPrice{ amount currency } isValid } } }`,
   createPayee: `mutation($input:PayeeInput!){ createPayee(input:$input){ id firstName lastName } }`,
-  setProjectRevenueShares: `mutation($projectId:ID!,$shares:[RevenueShareInput!]!){ setProjectRevenueShares(projectId:$projectId,revenueShares:$shares){ payeeId share } }`,
+  setProjectRevenueShares: `mutation($projectId:ID!,$input:[RevenueShareInput]!){ setProjectRevenueShares(projectId:$projectId,input:$input){ id revenueShare { share payeeId } } }`,
   publishLastVersion: `mutation($projectId:ID!){ publishLastVersion(projectId:$projectId){ id status availableOperations } }`,
   setSelectAccess: `mutation($id:ID!,$sellIntention:SellIntentEnum){ patchProject(id:$id,input:{luluBookstoreSellIntention:$sellIntention}){ id luluBookstoreSellIntention } }`,
   retireProject: `mutation($projectId:ID!){ retireProject(projectId:$projectId){ id } }`,
+  deleteProject: `mutation($projectId:ID!){ deleteProject(projectId:$projectId){ id } }`,
   projectUrl: `query($id:ID!){ project(id:$id){ id status shopUrl publicUrl luluBookstoreSellIntention } }`,
 };
 
@@ -81,15 +83,25 @@ async function login() {
   const b = await chromium.launch({ headless: false });
   const ctx = await b.newContext(existsSync(SESSION_FILE) ? { storageState: SESSION_FILE } : {});
   const page = await ctx.newPage();
-  let captured = null;
-  page.on("request", req => { if (!captured && req.url().startsWith(GQL)) { const a = req.headers()["authorization"]; if (a && a.startsWith("Bearer ")) captured = a.slice(7); } });
-  await page.goto("https://www.lulu.com/account/projects");
-  console.error("Sign in to Lulu in the window if prompted, then wait a moment while the token is captured…");
-  const t0 = Date.now();
-  while (!captured && Date.now() - t0 < 180000) { await page.waitForTimeout(1000); if (Date.now() - t0 > 4000 && !captured) await page.reload().catch(() => {}); }
-  if (captured) { mkdirSync(SECRETS, { recursive: true }); writeFileSync(BEARER_FILE, captured); chmodSync(BEARER_FILE, 0o600); await ctx.storageState({ path: SESSION_FILE }); console.error(`token saved to ${BEARER_FILE}`); }
-  else console.error("no api.lulu.com/graphql request seen; are you signed in?");
-  await b.close();
+  let captured = null, closed = false;
+  // capture the bearer off ANY authenticated api.lulu.com request (the projects page fires one)
+  ctx.on("request", req => { if (!captured && req.url().startsWith("https://api.lulu.com/")) { const a = (req.headers()["authorization"] || ""); if (a.startsWith("Bearer ")) captured = a.slice(7); } });
+  b.on("disconnected", () => { closed = true; });
+  await page.goto("https://www.lulu.com/account/projects").catch(() => {});
+  console.error("Sign in to Lulu in the window. When you reach My Projects the token saves automatically. Waiting up to 4 minutes; leave the window open.");
+  const t0 = Date.now(); let lastNudge = 0;
+  while (!captured && !closed && Date.now() - t0 < 240000) {
+    try { await page.waitForTimeout(1500); } catch { closed = true; break; }
+    // gentle nudge only once every 12s, and only if already back on My Projects (never mid-login)
+    if (!captured && Date.now() - lastNudge > 12000) {
+      lastNudge = Date.now();
+      try { if (/\/account\/projects/.test(page.url())) await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {}); } catch { closed = true; break; }
+    }
+  }
+  if (captured) { mkdirSync(SECRETS, { recursive: true }); writeFileSync(BEARER_FILE, captured); chmodSync(BEARER_FILE, 0o600); try { await ctx.storageState({ path: SESSION_FILE }); } catch {} console.error(`token saved to ${BEARER_FILE}`); }
+  else if (closed) console.error("the window closed before a token was captured; run --login again and wait on the My Projects page.");
+  else console.error("no api.lulu.com request seen in time; make sure you reached My Projects, then run --login again.");
+  try { await b.close(); } catch {}
   return captured;
 }
 
@@ -114,16 +126,17 @@ async function gql(stage, op, variables) {
 }
 
 // ---- file upload: signed URL then PUT then setInteriorFile/setCoverFile ----
+// FileUploadInput (confirmed live 2026-09-02): { filename, mimetype, filesize, checksum }, where
+// checksum is the base64-encoded MD5 of the bytes (S3/GCS Content-MD5). createDirectUploadURL
+// returns a Google Storage signed URL and a fileId; PUT the bytes with the content-md5 header.
 async function uploadFile(stage, projectId, kind, filename, bytes, contentType) {
-  // FileUploadInput exact keys are confirmed on the first live run; these are the wizard's fields
-  // as best derived from the bundle. The assertion on the returned {uploadUrl,fileId} catches a
-  // wrong shape immediately, before any PUT.
-  const input = { fileName: filename, contentType, fileType: kind }; // kind: "INTERIOR" | "COVER"
+  const checksum = createHash("md5").update(bytes).digest("base64");
+  const input = { filename, mimetype: contentType, filesize: bytes.length, checksum };
   const d = await gql(stage, "createDirectUploadURL", { input });
   if (DRY) return { fileId: 0 };
   const up = d?.createDirectUploadURL;
   if (!up?.uploadUrl || up.fileId == null) throw new LuluListingError(stage, "createDirectUploadURL returned no uploadUrl/fileId", d);
-  const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "content-type": contentType }, body: bytes });
+  const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "content-type": contentType, "content-md5": checksum }, body: bytes });
   if (!put.ok) throw new LuluListingError(stage, `PUT to signed URL failed HTTP ${put.status}`);
   return { fileId: Number(up.fileId) };
 }
@@ -143,13 +156,13 @@ export async function listEdition(manifest, opts = {}) {
     projectId = cp?.createProject?.id || (DRY ? "DRY" : null);
     step("createProject", { projectId });
 
-    await gql("start", "setStartStepDetails", { id: projectId, projectTitle: title, language: "en", category: manifest.category || "LITERARY COLLECTIONS" });
+    await gql("start", "setStartStepDetails", { id: projectId, projectTitle: title, language: "English", category: manifest.storeCategory || null }); // Lulu wants the language display name, and a store category CODE (not free text); null is accepted
     step("setStartStepDetails");
 
     await gql("title", "updateTitleAndEdition", { id: projectId, bookTitle: pubName, bookSubtitle: vol.label || null });
     step("updateTitleAndEdition");
 
-    await gql("contributors", "updateContributors", { id: projectId, bookContributors: [{ role: "AUTHOR", firstName: manifest.authorFirst || pubName, lastName: manifest.authorLast || "" }] });
+    await gql("contributors", "updateContributors", { id: projectId, bookContributors: [{ role: "A01", firstName: manifest.authorFirst || pubName, lastName: manifest.authorLast || "" }] });
     step("updateContributors");
 
     // interior first (it drives page count and validation), then spec, then cover
@@ -158,27 +171,27 @@ export async function listEdition(manifest, opts = {}) {
     await gql("interior-set", "setInteriorFile", { projectId, fileId: iu.fileId });
     step("interior");
 
-    await gql("spec", "updatePodPackageId", { id: projectId, podPackageId: POD, coverType: "FULL_WRAP" });
+    await gql("spec", "updatePodPackageId", { id: projectId, podPackageId: POD, coverType: "UPLOADED" });
     step("spec");
 
     const coverBytes = await opts.readAsset(vol.coverKey);
     const cu = await uploadFile("cover-upload", projectId, "COVER", `${manifest.host}-cover.pdf`, coverBytes, "application/pdf");
-    await gql("cover-set", "setCoverFile", { projectId, fileId: cu.fileId, coverType: "FULL_WRAP" });
+    await gql("cover-set", "setCoverFile", { projectId, fileId: cu.fileId, coverType: "UPLOADED" });
     step("cover");
 
-    await gql("details", "updateCategoriesAndKeywords", { id: projectId, category: manifest.category || "LITERARY COLLECTIONS", bisacCategories: manifest.bisac || [], keywords: manifest.keywords || [] });
-    await gql("audience", "updateAudience", { id: projectId, audience: "GENERAL", adultRating: "false" });
+    await gql("details", "updateCategoriesAndKeywords", { id: projectId, category: manifest.storeCategory || null, bisacCategories: manifest.bisac || [], keywords: manifest.keywords || [] });
+    await gql("audience", "updateAudience", { id: projectId, audience: "GENERAL", adultRating: "NO" });
     step("details");
 
     // price at the floor: $0 revenue goal, Bookstore only. RevenueGoalInput exact keys confirmed on
     // first live run; the assertion on returned pricing.isValid + minimumPrice catches a wrong shape.
-    await gql("revenue", "patchRevenueGoal", { id: projectId, input: { amount: 0, currency: "USD", salesChannel: "DIRECT" } });
+    await gql("revenue", "patchRevenueGoal", { id: projectId, input: { minimumRevenue: { amount: 0, currency: "USD" } } }); // $0 revenue = sell at print cost (Bookstore-only)
     step("revenueGoal");
 
     // payee is required even at $0. Reuse the operator's existing payee id if given; else create one.
     let payeeId = manifest.payeeId;
     if (!payeeId && manifest.payee) { const p = await gql("payee", "createPayee", { input: manifest.payee }); payeeId = p?.createPayee?.id; step("createPayee", { payeeId }); }
-    if (payeeId) { await gql("shares", "setProjectRevenueShares", { projectId, shares: [{ payeeId, share: 100 }] }); step("revenueShares"); }
+    if (payeeId) { await gql("shares", "setProjectRevenueShares", { projectId, input: [{ payeeId, share: 100 }] }); step("revenueShares"); }
 
     if (publish) {
       const pub = await gql("publish", "publishLastVersion", { projectId });
@@ -192,8 +205,12 @@ export async function listEdition(manifest, opts = {}) {
     }
     return { ok: true, projectId, url: null, steps, note: "no-publish: complete draft left for inspection" };
   } catch (e) {
-    // fail-safe: retire a half-built project so nothing dangles, unless --keep
-    if (projectId && projectId !== "DRY" && !opts.keep && !DRY) { try { await gql("retire", "retireProject", { projectId }); } catch {} }
+    // fail-safe: remove the half-built project so nothing dangles, unless --keep. A build that
+    // failed before publish is a DRAFT (deleteProject removes it); if it failed after publish it is
+    // live (retireProject pulls it from the store). Try delete first, then retire.
+    if (projectId && projectId !== "DRY" && !opts.keep && !DRY) {
+      try { await gql("delete", "deleteProject", { projectId }); } catch { try { await gql("retire", "retireProject", { projectId }); } catch {} }
+    }
     if (e instanceof LuluListingError) { e.projectId = projectId; e.steps = steps; throw e; }
     throw new LuluListingError("unknown", e.message, { steps, projectId });
   }
