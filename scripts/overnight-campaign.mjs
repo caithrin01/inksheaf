@@ -107,7 +107,7 @@ for (const host of hosts) {
   if (bd.buildErr || bd.renderErr || !pv.ok) fails++;
   const row = { i, host, preview: pv.ok ? `ok/${pv.ms}ms` : `FAIL`, posts: pv.posts ?? "", build: bd.built === true ? "ok" : bd.built === false ? "FAIL" : "skip", render: bd.rendered ? "ok" : bd.built ? "FAIL" : "", pages: bd.pages || "", issue };
   appendFileSync(md, `| ${i} | ${host} | ${row.preview} | ${row.posts} | ${row.build} | ${row.render} | ${row.pages} | ${issue.replace(/\|/g, "/")} |\n`);
-  appendFileSync(jsonl, JSON.stringify({ stamp, seed: SEED, ...pv, ...bd }) + "\n");
+  appendFileSync(jsonl, JSON.stringify({ stamp, seed: SEED, host, ...pv, ...bd }) + "\n");
   results.push(row);
   console.log(`${i}/${hosts.length} ${host}: preview ${row.preview}, build ${row.build}, render ${row.render}${issue ? " — " + issue.slice(0, 80) : ""}`);
 }

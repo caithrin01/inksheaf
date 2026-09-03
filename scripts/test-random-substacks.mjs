@@ -42,7 +42,7 @@ const CATEGORIES = [96, 4, 62, 76739, 153, 13645, 94, 15417, 76740, 76741, 103, 
 
 async function drawSample(n) {
   const seen = new Set(), out = [];
-  let draws = 0;
+  let draws = 0, errors = 0;
   while (out.length < n && draws < n * 6) {
     draws++;
     const cat = pick(CATEGORIES), page = Math.floor(rand() * 13);
@@ -50,7 +50,7 @@ async function drawSample(n) {
     try {
       const r = await fetchWithBackoff(`https://substack.com/api/v1/category/public/${cat}/all?page=${page}`, { headers: { "user-agent": UA } });
       pubs = (await r.json()).publications || [];
-    } catch { continue; }
+    } catch { errors++; continue; }
     if (!pubs.length) continue;
     const p = pick(pubs);
     const host = (p.custom_domain || `${p.subdomain}.substack.com`).toLowerCase();
@@ -64,6 +64,7 @@ async function drawSample(n) {
       upper: `HTTPS://${host.toUpperCase()}/`, spaces: `  https://${host}  ` }[form];
     out.push({ host, pasted, name: p.name, category: cat, custom: !!p.custom_domain });
   }
+  out.errors = errors; out.draws = draws;
   return out;
 }
 
@@ -208,6 +209,11 @@ if (!engine) { console.error(`unknown engine ${engineName}`); process.exit(2); }
 console.log(`RANDOM BATTERY seed=${SEED} n=${N} engine=${engineName} base=${base}`);
 const sample = await drawSample(N);
 console.log(`drew ${sample.length} publications (${sample.filter(s => s.custom).length} on custom domains)\n`);
+if (sample.length === 0) {
+  console.error(`RANDOM BATTERY INCONCLUSIVE: drew 0 of ${N} publications in ${sample.draws} draws (${sample.errors} upstream errors). Substack's category API is unreachable or rate-limiting; this is a sampling-infrastructure failure, not an inksheaf product failure. Rerun later.`);
+  process.exit(3);
+}
+if (sample.length < Math.ceil(N / 2)) console.error(`RANDOM BATTERY thin sample: drew ${sample.length}/${N} (${sample.errors} upstream errors); the category API is likely throttled. Judging what was drawn.`);
 
 const browser = await engine.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
