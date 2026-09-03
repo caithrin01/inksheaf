@@ -9,7 +9,8 @@
 //   --n       hosts to draw            --build   how many of them to actually build+render (cost cap)
 //   --seed    reproducible draw        --window  edition window for the build
 import { execFileSync } from "node:child_process";
-import { mkdirSync, appendFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, appendFileSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { fit } from "./lib/fit.mjs";
 
 const flag = (k, d) => { const m = process.argv.find(a => a.startsWith(`--${k}=`)); return m ? m.slice(k.length + 3) : d; };
 const N = Number(flag("n", 20)), SEED = Number(flag("seed", Math.floor(Date.now() / 60000)));
@@ -83,10 +84,21 @@ function buildAndRender(host) {
   { const m = b.match(/(\d+) listed; (\d+) printable/); const w = b.match(/articles: (\d+) .* words: (\d+)/);
     out.built = true; out.window = usedWindow; out.listed = m ? +m[1] : null; out.printable = m ? +m[2] : null; out.articles = w ? +w[1] : null; out.words = w ? +w[2] : null;
     out.warn = /WARNING/.test(b) ? (b.match(/WARNING:[^\n]*/) || [""])[0].slice(0, 100) : null; }
+  // Production fidelity: the fit loop (build -> render -> refit short figure pages), same as press.mjs.
+  // A single render pass overstates "clean" because it never scales the figures that push blanks.
   try {
-    const r = execFileSync("bash", ["scripts/render-book.sh", html, pdf], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000, env: { ...process.env, BOOK_ENGINE: "typst", BLANK_MAX: "0.55" } });
-    out.rendered = true; out.pages = (r.match(/OK (\d+)/) || [])[1] || null;
-  } catch (e) { out.renderErr = (String(e.stdout || "") + String(e.stderr || e.message)).split("\n").filter(l => /FAILED|TOFU|blank|RENDER/i.test(l)).slice(-3).join(" | ").slice(0, 240); }
+    process.env.BOOK_ENGINE = "typst";
+    const args = ["scripts/build-book.mjs", `https://${host}`, "--out", html, "--engine", "typst", "--interior-bw", "--window", WINDOW];
+    const res = fit({ args, html, pdf: `${process.cwd()}/${pdf}`, log: () => {}, passes: 6 });
+    out.pages = (String(res.out || "").match(/OK (\d+)/) || [])[1] || null;
+    // content completeness: a book with missing-image boxes is not clean, however well it renders
+    const typ = html.replace(/\.html$/, ".typ");
+    out.missingImages = existsSync(typ) ? (readFileSync(typ, "utf-8").match(/could not be retrieved/g) || []).length : 0;
+    out.overTarget = out.pages && +out.pages > 300;   // binds under 800 but past the single-volume target
+    out.rendered = out.missingImages === 0;            // "clean" reserved for fit-clean AND image-complete
+    if (!out.rendered) out.renderErr = `images incomplete: ${out.missingImages} missing-image box(es)`;
+    else if (out.overTarget) out.renderErr = `over 300pp target: ${out.pages}pp (needs volumes; binds under 800)`;
+  } catch (e) { out.renderErr = String(e.message).split("\n").filter(l => /FAILED|TOFU|blank|RENDER|blank limit/i.test(l)).slice(-2).join(" | ").slice(0, 240) || String(e.message).slice(0, 200); }
   return out;
 }
 
