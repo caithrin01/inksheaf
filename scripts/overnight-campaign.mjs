@@ -60,13 +60,13 @@ function buildAndRender(host) {
   const html = `proofs/overnight/${slug}.html`, pdf = `proofs/overnight/${slug}.pdf`;
   const out = { host, built: false, rendered: false };
   try {
-    const b = execFileSync("node", ["scripts/build-book.mjs", `https://${host}`, "--out", html, "--engine", "typst", "--interior-bw", "--window", WINDOW], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 180000 });
+    const b = execFileSync("node", ["scripts/build-book.mjs", `https://${host}`, "--out", html, "--engine", "typst", "--interior-bw", "--window", WINDOW], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000 });
     const m = b.match(/(\d+) listed; (\d+) printable/); const w = b.match(/articles: (\d+) .* words: (\d+)/);
     out.built = true; out.listed = m ? +m[1] : null; out.printable = m ? +m[2] : null; out.articles = w ? +w[1] : null; out.words = w ? +w[2] : null;
     out.warn = /WARNING/.test(b) ? (b.match(/WARNING:[^\n]*/) || [""])[0].slice(0, 100) : null;
-  } catch (e) { out.buildErr = (String(e.stderr || e.message)).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 200); return out; }
+  } catch (e) { out.buildErr = (e.killed || e.signal) ? `build TIMEOUT (>480s)` : (String(e.stderr || e.message)).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 200); return out; }
   try {
-    const r = execFileSync("bash", ["scripts/render-book.sh", html, pdf], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 300000, env: { ...process.env, BOOK_ENGINE: "typst", BLANK_MAX: "0.55" } });
+    const r = execFileSync("bash", ["scripts/render-book.sh", html, pdf], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000, env: { ...process.env, BOOK_ENGINE: "typst", BLANK_MAX: "0.55" } });
     out.rendered = true; out.pages = (r.match(/OK (\d+)/) || [])[1] || null;
   } catch (e) { out.renderErr = (String(e.stdout || "") + String(e.stderr || e.message)).split("\n").filter(l => /FAILED|TOFU|blank|RENDER/i.test(l)).slice(-3).join(" | ").slice(0, 240); }
   return out;
