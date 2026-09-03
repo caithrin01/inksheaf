@@ -15,14 +15,14 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   START=$(date +%s)
   # --ignore-system-fonts so the render uses ONLY the repo's fonts/, identical on a Mac and on CI;
   # otherwise a Mac silently borrows a system CJK font and hides a missing-font bug that tofus on CI.
-  OUT=$(typst compile --font-path "$HERE/fonts" --ignore-system-fonts "$TYP" "$PDF" 2>&1); RC=$?
+  OUT=$(typst compile --root "$HERE" --font-path "$HERE/fonts" --ignore-system-fonts "$TYP" "$PDF" 2>&1); RC=$?
   if [ "$RC" -ne 0 ]; then echo "RENDER FAILED (typst rc=$RC)"; echo "$OUT" | grep -v "^warning: unknown font" | tail -12; exit 1; fi
   # tofu gate: Typst emits no warning for uncovered glyphs and the blank gate cannot see a box, so
   # scan the PDF for missing glyphs (glyph id 0). Catches CJK/accented text with no covering font.
   TOFU=$(python3 "$HERE/scripts/tofu-check.py" "$PDF" 2>&1); TRC=$?
   if [ "$TRC" -ne 0 ]; then echo "RENDER FAILED (tofu)"; echo "$TOFU" | tail -4; exit 1; fi
   PAGES=$(node -e 'const {PDFDocument}=require("pdf-lib");PDFDocument.load(require("fs").readFileSync(process.argv[1])).then(d=>console.log(d.getPageCount()))' "$PDF")
-  MAP=$(typst query --font-path "$HERE/fonts" "$TYP" "<artstart>" --field value 2>/dev/null); ENDS=$(typst query --font-path "$HERE/fonts" "$TYP" "<artend>" --field value 2>/dev/null)
+  MAP=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artstart>" --field value 2>/dev/null); ENDS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artend>" --field value 2>/dev/null)
   SKIP=$(node -e '
     const s=JSON.parse(process.argv[1]||"[]"), e=JSON.parse(process.argv[2]||"[]"), n=+process.argv[3];
     const skip=new Set(); const first=s.length?Math.min(...s.map(x=>x.page)):1; const last=e.length?Math.max(...e.map(x=>x.page)):n;
@@ -34,7 +34,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   echo "$BL"
   # for each short page, the first figure on the next page and the height that was left: the fit
   # loop rebuilds with --fit-figs so that figure sits in flow at that height (engine: typst)
-  FIGS=$(typst query --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
+  FIGS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
   node -e '
     const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const figs=JSON.parse(process.argv[2]||"[]"); const ends=JSON.parse(process.argv[3]||"[]");
     const TEXT_H=7.44; d.engine="typst"; d.fit=[]; d.tail=[];

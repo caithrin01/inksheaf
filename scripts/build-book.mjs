@@ -829,6 +829,8 @@ const { execFileSync: execF } = await import("node:child_process");
 const crypto = await import("node:crypto");
 const IMGCACHE = "proofs/.cache/img";
 mkdirSync(IMGCACHE, { recursive: true });
+const { relative: relPath, dirname: dirN } = await import("node:path");
+const OUTDIR = dirN(OUT);
 const srcs = [...new Set([...html.matchAll(/<img src="(http[^"]+)"/g)].map(m => m[1]))];
 let htmlOut = html;
 const queue = [...srcs];
@@ -860,7 +862,7 @@ async function worker() {
             base, "--out", gray], { stdio: "pipe" });
         } catch { execF("cp", [base, gray]); }
       }
-      htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${want.replace("proofs/", "")}"`);
+      htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${relPath(OUTDIR, want)}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
       const quoted = u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
