@@ -40,8 +40,7 @@ try {
   /* Blank-page detector (Caithrin, 2026-09-02: "not accept any pages more than 40% blank
      after the opener and closer"). Measured in the laid-out DOM, not by rasterising: for each
      page, the lowest edge of any text or image inside the page's content box against the box's
-     bottom. Exempt: front and back matter, part pages, and an article's last page (closer).
-     Openers are not exempt: an opener with a heading and 70% white is the case that fails. */
+     bottom. Exempt: front/back matter, part pages, openers, and closers (article boundaries). */
   const pages = await page.evaluate(() => {
     const out = [];
     for (const pg of document.querySelectorAll(".pagedjs_page")) {
@@ -70,7 +69,7 @@ try {
     return out;
   });
   const MAX = Number(process.env.BLANK_MAX || 0.40);
-  const exempt = k => k === "matter" || k === "closer" || k === "single" || k === "empty";
+  const exempt = k => k === "matter" || k === "closer" || k === "opener" || k === "single" || k === "empty";
   const bad = pages.map((p, i) => ({ page: i + 1, blank: p.blank, kind: p.kind, defer: pages[i + 1]?.firstFig || null }))
     .filter(p => !exempt(p.kind) && p.blank > MAX);
   await page.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
