@@ -4,6 +4,7 @@
 // move it), and the writer gets the email with the link, the short link and a Substack button.
 import { hmacHex } from "../lib/press-dispatch.js";
 import { normalizeUrl, linkCode, SHORT_HOST } from "../lib/links.js";
+import { prepareOutboundEmail } from "../lib/runtime.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
@@ -45,8 +46,11 @@ Want to change the book? Reply to this email. A new edition gets a new page, and
 Inksheaf`;
   let mail = { ok: false };
   if (env.RESEND_API_KEY) {
+    let message;
+    try { message = prepareOutboundEmail(env, { from: "Inksheaf <press@inksheaf.com>", to: [row.email], reply_to: "caithrin@caithrin.com", subject: `Your book is on Lulu: ${pub}`, text }); }
+    catch (e) { return json({ ok: false, error: String(e.message || e) }, 503); }
     const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: "Inksheaf <press@inksheaf.com>", to: [row.email], reply_to: "caithrin@caithrin.com", subject: `Your book is on Lulu: ${pub}`, text }) });
+      body: JSON.stringify(message) });
     mail = { ok: r.ok, status: r.status };
   }
   return json({ ok: true, version_id: vid, listing_url: url, short, mail });

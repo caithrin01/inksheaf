@@ -7,6 +7,7 @@
 // method; the press runs only when a verification row exists for the reservation.
 import { hmacHex, dispatchPress } from "../lib/press-dispatch.js";
 import { spend, LIMITS } from "../lib/quota.js";
+import { prepareOutboundEmail } from "../lib/runtime.js";
 
 export async function onRequest({ request, env }) {
   const u = new URL(request.url);
@@ -50,9 +51,15 @@ export async function sendVerification(env, s, origin) {
   const link = `${origin}/api/verify?t=${token}`;
   let sent = false;
   if (env.RESEND_API_KEY) {
+    let message;
+    try {
+      message = prepareOutboundEmail(env, { from: "Inksheaf <press@inksheaf.com>", to: [to], reply_to: "caithrin@caithrin.com", subject: `Confirm your Inksheaf print run for ${host.replace(/^www\./, "")}`,
+        text: `Someone (we hope you) asked Inksheaf to typeset ${host.replace(/^www\./, "")} into a printed book and reserved a proof for ${s.email}.\n\nIf that was you, confirm here and the proof is made:\n${link}\n\nIf it was not you, ignore this message; nothing is printed and nothing is sent to that address.\n\nThis went to ${to}, the address your publication sends from, because only the publication's owner receives it.\n\nInksheaf` });
+    } catch (e) {
+      return { ok: false, status: 503, error: String(e.message || e) };
+    }
     const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: "Inksheaf <press@inksheaf.com>", to: [to], reply_to: "caithrin@caithrin.com", subject: `Confirm your Inksheaf print run for ${host.replace(/^www\./, "")}`,
-        text: `Someone (we hope you) asked Inksheaf to typeset ${host.replace(/^www\./, "")} into a printed book and reserved a proof for ${s.email}.\n\nIf that was you, confirm here and the proof is made:\n${link}\n\nIf it was not you, ignore this message; nothing is printed and nothing is sent to that address.\n\nThis went to ${to}, the address your publication sends from, because only the publication's owner receives it.\n\nInksheaf` }) });
+      body: JSON.stringify(message) });
     sent = r.ok;
   }
   return { ok: true, sent_to: to, sent, fallback: "about-code" };

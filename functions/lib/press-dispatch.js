@@ -1,3 +1,5 @@
+import { pressEventType, runtimeMode } from "./runtime.js";
+
 // After a reservation: start the press (a GitHub Actions run) that builds the proof pages and
 // emails them. The Pages Function cannot run Chromium; the workflow can. Without a token the
 // reservation still lands and the press is started by hand from the operator email.
@@ -9,7 +11,8 @@ export async function dispatchPress(env, payload) {
       method: "POST",
       headers: { authorization: `Bearer ${env.GITHUB_DISPATCH_TOKEN}`, accept: "application/vnd.github+json",
         "content-type": "application/json", "user-agent": "inksheaf-press/1.0" },
-      body: JSON.stringify({ event_type: payload.event || "press", client_payload: payload }),
+      body: JSON.stringify({ event_type: pressEventType(env, payload.event),
+        client_payload: { ...payload, environment: runtimeMode(env) } }),
     });
     return { ok: r.status === 204, status: r.status };
   } catch (e) { return { ok: false, reason: String(e.message || e).slice(0, 120) }; }

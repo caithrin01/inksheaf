@@ -2,6 +2,11 @@ name = "inksheaf"
 compatibility_date = "2026-08-01"
 pages_build_output_dir = "dist"
 
+# Production is explicit. A future staging project must use its own config with
+# INKSHEAF_ENV="staging" and a separate D1 database; never reuse this binding.
+[vars]
+INKSHEAF_ENV = "production"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "inksheaf-beta"

@@ -20,13 +20,15 @@ import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 import { makeClient } from "./lulu-client.mjs";
 import prices from "../functions/lib/print-prices.json" with { type: "json" };
 import { chromium } from "playwright";
+import { luluUsesProduction, pressEventType, runtimeMode } from "../functions/lib/runtime.js";
 
 const EVENT = process.env.PRESS_EVENT || "press";
+const MODE = runtimeMode(process.env);
 const ID = Number(process.env.SIGNUP_ID);
 const URL_ = process.env.PUBLICATION_URL || "";
 const TO = process.env.WRITER_EMAIL || "";
 const OPERATOR = process.env.OPERATOR_EMAIL || "caithrin@caithrin.com";
-const SITE = (process.env.SITE_BASE || "https://inksheaf.com").replace(/\/$/, "");
+const SITE = (process.env.SITE_BASE || (MODE === "production" ? "https://inksheaf.com" : "http://localhost:8788")).replace(/\/$/, "");
 const SECRET = process.env.ARCHIVE_RELAY_TOKEN || "";
 const host = URL_.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
 if (!ID || !host || !TO) { console.error("SIGNUP_ID, PUBLICATION_URL and WRITER_EMAIL are required"); process.exit(2); }
@@ -86,7 +88,7 @@ async function registerLinks(report) {
 /* start another press run from inside a run (a new proof after articles changed); never fatal */
 async function dispatchOrLog(payload) {
   const token = process.env.GITHUB_DISPATCH_TOKEN; if (!token) return log("dispatch", "no token; a person starts the new proof");
-  try { const r = await fetch("https://api.github.com/repos/caithrin01/inksheaf/dispatches", { method: "POST", headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "content-type": "application/json", "user-agent": "inksheaf-press/1.0" }, body: JSON.stringify({ event_type: payload.event, client_payload: payload }) }); log("dispatch", `${payload.event} -> ${r.status}`); }
+  try { const eventType = pressEventType(process.env, payload.event); const r = await fetch("https://api.github.com/repos/caithrin01/inksheaf/dispatches", { method: "POST", headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "content-type": "application/json", "user-agent": "inksheaf-press/1.0" }, body: JSON.stringify({ event_type: eventType, client_payload: { ...payload, environment: MODE } }) }); log("dispatch", `${eventType} -> ${r.status}`); }
   catch (e) { log("dispatch", `failed: ${String(e.message).slice(0, 80)}`); }
 }
 function buildVolume(v, i, { proof }) {
@@ -220,7 +222,7 @@ Inksheaf`;
     await dispatchOrLog({ event: "press", signup_id: ID, publication_url: URL_, email: TO, plan_json: ver.plan_json });
     console.log(`PRESS stopped #${ID}: ${changed.length} article(s) changed since version ${VERSION_ID}`);
   } else {
-  const lulu = process.env.LULU_CLIENT_KEY ? makeClient({ production: true }) : null;
+  const lulu = process.env.LULU_CLIENT_KEY ? makeClient({ production: luluUsesProduction(process.env) }) : null;
   const built = [];
   for (let i = 0; i < vvols.length; i++) {
     const v = vvols[i];
@@ -292,7 +294,7 @@ Inksheaf` });
   console.log(`PRESS invoice sent #${ID} mailing ${process.env.MAILING_ID}`);
 } else if (EVENT === "mail") {
   /* REAL MONEY: one Lulu print job per address, only for a paid mailing, only from validated files */
-  const lulu = makeClient({ production: true });
+  const lulu = makeClient({ production: luluUsesProduction(process.env) });
   const addresses = JSON.parse(process.env.ADDRESSES_JSON || "[]");
   let files = null; try { files = (JSON.parse(process.env.FILES_JSON || "null") || {}).files || null; } catch {}
   if (!files || !files.length || !files.every(f => f.validated && f.interiorKey && f.coverKey)) { console.error("no validated files for this edition; mailing not placed"); await status("mail-blocked", { message: "no validated files" }); process.exit(3); }
