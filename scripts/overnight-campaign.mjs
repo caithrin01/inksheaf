@@ -55,22 +55,34 @@ async function previewCheck(host) {
   } catch (e) { return { ok: false, ms: Date.now() - t0, note: String(e).slice(0, 80) }; }
 }
 
+function tryBuild(host, html, window) {
+  const b = execFileSync("node", ["scripts/build-book.mjs", `https://${host}`, "--out", html, "--engine", "typst", "--interior-bw", "--window", window], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000 });
+  return b;
+}
 function buildAndRender(host) {
   const slug = host.replace(/[^a-z0-9]+/gi, "-").slice(0, 40);
   const html = `proofs/overnight/${slug}.html`, pdf = `proofs/overnight/${slug}.pdf`;
   const out = { host, built: false, rendered: false };
-  try {
-    const b = execFileSync("node", ["scripts/build-book.mjs", `https://${host}`, "--out", html, "--engine", "typst", "--interior-bw", "--window", WINDOW], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000 });
-    const m = b.match(/(\d+) listed; (\d+) printable/); const w = b.match(/articles: (\d+) .* words: (\d+)/);
-    out.built = true; out.listed = m ? +m[1] : null; out.printable = m ? +m[2] : null; out.articles = w ? +w[1] : null; out.words = w ? +w[2] : null;
-    out.warn = /WARNING/.test(b) ? (b.match(/WARNING:[^\n]*/) || [""])[0].slice(0, 100) : null;
-  } catch (e) {
+  let b, usedWindow = WINDOW;
+  try { b = tryBuild(host, html, WINDOW); }
+  catch (e) {
     if (e.killed || e.signal) { out.buildErr = "build TIMEOUT (>480s)"; return out; }
-    const err = String(e.stderr || e.message), lines = err.split("\n").filter(Boolean);
-    const meaningful = lines.filter(l => /Error:|REFUSED|refusing|No printable|not_substack|fetch failed|WARNING/i.test(l) && !/^\s*at /.test(l));
-    out.buildErr = (meaningful.slice(-2).join(" | ") || lines.filter(l => !/^\s*at /.test(l)).slice(-2).join(" | ")).slice(0, 220);
-    return out;
+    const err = String(e.stderr || e.message);
+    // oversized publication: retry with a 3-month window so the render path is still exercised
+    if (/REFUSED|bindery limit|over the recommended/i.test(err)) {
+      out.oversizedAt = WINDOW; usedWindow = "3m";
+      try { b = tryBuild(host, html, "3m"); }
+      catch (e2) { if (e2.killed || e2.signal) { out.buildErr = "build TIMEOUT (>480s, 3m retry)"; return out; } out.buildErr = ("oversized; 3m retry also failed: " + String(e2.stderr || e2.message).split("\n").filter(l => !/^\s*at /.test(l)).slice(-1)[0]).slice(0, 220); return out; }
+    } else {
+      const lines = err.split("\n").filter(Boolean);
+      const meaningful = lines.filter(l => /Error:|refusing|No printable|not_substack|fetch failed|WARNING/i.test(l) && !/^\s*at /.test(l));
+      out.buildErr = (meaningful.slice(-2).join(" | ") || lines.filter(l => !/^\s*at /.test(l)).slice(-2).join(" | ")).slice(0, 220);
+      return out;
+    }
   }
+  { const m = b.match(/(\d+) listed; (\d+) printable/); const w = b.match(/articles: (\d+) .* words: (\d+)/);
+    out.built = true; out.window = usedWindow; out.listed = m ? +m[1] : null; out.printable = m ? +m[2] : null; out.articles = w ? +w[1] : null; out.words = w ? +w[2] : null;
+    out.warn = /WARNING/.test(b) ? (b.match(/WARNING:[^\n]*/) || [""])[0].slice(0, 100) : null; }
   try {
     const r = execFileSync("bash", ["scripts/render-book.sh", html, pdf], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"], timeout: 480000, env: { ...process.env, BOOK_ENGINE: "typst", BLANK_MAX: "0.55" } });
     out.rendered = true; out.pages = (r.match(/OK (\d+)/) || [])[1] || null;
