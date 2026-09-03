@@ -202,12 +202,27 @@ export async function listEdition(manifest, opts = {}) {
 // ---- CLI ----
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (has("--login")) { await login(); process.exit(0); }
+  if (has("--retire")) { // clean up a test project: node scripts/lulu-gql.mjs --retire <projectId>
+    const pid = arg("--retire");
+    if (!pid) { console.error("usage: --retire <projectId>"); process.exit(2); }
+    try { await gql("retire", "retireProject", { projectId: pid }); console.log(`retired ${pid}`); }
+    catch (e) { console.error(`retire failed: ${e.message}`); process.exit(1); }
+    process.exit(0);
+  }
   const manifestPath = arg("--run");
   if (!manifestPath) { console.error("usage: lulu-gql.mjs --login | --run list.json [--dry-run] [--no-publish] [--keep]"); process.exit(2); }
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
   // asset reader: pull interior/cover bytes from the proof store by key
   const { signedProofUrl } = await import("./lib/proof-store.mjs");
-  const readAsset = async key => { if (DRY) return Buffer.alloc(0); const r = await fetch(signedProofUrl(key)); if (!r.ok) throw new LuluListingError("asset", `proof ${key} fetch HTTP ${r.status}`); return Buffer.from(await r.arrayBuffer()); };
+  // a key that is a local file (a manifest built for a self-contained test) is read from disk;
+  // otherwise it is a proof-store key fetched over a signed URL.
+  const readAsset = async key => {
+    if (DRY) return Buffer.alloc(0);
+    if (existsSync(key)) return readFileSync(key);
+    const r = await fetch(signedProofUrl(key));
+    if (!r.ok) throw new LuluListingError("asset", `proof ${key} fetch HTTP ${r.status}`);
+    return Buffer.from(await r.arrayBuffer());
+  };
   try {
     const res = await listEdition(manifest, { publish: !has("--no-publish"), keep: has("--keep"), readAsset });
     console.log(JSON.stringify(res, null, 1));
