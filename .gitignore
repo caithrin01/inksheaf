@@ -34,8 +34,12 @@ proofs/pipe/**/*.pdf
 proofs/pipe/**/*.img
 proofs/pipe/**/*.html
 .playwright-cli/
-# video asset masters (regenerable via scripts/shoot-*)
-assets/
+# Render masters stay local; storyboard prompts are the durable recipe and belong in git.
+assets/*
+!assets/storyboard/
+assets/storyboard/*
+!assets/storyboard/prompts/
+!assets/storyboard/prompts/*.txt
 .wrangler/
 proofs/oversized-*
 proofs/heavy-*

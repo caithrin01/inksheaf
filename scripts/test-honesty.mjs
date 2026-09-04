@@ -101,13 +101,10 @@ ok("brand: EB Garamond is the face", /EB Garamond/.test(css) && /family=EB\+Gara
 ok("brand: no Cormorant Garamond (caithrin face)", !/Cormorant/i.test(css + html));
 ok("brand: no caithrin palette", !/#(16120e|f4efe6|7d6448)\b/i.test(css + html));
 ok("brand: no caithrin d20 mark", !/d20-(black|white|final|exact|tile)\.svg|dice-(bold|all)\.svg/.test(html + css + js));
-/* Substack's button orange is allowed in exactly one place: the .nm-btn rule of the figure
-   labelled "Example of the print link at the end of a Substack post", which depicts a
-   Substack post. Anywhere else it reads as affiliation. */
-const orangeOutsideMockup = (css + html + js).replace(/\.nm-btn\{[^}]*\}/g, "");
+/* 2026-09-03: the post mockup left the page with the "In your newsletter" section (approved
+   direction, beta-redesign-plan-v2), so the orange is now allowed nowhere. */
 ok("brand: no Substack logo assets", !/substackcdn\.com|substack\.com\/img/i.test(html + css + js));
-ok("brand: Substack orange only inside the labelled post mockup", !/#ff6719\b/i.test(orangeOutsideMockup)
-  && /aria-label="Example of the print link at the end of a Substack post"/.test(html));
+ok("brand: no Substack orange anywhere (post mockup retired 2026-09-03)", !/#ff6719\b/i.test(css + html + js));
 
 /* reachable-state checks against the live API (the audit's core objection) */
 if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }

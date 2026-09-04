@@ -239,7 +239,8 @@ await journey("A1m mobile dark: reveal + desk in first viewports", { mobile: tru
 await journey("A13 no-JS fallback with a working mailto", { noJs: true }, async page => {
   await page.goto(base + "/");
   const r = await page.evaluate(() => {
-    const ns = document.querySelector("noscript");
+    /* the hero carries a <noscript><style> of its own (2026-09-03), so find the fallback by its mailto */
+    const ns = [...document.querySelectorAll("noscript")].find(n => n.querySelector('a[href^="mailto:"]')) || null;
     const mail = !!document.querySelector('noscript a[href="mailto:caithrin@caithrin.com"]');
     const spaced = /write to caithrin@caithrin\.com and we will/.test(ns ? ns.textContent : "");
     const book = document.getElementById("bookwrap");

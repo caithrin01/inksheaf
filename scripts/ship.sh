@@ -41,9 +41,9 @@ step "renderer (full render)"; node scripts/test-renderer.mjs
 step "honesty (source)"; node scripts/test-honesty.mjs --source-only
 
 step "dist privacy scan"
-FORBIDDEN=$(find dist -type f \( -name '*.pdf' -o -path 'dist/evidence/*' -o -path 'dist/proofs/*' \) | head -20 || true)
+FORBIDDEN=$(find dist -type f \( -name '*.pdf' -o -name '_*.html' -o -path 'dist/evidence/*' -o -path 'dist/proofs/*' \) | head -20 || true)
 if [ -n "$FORBIDDEN" ]; then echo "REFUSED: forbidden artifacts in dist:"; echo "$FORBIDDEN"; exit 1; fi
-echo "dist clean: no PDFs, no evidence, no proofs"
+echo "dist clean: no PDFs, no lab pages, no evidence, no proofs"
 
 tree_hash() { (cd "$1" && find . -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | cut -c1-16); }
 DIST_HASH=$(tree_hash dist)

@@ -1,0 +1,229 @@
+---
+// The landing story is deliberately image-led: four art-directed renders dissolve as the reader
+// scrolls. The URL controls keep the stable ids consumed by index.astro's preview journey.
+---
+<header class="sheaf-header">
+  <a class="sheaf-brand" href="#hero-story" aria-label="Inksheaf, back to the opening">
+    <img src="/brand/mark.svg" alt="" width="26" height="26" />
+    <b>Inksheaf</b>
+  </a>
+  <button class="sheaf-header-cta" id="hero-try" type="button" data-hero-try>
+    Try it for my Stack <span class="sheaf-caret" aria-hidden="true"></span>
+  </button>
+</header>
+
+<section class="sheaf-scroll" id="hero-story" aria-label="How Inksheaf turns a newsletter into a book">
+  <div class="sheaf-stage">
+    <picture>
+      <source type="image/avif" srcset="/storyboard/s1-desk.avif?v=20260903b" />
+      <source type="image/webp" srcset="/storyboard/s1-desk.webp?v=20260903b" />
+      <img class="sheaf-frame" id="hero-f0" src="/storyboard/s1-desk.jpg?v=20260903b"
+        alt="A closed Your Newsletter book resting on a lamplit walnut desk"
+        width="1800" height="1004" fetchpriority="high" decoding="async" />
+    </picture>
+    <picture>
+      <source type="image/avif" srcset="/storyboard/s2-open.avif?v=20260903b" />
+      <source type="image/webp" srcset="/storyboard/s2-open.webp?v=20260903b" />
+      <img class="sheaf-frame" id="hero-f1" src="/storyboard/s2-open.jpg?v=20260903b"
+        alt="The book open to its printed pages" width="1800" height="1004" decoding="async" />
+    </picture>
+    <picture>
+      <source type="image/avif" srcset="/storyboard/s3-turn.avif?v=20260903c" />
+      <source type="image/webp" srcset="/storyboard/s3-turn.webp?v=20260903c" />
+      <img class="sheaf-frame" id="hero-f2" src="/storyboard/s3-turn.jpg?v=20260903c"
+        alt="One leaf turning through lamplight" width="1800" height="1004" decoding="async" />
+    </picture>
+    <picture>
+      <source type="image/avif" srcset="/storyboard/s4-title.avif?v=20260903b" />
+      <source type="image/webp" srcset="/storyboard/s4-title.webp?v=20260903b" />
+      <img class="sheaf-frame" id="hero-f3" src="/storyboard/s4-title.jpg?v=20260903b"
+        alt="The book open to a blank title page" width="1800" height="1004" decoding="async" />
+    </picture>
+    <div class="sheaf-vignette" aria-hidden="true"></div>
+
+    <div class="sheaf-narration" aria-hidden="true">
+      <div class="sheaf-line">Your Substack, as a book you can hold.</div>
+      <div class="sheaf-line">Every essay, set in type &mdash; contents, running heads, notes.</div>
+      <div class="sheaf-line">Six by nine. Perfect bound. Priced at cost.</div>
+    </div>
+
+    <div class="sheaf-title" id="tryit">
+      <h1>Your Substack,<br />bound as a book.</h1>
+      <p class="sheaf-say">We find your writing, set it in type, and print it to order.</p>
+      <div class="sheaf-error" id="tryerr" role="alert"></div>
+      <button class="sheaf-handoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
+      <label for="tryurl">Your publication</label>
+      <div class="sheaf-input-wrap">
+        <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="off" aria-describedby="tryerr" />
+        <span class="sheaf-caret" aria-hidden="true"></span>
+      </div>
+      <div><button class="sheaf-go" id="trybtn" type="button">Show my book</button></div>
+    </div>
+
+    <div class="sheaf-hint" id="hero-hint" aria-hidden="true">Scroll<span></span></div>
+  </div>
+</section>
+<noscript>
+  <style>
+    /* no scripts: the settled title page, usable, and the specimen book below it (journey A13) */
+    /* id-qualified so these outrank Astro's attribute-scoped component rules */
+    #hero-story.sheaf-scroll{height:100vh;height:100svh}
+    #hero-story .sheaf-stage{position:relative}
+    #hero-story .sheaf-frame{display:none}
+    #hero-story #hero-f3{display:block;opacity:1}
+    #hero-story .sheaf-narration,#hero-story .sheaf-hint{display:none}
+    #hero-story .sheaf-title{opacity:1;pointer-events:auto;transform:none}
+    #preview.preview{display:block}
+    #preview .bookwrap,#preview .pv-page,#preview .pv-price,#preview .pv-page .toc-line{opacity:1;transform:none;animation:none}
+  </style>
+</noscript>
+
+<style>
+  .sheaf-header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:space-between;
+    gap:1rem;padding:.9rem clamp(1rem,4vw,2.4rem);background:linear-gradient(rgba(11,6,2,.74),rgba(11,6,2,0));
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  .sheaf-brand{display:flex;align-items:center;gap:.55rem;color:#eaddc2;text-decoration:none}
+  .sheaf-brand img{filter:invert(1) sepia(.5) saturate(1.7) hue-rotate(349deg) brightness(1.05)}
+  .sheaf-brand b{font-size:1.34rem;font-weight:600}
+  .sheaf-header-cta{display:inline-flex;align-items:center;gap:.5rem;font:600 1.06rem/1 "EB Garamond",Garamond,serif;
+    color:#f4ead4;background:#a8452c;border:0;border-radius:2px;padding:.8rem 1.45rem;cursor:pointer;
+    box-shadow:0 2px 0 rgba(50,16,8,.5),0 10px 22px -8px rgba(140,50,26,.6);
+    transition:transform .2s,box-shadow .2s}
+  .sheaf-header-cta:hover{transform:translateY(-1px);box-shadow:0 3px 0 rgba(50,16,8,.5),0 13px 26px -8px rgba(140,50,26,.7)}
+  .sheaf-header-cta:focus-visible,.sheaf-go:focus-visible,.sheaf-handoff:focus-visible,.sheaf-input-wrap:focus-within{
+    outline:2px solid #f4ead4;outline-offset:4px}
+  .sheaf-caret{display:inline-block;width:2px;height:1.05em;background:currentColor;animation:sheaf-blink 1.1s step-end infinite}
+  @keyframes sheaf-blink{50%{opacity:0}}
+
+  .sheaf-scroll{height:440vh;position:relative;background:#0b0602}
+  .sheaf-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:
+    radial-gradient(100% 80% at 58% 16%,rgba(198,133,67,.28),transparent 58%),
+    linear-gradient(132deg,#24170d 0%,#0b0602 72%)}
+  .sheaf-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;will-change:opacity,transform;opacity:0;transition:none}
+  #hero-f0{opacity:1}
+  .sheaf-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 100% at 55% 46%,transparent 52%,rgba(0,0,0,.5))}
+
+  .sheaf-narration{position:absolute;left:clamp(1.2rem,5vw,4.5rem);bottom:13vh;z-index:5;width:min(23ch,82vw)}
+  .sheaf-line{position:absolute;left:0;bottom:0;width:100%;opacity:0;transform:translateY(14px);
+    font-size:clamp(24px,2.7vw,39px);line-height:1.14;color:#f2e6cd;font-weight:500;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+
+  .sheaf-title{position:absolute;left:58%;top:37%;width:28%;max-width:420px;text-align:center;color:#2a2118;
+    opacity:0;z-index:6;transform:translateY(10px);pointer-events:none}
+  .sheaf-title h1{font-size:clamp(20px,min(2.3vw,4vh),32px);line-height:1.1;font-weight:600;margin:0;animation:none;text-shadow:none}
+  .sheaf-say{font-size:clamp(13px,min(1.1vw,2vh),15px);font-style:italic;color:#4a3626;margin:8px auto 0;max-width:30ch;line-height:1.4}
+  .sheaf-title label{display:block;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#a8452c;margin:13px 0 5px}
+  .sheaf-input-wrap{display:inline-flex;align-items:center;gap:1px;max-width:100%;border-bottom:1.4px solid rgba(90,66,30,.55);padding-bottom:3px}
+  .sheaf-input-wrap input{border:0;background:transparent;font-family:inherit;font-size:clamp(14px,min(1.15vw,2.1vh),16px);
+    color:#2a2118;text-align:center;width:22ch;max-width:100%;outline:none;caret-color:#a8452c}
+  .sheaf-input-wrap input::placeholder{color:rgba(42,33,24,.62)}
+  .sheaf-input-wrap .sheaf-caret{color:#a8452c}
+  .sheaf-go{margin-top:11px;display:inline-block;border:1.1px solid #2a2118;padding:7px 20px;font:600 11px/1.3 "EB Garamond",Garamond,serif;
+    letter-spacing:.2em;text-transform:uppercase;color:#2a2118;background:rgba(244,234,212,.4);cursor:pointer}
+  .sheaf-go:hover{background:#2a2118;color:#f4ead4}
+  .sheaf-go:disabled{opacity:.55;cursor:wait}
+  .sheaf-error{color:#8e2f1c;font-size:clamp(12px,min(1.05vw,1.9vh),14px);line-height:1.35;margin:8px auto 0;max-width:30ch}
+  .sheaf-error:empty{display:none}
+  /* a failure is one quiet line where the sub-line was, never the hero */
+  .sheaf-title:has(.sheaf-error:not(:empty)) .sheaf-say{display:none}
+  .sheaf-handoff{margin-top:4px;border:0;background:none;color:#8e2f1c;padding:0;font:600 clamp(12px,min(1.05vw,1.9vh),14px)/1.3 "EB Garamond",Garamond,serif;
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+
+  .sheaf-hint{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:5;color:#d9c8a6;
+    font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;text-align:center}
+  .sheaf-hint span{display:block;margin:8px auto 0;width:14px;height:14px;border-right:1.5px solid #d9c8a6;
+    border-bottom:1.5px solid #d9c8a6;transform:rotate(45deg);animation:sheaf-bob 1.8s ease-in-out infinite}
+  @keyframes sheaf-bob{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(3px,3px)}}
+
+  @media (max-width:640px){
+    .sheaf-scroll{height:400vh}
+    .sheaf-frame{object-position:58% 50%}
+    .sheaf-title{left:50%;top:36%;width:68%;max-width:none;transform:translateX(-50%) translateY(10px)}
+    .sheaf-narration{bottom:11vh}.sheaf-line{font-size:28px}
+    .sheaf-header-cta{font-size:.96rem;padding:.7rem 1.05rem}.sheaf-brand b{font-size:1.16rem}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .sheaf-caret,.sheaf-hint span{animation:none}
+    .sheaf-scroll{height:100vh;height:100svh}
+    .sheaf-stage{position:relative}
+    .sheaf-frame{display:none!important;will-change:auto;transform:none!important}
+    #hero-f3{display:block!important;opacity:1!important}
+    .sheaf-narration,.sheaf-hint{display:none}
+    .sheaf-title{opacity:1!important;pointer-events:auto!important;transform:none!important}
+    .sheaf-header-cta{transition:none}
+  }
+  @media (prefers-reduced-motion:reduce) and (max-width:640px){
+    .sheaf-title{transform:translateX(-50%)!important}
+  }
+</style>
+
+<script is:inline>
+  (function(){
+    var root=document.getElementById('hero-story');
+    if(!root) return;
+    var frames=['hero-f0','hero-f1','hero-f2','hero-f3'].map(function(id){return document.getElementById(id);});
+    var title=document.getElementById('tryit');
+    var hint=document.getElementById('hero-hint');
+    var lines=[].slice.call(root.querySelectorAll('.sheaf-line'));
+    var field=document.getElementById('tryurl');
+    var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    frames.forEach(function(image){if(image&&image.decode) image.decode().catch(function(){});});
+
+    function focusTitle(){
+      if(reduce){field&&field.focus();return;}
+      var target=root.offsetTop+root.offsetHeight-window.innerHeight;
+      window.scrollTo({top:target,behavior:'smooth'});
+      window.setTimeout(function(){field&&field.focus();},650);
+    }
+    document.addEventListener('click',function(event){
+      var target=event.target;
+      if(target&&target.closest&&target.closest('[data-hero-try]')) focusTitle();
+    });
+    var brand=root.previousElementSibling&&root.previousElementSibling.querySelector('.sheaf-brand');
+    if(brand) brand.addEventListener('click',function(event){event.preventDefault();window.scrollTo({top:root.offsetTop,behavior:reduce?'auto':'smooth'});});
+
+    if(reduce){
+      if(title) title.style.pointerEvents='auto';
+      return;
+    }
+
+    var transitions=[0.30,0.56,0.82], dissolve=0.06;
+    var lineWindows=[[0.04,0.26],[0.36,0.52],[0.62,0.78]], lineFade=0.05;
+    function clamp(x){return x<0?0:x>1?1:x;}
+    function smooth(x){x=clamp(x);return x*x*(3-2*x);}
+    function frameOpacity(index,progress){
+      var entered=index>0?smooth((progress-(transitions[index-1]-dissolve))/(2*dissolve)):1;
+      var nextEntered=index<3?smooth((progress-(transitions[index]-dissolve))/(2*dissolve)):0;
+      return nextEntered>=1?0:entered;
+    }
+    function update(){
+      var rect=root.getBoundingClientRect();
+      var total=root.offsetHeight-window.innerHeight;
+      var progress=clamp((-rect.top)/Math.max(total,1));
+      for(var i=0;i<frames.length;i++){
+        if(!frames[i]) continue;
+        frames[i].style.opacity=String(frameOpacity(i,progress));
+        frames[i].style.transform='scale('+(1.02+0.06*progress).toFixed(4)+')';
+      }
+      for(var j=0;j<lines.length;j++){
+        var opacity=smooth((progress-lineWindows[j][0])/lineFade)*(1-smooth((progress-lineWindows[j][1])/lineFade));
+        lines[j].style.opacity=String(opacity);
+        lines[j].style.transform='translateY('+((1-opacity)*16).toFixed(1)+'px)';
+      }
+      var titleOpacity=smooth((progress-0.80)/0.15);
+      title.style.opacity=String(titleOpacity);
+      title.style.pointerEvents=titleOpacity>.92?'auto':'none';
+      hint.style.opacity=String(clamp(1-progress/0.05));
+    }
+    var ticking=false;
+    function queueUpdate(){
+      if(ticking) return;
+      ticking=true;
+      requestAnimationFrame(function(){update();ticking=false;});
+    }
+    document.addEventListener('scroll',queueUpdate,{passive:true});
+    window.addEventListener('resize',queueUpdate);
+    update();
+  })();
+</script>

@@ -20,6 +20,7 @@
     "test:honesty": "node scripts/test-honesty.mjs",
     "test:relay": "node scripts/test-relay-sample.mjs",
     "test:design": "node scripts/test-design.mjs",
+    "test:hero": "node scripts/test-hero-assets.mjs",
     "test:plan": "node scripts/test-plan-check.mjs",
     "eval:editor": "node scripts/test-editor-live.mjs"
   },
