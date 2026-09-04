@@ -1,0 +1,578 @@
+{
+  "host": "www.caithrin.com",
+  "listed": 44,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "ruleCuts": [],
+  "eligiblePublic": 44,
+  "planSelection": {
+    "posts": 23,
+    "found": 23,
+    "missing": []
+  },
+  "estPages": 166,
+  "brand": {
+    "accent": "#63543a",
+    "headingFont": "Inter",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#1D1E1D",
+    "coverPlate": false,
+    "mappedFrom": "SF Pro Display",
+    "warnings": []
+  },
+  "guestCuts": [],
+  "editorExcluded": 21,
+  "pubName": "caithrin",
+  "author": "Caithrin",
+  "authors": [
+    "Caithrin"
+  ],
+  "isbn": null,
+  "postOrder": [
+    {
+      "id": 163753068,
+      "slug": "working-with-llms-time-and-focus"
+    },
+    {
+      "id": 168160475,
+      "slug": "crypto-smell-and-the-virtues-of-seriousness"
+    },
+    {
+      "id": 170104221,
+      "slug": "the-atom-project"
+    },
+    {
+      "id": 171130054,
+      "slug": "gpt-5-and-valving-down-llms"
+    },
+    {
+      "id": 171921709,
+      "slug": "10-ownership-of-intel-should-worry"
+    },
+    {
+      "id": 172272654,
+      "slug": "the-last-5-living-translunar-humans"
+    },
+    {
+      "id": 174572978,
+      "slug": "the-dream-of-ai-slide-decks-a-september"
+    },
+    {
+      "id": 176608158,
+      "slug": "oppenheimer-sagan-and-saying-the"
+    },
+    {
+      "id": 182217199,
+      "slug": "ten-commandments-of-ai-parties"
+    },
+    {
+      "id": 183082229,
+      "slug": "lord-byron-and-how-to-properly-oppose"
+    },
+    {
+      "id": 184432631,
+      "slug": "your-obligations-to-the-gospel-of"
+    },
+    {
+      "id": 185543042,
+      "slug": "dispatches-from-claude-psychosis"
+    },
+    {
+      "id": 186226306,
+      "slug": "dispatches-from-claude-psychosis-53a"
+    },
+    {
+      "id": 189878301,
+      "slug": "thirty-days-without-a-smartphone"
+    },
+    {
+      "id": 193017210,
+      "slug": "who-will-explain-the-machines-of"
+    },
+    {
+      "id": 197753184,
+      "slug": "the-singapore-safety-cluster-what"
+    },
+    {
+      "id": 198554841,
+      "slug": "searching-for-amanda-askell-with"
+    },
+    {
+      "id": 200676032,
+      "slug": "towards-a-singaporean-safety-cluster"
+    },
+    {
+      "id": 202492338,
+      "slug": "whos-getting-clanked-in-2027"
+    },
+    {
+      "id": 202631952,
+      "slug": "my-browser-tool-that-automatically"
+    },
+    {
+      "id": 202753268,
+      "slug": "every-day-i-live-in-house-vi"
+    },
+    {
+      "id": 203132926,
+      "slug": "what-were-talking-about-when-were"
+    },
+    {
+      "id": 203723156,
+      "slug": "cargo-cult-vannevar-bush"
+    }
+  ],
+  "bodyHashes": {
+    "163753068": "27cd21afe0ea89ddb54f119c13fdfc327838e9e7a2530bb88191d4bae0fe796a",
+    "168160475": "ad0b571627c60a1f8a78f617678d6cbf71e268a929597f21d6dac67f42fda5c8",
+    "170104221": "e47871d69172c0cb9b28b5d15627a5875dd40d7a8ca3740c28bb6b573fd32298",
+    "171130054": "b023d5f310967bf1d4120ac56748f629ccbb94b5a8745e1faeeace679fd1e4fb",
+    "171921709": "574f7de81766a9174bf9f804f484121951bf769cff2e085f58a83c15b88e2c2f",
+    "172272654": "9b3a41bcda2f90e483e631fe039c04ad40f581bd5db8140826dbb6cd46d36ea9",
+    "174572978": "b406569943a4fc222173d13e0794536d8e90241f818ef7a2f3e4eb31a6c60772",
+    "176608158": "1cfbf53c448beb82e6f24ff995d483f173c802611bc9ef037754c59ddd604e85",
+    "182217199": "7edac3602ceb6f40fd8e0bd4f9b552e741bf3355e4ec175ea68284bbab102620",
+    "183082229": "038b4c4bc4b851ec4f35130985a082ce96f71c55f360dc2cba21b71d4ca1b190",
+    "184432631": "634c3188d64a5de2de77b2efff38cf049990751890d405ccadb2696f7613fa56",
+    "185543042": "fdff87b9d0093440e531c27d6c8fdc950469e92413bfd8ead831ab33b324a175",
+    "186226306": "98681883d07e37b8429a5024e79d59644d90cb09315e816ef61ebbf483d0af5e",
+    "189878301": "a16da9cb6f714e7ce3226014f0eee3197333e004698cd8dc8f936e0359e858fd",
+    "193017210": "9633d74232c593b2de368b3d9be4be3c0d21cd0656662efaf008b187155fca93",
+    "197753184": "fd24d701550aee50ecf8eb462d284efb366067867a8cd31a891bb9df4130641a",
+    "198554841": "475e54012f3e716423552d827bd1812959ada1f2a7322f4db277ca89bf2bda1c",
+    "200676032": "c245bb1dfe0686e6c83ddfd3b3c6d818f0c8214d4d6b8de53ac621a759a45c1d",
+    "202492338": "85d674d80768bd76896ac26b2fa91739e09b2a5cdb44d8ddd4055d827008f085",
+    "202631952": "0b3c86a95a6545bd092c0542c7d096f65eb4add9c4a7945238e717413a154b07",
+    "202753268": "31f3225e02ec8058feb5fa881b5d20138ef2c2520273d7667fdecf022bf631b3",
+    "203132926": "210fd876b4690d6bd21200ab251c3d23caf0f3d1e4519d22e779cb2ba0ebf766",
+    "203723156": "5990dc311a231da62cf9d34b0267b077b8a98c5915c9f281ce4355ed9ae74fc8"
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "included": 23,
+  "parts": [],
+  "notesBlocks": [
+    {
+      "slug": "what-were-talking-about-when-were",
+      "heading": "sources (AI generated)",
+      "score": 0.78,
+      "method": "heading"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.3,
+      "method": "heading"
+    }
+  ],
+  "links": [
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "a",
+      "code": "e8eaep",
+      "target": "https://en.wikipedia.org/wiki/Bloom%27s_taxonomy",
+      "text": "Bloom’s Taxononomy"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "b",
+      "code": "uawsr7",
+      "target": "https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/",
+      "text": "metr.org"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "c",
+      "code": "tmxbef",
+      "target": "https://www.economist.com/science-and-technology/2025/07/16/does-ai-make-you-stupid",
+      "text": "economist.com"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "d",
+      "code": "jqwzmq",
+      "target": "https://archive.ph/AFwsW",
+      "text": "archive v)"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "e",
+      "code": "xubwhu",
+      "target": "https://www.frontiersin.org/journals/computational-neuroscience/articles/10.3389/fncom.2025.1556483/full",
+      "text": "frontiersin.org"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "f",
+      "code": "y5eh7n",
+      "target": "https://talks.ui-patterns.com/videos/building-the-minimum-badass-user-kathy-sierra",
+      "text": "("
+    },
+    {
+      "slug": "the-atom-project",
+      "letter": "a",
+      "code": "8dt4fa",
+      "target": "https://atomproject.ai",
+      "text": "The ATOM Project"
+    },
+    {
+      "slug": "the-last-5-living-translunar-humans",
+      "letter": "a",
+      "code": "hcfafr",
+      "target": "https://danwang.co/breakneck/",
+      "text": "Breakneck"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "a",
+      "code": "e6hakg",
+      "target": "http://atomproject.ai",
+      "text": "ATOM Project"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "b",
+      "code": "exsa5y",
+      "target": "https://www.lesswrong.com/w/sequences",
+      "text": "The Sequences"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "c",
+      "code": "p6e8xr",
+      "target": "https://futurism.com/ai-expert-bomb-datacenters",
+      "text": "and possibly missile strikes on datacenters"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "d",
+      "code": "b4rj23",
+      "target": "https://www.youtube.com/watch?v=FUcilE5Gx_0&t=3s",
+      "text": "At the end of Nathan’s talk on open models, a line of Safety People formed at the mic"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "e",
+      "code": "hwuczm",
+      "target": "https://en.wikipedia.org/wiki/If_Anyone_Builds_It,_Everyone_Dies",
+      "text": "“"
+    },
+    {
+      "slug": "lord-byron-and-how-to-properly-oppose",
+      "letter": "a",
+      "code": "dunpz9",
+      "target": "https://marginalrevolution.com",
+      "text": "Tyler Cowen"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis-53a",
+      "letter": "a",
+      "code": "667k5c",
+      "target": "https://paulgraham.com/makersschedule.html",
+      "text": "Paul Graham’s 2009 essay, “Maker’s Schedule, Manager’s Schedule.”"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "letter": "a",
+      "code": "y83zv6",
+      "target": "http://clanked.ai",
+      "text": "Clanked.ai"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "letter": "b",
+      "code": "57hn2v",
+      "target": "https://clanked.ai/model?sc=13311225435355555235233",
+      "text": "And finally, you can build your own scenario. Here’s mine."
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "letter": "a",
+      "code": "w7ae7x",
+      "target": "http://stopslops.com",
+      "text": "slopstops.com"
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "letter": "b",
+      "code": "2ehqk9",
+      "target": "http://slopstops.com",
+      "text": "get the .md file here"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "a",
+      "code": "44ux7d",
+      "target": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks",
+      "text": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "b",
+      "code": "keja5d",
+      "target": "https://techcrunch.com/2024/12/27/why-deepseeks-new-ai-model-thinks-its-chatgpt/",
+      "text": "https://techcrunch.com/2024/12/27/why-deepseeks-new-ai-model-thinks-its-chatgpt/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "c",
+      "code": "mtsfba",
+      "target": "https://techcrunch.com/2025/02/06/openai-now-reveals-more-of-its-o3-mini-models-thought-process/",
+      "text": "https://techcrunch.com/2025/02/06/openai-now-reveals-more-of-its-o3-mini-models-thought-process/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "d",
+      "code": "h3zrrf",
+      "target": "https://z.ai/blog/glm-5.2",
+      "text": "https://z.ai/blog/glm-5.2"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "e",
+      "code": "ywznfs",
+      "target": "https://github.com/THUDM/slime",
+      "text": "https://github.com/THUDM/slime"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "f",
+      "code": "unckny",
+      "target": "https://en.wikipedia.org/wiki/SGLang",
+      "text": "https://en.wikipedia.org/wiki/SGLang"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "g",
+      "code": "2bpuav",
+      "target": "https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technology",
+      "text": "https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technolo"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "h",
+      "code": "yhas92",
+      "target": "https://www.cnbc.com/2025/10/08/nvidia-huang-ai-race-china-us-trump.html",
+      "text": "https://www.cnbc.com/2025/10/08/nvidia-huang-ai-race-china-us-trump.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "i",
+      "code": "2qvcnf",
+      "target": "https://archivemacropolo.org/interactive/digital-projects/the-global-ai-talent-tracker/",
+      "text": "https://archivemacropolo.org/interactive/digital-projects/the-global-ai-talent-tracker/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "j",
+      "code": "cyqahr",
+      "target": "https://www.implicator.ai/chinas-ai-talent-is-going-home-the-real-blow-is-the-students-who-stopped-leaving-2/",
+      "text": "https://www.implicator.ai/chinas-ai-talent-is-going-home-the-real-blow-is-the-students-who-stopped-leaving-2/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "k",
+      "code": "nkefa9",
+      "target": "https://www.cnbc.com/amp/2026/06/05/china-may-move-toward-us-path-on-ai-as-firms-poach-employees.html",
+      "text": "https://www.cnbc.com/amp/2026/06/05/china-may-move-toward-us-path-on-ai-as-firms-poach-employees.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "l",
+      "code": "r5thb2",
+      "target": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=16600.&lawCode=BPC",
+      "text": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=16600.&amp;lawCode=BPC"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "m",
+      "code": "mr4dhc",
+      "target": "https://www.cnbc.com/2024/03/15/nvidia-ceo-huang-at-stanford-pain-and-suffering-breeds-success.html",
+      "text": "https://www.cnbc.com/2024/03/15/nvidia-ceo-huang-at-stanford-pain-and-suffering-breeds-success.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "n",
+      "code": "aypdp3",
+      "target": "https://en.wikipedia.org/wiki/James_Jesus_Angleton",
+      "text": "https://en.wikipedia.org/wiki/James_Jesus_Angleton"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "o",
+      "code": "9ynv27",
+      "target": "https://www.fbi.gov/history/famous-cases/aldrich-ames",
+      "text": "https://www.fbi.gov/history/famous-cases/aldrich-ames"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "p",
+      "code": "aw2kae",
+      "target": "https://www.anthropic.com/news/fable-mythos-access",
+      "text": "https://www.anthropic.com/news/fable-mythos-access"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "q",
+      "code": "7sfrr4",
+      "target": "https://support.claude.com/en/articles/14328960-identity-verification-on-claude",
+      "text": "https://support.claude.com/en/articles/14328960-identity-verification-on-claude"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "r",
+      "code": "xete94",
+      "target": "https://www.techtimes.com/articles/318778/20260621/claude-identity-verification-starts-july-8-what-facial-data-anthropic-collects.htm",
+      "text": "https://www.techtimes.com/articles/318778/20260621/claude-identity-verification-starts-july-8-what-facial-data-anthropic"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "letter": "a",
+      "code": "4bssaq",
+      "target": "https://www.caithrin.com/p/10-ownership-of-intel-should-worry",
+      "text": "the government’s 10 percent stake in Intel"
+    }
+  ],
+  "essayLinks": [
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "code": "vpqumz",
+      "target": "https://www.caithrin.com/p/working-with-llms-time-and-focus"
+    },
+    {
+      "slug": "crypto-smell-and-the-virtues-of-seriousness",
+      "code": "9mmv3u",
+      "target": "https://www.caithrin.com/p/crypto-smell-and-the-virtues-of-seriousness"
+    },
+    {
+      "slug": "the-atom-project",
+      "code": "2psjtv",
+      "target": "https://www.caithrin.com/p/the-atom-project"
+    },
+    {
+      "slug": "gpt-5-and-valving-down-llms",
+      "code": "sbafym",
+      "target": "https://www.caithrin.com/p/gpt-5-and-valving-down-llms"
+    },
+    {
+      "slug": "10-ownership-of-intel-should-worry",
+      "code": "4bssaq",
+      "target": "https://www.caithrin.com/p/10-ownership-of-intel-should-worry"
+    },
+    {
+      "slug": "the-last-5-living-translunar-humans",
+      "code": "mt5gus",
+      "target": "https://www.caithrin.com/p/the-last-5-living-translunar-humans"
+    },
+    {
+      "slug": "the-dream-of-ai-slide-decks-a-september",
+      "code": "yxsbra",
+      "target": "https://www.caithrin.com/p/the-dream-of-ai-slide-decks-a-september"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "code": "m7ww9g",
+      "target": "https://www.caithrin.com/p/oppenheimer-sagan-and-saying-the"
+    },
+    {
+      "slug": "ten-commandments-of-ai-parties",
+      "code": "3c3rzn",
+      "target": "https://www.caithrin.com/p/ten-commandments-of-ai-parties"
+    },
+    {
+      "slug": "lord-byron-and-how-to-properly-oppose",
+      "code": "6zjjtf",
+      "target": "https://www.caithrin.com/p/lord-byron-and-how-to-properly-oppose"
+    },
+    {
+      "slug": "your-obligations-to-the-gospel-of",
+      "code": "bcgecg",
+      "target": "https://www.caithrin.com/p/your-obligations-to-the-gospel-of"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis",
+      "code": "2ev7rm",
+      "target": "https://www.caithrin.com/p/dispatches-from-claude-psychosis"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis-53a",
+      "code": "4vnxdx",
+      "target": "https://www.caithrin.com/p/dispatches-from-claude-psychosis-53a"
+    },
+    {
+      "slug": "thirty-days-without-a-smartphone",
+      "code": "ezye5e",
+      "target": "https://www.caithrin.com/p/thirty-days-without-a-smartphone"
+    },
+    {
+      "slug": "who-will-explain-the-machines-of",
+      "code": "wkc7h8",
+      "target": "https://www.caithrin.com/p/who-will-explain-the-machines-of"
+    },
+    {
+      "slug": "the-singapore-safety-cluster-what",
+      "code": "yudk8z",
+      "target": "https://www.caithrin.com/p/the-singapore-safety-cluster-what"
+    },
+    {
+      "slug": "searching-for-amanda-askell-with",
+      "code": "yjyf94",
+      "target": "https://www.caithrin.com/p/searching-for-amanda-askell-with"
+    },
+    {
+      "slug": "towards-a-singaporean-safety-cluster",
+      "code": "cym7yc",
+      "target": "https://www.caithrin.com/p/towards-a-singaporean-safety-cluster"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "code": "gzpxms",
+      "target": "https://www.caithrin.com/p/whos-getting-clanked-in-2027"
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "code": "7xg6pk",
+      "target": "https://www.caithrin.com/p/my-browser-tool-that-automatically"
+    },
+    {
+      "slug": "every-day-i-live-in-house-vi",
+      "code": "y4p4za",
+      "target": "https://www.caithrin.com/p/every-day-i-live-in-house-vi"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "code": "wnyk64",
+      "target": "https://www.caithrin.com/p/what-were-talking-about-when-were"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "code": "5x5zvk",
+      "target": "https://www.caithrin.com/p/cargo-cult-vannevar-bush"
+    }
+  ],
+  "components": {
+    "image-link-expand": 41,
+    "file-embed-wrapper": 9,
+    "Twitter2ToDOM": 1,
+    "VideoPlaceholder": 1,
+    "image-gallery-embed": 3,
+    "Youtube2ToDOM": 1,
+    "embedded-post-wrap": 1
+  },
+  "srcnotes": 2,
+  "rtlChars": 0,
+  "cjkChars": 0,
+  "retrievalFailures": 0,
+  "fitFigs": {
+    "the-atom-project:1": 2.06
+  },
+  "engine": "typst",
+  "notes": "endnotes_per_article",
+  "dateRange": [
+    "2025-07-18",
+    "2026-06-26"
+  ]
+}

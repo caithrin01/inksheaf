@@ -1,0 +1,23 @@
+{
+  "id": 999,
+  "version_id": 1,
+  "host": "www.caithrin.com",
+  "interior": "bw",
+  "category": "LITERARY COLLECTIONS",
+  "keywords": [
+    "essays"
+  ],
+  "authorFirst": "Caithrin",
+  "authorLast": "Rintoul",
+  "built": [
+    {
+      "label": "Collected Essays 2025–2026",
+      "pubName": "Caithrin",
+      "title": "Caithrin",
+      "pages": 294,
+      "interiorKey": "/Users/caithrinrintoul/repos/inksheaf/proofs/pipe/caithrin/interior.pdf",
+      "coverKey": "/Users/caithrinrintoul/repos/inksheaf/proofs/pipe/caithrin/cover.pdf"
+    }
+  ],
+  "payeeId": "yjw8y7"
+}

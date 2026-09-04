@@ -1,0 +1,1152 @@
+{
+  "host": "weijinresearch.substack.com",
+  "listed": 62,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "ruleCuts": [],
+  "eligiblePublic": 62,
+  "estPages": 448,
+  "pageWarning": "~448pp is over the recommended 300pp per volume (bindery limit 800); consider date windows",
+  "brand": {
+    "accent": "#d15415",
+    "headingFont": "Source Serif 4",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#111827",
+    "coverPlate": false,
+    "mappedFrom": null,
+    "warnings": []
+  },
+  "guestCuts": [],
+  "editorExcluded": 0,
+  "pubName": "Weijin Research",
+  "author": "Weijin Research",
+  "authors": [
+    "Weijin Research"
+  ],
+  "isbn": null,
+  "postOrder": [
+    {
+      "id": 156777805,
+      "slug": "huawei-and-chinese-chip-makers-rush"
+    },
+    {
+      "id": 157198412,
+      "slug": "catls-foray-beyond-batteries"
+    },
+    {
+      "id": 188995534,
+      "slug": "google-real-token-consumption-ai"
+    },
+    {
+      "id": 189646563,
+      "slug": "enter-chinas-platforms"
+    },
+    {
+      "id": 189971962,
+      "slug": "how-much-of-the-ai-2028-crisis-has"
+    },
+    {
+      "id": 191223618,
+      "slug": "china-is-devouring-openclaw-raw"
+    },
+    {
+      "id": 191455586,
+      "slug": "the-token-economy-has-a-speed-problem"
+    },
+    {
+      "id": 192581976,
+      "slug": "alibabas-100-billion-bet-on-token"
+    },
+    {
+      "id": 192582549,
+      "slug": "the-demise-of-sora-pathways-for-llms"
+    },
+    {
+      "id": 193142222,
+      "slug": "spacexs-2-trillion-ipo-rockets-are"
+    },
+    {
+      "id": 193413784,
+      "slug": "deepseek-v4-on-huawei-ascend-would"
+    },
+    {
+      "id": 193567688,
+      "slug": "minimax-and-zai-battle-it-out-in"
+    },
+    {
+      "id": 194846699,
+      "slug": "open-source-ai-models-may-slip-down"
+    },
+    {
+      "id": 195603409,
+      "slug": "deepseek-v4-a-need-for-reassessment"
+    },
+    {
+      "id": 195997789,
+      "slug": "ai-agents-take-on-the-biz-planning"
+    },
+    {
+      "id": 196511913,
+      "slug": "chinese-token-export-a-vision-not"
+    },
+    {
+      "id": 196520572,
+      "slug": "compute-boom-spreads-beyond-gpus"
+    },
+    {
+      "id": 196551831,
+      "slug": "deepseek-v4"
+    },
+    {
+      "id": 196582811,
+      "slug": "openais-mobile-phone-can-it-exploit"
+    },
+    {
+      "id": 197219223,
+      "slug": "xai-was-supposed-to-understand-the"
+    },
+    {
+      "id": 198218559,
+      "slug": "an-ai-boom-fit-to-crack-vertical"
+    },
+    {
+      "id": 199297871,
+      "slug": "whats-next-after-moores-law-tau"
+    },
+    {
+      "id": 200408707,
+      "slug": "supernodes-are-the-new-paradigm-of"
+    },
+    {
+      "id": 201551387,
+      "slug": "apple-intelligence-faces-nvidia-google"
+    },
+    {
+      "id": 201551833,
+      "slug": "fable5-mythos5-and-anthropics-sly"
+    },
+    {
+      "id": 202079661,
+      "slug": "anthropic-forced-to-pull-fable-and"
+    },
+    {
+      "id": 202080172,
+      "slug": "spacex-is-putting-a-price-on-space"
+    },
+    {
+      "id": 201553348,
+      "slug": "ai-agents-now-generate-more-web-traffic"
+    },
+    {
+      "id": 202534837,
+      "slug": "tencent-and-ant-group-bet-again-on"
+    },
+    {
+      "id": 201553878,
+      "slug": "industrial-scale-competition-in-token"
+    },
+    {
+      "id": 203034523,
+      "slug": "zhipus-glm-52-a-usability-breakthrough"
+    },
+    {
+      "id": 202689356,
+      "slug": "openai-and-anthropic-escalate-their"
+    },
+    {
+      "id": 201554288,
+      "slug": "ai-coding-tools-boost-output-but"
+    },
+    {
+      "id": 201552890,
+      "slug": "why-mai-base-1s-mfu-lags-behind-deepseek"
+    },
+    {
+      "id": 201553686,
+      "slug": "the-real-battleground-for-ai-is-deep"
+    },
+    {
+      "id": 204699421,
+      "slug": "apples-price-hikes-signal-ai-driven"
+    },
+    {
+      "id": 204699779,
+      "slug": "ai-pushes-ssds-into-compute-nvidias"
+    },
+    {
+      "id": 206259194,
+      "slug": "gpt-56-and-mythos-5-the-first-generation"
+    },
+    {
+      "id": 206259469,
+      "slug": "gpu-empire-loosens-inference-chips"
+    },
+    {
+      "id": 206259774,
+      "slug": "anthropic-maps-j-space-what-language"
+    },
+    {
+      "id": 207219801,
+      "slug": "when-ai-starts-to-trade-why-the-agent"
+    },
+    {
+      "id": 207218842,
+      "slug": "musks-grok-45-aims-for-cheaper-ai"
+    },
+    {
+      "id": 207219797,
+      "slug": "apple-jumps-from-m6-to-m7-chips-take"
+    },
+    {
+      "id": 207218836,
+      "slug": "the-real-battleground-for-enterprise"
+    },
+    {
+      "id": 209207902,
+      "slug": "when-ai-hype-outran-the-money-the"
+    },
+    {
+      "id": 209069889,
+      "slug": "alphafold-era-closes-global-competition"
+    },
+    {
+      "id": 209337141,
+      "slug": "harness-recursive-evolution-the-next"
+    },
+    {
+      "id": 208568202,
+      "slug": "kimi-k3-shakes-up-washingtons-ai"
+    },
+    {
+      "id": 208847733,
+      "slug": "the-race-to-stand-out-in-ai-narrows"
+    },
+    {
+      "id": 208005868,
+      "slug": "ai-competition-3-trillion-parameters"
+    },
+    {
+      "id": 207301539,
+      "slug": "thinking-machine-labs-inkling-model"
+    },
+    {
+      "id": 211406742,
+      "slug": "meta-repositions-on-open-ai-models"
+    },
+    {
+      "id": 211998098,
+      "slug": "zhuque-3-booster-lands-safely-but"
+    },
+    {
+      "id": 211842696,
+      "slug": "ai-model-security-distillation-attacks"
+    },
+    {
+      "id": 211842698,
+      "slug": "tencent-ramps-up-ai-spending-annual"
+    },
+    {
+      "id": 211869306,
+      "slug": "optical-modules-why-is-the-us-willing"
+    },
+    {
+      "id": 211869319,
+      "slug": "openais-first-ai-hardware-leaks-chasing"
+    },
+    {
+      "id": 211869335,
+      "slug": "why-google-needs-its-founders-back"
+    },
+    {
+      "id": 212829880,
+      "slug": "will-ymtcs-ipo-mark-the-start-of"
+    },
+    {
+      "id": 213064182,
+      "slug": "deepseek-zhipu-and-kimi-competing"
+    },
+    {
+      "id": 211874361,
+      "slug": "is-openai-creating-a-crisis-in-mathematical"
+    },
+    {
+      "id": 211842691,
+      "slug": "why-chinese-ai-models-are-raising"
+    }
+  ],
+  "bodyHashes": {
+    "156777805": "95578bafcd9712ca94b65ad332079ce4c32912f5a041eea09ae6923fad2eae41",
+    "157198412": "02ac8eee3b0673adff44d1ffc74e314ef5b23fdd7552a9689cde46d507180336",
+    "188995534": "ab945cf7976e57427fecf21a79c6ba17fb3274cfdaa024b6e2ff23e5c5c3cfb1",
+    "189646563": "2e05c959f40dae8dab705efdc4bb7d26cdbad7bc082a805dbb0da3981657c3e8",
+    "189971962": "8c03793a9cb163d2112865423a230ffcad6c9ec1d2dc9c399a9cd36080e0c645",
+    "191223618": "e147c7c99707c9a444a6e28d8a32ea8634972455133d5d628cc0a921601ce14a",
+    "191455586": "5db2226738f6bcc8530ab1fe5914356f1fdb5ae8900fcf38a1afc26607641d2f",
+    "192581976": "064bb34818802407e2bae300e5da0332f711d9957a172e508ac107859e16c948",
+    "192582549": "5db541f75212d8acfc5540e6c5145bebca27d88cd053e08414e5899a06dc27a9",
+    "193142222": "b13b36464e09681738233ed381cd7520c4ffb37bc431ca9e5f1bbc3ed92bbacb",
+    "193413784": "49a6c9abfc3ff3854953feba996921c2f5f32a76e94408eea97b6c77e5a49f35",
+    "193567688": "705b805f1312539b03169df2fd442eb3048ab94ed3671bf2ec1760d53ea81c20",
+    "194846699": "0b7a32803c21e31aa7b7f018d2edf1c6560042926fac49fe45f0218c1e888b0b",
+    "195603409": "5e0df63f13e4fd5898ef4d7b0b17bc3fbc6d50511bbbdac631e2ba284c20e473",
+    "195997789": "47a4ebe2da13a52a17a6aa1e8e7621ec28a114f352ca5f5cd88f7e519f18c580",
+    "196511913": "6b5929337c0de8416615b4fcaaad8b921c359ac71371533a82844afef68ea28a",
+    "196520572": "2ed1ef752af98c7541218d776f273387ce63d5f003e3bbdd4170283656276b62",
+    "196551831": "10a86c3f2eac9276c63a9c40f99a7a6362a043169bb6c58af78d7471d5c223fd",
+    "196582811": "231fa3a0a0c2f54e3118e6101231da989563994b063c0313ba42e8bc6396a823",
+    "197219223": "fdd9ab9080c26937dd4c04c7680508fa33129d6b82f60f9d749652325e41631e",
+    "198218559": "ddfce917c066bc8ba69421df9612019580d4c30e995205836ba3c966cdc96fdd",
+    "199297871": "30e7ea34f95f45285064f16098e175be2a7347477837994d4cd42f9ea693e478",
+    "200408707": "0de87351b8e62a9af72d692f0d325698dff304149af8460d209faa784d78f781",
+    "201551387": "158573b0843f66ef862f7be3dc323b5e5e81c4401aad652d7ec83322b0be478b",
+    "201551833": "4ceedf3c61212aecaa8ecd8103bab791bc2409d0b813da9a47f6c9c328283fc6",
+    "201552890": "9304d056d1e2ea4d75c70e6579e26a785e8c0904485304e460ce83e276b2d85a",
+    "201553348": "ff0871c69d926660ad4a0fb01d8bc670dc96eee8a61ce75a65ed29c17ed47676",
+    "201553686": "5986fdc367c80c3de505a68c5040cacf72127061503b3a1fa773d56c2a99faeb",
+    "201553878": "b9959e2a8cc04ebdbae180c14335105310a8914fcef6e1e90956489d2c65e4c5",
+    "201554288": "d4a6abc74d4e2ef41ad07b1bad9b932d0571636e4bf442e4837e2b84a3b82e85",
+    "202079661": "32e6aef39720a6bf894f4c2dc434dfc6f206f471f35e97f028019fcb4ef60d3a",
+    "202080172": "a6765a17c9c69d0b83444174e41a7f92b885c00f7224250f58b6847367aa852f",
+    "202534837": "6eac7280204d3906749e12d1f4f8b7f89ab7338e6ec44676460053880c6f57ca",
+    "202689356": "bf13c80f39ac3bd6eb086bc5ac512db5cee9f4319386e371c13c4a2ae5ead782",
+    "203034523": "c21ecab6b5fa7b6c0aa242ef46c39caf6ec2cfd77687865640f2ef32caec755c",
+    "204699421": "53689d6e84e64aa57c094e65594a6c83e3fc1bc4f45c9c49ce60680967bc4651",
+    "204699779": "1b1c81743defe0039bffc01b9067b03a8429b6eb7acae10701173c8ec509360a",
+    "206259194": "3e6a3c06e391d4f7c2823654be511d935c74440fa39b960c786cb5c5e1ff2b1f",
+    "206259469": "2c19b06f27780407742728445ab0bac24830f3f13226b4345228c769111b6f61",
+    "206259774": "e7e3edbd78e0d4d7a5b0e63c013be444eb5c5a245114ec4c66fe6505f6ba2f56",
+    "207218836": "531152b3f4ec78eb7130e8e147e15fc5e5a5864119a8536b7c8e5c952873a037",
+    "207218842": "dd7bd1725423c2bc8b3a215a39340401a1c405a9ce28b53b50775ee0ebc90a9b",
+    "207219797": "adf91d17c9442370d1021b61708c331e7aa236c6e1e7cb0ab10c1fdefdf4b077",
+    "207219801": "7ce9ad0da7a641b900be42aea153023c9d1e498e8f86f7d7767f1beffe6430d5",
+    "207301539": "2f550724012792720c44f497a934b2f7d51a54c2d57ab79eb934623f5402d3ce",
+    "208005868": "4b5aa7f1be163384bddb61c5e7a48533988a6c0e6afcf79115e6140163bab583",
+    "208568202": "58cd96d6a9c7903e291ceeb619dbf7e785a0af10f4cffbe419495ad12e03db27",
+    "208847733": "ab914a290eb60d9c99f760523f3c9de6624fba818c9ee1a3c218ef67fc8e7e81",
+    "209069889": "f26e6f725b226cfdee4a5a01f623a8c609bcc4023351a74c020f7f398795b88c",
+    "209207902": "879e94699860f0974a18429296d0d38f5345c38e8cdacb8756aab3ac1ee31568",
+    "209337141": "581f6ea8c02eb610ea0d751e250650fa8c91c50e614ca69aa42a0bbb9c517f6b",
+    "211406742": "96e203fce5c9208869f28577ef3933c3cb7c69f16263450bf9e0e0581824a5a6",
+    "211842691": "84c8116aa1030f8032abf585492558cdda21b5c54549aabb031857d9321cdf43",
+    "211842696": "f62c4f158a95e6037c649dc5db778bb2df2eb90b4043e7bd4625b15890ce9a3c",
+    "211842698": "4fb4ef51145c18af717b23d934b834b51a0e1c00c686cd1f5d6d181e85f6793e",
+    "211869306": "4be098ab07bb5d79e392c1b19b78304e62e64cb33de9e501188dcb9fcdec0f7d",
+    "211869319": "78f49b281c3ff13d5942568508e53fe9717a7dea48807bb4f22a479df8806ff5",
+    "211869335": "4fa8d4a77f3f1f348c919f2f203ecd42c1c8fa3c84e65c88e0a9b4b1cf742762",
+    "211874361": "c4aa0cd3f8250535df03577cf1ccdc0cd11e19720209b56a441d1f063e57be90",
+    "211998098": "028ced380f57f60326e7fbee9fcb2c90765bf692424d09ac90c219fcc508b3a4",
+    "212829880": "0ac87e8e91baaa128e4cf4b5b4495a99263bc5060db3234d5205d5aa60d029d5",
+    "213064182": "24aa4ebeaaf47127bf90cfd0f343bf2c2e44f0b0cb442a28574a705a6547d686"
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "included": 62,
+  "parts": [],
+  "notesBlocks": [],
+  "links": [
+    {
+      "slug": "google-real-token-consumption-ai",
+      "letter": "a",
+      "code": "tadz7q",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901mqc2?finpagefr=p_104_js",
+      "text": "谷歌真正的token消耗、AI收入，还有翻倍的资本投入"
+    },
+    {
+      "slug": "enter-chinas-platforms",
+      "letter": "a",
+      "code": "hvwcbc",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901mm4k",
+      "text": "Original article"
+    },
+    {
+      "slug": "how-much-of-the-ai-2028-crisis-has",
+      "letter": "a",
+      "code": "puc22q",
+      "target": "https://mp.weixin.qq.com/s/20oAucRN1l-9DFC3i8MxSA",
+      "text": "https://mp.weixin.qq.com/s/20oAucRN1l-9DFC3i8MxSA"
+    },
+    {
+      "slug": "spacexs-2-trillion-ipo-rockets-are",
+      "letter": "a",
+      "code": "jy9kd3",
+      "target": "https://mp.weixin.qq.com/s/xvP1v5IYxEyvmSxYIpJXBA",
+      "text": "in Chinese"
+    },
+    {
+      "slug": "spacexs-2-trillion-ipo-rockets-are",
+      "letter": "b",
+      "code": "7um9em",
+      "target": "https://www.bloomberg.com/news/articles/2026-04-02/spacex-is-said-to-target-more-than-2-trillion-valuation-in-ipo",
+      "text": "$2 trillion valuation"
+    },
+    {
+      "slug": "spacexs-2-trillion-ipo-rockets-are",
+      "letter": "c",
+      "code": "k8z2gs",
+      "target": "https://en.wikipedia.org/wiki/Terafab",
+      "text": "Terafab"
+    },
+    {
+      "slug": "spacexs-2-trillion-ipo-rockets-are",
+      "letter": "d",
+      "code": "8zngbf",
+      "target": "https://en.wikipedia.org/wiki/Learning_curve",
+      "text": "Wright’s Law"
+    },
+    {
+      "slug": "deepseek-v4-on-huawei-ascend-would",
+      "letter": "a",
+      "code": "3tbbpc",
+      "target": "https://mp.weixin.qq.com/s/L-8UqOPbLB5-0Ssk2a0VVw",
+      "text": "in Chinese"
+    },
+    {
+      "slug": "deepseek-v4-on-huawei-ascend-would",
+      "letter": "b",
+      "code": "35eas6",
+      "target": "https://www.theinformation.com/articles/deepseeks-new-ai-model-will-victory-huawei",
+      "text": "reportedly run"
+    },
+    {
+      "slug": "chinese-token-export-a-vision-not",
+      "letter": "a",
+      "code": "9sfrxd",
+      "target": "https://mp.weixin.qq.com/s/px19c2PEI56Cc3XejIngqw",
+      "text": "Weijin’s WeChat Official Account"
+    },
+    {
+      "slug": "chinese-token-export-a-vision-not",
+      "letter": "b",
+      "code": "a5aurh",
+      "target": "https://mimo.xiaomi.com/mimo-v2-5-pro/",
+      "text": "V2.5-Pro"
+    },
+    {
+      "slug": "compute-boom-spreads-beyond-gpus",
+      "letter": "a",
+      "code": "7bsk69",
+      "target": "https://mp.weixin.qq.com/s/njJGAZSM4eQyHKx8VMmU7g",
+      "text": "Weijin’s WeChat Official Account"
+    },
+    {
+      "slug": "deepseek-v4",
+      "letter": "a",
+      "code": "e9z6h4",
+      "target": "https://weijinresearch.substack.com/p/deepseek-v4-a-need-for-reassessment",
+      "text": "DeepSeek-V4: A Need for Reassessment"
+    },
+    {
+      "slug": "openais-mobile-phone-can-it-exploit",
+      "letter": "a",
+      "code": "2vh2ad",
+      "target": "https://mp.weixin.qq.com/s/1NYL6eYAWCMYYKlWgo9jrw)",
+      "text": "Weijin’s WeChat Official Account"
+    },
+    {
+      "slug": "openais-mobile-phone-can-it-exploit",
+      "letter": "b",
+      "code": "pb6ddy",
+      "target": "https://x.com/mingchikuo",
+      "text": "Ming-Chi Kuo"
+    },
+    {
+      "slug": "apple-intelligence-faces-nvidia-google",
+      "letter": "a",
+      "code": "mku3cz",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nrg6",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "fable5-mythos5-and-anthropics-sly",
+      "letter": "a",
+      "code": "r6jsn5",
+      "target": "https://m.huxiu.com/article/4866177.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "anthropic-forced-to-pull-fable-and",
+      "letter": "a",
+      "code": "xmhxa9",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nstw",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "spacex-is-putting-a-price-on-space",
+      "letter": "a",
+      "code": "c3yh9a",
+      "target": "https://m.huxiu.com/article/4866935.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-agents-now-generate-more-web-traffic",
+      "letter": "a",
+      "code": "zb8gs4",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nq18",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "tencent-and-ant-group-bet-again-on",
+      "letter": "a",
+      "code": "c5kcxh",
+      "target": "https://m.huxiu.com/article/4868274.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "industrial-scale-competition-in-token",
+      "letter": "a",
+      "code": "dhcbup",
+      "target": "https://m.huxiu.com/article/4861798.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "zhipus-glm-52-a-usability-breakthrough",
+      "letter": "a",
+      "code": "7rskyu",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nv6s",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "openai-and-anthropic-escalate-their",
+      "letter": "a",
+      "code": "qygmc4",
+      "target": "https://m.huxiu.com/article/4868651.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-coding-tools-boost-output-but",
+      "letter": "a",
+      "code": "u9e2bk",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nr96",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "why-mai-base-1s-mfu-lags-behind-deepseek",
+      "letter": "a",
+      "code": "bxkem3",
+      "target": "https://m.huxiu.com/article/4864319.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "the-real-battleground-for-ai-is-deep",
+      "letter": "a",
+      "code": "532hum",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nooq",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "apples-price-hikes-signal-ai-driven",
+      "letter": "a",
+      "code": "kebw5m",
+      "target": "https://m.huxiu.com/article/4870774.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-pushes-ssds-into-compute-nvidias",
+      "letter": "a",
+      "code": "24qma7",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901nwnm",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "gpt-56-and-mythos-5-the-first-generation",
+      "letter": "a",
+      "code": "fk7tjp",
+      "target": "https://m.huxiu.com/article/4870949.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "gpu-empire-loosens-inference-chips",
+      "letter": "a",
+      "code": "emjajc",
+      "target": "https://m.huxiu.com/article/4872597.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "anthropic-maps-j-space-what-language",
+      "letter": "a",
+      "code": "njqtwb",
+      "target": "https://m.huxiu.com/article/4873715.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "when-ai-starts-to-trade-why-the-agent",
+      "letter": "a",
+      "code": "ukc7tm",
+      "target": "https://mp.weixin.qq.com/s/BAaDZcTghuS4a7fXR52ozA",
+      "text": "Weijin Research's WeChat Official Account"
+    },
+    {
+      "slug": "musks-grok-45-aims-for-cheaper-ai",
+      "letter": "a",
+      "code": "2wz5mj",
+      "target": "https://mp.weixin.qq.com/s/IxePGqmIOfvjMEElkTjDgQ",
+      "text": "Weijin Research's WeChat Official Account"
+    },
+    {
+      "slug": "apple-jumps-from-m6-to-m7-chips-take",
+      "letter": "a",
+      "code": "7h3au8",
+      "target": "https://mp.weixin.qq.com/s/_B0PZjC0rmgWYnIoZBQ9yg",
+      "text": "Weijin Research's WeChat Official Account"
+    },
+    {
+      "slug": "the-real-battleground-for-enterprise",
+      "letter": "a",
+      "code": "3buj9f",
+      "target": "https://mp.weixin.qq.com/s/nvRdRC_Soa60yPxFe9sC7g",
+      "text": "Weijin Research's WeChat Official Account"
+    },
+    {
+      "slug": "when-ai-hype-outran-the-money-the",
+      "letter": "a",
+      "code": "c7kfqw",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9500101og6e",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "alphafold-era-closes-global-competition",
+      "letter": "a",
+      "code": "gkgaxp",
+      "target": "https://m.huxiu.com/article/4879232.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "harness-recursive-evolution-the-next",
+      "letter": "a",
+      "code": "r9ptec",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901ogoc",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "kimi-k3-shakes-up-washingtons-ai",
+      "letter": "a",
+      "code": "x77kza",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901odjk",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "the-race-to-stand-out-in-ai-narrows",
+      "letter": "a",
+      "code": "dfhe5j",
+      "target": "https://m.huxiu.com/article/4878866.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-competition-3-trillion-parameters",
+      "letter": "a",
+      "code": "egkndb",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901obm0",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "thinking-machine-labs-inkling-model",
+      "letter": "a",
+      "code": "b83dnx",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901o7qc",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "thinking-machine-labs-inkling-model",
+      "letter": "b",
+      "code": "t6yfhs",
+      "target": "https://thinkingmachines.ai/news/introducing-inkling/",
+      "text": "https://thinkingmachines.ai/news/introducing-inkling/"
+    },
+    {
+      "slug": "meta-repositions-on-open-ai-models",
+      "letter": "a",
+      "code": "q6t3ba",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901olzs",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "zhuque-3-booster-lands-safely-but",
+      "letter": "a",
+      "code": "srhnq5",
+      "target": "https://m.huxiu.com/article/4884397.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-model-security-distillation-attacks",
+      "letter": "a",
+      "code": "fqacws",
+      "target": "https://m.huxiu.com/article/4882699.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "ai-model-security-distillation-attacks",
+      "letter": "b",
+      "code": "bduuzg",
+      "target": "https://blog.cryptographyengineering.com/2026/05/29/fooling-around-with-encrypted-reasoning-blobs/",
+      "text": "https://blog.cryptographyengineering.com/2026/05/29/fooling-around-with-encrypted-reasoning-blobs/"
+    },
+    {
+      "slug": "ai-model-security-distillation-attacks",
+      "letter": "c",
+      "code": "5mxbcb",
+      "target": "https://stolen-thoughts.com",
+      "text": "https://stolen-thoughts.com/"
+    },
+    {
+      "slug": "tencent-ramps-up-ai-spending-annual",
+      "letter": "a",
+      "code": "qu7vpv",
+      "target": "https://m.huxiu.com/article/4883007.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "a",
+      "code": "hyk9he",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901oiq8",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "b",
+      "code": "44x3ex",
+      "target": "https://www.reuters.com/world/trump-administration-drafting-ban-chinese-data-center-devices-sources-say-2026-08-04/",
+      "text": "https://www.reuters.com/world/trump-administration-drafting-ban-chinese-data-center-devices-sources-say-2026-08-04/"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "c",
+      "code": "tg3ecy",
+      "target": "https://www.trendforce.com/presscenter/news/20260210-12919.html",
+      "text": "https://www.trendforce.com/presscenter/news/20260210-12919.html?utm_source=chatgpt.com"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "d",
+      "code": "nwcrka",
+      "target": "https://www.lightcounting.com/newsletter/en/may-2026-optical-vendor-landscape-376",
+      "text": "https://www.lightcounting.com/newsletter/en/may-2026-optical-vendor-landscape-376"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "e",
+      "code": "ptyd6g",
+      "target": "https://www.reuters.com/commentary/breakingviews/uncle-sam-strains-thread-ai-safety-needle-2026-08-04/",
+      "text": "https://www.reuters.com/commentary/breakingviews/uncle-sam-strains-thread-ai-safety-needle-2026-08-04/"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "f",
+      "code": "3244s2",
+      "target": "https://www.whitehouse.gov/fact-sheets/2025/07/fact-sheet-president-donald-j-trump-accelerates-federal-permitting-of-data-center-infrastructure/",
+      "text": "https://www.whitehouse.gov/fact-sheets/2025/07/fact-sheet-president-donald-j-trump-accelerates-federal-permitting-of-dat"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "letter": "g",
+      "code": "q5vn6t",
+      "target": "https://news.gallup.com/poll/709772/americans-oppose-data-centers-area.aspx",
+      "text": "https://news.gallup.com/poll/709772/americans-oppose-data-centers-area.aspx"
+    },
+    {
+      "slug": "openais-first-ai-hardware-leaks-chasing",
+      "letter": "a",
+      "code": "fxxm2z",
+      "target": "https://cj.sina.com.cn/articles/view/6888480661/19a95df9501901ojqy",
+      "text": "Weijin Research on Sina"
+    },
+    {
+      "slug": "why-google-needs-its-founders-back",
+      "letter": "a",
+      "code": "math8z",
+      "target": "https://m.huxiu.com/article/4881815.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "will-ymtcs-ipo-mark-the-start-of",
+      "letter": "a",
+      "code": "ueuggu",
+      "target": "https://m.huxiu.com/article/4885970.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "deepseek-zhipu-and-kimi-competing",
+      "letter": "a",
+      "code": "6hv92z",
+      "target": "https://m.huxiu.com/article/4885316.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "deepseek-zhipu-and-kimi-competing",
+      "letter": "b",
+      "code": "f248k9",
+      "target": "https://weijinresearch.substack.com/p/ai-competition-3-trillion-parameters",
+      "text": "AI Competition: 3 Trillion Parameters at Home, GW-Scale Compute Abroad"
+    },
+    {
+      "slug": "is-openai-creating-a-crisis-in-mathematical",
+      "letter": "a",
+      "code": "3xvg8y",
+      "target": "https://m.huxiu.com/article/4880664.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "is-openai-creating-a-crisis-in-mathematical",
+      "letter": "b",
+      "code": "d4gnnh",
+      "target": "https://teorth.github.io/tao-web/slides/age-of-ai-icm-2026.pdf",
+      "text": "https://teorth.github.io/tao-web/slides/age-of-ai-icm-2026.pdf"
+    },
+    {
+      "slug": "is-openai-creating-a-crisis-in-mathematical",
+      "letter": "c",
+      "code": "y653wj",
+      "target": "https://pbs.twimg.com/media/HOoi78TbAAAsvql?format=jpg&name=small",
+      "text": "https://pbs.twimg.com/media/HOoi78TbAAAsvql?format=jpg&amp;name=small"
+    },
+    {
+      "slug": "is-openai-creating-a-crisis-in-mathematical",
+      "letter": "d",
+      "code": "cjsmx8",
+      "target": "https://www.scientificamerican.com/article/ai-helped-produce-two-proofs-for-the-same-cryptography-problem/",
+      "text": "https://www.scientificamerican.com/article/ai-helped-produce-two-proofs-for-the-same-cryptography-problem/"
+    },
+    {
+      "slug": "why-chinese-ai-models-are-raising",
+      "letter": "a",
+      "code": "92yz8r",
+      "target": "https://m.huxiu.com/article/4882396.html",
+      "text": "Weijin Research on Huxiu"
+    },
+    {
+      "slug": "why-chinese-ai-models-are-raising",
+      "letter": "b",
+      "code": "f248k9",
+      "target": "https://weijinresearch.substack.com/p/ai-competition-3-trillion-parameters",
+      "text": "AI Competition: 3 Trillion Parameters at Home, GW-Scale Compute Abroad"
+    }
+  ],
+  "essayLinks": [
+    {
+      "slug": "huawei-and-chinese-chip-makers-rush",
+      "code": "h2g56t",
+      "target": "https://weijinresearch.substack.com/p/huawei-and-chinese-chip-makers-rush"
+    },
+    {
+      "slug": "catls-foray-beyond-batteries",
+      "code": "sh3xtf",
+      "target": "https://weijinresearch.substack.com/p/catls-foray-beyond-batteries"
+    },
+    {
+      "slug": "google-real-token-consumption-ai",
+      "code": "gf9gdk",
+      "target": "https://weijinresearch.substack.com/p/google-real-token-consumption-ai"
+    },
+    {
+      "slug": "enter-chinas-platforms",
+      "code": "nfegpb",
+      "target": "https://weijinresearch.substack.com/p/enter-chinas-platforms"
+    },
+    {
+      "slug": "how-much-of-the-ai-2028-crisis-has",
+      "code": "xh2yzz",
+      "target": "https://weijinresearch.substack.com/p/how-much-of-the-ai-2028-crisis-has"
+    },
+    {
+      "slug": "china-is-devouring-openclaw-raw",
+      "code": "6qz7f5",
+      "target": "https://weijinresearch.substack.com/p/china-is-devouring-openclaw-raw"
+    },
+    {
+      "slug": "the-token-economy-has-a-speed-problem",
+      "code": "u7488x",
+      "target": "https://weijinresearch.substack.com/p/the-token-economy-has-a-speed-problem"
+    },
+    {
+      "slug": "alibabas-100-billion-bet-on-token",
+      "code": "qsfvax",
+      "target": "https://weijinresearch.substack.com/p/alibabas-100-billion-bet-on-token"
+    },
+    {
+      "slug": "the-demise-of-sora-pathways-for-llms",
+      "code": "6ytrgf",
+      "target": "https://weijinresearch.substack.com/p/the-demise-of-sora-pathways-for-llms"
+    },
+    {
+      "slug": "spacexs-2-trillion-ipo-rockets-are",
+      "code": "fv9h2x",
+      "target": "https://weijinresearch.substack.com/p/spacexs-2-trillion-ipo-rockets-are"
+    },
+    {
+      "slug": "deepseek-v4-on-huawei-ascend-would",
+      "code": "m82ws3",
+      "target": "https://weijinresearch.substack.com/p/deepseek-v4-on-huawei-ascend-would"
+    },
+    {
+      "slug": "minimax-and-zai-battle-it-out-in",
+      "code": "sg79nr",
+      "target": "https://weijinresearch.substack.com/p/minimax-and-zai-battle-it-out-in"
+    },
+    {
+      "slug": "open-source-ai-models-may-slip-down",
+      "code": "4gfazq",
+      "target": "https://weijinresearch.substack.com/p/open-source-ai-models-may-slip-down"
+    },
+    {
+      "slug": "deepseek-v4-a-need-for-reassessment",
+      "code": "e9z6h4",
+      "target": "https://weijinresearch.substack.com/p/deepseek-v4-a-need-for-reassessment"
+    },
+    {
+      "slug": "ai-agents-take-on-the-biz-planning",
+      "code": "5epaq5",
+      "target": "https://weijinresearch.substack.com/p/ai-agents-take-on-the-biz-planning"
+    },
+    {
+      "slug": "chinese-token-export-a-vision-not",
+      "code": "c7u2ay",
+      "target": "https://weijinresearch.substack.com/p/chinese-token-export-a-vision-not"
+    },
+    {
+      "slug": "compute-boom-spreads-beyond-gpus",
+      "code": "vhqzyn",
+      "target": "https://weijinresearch.substack.com/p/compute-boom-spreads-beyond-gpus"
+    },
+    {
+      "slug": "deepseek-v4",
+      "code": "74nted",
+      "target": "https://weijinresearch.substack.com/p/deepseek-v4"
+    },
+    {
+      "slug": "openais-mobile-phone-can-it-exploit",
+      "code": "33ghup",
+      "target": "https://weijinresearch.substack.com/p/openais-mobile-phone-can-it-exploit"
+    },
+    {
+      "slug": "xai-was-supposed-to-understand-the",
+      "code": "hf5h49",
+      "target": "https://weijinresearch.substack.com/p/xai-was-supposed-to-understand-the"
+    },
+    {
+      "slug": "an-ai-boom-fit-to-crack-vertical",
+      "code": "drggua",
+      "target": "https://weijinresearch.substack.com/p/an-ai-boom-fit-to-crack-vertical"
+    },
+    {
+      "slug": "whats-next-after-moores-law-tau",
+      "code": "cy95kn",
+      "target": "https://weijinresearch.substack.com/p/whats-next-after-moores-law-tau"
+    },
+    {
+      "slug": "supernodes-are-the-new-paradigm-of",
+      "code": "ffutm2",
+      "target": "https://weijinresearch.substack.com/p/supernodes-are-the-new-paradigm-of"
+    },
+    {
+      "slug": "apple-intelligence-faces-nvidia-google",
+      "code": "fy38sf",
+      "target": "https://weijinresearch.substack.com/p/apple-intelligence-faces-nvidia-google"
+    },
+    {
+      "slug": "fable5-mythos5-and-anthropics-sly",
+      "code": "f9cvas",
+      "target": "https://weijinresearch.substack.com/p/fable5-mythos5-and-anthropics-sly"
+    },
+    {
+      "slug": "anthropic-forced-to-pull-fable-and",
+      "code": "db4fwt",
+      "target": "https://weijinresearch.substack.com/p/anthropic-forced-to-pull-fable-and"
+    },
+    {
+      "slug": "spacex-is-putting-a-price-on-space",
+      "code": "pqdtbf",
+      "target": "https://weijinresearch.substack.com/p/spacex-is-putting-a-price-on-space"
+    },
+    {
+      "slug": "ai-agents-now-generate-more-web-traffic",
+      "code": "ygtvrn",
+      "target": "https://weijinresearch.substack.com/p/ai-agents-now-generate-more-web-traffic"
+    },
+    {
+      "slug": "tencent-and-ant-group-bet-again-on",
+      "code": "4pa5s7",
+      "target": "https://weijinresearch.substack.com/p/tencent-and-ant-group-bet-again-on"
+    },
+    {
+      "slug": "industrial-scale-competition-in-token",
+      "code": "xj95f2",
+      "target": "https://weijinresearch.substack.com/p/industrial-scale-competition-in-token"
+    },
+    {
+      "slug": "zhipus-glm-52-a-usability-breakthrough",
+      "code": "skftdg",
+      "target": "https://weijinresearch.substack.com/p/zhipus-glm-52-a-usability-breakthrough"
+    },
+    {
+      "slug": "openai-and-anthropic-escalate-their",
+      "code": "9fxz5p",
+      "target": "https://weijinresearch.substack.com/p/openai-and-anthropic-escalate-their"
+    },
+    {
+      "slug": "ai-coding-tools-boost-output-but",
+      "code": "yy9v6t",
+      "target": "https://weijinresearch.substack.com/p/ai-coding-tools-boost-output-but"
+    },
+    {
+      "slug": "why-mai-base-1s-mfu-lags-behind-deepseek",
+      "code": "cd8vqp",
+      "target": "https://weijinresearch.substack.com/p/why-mai-base-1s-mfu-lags-behind-deepseek"
+    },
+    {
+      "slug": "the-real-battleground-for-ai-is-deep",
+      "code": "8qe4sq",
+      "target": "https://weijinresearch.substack.com/p/the-real-battleground-for-ai-is-deep"
+    },
+    {
+      "slug": "apples-price-hikes-signal-ai-driven",
+      "code": "dudsb7",
+      "target": "https://weijinresearch.substack.com/p/apples-price-hikes-signal-ai-driven"
+    },
+    {
+      "slug": "ai-pushes-ssds-into-compute-nvidias",
+      "code": "cy2w3g",
+      "target": "https://weijinresearch.substack.com/p/ai-pushes-ssds-into-compute-nvidias"
+    },
+    {
+      "slug": "gpt-56-and-mythos-5-the-first-generation",
+      "code": "dcjxrc",
+      "target": "https://weijinresearch.substack.com/p/gpt-56-and-mythos-5-the-first-generation"
+    },
+    {
+      "slug": "gpu-empire-loosens-inference-chips",
+      "code": "vpjvc3",
+      "target": "https://weijinresearch.substack.com/p/gpu-empire-loosens-inference-chips"
+    },
+    {
+      "slug": "anthropic-maps-j-space-what-language",
+      "code": "k5a6zk",
+      "target": "https://weijinresearch.substack.com/p/anthropic-maps-j-space-what-language"
+    },
+    {
+      "slug": "when-ai-starts-to-trade-why-the-agent",
+      "code": "6z7m26",
+      "target": "https://weijinresearch.substack.com/p/when-ai-starts-to-trade-why-the-agent"
+    },
+    {
+      "slug": "musks-grok-45-aims-for-cheaper-ai",
+      "code": "pq8bbn",
+      "target": "https://weijinresearch.substack.com/p/musks-grok-45-aims-for-cheaper-ai"
+    },
+    {
+      "slug": "apple-jumps-from-m6-to-m7-chips-take",
+      "code": "t3stp9",
+      "target": "https://weijinresearch.substack.com/p/apple-jumps-from-m6-to-m7-chips-take"
+    },
+    {
+      "slug": "the-real-battleground-for-enterprise",
+      "code": "tks8f6",
+      "target": "https://weijinresearch.substack.com/p/the-real-battleground-for-enterprise"
+    },
+    {
+      "slug": "when-ai-hype-outran-the-money-the",
+      "code": "3yccan",
+      "target": "https://weijinresearch.substack.com/p/when-ai-hype-outran-the-money-the"
+    },
+    {
+      "slug": "alphafold-era-closes-global-competition",
+      "code": "ayjb27",
+      "target": "https://weijinresearch.substack.com/p/alphafold-era-closes-global-competition"
+    },
+    {
+      "slug": "harness-recursive-evolution-the-next",
+      "code": "3e7d23",
+      "target": "https://weijinresearch.substack.com/p/harness-recursive-evolution-the-next"
+    },
+    {
+      "slug": "kimi-k3-shakes-up-washingtons-ai",
+      "code": "yvbu85",
+      "target": "https://weijinresearch.substack.com/p/kimi-k3-shakes-up-washingtons-ai"
+    },
+    {
+      "slug": "the-race-to-stand-out-in-ai-narrows",
+      "code": "2fub36",
+      "target": "https://weijinresearch.substack.com/p/the-race-to-stand-out-in-ai-narrows"
+    },
+    {
+      "slug": "ai-competition-3-trillion-parameters",
+      "code": "f248k9",
+      "target": "https://weijinresearch.substack.com/p/ai-competition-3-trillion-parameters"
+    },
+    {
+      "slug": "thinking-machine-labs-inkling-model",
+      "code": "y6y9f9",
+      "target": "https://weijinresearch.substack.com/p/thinking-machine-labs-inkling-model"
+    },
+    {
+      "slug": "meta-repositions-on-open-ai-models",
+      "code": "uzv6pe",
+      "target": "https://weijinresearch.substack.com/p/meta-repositions-on-open-ai-models"
+    },
+    {
+      "slug": "zhuque-3-booster-lands-safely-but",
+      "code": "6yc3d9",
+      "target": "https://weijinresearch.substack.com/p/zhuque-3-booster-lands-safely-but"
+    },
+    {
+      "slug": "ai-model-security-distillation-attacks",
+      "code": "fxx8je",
+      "target": "https://weijinresearch.substack.com/p/ai-model-security-distillation-attacks"
+    },
+    {
+      "slug": "tencent-ramps-up-ai-spending-annual",
+      "code": "674ycf",
+      "target": "https://weijinresearch.substack.com/p/tencent-ramps-up-ai-spending-annual"
+    },
+    {
+      "slug": "optical-modules-why-is-the-us-willing",
+      "code": "s2pv97",
+      "target": "https://weijinresearch.substack.com/p/optical-modules-why-is-the-us-willing"
+    },
+    {
+      "slug": "openais-first-ai-hardware-leaks-chasing",
+      "code": "wkxdsz",
+      "target": "https://weijinresearch.substack.com/p/openais-first-ai-hardware-leaks-chasing"
+    },
+    {
+      "slug": "why-google-needs-its-founders-back",
+      "code": "qfpgz8",
+      "target": "https://weijinresearch.substack.com/p/why-google-needs-its-founders-back"
+    },
+    {
+      "slug": "will-ymtcs-ipo-mark-the-start-of",
+      "code": "fxv3uu",
+      "target": "https://weijinresearch.substack.com/p/will-ymtcs-ipo-mark-the-start-of"
+    },
+    {
+      "slug": "deepseek-zhipu-and-kimi-competing",
+      "code": "m6c6fs",
+      "target": "https://weijinresearch.substack.com/p/deepseek-zhipu-and-kimi-competing"
+    },
+    {
+      "slug": "is-openai-creating-a-crisis-in-mathematical",
+      "code": "7q5ywu",
+      "target": "https://weijinresearch.substack.com/p/is-openai-creating-a-crisis-in-mathematical"
+    },
+    {
+      "slug": "why-chinese-ai-models-are-raising",
+      "code": "9nckkd",
+      "target": "https://weijinresearch.substack.com/p/why-chinese-ai-models-are-raising"
+    }
+  ],
+  "components": {
+    "SubscribeWidgetToDOM": 18,
+    "image-link-expand": 76
+  },
+  "rtlChars": 0,
+  "cjkChars": 823,
+  "retrievalFailures": 0,
+  "engine": "typst",
+  "notes": "endnotes_per_article",
+  "dateRange": [
+    "2025-02-09",
+    "2026-09-02"
+  ]
+}

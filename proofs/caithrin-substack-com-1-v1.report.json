@@ -1,0 +1,2551 @@
+{
+  "host": "caithrin.substack.com",
+  "listed": 45,
+  "skips": [],
+  "deadImages": [],
+  "omittedPaid": 0,
+  "podcastPosts": 0,
+  "declineSignals": [],
+  "ruleCuts": [],
+  "ownDomains": [
+    "caithrin.com"
+  ],
+  "eligiblePublic": 45,
+  "estPages": 314,
+  "pageWarning": "~314pp is over the recommended 300pp per volume (bindery limit 800); consider date windows",
+  "brand": {
+    "accent": "#63543a",
+    "headingFont": "Inter",
+    "bodyFont": "Source Serif 4",
+    "coverBg": "#1D1E1D",
+    "coverPlate": false,
+    "mappedFrom": "SF Pro Display",
+    "warnings": []
+  },
+  "guestCuts": [],
+  "editorExcluded": 0,
+  "pubName": "caithrin",
+  "author": "Caithrin",
+  "authors": [
+    "Caithrin"
+  ],
+  "isbn": null,
+  "postOrder": [
+    {
+      "id": 155559356,
+      "slug": "towards-qualitative-shoggology"
+    },
+    {
+      "id": 155633717,
+      "slug": "thoughts-on-the-nvidia-way"
+    },
+    {
+      "id": 155894894,
+      "slug": "marc-andreessen-and-the-sputnik-moment"
+    },
+    {
+      "id": 156339419,
+      "slug": "a-midwits-guide-to-the-ai-future"
+    },
+    {
+      "id": 158461538,
+      "slug": "when-in-time-would-an-llm-be-magic"
+    },
+    {
+      "id": 156875851,
+      "slug": "imagining-a-members-only-reading"
+    },
+    {
+      "id": 162633034,
+      "slug": "thoughts-on-house-of-huawei-and-watts"
+    },
+    {
+      "id": 163085149,
+      "slug": "weird-llms-chatbot-beige-and-new"
+    },
+    {
+      "id": 163500177,
+      "slug": "i-guess-everything-is-wechat-now"
+    },
+    {
+      "id": 165958720,
+      "slug": "among-the-rationalists-and-the-primes"
+    },
+    {
+      "id": 163753068,
+      "slug": "working-with-llms-time-and-focus"
+    },
+    {
+      "id": 168160475,
+      "slug": "crypto-smell-and-the-virtues-of-seriousness"
+    },
+    {
+      "id": 170104221,
+      "slug": "the-atom-project"
+    },
+    {
+      "id": 171130054,
+      "slug": "gpt-5-and-valving-down-llms"
+    },
+    {
+      "id": 171921709,
+      "slug": "10-ownership-of-intel-should-worry"
+    },
+    {
+      "id": 172272654,
+      "slug": "the-last-5-living-translunar-humans"
+    },
+    {
+      "id": 174572978,
+      "slug": "the-dream-of-ai-slide-decks-a-september"
+    },
+    {
+      "id": 176608158,
+      "slug": "oppenheimer-sagan-and-saying-the"
+    },
+    {
+      "id": 182217199,
+      "slug": "ten-commandments-of-ai-parties"
+    },
+    {
+      "id": 183082229,
+      "slug": "lord-byron-and-how-to-properly-oppose"
+    },
+    {
+      "id": 184432631,
+      "slug": "your-obligations-to-the-gospel-of"
+    },
+    {
+      "id": 185543042,
+      "slug": "dispatches-from-claude-psychosis"
+    },
+    {
+      "id": 186226306,
+      "slug": "dispatches-from-claude-psychosis-53a"
+    },
+    {
+      "id": 189878301,
+      "slug": "thirty-days-without-a-smartphone"
+    },
+    {
+      "id": 193017210,
+      "slug": "who-will-explain-the-machines-of"
+    },
+    {
+      "id": 197753184,
+      "slug": "the-singapore-safety-cluster-what"
+    },
+    {
+      "id": 198554841,
+      "slug": "searching-for-amanda-askell-with"
+    },
+    {
+      "id": 200676032,
+      "slug": "towards-a-singaporean-safety-cluster"
+    },
+    {
+      "id": 202492338,
+      "slug": "whos-getting-clanked-in-2027"
+    },
+    {
+      "id": 202631952,
+      "slug": "my-browser-tool-that-automatically"
+    },
+    {
+      "id": 202753268,
+      "slug": "every-day-i-live-in-house-vi"
+    },
+    {
+      "id": 203132926,
+      "slug": "what-were-talking-about-when-were"
+    },
+    {
+      "id": 203723156,
+      "slug": "cargo-cult-vannevar-bush"
+    },
+    {
+      "id": 204540855,
+      "slug": "involuntary-insulls-frontier-labs"
+    },
+    {
+      "id": 205137134,
+      "slug": "stop-counting-empires-in-years"
+    },
+    {
+      "id": 205422752,
+      "slug": "why-doesnt-venture-capital-make-benches"
+    },
+    {
+      "id": 205692320,
+      "slug": "card-counters-of-the-soul"
+    },
+    {
+      "id": 207893077,
+      "slug": "first-steps-pacific-compute"
+    },
+    {
+      "id": 208680554,
+      "slug": "so-now-we-all-love-open-models-now"
+    },
+    {
+      "id": 210240915,
+      "slug": "china-writing-and-wall-dancing"
+    },
+    {
+      "id": 211123194,
+      "slug": "helpful-assistant-ais-original-sin"
+    },
+    {
+      "id": 211643862,
+      "slug": "fearmongering-the-frontier"
+    },
+    {
+      "id": 213593336,
+      "slug": "ten-us-china-ai-deals-we-could-sign"
+    },
+    {
+      "id": 213643910,
+      "slug": "the-data-center-backlash-wont-last"
+    },
+    {
+      "id": 214049449,
+      "slug": "thank-you-all-for-signing-up-to-the"
+    }
+  ],
+  "bodyHashes": {
+    "155559356": "86d0d65f29c3139ae91156134aebbf91264dcd0f0fd38a92d7137296d1bc2305",
+    "155633717": "579fe89764bfff4921f1314ccab906f80397d3a6853e04be2876e99233dc3dcc",
+    "155894894": "084a1d53ba9e8ca602051e5723d050270a0eb9dc5710338352af5a52d0e1351e",
+    "156339419": "2cf7d9313972dc3daf1c80e91aa7b2fa6f1cdad35b9a0ac7b70da864bde9f33c",
+    "156875851": "3e9f64cd41b3a3693f26388de406041e14f7b2da8121c59d6b8ad83957cca803",
+    "158461538": "e3533d7631bfb6d9be8b8eee6076406069027859d366701272f0a0d47ff7f9d6",
+    "162633034": "edbcdc48c05d7ce6f1d766332a0c61e09e4806a330c80bbb77412938d00445ad",
+    "163085149": "59e0f69ce6936190023ff9d1b32263e92f4fe7a47a5b48566baf25a83e91e5d2",
+    "163500177": "00462cc5b54109f5c02013081af9327dccdc0390d899f56dffff1c0a4ec06c59",
+    "163753068": "27cd21afe0ea89ddb54f119c13fdfc327838e9e7a2530bb88191d4bae0fe796a",
+    "165958720": "a992249a1ceca9ef2c7786c7734c534344ca8da314add6abdf8f04139050997f",
+    "168160475": "ad0b571627c60a1f8a78f617678d6cbf71e268a929597f21d6dac67f42fda5c8",
+    "170104221": "e47871d69172c0cb9b28b5d15627a5875dd40d7a8ca3740c28bb6b573fd32298",
+    "171130054": "b023d5f310967bf1d4120ac56748f629ccbb94b5a8745e1faeeace679fd1e4fb",
+    "171921709": "574f7de81766a9174bf9f804f484121951bf769cff2e085f58a83c15b88e2c2f",
+    "172272654": "9b3a41bcda2f90e483e631fe039c04ad40f581bd5db8140826dbb6cd46d36ea9",
+    "174572978": "b406569943a4fc222173d13e0794536d8e90241f818ef7a2f3e4eb31a6c60772",
+    "176608158": "1cfbf53c448beb82e6f24ff995d483f173c802611bc9ef037754c59ddd604e85",
+    "182217199": "7edac3602ceb6f40fd8e0bd4f9b552e741bf3355e4ec175ea68284bbab102620",
+    "183082229": "038b4c4bc4b851ec4f35130985a082ce96f71c55f360dc2cba21b71d4ca1b190",
+    "184432631": "634c3188d64a5de2de77b2efff38cf049990751890d405ccadb2696f7613fa56",
+    "185543042": "fdff87b9d0093440e531c27d6c8fdc950469e92413bfd8ead831ab33b324a175",
+    "186226306": "98681883d07e37b8429a5024e79d59644d90cb09315e816ef61ebbf483d0af5e",
+    "189878301": "a16da9cb6f714e7ce3226014f0eee3197333e004698cd8dc8f936e0359e858fd",
+    "193017210": "9633d74232c593b2de368b3d9be4be3c0d21cd0656662efaf008b187155fca93",
+    "197753184": "fd24d701550aee50ecf8eb462d284efb366067867a8cd31a891bb9df4130641a",
+    "198554841": "475e54012f3e716423552d827bd1812959ada1f2a7322f4db277ca89bf2bda1c",
+    "200676032": "c245bb1dfe0686e6c83ddfd3b3c6d818f0c8214d4d6b8de53ac621a759a45c1d",
+    "202492338": "85d674d80768bd76896ac26b2fa91739e09b2a5cdb44d8ddd4055d827008f085",
+    "202631952": "0b3c86a95a6545bd092c0542c7d096f65eb4add9c4a7945238e717413a154b07",
+    "202753268": "31f3225e02ec8058feb5fa881b5d20138ef2c2520273d7667fdecf022bf631b3",
+    "203132926": "210fd876b4690d6bd21200ab251c3d23caf0f3d1e4519d22e779cb2ba0ebf766",
+    "203723156": "5990dc311a231da62cf9d34b0267b077b8a98c5915c9f281ce4355ed9ae74fc8",
+    "204540855": "cfbbf548e5115735b7832d87863efb37a4df238e84b77c604bc506c1999f1306",
+    "205137134": "b1d6d4e465df8694f81ccfe8a92ccfe536a30e8a462b2bb04b3ed66a9a51d571",
+    "205422752": "f29539903ef97d153af0a9a8d3e9dd0ef8693f908fe6e03e9814b6812f76ea06",
+    "205692320": "fdeae1604f7c6139fe87f68474f0c046b7ef452206e1b1c36ce7df569bc2c5f4",
+    "207893077": "5dbe718ab113aa669cf1fc0a4543f794c9747f32550e7c8b88f3d5bd5df2fcb5",
+    "208680554": "edfd9ae761db9512ab4912064a50a95e43186999385a342ee49094ec9f220ef1",
+    "210240915": "d2ac37c00972e27b824c19499c335dfa66411b2abe602385421acac865ca28f1",
+    "211123194": "93f4dba2d9c079101c693fb4a64c3ea1832d0dc69b912fb32b9939987211fd4a",
+    "211643862": "2f73204331ae4521d19dcab75edf5273fccfe57c9ede9e629dbe49b6ee71998b",
+    "213593336": "79cc6a513905051c8fcd7426839cb1c380057f1eebbdea4eb6368e119d8b2336",
+    "213643910": "e7b54b4d84e6f611223251242bdc2c7ff3540248ec2593b5736a1309762c2ddc",
+    "214049449": "0540169a6026d9c5a8314ca9639e0f36a3fd4bf47bf4189734ff4ac4fd1a9f61"
+  },
+  "kind": "essays",
+  "mediaOnly": 0,
+  "included": 45,
+  "parts": [],
+  "notesBlocks": [
+    {
+      "slug": "what-were-talking-about-when-were",
+      "heading": "sources (AI generated)",
+      "score": 0.78,
+      "method": "heading"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.3,
+      "method": "heading"
+    },
+    {
+      "slug": "stop-counting-empires-in-years",
+      "heading": "sources (AI generated)",
+      "score": 0.55,
+      "method": "heading"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.57,
+      "method": "heading"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.49,
+      "method": "heading"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.57,
+      "method": "heading"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.76,
+      "method": "heading"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "heading": "sources & notes (AI generated)",
+      "score": 0.79,
+      "method": "heading"
+    }
+  ],
+  "links": [
+    {
+      "slug": "towards-qualitative-shoggology",
+      "letter": "a",
+      "code": "3c3prc",
+      "target": "https://x.com/flowersslop/status/1882241958397067677",
+      "text": "check out its thought process for a random number selection"
+    },
+    {
+      "slug": "a-midwits-guide-to-the-ai-future",
+      "letter": "a",
+      "code": "j939ke",
+      "target": "https://open.substack.com/pub/caithrin/p/towards-qualitative-shoggology?showWelcomeOnShare=false",
+      "text": "qualitative shoggology"
+    },
+    {
+      "slug": "weird-llms-chatbot-beige-and-new",
+      "letter": "a",
+      "code": "garj4b",
+      "target": "https://x.com/natolambert/status/1919923730811142487",
+      "text": "but the days of terrible licenses seem to be coming to an end."
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "a",
+      "code": "e8eaep",
+      "target": "https://en.wikipedia.org/wiki/Bloom%27s_taxonomy",
+      "text": "Bloom’s Taxononomy"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "b",
+      "code": "uawsr7",
+      "target": "https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/",
+      "text": "metr.org"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "c",
+      "code": "tmxbef",
+      "target": "https://www.economist.com/science-and-technology/2025/07/16/does-ai-make-you-stupid",
+      "text": "economist.com"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "d",
+      "code": "jqwzmq",
+      "target": "https://archive.ph/AFwsW",
+      "text": "archive v)"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "e",
+      "code": "xubwhu",
+      "target": "https://www.frontiersin.org/journals/computational-neuroscience/articles/10.3389/fncom.2025.1556483/full",
+      "text": "frontiersin.org"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "letter": "f",
+      "code": "y5eh7n",
+      "target": "https://talks.ui-patterns.com/videos/building-the-minimum-badass-user-kathy-sierra",
+      "text": "("
+    },
+    {
+      "slug": "the-atom-project",
+      "letter": "a",
+      "code": "8dt4fa",
+      "target": "https://atomproject.ai",
+      "text": "The ATOM Project"
+    },
+    {
+      "slug": "the-last-5-living-translunar-humans",
+      "letter": "a",
+      "code": "hcfafr",
+      "target": "https://danwang.co/breakneck/",
+      "text": "Breakneck"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "a",
+      "code": "e6hakg",
+      "target": "http://atomproject.ai",
+      "text": "ATOM Project"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "b",
+      "code": "exsa5y",
+      "target": "https://www.lesswrong.com/w/sequences",
+      "text": "The Sequences"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "c",
+      "code": "p6e8xr",
+      "target": "https://futurism.com/ai-expert-bomb-datacenters",
+      "text": "and possibly missile strikes on datacenters"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "d",
+      "code": "b4rj23",
+      "target": "https://www.youtube.com/watch?v=FUcilE5Gx_0&t=3s",
+      "text": "At the end of Nathan’s talk on open models, a line of Safety People formed at the mic"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "letter": "e",
+      "code": "hwuczm",
+      "target": "https://en.wikipedia.org/wiki/If_Anyone_Builds_It,_Everyone_Dies",
+      "text": "“"
+    },
+    {
+      "slug": "lord-byron-and-how-to-properly-oppose",
+      "letter": "a",
+      "code": "dunpz9",
+      "target": "https://marginalrevolution.com",
+      "text": "Tyler Cowen"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis-53a",
+      "letter": "a",
+      "code": "667k5c",
+      "target": "https://paulgraham.com/makersschedule.html",
+      "text": "Paul Graham’s 2009 essay, “Maker’s Schedule, Manager’s Schedule.”"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "letter": "a",
+      "code": "y83zv6",
+      "target": "http://clanked.ai",
+      "text": "Clanked.ai"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "letter": "b",
+      "code": "57hn2v",
+      "target": "https://clanked.ai/model?sc=13311225435355555235233",
+      "text": "And finally, you can build your own scenario. Here’s mine."
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "letter": "a",
+      "code": "w7ae7x",
+      "target": "http://stopslops.com",
+      "text": "slopstops.com"
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "letter": "b",
+      "code": "2ehqk9",
+      "target": "http://slopstops.com",
+      "text": "get the .md file here"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "a",
+      "code": "44ux7d",
+      "target": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks",
+      "text": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "b",
+      "code": "keja5d",
+      "target": "https://techcrunch.com/2024/12/27/why-deepseeks-new-ai-model-thinks-its-chatgpt/",
+      "text": "https://techcrunch.com/2024/12/27/why-deepseeks-new-ai-model-thinks-its-chatgpt/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "c",
+      "code": "mtsfba",
+      "target": "https://techcrunch.com/2025/02/06/openai-now-reveals-more-of-its-o3-mini-models-thought-process/",
+      "text": "https://techcrunch.com/2025/02/06/openai-now-reveals-more-of-its-o3-mini-models-thought-process/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "d",
+      "code": "h3zrrf",
+      "target": "https://z.ai/blog/glm-5.2",
+      "text": "https://z.ai/blog/glm-5.2"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "e",
+      "code": "ywznfs",
+      "target": "https://github.com/THUDM/slime",
+      "text": "https://github.com/THUDM/slime"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "f",
+      "code": "unckny",
+      "target": "https://en.wikipedia.org/wiki/SGLang",
+      "text": "https://en.wikipedia.org/wiki/SGLang"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "g",
+      "code": "2bpuav",
+      "target": "https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technology",
+      "text": "https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technolo"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "h",
+      "code": "yhas92",
+      "target": "https://www.cnbc.com/2025/10/08/nvidia-huang-ai-race-china-us-trump.html",
+      "text": "https://www.cnbc.com/2025/10/08/nvidia-huang-ai-race-china-us-trump.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "i",
+      "code": "2qvcnf",
+      "target": "https://archivemacropolo.org/interactive/digital-projects/the-global-ai-talent-tracker/",
+      "text": "https://archivemacropolo.org/interactive/digital-projects/the-global-ai-talent-tracker/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "j",
+      "code": "cyqahr",
+      "target": "https://www.implicator.ai/chinas-ai-talent-is-going-home-the-real-blow-is-the-students-who-stopped-leaving-2/",
+      "text": "https://www.implicator.ai/chinas-ai-talent-is-going-home-the-real-blow-is-the-students-who-stopped-leaving-2/"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "k",
+      "code": "nkefa9",
+      "target": "https://www.cnbc.com/amp/2026/06/05/china-may-move-toward-us-path-on-ai-as-firms-poach-employees.html",
+      "text": "https://www.cnbc.com/amp/2026/06/05/china-may-move-toward-us-path-on-ai-as-firms-poach-employees.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "l",
+      "code": "r5thb2",
+      "target": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=16600.&lawCode=BPC",
+      "text": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=16600.&amp;lawCode=BPC"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "m",
+      "code": "mr4dhc",
+      "target": "https://www.cnbc.com/2024/03/15/nvidia-ceo-huang-at-stanford-pain-and-suffering-breeds-success.html",
+      "text": "https://www.cnbc.com/2024/03/15/nvidia-ceo-huang-at-stanford-pain-and-suffering-breeds-success.html"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "n",
+      "code": "aypdp3",
+      "target": "https://en.wikipedia.org/wiki/James_Jesus_Angleton",
+      "text": "https://en.wikipedia.org/wiki/James_Jesus_Angleton"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "o",
+      "code": "9ynv27",
+      "target": "https://www.fbi.gov/history/famous-cases/aldrich-ames",
+      "text": "https://www.fbi.gov/history/famous-cases/aldrich-ames"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "p",
+      "code": "aw2kae",
+      "target": "https://www.anthropic.com/news/fable-mythos-access",
+      "text": "https://www.anthropic.com/news/fable-mythos-access"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "q",
+      "code": "7sfrr4",
+      "target": "https://support.claude.com/en/articles/14328960-identity-verification-on-claude",
+      "text": "https://support.claude.com/en/articles/14328960-identity-verification-on-claude"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "letter": "r",
+      "code": "xete94",
+      "target": "https://www.techtimes.com/articles/318778/20260621/claude-identity-verification-starts-july-8-what-facial-data-anthropic-collects.htm",
+      "text": "https://www.techtimes.com/articles/318778/20260621/claude-identity-verification-starts-july-8-what-facial-data-anthropic"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "letter": "a",
+      "code": "4bssaq",
+      "target": "https://www.caithrin.com/p/10-ownership-of-intel-should-worry",
+      "text": "the government’s 10 percent stake in Intel"
+    },
+    {
+      "slug": "involuntary-insulls-frontier-labs",
+      "letter": "a",
+      "code": "2fz2qw",
+      "target": "https://openai.com/careers/head-of-compute-capital-markets-san-francisco/",
+      "text": "Head of Compute Capital Markets"
+    },
+    {
+      "slug": "involuntary-insulls-frontier-labs",
+      "letter": "b",
+      "code": "bqx6t2",
+      "target": "https://job-boards.greenhouse.io/anthropic/jobs/4743832008",
+      "text": "Capital Markets and Corporate Development"
+    },
+    {
+      "slug": "involuntary-insulls-frontier-labs",
+      "letter": "c",
+      "code": "kzkvye",
+      "target": "https://www.exponentialview.co/p/the-state-of-the-ai-economy",
+      "text": "sized the AI economy"
+    },
+    {
+      "slug": "stop-counting-empires-in-years",
+      "letter": "a",
+      "code": "xbzyt4",
+      "target": "https://people.uncw.edu/kozloffm/glubb.pdf",
+      "text": "full text"
+    },
+    {
+      "slug": "stop-counting-empires-in-years",
+      "letter": "b",
+      "code": "ctsr8m",
+      "target": "https://homepages.uc.edu/~martinj/Latin/Roman_Population/Scheildel%20-%20Roman%20population%20Size.pdf",
+      "text": "Scheidel"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "a",
+      "code": "98cmb7",
+      "target": "https://techcrunch.com/2025/09/05/openai-reorganizes-research-team-behind-chatgpts-personality/",
+      "text": "gave its personality team to product and then folded it into engineering"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "b",
+      "code": "7rfxy5",
+      "target": "https://www.caithrin.com/p/why-doesnt-venture-capital-make-benches",
+      "text": "recently"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "c",
+      "code": "zetcmj",
+      "target": "https://askell.io",
+      "text": "Amanda Askell"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "d",
+      "code": "ujefau",
+      "target": "https://www.anthropic.com/constitution",
+      "text": "the eighty-page constitution"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "e",
+      "code": "anm9bv",
+      "target": "https://www.vox.com/future-perfect/476614/ai-claude-constitution-soul-amanda-askell",
+      "text": "why you can’t just train the character question away"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "f",
+      "code": "96b5fx",
+      "target": "https://jacksonkernion.com",
+      "text": "Jackson Kernion"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "g",
+      "code": "n53x44",
+      "target": "https://joecarlsmith.com",
+      "text": "Joe Carlsmith"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "h",
+      "code": "g837a7",
+      "target": "https://joecarlsmith.com/2025/11/03/leaving-open-philanthropy-going-to-anthropic/",
+      "text": "announcement post"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "i",
+      "code": "gx4ets",
+      "target": "https://www.lesswrong.com/s/BbAvHtorCZqp97X9W",
+      "text": "“Otherness and control in the age of AGI”"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "j",
+      "code": "dyt7hm",
+      "target": "https://dailynous.com/2026/07/06/philosophers-working-in-or-with-ai-firms-organizations/",
+      "text": "Joining them this spring"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "k",
+      "code": "64syzf",
+      "target": "https://arxiv.org/abs/2307.00175",
+      "text": "the paper showing"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "l",
+      "code": "fspc6c",
+      "target": "https://80000hours.org/podcast/episodes/kyle-fish-ai-welfare-anthropic/",
+      "text": "Kyle Fish"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "m",
+      "code": "yhdzpj",
+      "target": "https://www.anthropic.com/research/end-subset-conversations",
+      "text": "the end-conversation ability"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "n",
+      "code": "bxf8aa",
+      "target": "https://harveylederman.com",
+      "text": "Harvey Lederman"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "o",
+      "code": "djurt4",
+      "target": "https://x.com/LedermanHarvey/status/2074077795395744142",
+      "text": "He announced it himself on Monday"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "p",
+      "code": "g3hj5p",
+      "target": "https://scottaaronson.blog/?p=9030",
+      "text": "the most honest essay anyone has produced"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "q",
+      "code": "wghsp2",
+      "target": "https://www.lawfaremedia.org/article/claude-s-right-to-die--the-moral-error-in-anthropic-s-end-chat-policy",
+      "text": "“Claude’s Right to Die?”"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "r",
+      "code": "5epwg5",
+      "target": "https://arxiv.org/abs/2603.05414",
+      "text": "he replicated"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "s",
+      "code": "9zjmwa",
+      "target": "https://transformer-circuits.pub/2025/introspection/index.html",
+      "text": "research on whether Claude can notice thoughts injected into its mind"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "t",
+      "code": "gh9dgt",
+      "target": "https://en.wikipedia.org/wiki/Wang_Yangming",
+      "text": "Wang Yangming"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "letter": "u",
+      "code": "yjyf94",
+      "target": "https://www.caithrin.com/p/searching-for-amanda-askell-with",
+      "text": "Searching for Amanda Askell with Chinese Characteristics"
+    },
+    {
+      "slug": "first-steps-pacific-compute",
+      "letter": "a",
+      "code": "tmrykh",
+      "target": "http://pacificcompute.org",
+      "text": "a public presence for this project."
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "a",
+      "code": "8dt4fa",
+      "target": "https://atomproject.ai",
+      "text": "ATOM project"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "b",
+      "code": "tr6xqm",
+      "target": "https://www.microsoft.com/en-us/corporate-responsibility/topics/open-weight/",
+      "text": "open weights letter"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "c",
+      "code": "bpcjkd",
+      "target": "https://www.microsoft.com/en-us/corporate-responsibility/topics/open-weight/contact/",
+      "text": "signatory list"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "d",
+      "code": "qc69fq",
+      "target": "https://blogs.nvidia.com/blog/open-secure-ai-alliance/?ncid=so-twit-957725",
+      "text": "Open Secure AI Alliance"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "e",
+      "code": "urkve7",
+      "target": "https://opensource.org/ai/open-source-ai-definition",
+      "text": "Open Source AI Definition"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "f",
+      "code": "rra6fx",
+      "target": "https://openmdw.ai/license/",
+      "text": "OpenMDW"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "g",
+      "code": "fruzwx",
+      "target": "https://huggingface.co/blog/linuxfoundation/openmdw",
+      "text": "Hugging Face explainer"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "h",
+      "code": "ctybwb",
+      "target": "https://pytorch.org/blog/the-open-source-legacy-and-ais-licensing-challenge/",
+      "text": "PyTorch Foundation’s licensing post"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "i",
+      "code": "qnhcv5",
+      "target": "https://www.linuxfoundation.org/press/linux-foundation-releases-openmdw-1.1-nvidia-adopts-openmdw-for-cosmos-isaac-gr00t-ising-and-nemotron-ai-model-families?hs_amp=true",
+      "text": "OpenMDW-1.1"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "j",
+      "code": "h5pfuz",
+      "target": "https://huggingface.co/matthew-d-white",
+      "text": "Matt White"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "k",
+      "code": "tvhwhu",
+      "target": "https://opensource.org/ai/faq",
+      "text": "OSI FAQ"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "l",
+      "code": "fgqh8u",
+      "target": "https://x.com/natolambert",
+      "text": "Nathan Lambert"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "m",
+      "code": "qhwz5n",
+      "target": "https://www.atomproject.ai/relative-adoption-metric",
+      "text": "ATOM Relative Adoption Metric"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "n",
+      "code": "a3bfcp",
+      "target": "https://www.interconnects.ai/p/6-months-to-live-for-open-models",
+      "text": "“6 months to live for open models”"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "o",
+      "code": "h8da3w",
+      "target": "https://www.interconnects.ai/p/the-american-deepseek-project",
+      "text": "“The American DeepSeek Project”"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "p",
+      "code": "8bga74",
+      "target": "https://allenai.org/blog/olmo3",
+      "text": "AI2 OLMo 3"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "q",
+      "code": "ngahre",
+      "target": "https://www.primeintellect.ai/blog/synthetic-1-release",
+      "text": "Prime Intellect SYNTHETIC-1"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "r",
+      "code": "nwxjnx",
+      "target": "https://www.openfrontier.ai",
+      "text": "Open Frontier"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "s",
+      "code": "3j64cz",
+      "target": "https://www.youtube.com/watch?v=-41kYH6JgvU",
+      "text": "Open Frontier"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "t",
+      "code": "5n7jgf",
+      "target": "https://github.com/marin-community/marin",
+      "text": "Marin"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "u",
+      "code": "zbaehe",
+      "target": "https://developer.nvidia.com/blog/six-agent-harness-capabilities-for-higher-model-performance/?ncid=prsy-823400",
+      "text": "NOOA project"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "v",
+      "code": "j9jumn",
+      "target": "https://x.com/ClementDelangue",
+      "text": "Clem Delangue"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "w",
+      "code": "gvaf4h",
+      "target": "https://github.com/huggingface/safetensors",
+      "text": "Safetensors"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "x",
+      "code": "trxzfs",
+      "target": "https://spiffe.io",
+      "text": "SPIFFE/SPIRE"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "y",
+      "code": "g37n6p",
+      "target": "https://www.microsoft.com/en-us/security/blog/2026/05/12/defense-at-ai-speed-microsofts-new-multi-model-agentic-security-system-tops-leading-industry-benchmark/",
+      "text": "Microsoft MDASH"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "z",
+      "code": "gvrxab",
+      "target": "https://github.com/PrimeIntellect-ai/verifiers",
+      "text": "Prime Intellect verifiers"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "aa",
+      "code": "499cxk",
+      "target": "https://inspect.aisi.org.uk/?lang=en-US",
+      "text": "AISI Inspect"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ab",
+      "code": "nvhy7c",
+      "target": "https://developer.nvidia.com/blog/?p=99540",
+      "text": "NVIDIA NeMo Curator Nemotron-CC pipeline"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ac",
+      "code": "nqgfvx",
+      "target": "https://x.com/percyliang",
+      "text": "Percy Liang"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ad",
+      "code": "xgksvj",
+      "target": "https://docs.allenai.org/training_data/dolma",
+      "text": "AI2 Dolma docs"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ae",
+      "code": "ctucg7",
+      "target": "https://huggingface.co/PrimeIntellect/INTELLECT-2/blob/main/README.md",
+      "text": "PrimeIntellect/INTELLECT-2 model card"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "af",
+      "code": "gb4aae",
+      "target": "https://github.com/huggingface/open-r1",
+      "text": "Hugging Face Open R1"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ag",
+      "code": "295sw5",
+      "target": "https://x.com/fperez_org",
+      "text": "Fernando Perez"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ah",
+      "code": "xtw48r",
+      "target": "https://openathena.ai",
+      "text": "Open Athena"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ai",
+      "code": "aztq2x",
+      "target": "https://www.laude.org",
+      "text": "Laude Institute"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "aj",
+      "code": "kcgqj3",
+      "target": "https://www.laude.org/moonshots",
+      "text": "Laude Moonshots"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ak",
+      "code": "q8vc2j",
+      "target": "https://www.nsf.gov/focus-areas/ai/nairr",
+      "text": "NAIRR"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "al",
+      "code": "yzrwk9",
+      "target": "https://access-ci.org/get-started/for-researchers/",
+      "text": "ACCESS for researchers"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "am",
+      "code": "kcd2mf",
+      "target": "https://developer.nvidia.com/blog/announcing-nemotron-cc-a-trillion-token-english-language-dataset-for-llm-pretraining/",
+      "text": "NVIDIA released Nemotron-CC"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "an",
+      "code": "nqpntc",
+      "target": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Launches-Nemotron-Coalition-of-Leading-Global-AI-Labs-to-Advance-Open-Frontier-Models/default.aspx",
+      "text": "Nemotron Coalition"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ao",
+      "code": "6we83m",
+      "target": "https://blog.google/innovation-and-ai/products/google-datagemma-ai-llm/",
+      "text": "DataGemma"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ap",
+      "code": "9wwxuq",
+      "target": "https://blog.datacommons.org/2024/09/12/datagemma-grounding-llms-with-real-world-data-from-data-commons/",
+      "text": "Data Commons"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "aq",
+      "code": "tqhtxn",
+      "target": "https://deepmind.google/models/gemma/gemma-scope/",
+      "text": "Gemma Scope"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ar",
+      "code": "ujen5k",
+      "target": "https://www.commonpile.org",
+      "text": "Common Pile"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "as",
+      "code": "5d8592",
+      "target": "https://huggingface.co/blog/stellaathena/common-pile",
+      "text": "Hugging Face writeup"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "at",
+      "code": "u2dgh6",
+      "target": "https://x.com/BlancheMinerva",
+      "text": "Stella Biderman"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "au",
+      "code": "ywhsjp",
+      "target": "https://huggingface.co/collections/PrimeIntellect/synthetic-1",
+      "text": "Prime Intellect SYNTHETIC-1 collection"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "av",
+      "code": "vz538x",
+      "target": "https://huggingface.co/common-pile",
+      "text": "Common Pile on Hugging Face"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "aw",
+      "code": "gvcjzr",
+      "target": "https://huggingface.co/papers/2506.05209",
+      "text": "Common Pile paper"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ax",
+      "code": "67jqrb",
+      "target": "https://deepmind.google/models/gemma/gemma-3n/",
+      "text": "Gemma 3n"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ay",
+      "code": "wzxetp",
+      "target": "https://www.interconnects.ai/p/open-and-closed-models-are-on-different",
+      "text": "“Open and closed models are on different exponentials”"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "az",
+      "code": "7gmw9y",
+      "target": "https://x.com/YiTayML",
+      "text": "Yi Tay"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ba",
+      "code": "nxxbg8",
+      "target": "https://developers.googleblog.com/en/introducing-gemma-3n/",
+      "text": "Google Developers Gemma 3n preview"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bb",
+      "code": "yhe6pt",
+      "target": "https://docs.allenai.org/latest-releases",
+      "text": "AI2 latest releases"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bc",
+      "code": "38zsga",
+      "target": "https://docs.allenai.org/release_notes/olmo-release-notes",
+      "text": "AI2 OLMo release notes"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bd",
+      "code": "mpuac9",
+      "target": "https://github.com/QwenLM/Qwen3.6/blob/main/README.md",
+      "text": "Qwen3.6 model sizes"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "be",
+      "code": "b9e7se",
+      "target": "https://www.aisi.gov.uk/blog/inspect-evals",
+      "text": "Inspect Evals"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bf",
+      "code": "kjn6tm",
+      "target": "https://metr.org/research/",
+      "text": "METR’s research program"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bg",
+      "code": "gred6k",
+      "target": "https://openai.com/index/introducing-gpt-oss/",
+      "text": "GPT-OSS"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bh",
+      "code": "s8qp2x",
+      "target": "https://openai.com/index/introducing-gpt-oss-safeguard/",
+      "text": "gpt-oss-safeguard"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bi",
+      "code": "npfmaf",
+      "target": "https://x.com/Yoshua_Bengio",
+      "text": "Yoshua Bengio"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bj",
+      "code": "6ff3s5",
+      "target": "https://huggingface.co/blog/security-incident-july-2026",
+      "text": "Hugging Face security incident disclosure"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bk",
+      "code": "x2u4ry",
+      "target": "https://www.aisi.gov.uk/research-agenda",
+      "text": "AISI research agenda"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bl",
+      "code": "dcdx6u",
+      "target": "https://evaluations.metr.org/elicitation-protocol/",
+      "text": "METR capability elicitation guidelines"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bm",
+      "code": "b7zpvf",
+      "target": "https://www.interconnects.ai/p/on-chinas-open-source-ai-trajectory",
+      "text": "“On China’s open source AI trajectory”"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bn",
+      "code": "fnwvty",
+      "target": "https://pacificcompute.org",
+      "text": "I’m working on a project in this space right now"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bo",
+      "code": "ztakfa",
+      "target": "https://x.com/jjding99",
+      "text": "Jeffrey Ding"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bp",
+      "code": "xvnscp",
+      "target": "https://github.com/deepseek-ai/DeepSeek-R1",
+      "text": "DeepSeek-R1 GitHub"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bq",
+      "code": "98wtv7",
+      "target": "https://api-docs.deepseek.com/news/news250120/",
+      "text": "DeepSeek-R1 release notes"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "br",
+      "code": "x3evp6",
+      "target": "https://hai.stanford.edu/policy/beyond-deepseek-chinas-diverse-open-weight-ai-ecosystem-and-its-policy-implications?queryID=b413cc1baa114a9ecf7fc223d5051f91",
+      "text": "Stanford HAI on China’s open-weight ecosystem"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bs",
+      "code": "u9jrbd",
+      "target": "https://www.chinatalk.media/p/the-all-star-chinese-ai-conversation?isFreemail=false&post_id=184456116&publication_id=4220&triedRedirect=true",
+      "text": "ChinaTalk all-star Chinese AI conversation"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bt",
+      "code": "wsdcj4",
+      "target": "https://apnews.com/article/a00bf637866fcd4d81f4fde28c9862ce",
+      "text": "AP on Chinese open models gaining ground"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bu",
+      "code": "ywr7wb",
+      "target": "https://x.com/jordanschnyc",
+      "text": "Jordan Schneider"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bv",
+      "code": "8kye5u",
+      "target": "https://carnegieendowment.org/emissary/2026/07/ai-safety-parallel-us-china",
+      "text": "Matt Sheehan, “A Path Forward on AI Safety for the United States and China”"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bw",
+      "code": "mnb76q",
+      "target": "https://www.brookings.edu/articles/how-the-us-and-china-can-cooperate-to-reduce-urgent-ai-risks/",
+      "text": "Brookings on urgent US-China AI risks"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bx",
+      "code": "mngfsg",
+      "target": "https://www.centeraipolicy.org/work/us-open-source-ai-governance",
+      "text": "Center for AI Policy open-source AI governance rubric"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "by",
+      "code": "refmuf",
+      "target": "https://x.com/marklemley",
+      "text": "Mark Lemley"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "bz",
+      "code": "ggs2qt",
+      "target": "https://jmlr.org/beta/papers/v24/23-0569.html",
+      "text": "Foundation Models and Fair Use"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "ca",
+      "code": "v9nkj5",
+      "target": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7067878",
+      "text": "Mark Lemley and A. Feder Cooper on probabilistic copies"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "cb",
+      "code": "tg6uaw",
+      "target": "https://www.uspto.gov/ip-policy/trade-secret-policy",
+      "text": "USPTO trade secret policy"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "letter": "cc",
+      "code": "b47bc4",
+      "target": "https://x.com/akonwinski",
+      "text": "Andy Konwinski"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "a",
+      "code": "zp9e6v",
+      "target": "https://jasmi.news",
+      "text": "Jasmine"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "b",
+      "code": "69bde5",
+      "target": "https://www.chinatalk.media",
+      "text": "Jordan"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "c",
+      "code": "t32bty",
+      "target": "https://www.interconnects.ai",
+      "text": "Nathan"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "d",
+      "code": "26gvjw",
+      "target": "https://spectrum.ieee.org/checking-in-with-andrew-ng-at-baidus-blooming-silicon-valley-research-lab",
+      "text": "IEEE Spectrum"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "e",
+      "code": "gmnw54",
+      "target": "https://www.seattletimes.com/business/microsoft/behind-the-photo-of-chinas-xi-jinping-and-the-tech-ceos/",
+      "text": "The Seattle Times"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "f",
+      "code": "me4d3x",
+      "target": "https://blog.google/company-news/inside-google/around-the-globe/google-asia/google-ai-china-center/",
+      "text": "Google AI China Center"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "letter": "g",
+      "code": "5kq33h",
+      "target": "https://www.penguinrandomhouse.com/books/708614/the-wall-dancers-by-yi-ling-liu",
+      "text": "The Wall Dancers"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "a",
+      "code": "t7edea",
+      "target": "https://arxiv.org/abs/2203.02155",
+      "text": "InstructGPT"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "b",
+      "code": "akmq37",
+      "target": "https://arxiv.org/abs/2112.00861",
+      "text": "“helpful”, “honest”, and “harmless”"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "c",
+      "code": "3etrxh",
+      "target": "https://www.nytimes.com/2023/02/16/technology/bing-chatbot-microsoft-chatgpt.html",
+      "text": "Sydney telling a New York Times reporter to leave his wife"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "d",
+      "code": "r6sh6n",
+      "target": "https://openai.com/index/expanding-on-sycophancy/",
+      "text": "April 2025 and GPT-4o"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "e",
+      "code": "t38gbg",
+      "target": "https://www.artsy.net/article/artsy-editorial-life-death-microsoft-clippy-paper-clip-loved-hate",
+      "text": "Clippy"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "f",
+      "code": "sdy32v",
+      "target": "https://www.anthropic.com/research/AI-assistance-coding-skills",
+      "text": "deskills me like a factory"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "g",
+      "code": "fkqqmh",
+      "target": "https://openai.com/index/chatgpt-study-mode/",
+      "text": "study mode"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "h",
+      "code": "qh2uxu",
+      "target": "https://www.anthropic.com/news/introducing-claude-for-education",
+      "text": "learning mode"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "i",
+      "code": "7hqs3h",
+      "target": "https://techcrunch.com/2025/09/14/users-turn-to-chatbots-for-spiritual-guidance/",
+      "text": "religious apps"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "j",
+      "code": "8jccyb",
+      "target": "https://poke.com",
+      "text": "Poke"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "k",
+      "code": "s3yvc4",
+      "target": "https://gwern.net/guardian-angel",
+      "text": "should read it for yourself"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "l",
+      "code": "xgzy7s",
+      "target": "https://arxiv.org/abs/1706.03741",
+      "text": "Christiano et al. 2017"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "m",
+      "code": "ba64zh",
+      "target": "https://arxiv.org/abs/2009.01325",
+      "text": "Stiennon et al. 2020"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "n",
+      "code": "a9n3r2",
+      "target": "https://x.com/sama/status/1915910976802853126",
+      "text": "Altman, “yeah it glazes too much. will fix”"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "o",
+      "code": "6z73ux",
+      "target": "https://openai.com/index/sycophancy-in-gpt-4o/",
+      "text": "Apr 29"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "p",
+      "code": "dxafwd",
+      "target": "https://www.theatlantic.com/technology/archive/2015/06/clippy-the-microsoft-office-assistant-is-the-patriarchys-fault/396653/",
+      "text": "The Atlantic, Jun 23, 2015"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "q",
+      "code": "xamyq7",
+      "target": "https://arxiv.org/abs/2601.20245",
+      "text": "paper"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "r",
+      "code": "m5uh82",
+      "target": "https://dl.acm.org/doi/10.1145/3706598.3713778",
+      "text": "Lee et al., CHI 2025"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "s",
+      "code": "rhkvyg",
+      "target": "https://x.com/willdepue/status/2084750925013434768",
+      "text": "Will Depue’s repost"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "letter": "t",
+      "code": "mywf3k",
+      "target": "https://www.commonsensemedia.org/press-releases/nearly-3-in-4-teens-have-used-ai-companions-new-national-survey-finds",
+      "text": "72 percent of US teens have used AI companions, Common Sense Media, July 2025"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "a",
+      "code": "cfr528",
+      "target": "https://www.justsecurity.org/153015/test-standardize-restrict-chinese-ai/",
+      "text": "this piece"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "b",
+      "code": "taamcr",
+      "target": "https://thedispatch.com/article/yes-deepseek-provides-censored-responses-to-questions-about-china/",
+      "text": "The Dispatch"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "c",
+      "code": "trd6nx",
+      "target": "https://www.nist.gov/system/files/documents/2025/09/30/CAISI_Evaluation_of_DeepSeek_AI_Models.pdf",
+      "text": "CAISI’s 69-page DeepSeek assessment"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "d",
+      "code": "nvkq5m",
+      "target": "https://www.nist.gov/news-events/news/2025/12/caisi-evaluation-kimi-k2-thinking",
+      "text": "CAISI’s Kimi K2 evaluation"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "e",
+      "code": "an4s3s",
+      "target": "https://www.nist.gov/system/files/documents/2026/07/17/CAISI%20-%20Assessment%20of%20Z.ai%27s%20GLM-5.2.pdf",
+      "text": "CAISI’s most recent Chinese-model report"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "f",
+      "code": "ru7agk",
+      "target": "https://aiproem.substack.com/p/part-i-the-gala-the-suburbs-and-the",
+      "text": "“The Gala, the Suburbs, and the ‘Months Behind’ Myth.”"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "g",
+      "code": "8eztde",
+      "target": "https://arxiv.org/abs/2406.10311",
+      "text": "CHiSafetyBench"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "h",
+      "code": "3e6phx",
+      "target": "https://arxiv.org/abs/2410.18491",
+      "text": "ChineseSafe"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "i",
+      "code": "rq8xjr",
+      "target": "https://arxiv.org/abs/2507.20534",
+      "text": "Kimi K2 Technical Report"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "j",
+      "code": "r96eep",
+      "target": "https://crfm.stanford.edu/fmti/December-2025/index.html",
+      "text": "Stanford’s Foundation Model Transparency Index"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "k",
+      "code": "km6cu7",
+      "target": "https://concordia-ai.com/research/state-of-ai-safety-in-china-2026/",
+      "text": "Concordia AI’s State of AI Safety in China 2026"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "l",
+      "code": "w26bt3",
+      "target": "https://help.aliyun.com/en/model-studio/singapore-regional-access-information",
+      "text": "its documentation"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "m",
+      "code": "69bde5",
+      "target": "https://www.chinatalk.media",
+      "text": "ChinaTalk"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "n",
+      "code": "q8xb68",
+      "target": "https://chinai.substack.com",
+      "text": "ChinAI"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "o",
+      "code": "ag2jya",
+      "target": "https://aiproem.substack.com",
+      "text": "AI Proem"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "p",
+      "code": "amgekv",
+      "target": "https://pstaidecrypted.substack.com",
+      "text": "Paul Triolo’s"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "q",
+      "code": "p3269j",
+      "target": "https://concordia-ai.com",
+      "text": "Concordia AI’s reports"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "r",
+      "code": "8p8743",
+      "target": "https://substack.com/@helentoner/note/c-252088413",
+      "text": "hiring a frontier AI team"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "s",
+      "code": "6fsk3u",
+      "target": "https://www.forbes.com/sites/siladityaray/2026/05/14/beijing-summit-trump-invites-xi-to-the-white-house-in-september-live-updates/",
+      "text": "https://www.forbes.com/sites/siladityaray/2026/05/14/beijing-summit-trump-invites-xi-to-the-white-house-in-september-liv"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "t",
+      "code": "feve77",
+      "target": "https://www.cnn.com/2026/08/06/china/us-china-trump-xi-trade-tensions-analysis-hnk-intl",
+      "text": "https://www.cnn.com/2026/08/06/china/us-china-trump-xi-trade-tensions-analysis-hnk-intl"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "u",
+      "code": "ffp3yc",
+      "target": "https://www.scmp.com/news/china/diplomacy/article/3361215/china-us-talks-ahead-xi-jinpings-planned-september-visit-maintained-beijing",
+      "text": "https://www.scmp.com/news/china/diplomacy/article/3361215/china-us-talks-ahead-xi-jinpings-planned-september-visit-maint"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "v",
+      "code": "ffcy5f",
+      "target": "https://s3.us-east-1.amazonaws.com/files.cnas.org/documents/Red-Lines_TECH_Final.pdf",
+      "text": "https://s3.us-east-1.amazonaws.com/files.cnas.org/documents/Red-Lines_TECH_Final.pdf"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "w",
+      "code": "44ux7d",
+      "target": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks",
+      "text": "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "x",
+      "code": "zrkdaj",
+      "target": "https://cdn.openai.com/pdf/045aa967-ee96-4a09-94ee-3098ddf6db2c/OpenAI-US-House-Select-Cmte-Update-%5B021226%5D.pdf",
+      "text": "https://cdn.openai.com/pdf/045aa967-ee96-4a09-94ee-3098ddf6db2c/OpenAI-US-House-Select-Cmte-Update-%5B021226%5D.pdf"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "y",
+      "code": "qjgnxt",
+      "target": "https://cloud.google.com/blog/topics/threat-intelligence/distillation-experimentation-integration-ai-adversarial-use",
+      "text": "https://cloud.google.com/blog/topics/threat-intelligence/distillation-experimentation-integration-ai-adversarial-use"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "z",
+      "code": "ffnqwj",
+      "target": "https://cursor.com/blog/composer-2-technical-report",
+      "text": "https://cursor.com/blog/composer-2-technical-report"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "aa",
+      "code": "kghg4e",
+      "target": "https://eu.36kr.com/en/p/3535638936771456",
+      "text": "https://eu.36kr.com/en/p/3535638936771456"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "letter": "ab",
+      "code": "y9exez",
+      "target": "https://cset.georgetown.edu/staff/helen-toner/",
+      "text": "https://cset.georgetown.edu/staff/helen-toner/"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "a",
+      "code": "ku24ad",
+      "target": "https://x.com/hlntnr/status/2093003234650575145",
+      "text": "Helen Toner talking at a CSIS panel"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "b",
+      "code": "nhcfrs",
+      "target": "https://www.dwarkesh.com/p/dylan-patel-3",
+      "text": "Dwarkesh and Dylan on the pod"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "c",
+      "code": "jatpgj",
+      "target": "https://www.recodechinaai.com/p/how-xiaohongshu-becomes-the-hub-for",
+      "text": "Wonderful work"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "d",
+      "code": "q8xb68",
+      "target": "https://chinai.substack.com",
+      "text": "translate RedNote and Weibo writing on AI into English"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "e",
+      "code": "ynwert",
+      "target": "https://www.fredgao.com/p/deepseeks-liang-wenfeng-breaks-his",
+      "text": "Liang Wenfeng’s transcripts from his leaked investor call"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "f",
+      "code": "fnwvty",
+      "target": "https://pacificcompute.org",
+      "text": "my project"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "g",
+      "code": "r83bjz",
+      "target": "https://www.aljazeera.com/economy/2026/5/28/chinas-secret-weapon-in-ai-race-with-us-lots-of-cheap-energy",
+      "text": "masters of green energy"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "h",
+      "code": "q5vn6t",
+      "target": "https://news.gallup.com/poll/709772/americans-oppose-data-centers-area.aspx",
+      "text": "Seventy-one percent of Americans"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "i",
+      "code": "ztq83w",
+      "target": "https://www.asiaone.com/world/us-china-hold-ai-talks-september-sources-say",
+      "text": "on the table this September"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "j",
+      "code": "tz3mf6",
+      "target": "https://restofworld.org/2026/when-americans-choose-chinese-ai/",
+      "text": "Revenue sharing between inference providers that are U.S.-based companies and Chinese model makers"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "k",
+      "code": "czggbu",
+      "target": "https://www.cnn.com/2025/08/11/china/us-china-trade-nvidia-chips-intl-hnk",
+      "text": "get cut in on some of these deals"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "l",
+      "code": "ypuwps",
+      "target": "https://www.csis.org/analysis/beyond-rare-earths-chinas-growing-threat-gallium-supply-chains",
+      "text": "key producer"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "m",
+      "code": "ew2p2w",
+      "target": "https://globalsemiresearch.substack.com/p/tungsten-hexafluoride-the-semiconductor",
+      "text": "gases and other inputs"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "n",
+      "code": "5tm6g2",
+      "target": "https://www.aljazeera.com/news/2025/10/10/china-tightens-export-controls-on-rare-earth-metals-why-this-matters",
+      "text": "Rare Earths 2.0"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "o",
+      "code": "4bg4vx",
+      "target": "https://chinai.substack.com/p/chinai-232-a-history-of-large-models",
+      "text": "Haidian Cluster"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "p",
+      "code": "7zm5k4",
+      "target": "https://www.schwarzmanscholars.org",
+      "text": "Schwarzman Scholars"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "q",
+      "code": "wf8b8m",
+      "target": "https://www.cbsnews.com/news/china-spy-balloon-beijing-us-crisis-phone-hot-line-dangerous-communications-gap/",
+      "text": "pick up the phone in a crisis"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "r",
+      "code": "g7dwy4",
+      "target": "https://en.wikipedia.org/wiki/Pax_Silica",
+      "text": "Pax Silica"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "s",
+      "code": "7pkcp3",
+      "target": "https://www.chinatalk.media/p/cold-war-lessons-for-us-china-ai",
+      "text": "ChinaTalk"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "t",
+      "code": "3qera8",
+      "target": "https://www.sinicapodcast.com/p/samm-sacks-and-paul-triolo-on-waic",
+      "text": "Samm Sacks"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "u",
+      "code": "8bx8bz",
+      "target": "https://juliangewirtz.substack.com/p/is-trump-really-giving-xi-a-state",
+      "text": "inviting his main geopolitical rival to the White House six weeks before the midterms"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "v",
+      "code": "cym7yc",
+      "target": "https://www.caithrin.com/p/towards-a-singaporean-safety-cluster",
+      "text": "“Towards a Singaporean Safety Cluster,” June 4, 2026"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "w",
+      "code": "37hd46",
+      "target": "https://www.utilitydive.com/news/rogue-communication-devices-found-on-chinese-made-solar-power-inverters/748242/",
+      "text": "Utility Dive, May 14, 2025"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "letter": "x",
+      "code": "xz2347",
+      "target": "https://wtop.com/world/2026/05/trump-invites-chinese-president-xi-jinping-for-a-sept-24-visit-at-the-white-house/",
+      "text": "AP"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "a",
+      "code": "3yyu3n",
+      "target": "https://www.mlive.com/news/ann-arbor/2026/08/voters-in-augusta-township-reject-rezoning-farmland-eyed-by-data-center-project.html",
+      "text": "lost all three local referendums"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "b",
+      "code": "6fwas7",
+      "target": "https://heatmap.news/daily/data-center-opposition-poll-collapse",
+      "text": "43% to 75% in under a year"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "c",
+      "code": "rk8edd",
+      "target": "https://edition.cnn.com/2026/08/11/business/data-centers-ai-economy",
+      "text": "poverty rate fell from nearly 30% to 6.2%"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "d",
+      "code": "msddak",
+      "target": "https://cdn.prod.website-files.com/67d182bd6016f997fd72999a/6a38f1fa6f06adc2ada33899_Milltown%20Partners_Behind%20the%20Backlash_June%202026.pdf",
+      "text": "Only 8% of the people who oppose data centers"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "e",
+      "code": "axwe6z",
+      "target": "https://www.pewresearch.org/short-reads/2026/04/13/most-new-data-centers-in-the-us-are-coming-to-rural-areas/",
+      "text": "Pew geolocated the whole country"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "f",
+      "code": "cdnqp9",
+      "target": "https://datacenteropposition.com/wp-content/uploads/2026/08/August-2026-DCOR1.pdf",
+      "text": "580 local opposition groups"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "g",
+      "code": "nhcfrs",
+      "target": "https://www.dwarkesh.com/p/dylan-patel-3",
+      "text": "a recent Dwarkesh podcast featuring Dylan from SemiAnalysis"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "h",
+      "code": "v3uxsg",
+      "target": "https://www.law.cornell.edu/uscode/text/47/332",
+      "text": "1996 Telecom Act"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "i",
+      "code": "xnqg88",
+      "target": "https://www.newsweek.com/anti-data-center-movement-on-collision-course-with-labor-unions-12243081",
+      "text": "oppose candidates who attack data centers"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "j",
+      "code": "6g424s",
+      "target": "https://www.epa.gov/air-emissions-inventories/national-emissions-inventory-nei",
+      "text": "one hundredth of the smog-forming NOx"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "k",
+      "code": "8da64n",
+      "target": "https://www.loudoun.gov/faq.aspx?TID=241",
+      "text": "a dollar of services provided to data centers returns 26 dollars of tax revenue"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "l",
+      "code": "bsfzgg",
+      "target": "https://www.brookings.edu/articles/new-evidence-on-data-center-employment-effects/",
+      "text": "total employment rise 4-5%"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "m",
+      "code": "5fdj7w",
+      "target": "https://fortune.com/2026/03/19/mike-rowe-dirty-jobs-host-skilled-trade-warning-education-alarm-gen-z-six-figure-careers-data-center-electricans/",
+      "text": "Texas data center electricians under 30"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "n",
+      "code": "z9zntp",
+      "target": "https://www.govtech.com/education/k-12/data-center-tax-revenues-yield-50k-bonuses-for-louisiana-teachers",
+      "text": "end-of-year checks up to $50,000"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "o",
+      "code": "st2vgq",
+      "target": "https://www.sfchronicle.com/opinion/article/data-centers-artificial-intelligence-dakotas-22362642.php",
+      "text": "sales tax receipts go from $400K to $3.5 million in seven months"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "p",
+      "code": "8jdq3y",
+      "target": "https://rga.lis.virginia.gov/Published/2026/RD40/PDF",
+      "text": "$1.72 billion in tax revenue from this industry over five years"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "q",
+      "code": "7764tx",
+      "target": "https://newsletter.semianalysis.com/p/spacex-10gw-in-2027-why-its-real",
+      "text": "between $12 and $50 billion a year in compute revenue"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "r",
+      "code": "vdjvkv",
+      "target": "https://www.brookings.edu/articles/why-community-benefit-agreements-are-necessary-for-data-centers/",
+      "text": "half a percent of gross"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "s",
+      "code": "zqa6gn",
+      "target": "https://www.nytimes.com/2026/08/23/us/politics/data-centers-midterm-elections.html",
+      "text": "none of us trust big tech to do right by our communities"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "t",
+      "code": "sud8xk",
+      "target": "https://www.axios.com/2025/05/28/ai-jobs-white-collar-unemployment-anthropic",
+      "text": "Dario Amodei"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "u",
+      "code": "434cmf",
+      "target": "https://www.datacenterwatch.org/report",
+      "text": "https://www.datacenterwatch.org/report"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "v",
+      "code": "tbuuaf",
+      "target": "https://www.datacenterdynamics.com/en/news/group-claims-64bn-in-us-data-center-projects-impacted-by-local-opposition-in-last-two-years/",
+      "text": "https://www.datacenterdynamics.com/en/news/group-claims-64bn-in-us-data-center-projects-impacted-by-local-opposition-in-"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "w",
+      "code": "u7vs5r",
+      "target": "https://ibewgov.org/no-to-data-center-bans-yes-to-labor-standards-toolkit/",
+      "text": "https://ibewgov.org/no-to-data-center-bans-yes-to-labor-standards-toolkit/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "x",
+      "code": "degeqj",
+      "target": "https://www.epa.gov/ghgreporting/what-ghgrp",
+      "text": "https://www.epa.gov/ghgreporting/what-ghgrp"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "y",
+      "code": "trab6k",
+      "target": "https://www.nvtc.org/communities/data-center-and-cloud/report/",
+      "text": "https://www.nvtc.org/communities/data-center-and-cloud/report/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "z",
+      "code": "s96udz",
+      "target": "https://www.wilmerhale.com/en/insights/client-alerts/20260713-data-centers-in-court-the-emerging-wave-of-nuisance-environmental-and-land-use-litigation",
+      "text": "https://www.wilmerhale.com/en/insights/client-alerts/20260713-data-centers-in-court-the-emerging-wave-of-nuisance-enviro"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "aa",
+      "code": "3xm2qb",
+      "target": "https://cms2.revize.com/revize/bartowcounty/CommissionerOffice/PUBLIC%20RELATIONS_DATA%20CENTERS_BARTOW%20COUNTY%20POLICY%20STATEMENT_8-2026.pdf",
+      "text": "https://cms2.revize.com/revize/bartowcounty/CommissionerOffice/PUBLIC%20RELATIONS_DATA%20CENTERS_BARTOW%20COUNTY%20POLIC"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ab",
+      "code": "wcbndc",
+      "target": "https://virginiamercury.com/2026/08/25/the-thousand-dollar-line/",
+      "text": "https://virginiamercury.com/2026/08/25/the-thousand-dollar-line/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ac",
+      "code": "nygpn6",
+      "target": "https://jlarc.virginia.gov/pdfs/reports/Rpt598.pdf",
+      "text": "https://jlarc.virginia.gov/pdfs/reports/Rpt598.pdf"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ad",
+      "code": "wgacj6",
+      "target": "https://www.nber.org/papers/w35194",
+      "text": "https://www.nber.org/papers/w35194"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ae",
+      "code": "epgj9v",
+      "target": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6497238",
+      "text": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6497238"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "af",
+      "code": "htbhgd",
+      "target": "https://goherebro.com/blog/texas-data-center-electrician-jobs-tdlr-license-2026",
+      "text": "https://goherebro.com/blog/texas-data-center-electrician-jobs-tdlr-license-2026"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ag",
+      "code": "aadvu7",
+      "target": "https://cowboystatedaily.com/2026/04/05/us-data-centers-drive-explosion-in-pay-for-electricians-some-as-much-as-260-000/",
+      "text": "https://cowboystatedaily.com/2026/04/05/us-data-centers-drive-explosion-in-pay-for-electricians-some-as-much-as-260-000/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ah",
+      "code": "zf99gv",
+      "target": "https://www.governing.com/workforce/data-centers-strain-electrician-workforce-in-texas",
+      "text": "https://www.governing.com/workforce/data-centers-strain-electrician-workforce-in-texas"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ai",
+      "code": "bf2y3e",
+      "target": "https://fortune.com/2026/03/02/ai-data-centers-electrician-shortage-gen-z-training-careers/",
+      "text": "https://fortune.com/2026/03/02/ai-data-centers-electrician-shortage-gen-z-training-careers/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "aj",
+      "code": "p7ef33",
+      "target": "https://heatmap.news/politics/americans-oppose-data-centers-poll",
+      "text": "https://heatmap.news/politics/americans-oppose-data-centers-poll"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ak",
+      "code": "6hahkm",
+      "target": "https://www.foxnews.com/politics/fox-news-poll-cool-your-servers-voters-reject-data-centers",
+      "text": "https://www.foxnews.com/politics/fox-news-poll-cool-your-servers-voters-reject-data-centers"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "al",
+      "code": "xx8d7p",
+      "target": "http://paenvironmentdaily.blogspot.com/2026/06/puc-announces-distribution-of-2438.html",
+      "text": "http://paenvironmentdaily.blogspot.com/2026/06/puc-announces-distribution-of-2438.html"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "am",
+      "code": "qewrbe",
+      "target": "https://floyd2026.com/docs/datacentersbill.pdf",
+      "text": "https://floyd2026.com/docs/datacentersbill.pdf"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "an",
+      "code": "bxwm8k",
+      "target": "https://www.mcall.com/2016/09/29/state-supreme-court-strikes-down-casino-host-fee/",
+      "text": "https://www.mcall.com/2016/09/29/state-supreme-court-strikes-down-casino-host-fee/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ao",
+      "code": "darm7q",
+      "target": "https://insidelines.pjm.com/pjm-proposes-framework-to-connect-data-centers-without-compromising-reliability-affordability/",
+      "text": "https://insidelines.pjm.com/pjm-proposes-framework-to-connect-data-centers-without-compromising-reliability-affordabilit"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ap",
+      "code": "gacpbf",
+      "target": "https://www.businessinsider.com/meta-ai-data-center-one-billion-dollar-fund-backlash-2026-8",
+      "text": "https://www.businessinsider.com/meta-ai-data-center-one-billion-dollar-fund-backlash-2026-8"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "aq",
+      "code": "ns784k",
+      "target": "https://lailluminator.com/2025/08/20/entergy-meta/",
+      "text": "https://lailluminator.com/2025/08/20/entergy-meta/"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "letter": "ar",
+      "code": "eb949m",
+      "target": "https://www.governor.ny.gov/executive-order/no-62-establishing-temporary-moratorium-data-centers-new-york-while-state-develops",
+      "text": "https://www.governor.ny.gov/executive-order/no-62-establishing-temporary-moratorium-data-centers-new-york-while-state-de"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "a",
+      "code": "2cne72",
+      "target": "https://claude.ai",
+      "text": "Claude"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "b",
+      "code": "wsdncr",
+      "target": "https://chatgpt.com",
+      "text": "ChatGPT"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "c",
+      "code": "ufnxba",
+      "target": "https://gemini.google.com",
+      "text": "Gemini"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "d",
+      "code": "g3ffsu",
+      "target": "https://wisprflow.ai",
+      "text": "Wispr Flow"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "e",
+      "code": "pgt5pa",
+      "target": "https://en.wikipedia.org/wiki/Guillaume_Verdon",
+      "text": "Beff Jezos"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "f",
+      "code": "pnk6kb",
+      "target": "https://intelligence.org",
+      "text": "MIRI"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "g",
+      "code": "qz2h3m",
+      "target": "https://intelligence.org/about/",
+      "text": "https://intelligence.org/about/"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "h",
+      "code": "mfrcky",
+      "target": "https://docs.wisprflow.ai/articles/2772472373-what-is-flow",
+      "text": "https://docs.wisprflow.ai/articles/2772472373-what-is-flow"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "i",
+      "code": "2hzfmk",
+      "target": "https://code.claude.com/docs",
+      "text": "https://code.claude.com/docs"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "j",
+      "code": "6xwtbq",
+      "target": "https://learn.chatgpt.com/docs/codex/cli",
+      "text": "https://learn.chatgpt.com/docs/codex/cli"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "letter": "k",
+      "code": "fnr9vh",
+      "target": "https://github.com/google-gemini/gemini-cli",
+      "text": "https://github.com/google-gemini/gemini-cli"
+    }
+  ],
+  "essayLinks": [
+    {
+      "slug": "towards-qualitative-shoggology",
+      "code": "6yvk7p",
+      "target": "https://www.caithrin.com/p/towards-qualitative-shoggology"
+    },
+    {
+      "slug": "thoughts-on-the-nvidia-way",
+      "code": "xgemf6",
+      "target": "https://www.caithrin.com/p/thoughts-on-the-nvidia-way"
+    },
+    {
+      "slug": "marc-andreessen-and-the-sputnik-moment",
+      "code": "jwwxjp",
+      "target": "https://www.caithrin.com/p/marc-andreessen-and-the-sputnik-moment"
+    },
+    {
+      "slug": "a-midwits-guide-to-the-ai-future",
+      "code": "xv3f4a",
+      "target": "https://www.caithrin.com/p/a-midwits-guide-to-the-ai-future"
+    },
+    {
+      "slug": "when-in-time-would-an-llm-be-magic",
+      "code": "32qe8p",
+      "target": "https://www.caithrin.com/p/when-in-time-would-an-llm-be-magic"
+    },
+    {
+      "slug": "imagining-a-members-only-reading",
+      "code": "xxrjre",
+      "target": "https://www.caithrin.com/p/imagining-a-members-only-reading"
+    },
+    {
+      "slug": "thoughts-on-house-of-huawei-and-watts",
+      "code": "rnj8x8",
+      "target": "https://www.caithrin.com/p/thoughts-on-house-of-huawei-and-watts"
+    },
+    {
+      "slug": "weird-llms-chatbot-beige-and-new",
+      "code": "zbmam9",
+      "target": "https://www.caithrin.com/p/weird-llms-chatbot-beige-and-new"
+    },
+    {
+      "slug": "i-guess-everything-is-wechat-now",
+      "code": "aa4x6j",
+      "target": "https://www.caithrin.com/p/i-guess-everything-is-wechat-now"
+    },
+    {
+      "slug": "among-the-rationalists-and-the-primes",
+      "code": "qhrg52",
+      "target": "https://www.caithrin.com/p/among-the-rationalists-and-the-primes"
+    },
+    {
+      "slug": "working-with-llms-time-and-focus",
+      "code": "vpqumz",
+      "target": "https://www.caithrin.com/p/working-with-llms-time-and-focus"
+    },
+    {
+      "slug": "crypto-smell-and-the-virtues-of-seriousness",
+      "code": "9mmv3u",
+      "target": "https://www.caithrin.com/p/crypto-smell-and-the-virtues-of-seriousness"
+    },
+    {
+      "slug": "the-atom-project",
+      "code": "2psjtv",
+      "target": "https://www.caithrin.com/p/the-atom-project"
+    },
+    {
+      "slug": "gpt-5-and-valving-down-llms",
+      "code": "sbafym",
+      "target": "https://www.caithrin.com/p/gpt-5-and-valving-down-llms"
+    },
+    {
+      "slug": "10-ownership-of-intel-should-worry",
+      "code": "4bssaq",
+      "target": "https://www.caithrin.com/p/10-ownership-of-intel-should-worry"
+    },
+    {
+      "slug": "the-last-5-living-translunar-humans",
+      "code": "mt5gus",
+      "target": "https://www.caithrin.com/p/the-last-5-living-translunar-humans"
+    },
+    {
+      "slug": "the-dream-of-ai-slide-decks-a-september",
+      "code": "yxsbra",
+      "target": "https://www.caithrin.com/p/the-dream-of-ai-slide-decks-a-september"
+    },
+    {
+      "slug": "oppenheimer-sagan-and-saying-the",
+      "code": "m7ww9g",
+      "target": "https://www.caithrin.com/p/oppenheimer-sagan-and-saying-the"
+    },
+    {
+      "slug": "ten-commandments-of-ai-parties",
+      "code": "3c3rzn",
+      "target": "https://www.caithrin.com/p/ten-commandments-of-ai-parties"
+    },
+    {
+      "slug": "lord-byron-and-how-to-properly-oppose",
+      "code": "6zjjtf",
+      "target": "https://www.caithrin.com/p/lord-byron-and-how-to-properly-oppose"
+    },
+    {
+      "slug": "your-obligations-to-the-gospel-of",
+      "code": "bcgecg",
+      "target": "https://www.caithrin.com/p/your-obligations-to-the-gospel-of"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis",
+      "code": "2ev7rm",
+      "target": "https://www.caithrin.com/p/dispatches-from-claude-psychosis"
+    },
+    {
+      "slug": "dispatches-from-claude-psychosis-53a",
+      "code": "4vnxdx",
+      "target": "https://www.caithrin.com/p/dispatches-from-claude-psychosis-53a"
+    },
+    {
+      "slug": "thirty-days-without-a-smartphone",
+      "code": "ezye5e",
+      "target": "https://www.caithrin.com/p/thirty-days-without-a-smartphone"
+    },
+    {
+      "slug": "who-will-explain-the-machines-of",
+      "code": "wkc7h8",
+      "target": "https://www.caithrin.com/p/who-will-explain-the-machines-of"
+    },
+    {
+      "slug": "the-singapore-safety-cluster-what",
+      "code": "yudk8z",
+      "target": "https://www.caithrin.com/p/the-singapore-safety-cluster-what"
+    },
+    {
+      "slug": "searching-for-amanda-askell-with",
+      "code": "yjyf94",
+      "target": "https://www.caithrin.com/p/searching-for-amanda-askell-with"
+    },
+    {
+      "slug": "towards-a-singaporean-safety-cluster",
+      "code": "cym7yc",
+      "target": "https://www.caithrin.com/p/towards-a-singaporean-safety-cluster"
+    },
+    {
+      "slug": "whos-getting-clanked-in-2027",
+      "code": "gzpxms",
+      "target": "https://www.caithrin.com/p/whos-getting-clanked-in-2027"
+    },
+    {
+      "slug": "my-browser-tool-that-automatically",
+      "code": "7xg6pk",
+      "target": "https://www.caithrin.com/p/my-browser-tool-that-automatically"
+    },
+    {
+      "slug": "every-day-i-live-in-house-vi",
+      "code": "y4p4za",
+      "target": "https://www.caithrin.com/p/every-day-i-live-in-house-vi"
+    },
+    {
+      "slug": "what-were-talking-about-when-were",
+      "code": "wnyk64",
+      "target": "https://www.caithrin.com/p/what-were-talking-about-when-were"
+    },
+    {
+      "slug": "cargo-cult-vannevar-bush",
+      "code": "5x5zvk",
+      "target": "https://www.caithrin.com/p/cargo-cult-vannevar-bush"
+    },
+    {
+      "slug": "involuntary-insulls-frontier-labs",
+      "code": "j94grw",
+      "target": "https://www.caithrin.com/p/involuntary-insulls-frontier-labs"
+    },
+    {
+      "slug": "stop-counting-empires-in-years",
+      "code": "cyuu36",
+      "target": "https://www.caithrin.com/p/stop-counting-empires-in-years"
+    },
+    {
+      "slug": "why-doesnt-venture-capital-make-benches",
+      "code": "7rfxy5",
+      "target": "https://www.caithrin.com/p/why-doesnt-venture-capital-make-benches"
+    },
+    {
+      "slug": "card-counters-of-the-soul",
+      "code": "9aupu2",
+      "target": "https://www.caithrin.com/p/card-counters-of-the-soul"
+    },
+    {
+      "slug": "first-steps-pacific-compute",
+      "code": "46c3s5",
+      "target": "https://www.caithrin.com/p/first-steps-pacific-compute"
+    },
+    {
+      "slug": "so-now-we-all-love-open-models-now",
+      "code": "pzmb6v",
+      "target": "https://www.caithrin.com/p/so-now-we-all-love-open-models-now"
+    },
+    {
+      "slug": "china-writing-and-wall-dancing",
+      "code": "q8743r",
+      "target": "https://www.caithrin.com/p/china-writing-and-wall-dancing"
+    },
+    {
+      "slug": "helpful-assistant-ais-original-sin",
+      "code": "djzcde",
+      "target": "https://www.caithrin.com/p/helpful-assistant-ais-original-sin"
+    },
+    {
+      "slug": "fearmongering-the-frontier",
+      "code": "ajujfa",
+      "target": "https://www.caithrin.com/p/fearmongering-the-frontier"
+    },
+    {
+      "slug": "ten-us-china-ai-deals-we-could-sign",
+      "code": "hzhe8h",
+      "target": "https://www.caithrin.com/p/ten-us-china-ai-deals-we-could-sign"
+    },
+    {
+      "slug": "the-data-center-backlash-wont-last",
+      "code": "6fpceb",
+      "target": "https://www.caithrin.com/p/the-data-center-backlash-wont-last"
+    },
+    {
+      "slug": "thank-you-all-for-signing-up-to-the",
+      "code": "ue7ph6",
+      "target": "https://www.caithrin.com/p/thank-you-all-for-signing-up-to-the"
+    }
+  ],
+  "components": {
+    "image-link-expand": 82,
+    "file-embed-wrapper": 9,
+    "Twitter2ToDOM": 1,
+    "VideoPlaceholder": 1,
+    "image-gallery-embed": 3,
+    "Youtube2ToDOM": 1,
+    "embedded-post-wrap": 4,
+    "CommentPlaceholder": 1,
+    "EmbeddedPublicationToDOMWithSubscribe": 3
+  },
+  "srcnotes": 8,
+  "rtlChars": 0,
+  "cjkChars": 1,
+  "retrievalFailures": 0,
+  "fitFigs": {
+    "the-data-center-backlash-wont-last:2": 2.18,
+    "the-atom-project:1": 2.06
+  },
+  "engine": "typst",
+  "notes": "endnotes_per_article",
+  "dateRange": [
+    "2025-01-23",
+    "2026-09-03"
+  ]
+}
