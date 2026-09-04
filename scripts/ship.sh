@@ -29,6 +29,9 @@ step() { echo; echo "== $1 =="; }
 # gets tested or what production receives. A dirty ship freezes the working tree instead.
 REPO=$PWD
 STAGE=$(mktemp -d "${TMPDIR:-/tmp}/inksheaf-ship.XXXXXX")
+# the export itself (dropped by mistake in 311aaa8; the gate froze an empty directory until 2026-09-04)
+git archive --format=tar HEAD | tar -x -C "$STAGE"
+[ -f "$STAGE/package.json" ] || { echo "REFUSED: frozen export is empty"; exit 1; }
 ln -s "$REPO/node_modules" "$STAGE/node_modules"
 ln -s "$REPO/.wrangler" "$STAGE/.wrangler" 2>/dev/null || true
 cd "$STAGE"
