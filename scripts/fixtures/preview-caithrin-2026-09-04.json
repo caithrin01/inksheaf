@@ -1,0 +1,426 @@
+{
+"ok": true,
+"cached": false,
+"served": "origin",
+"summary_version": 7,
+"form": "a collected edition",
+"unit": "volume",
+"span_months": 11.3,
+"young": false,
+"image_rate": 1,
+"divisions": {
+"single": {
+"feasible": true,
+"volumes": [
+{
+"label": "Sep 2025 \u2013 Sep 2026",
+"from": "2025-09-26",
+"to": "2026-09-03",
+"posts": 29,
+"words": 57176,
+"est_pages": 251
+}
+]
+},
+"quarterly": {
+"feasible": true,
+"volumes": [
+{
+"label": "Sep 2025 \u2013 Mar 2026",
+"from": "2025-09-26",
+"to": "2026-03-04",
+"posts": 8,
+"words": 9699,
+"est_pages": 52
+},
+{
+"label": "Apr 2026 \u2013 Jun 2026",
+"from": "2026-04-02",
+"to": "2026-06-26",
+"posts": 9,
+"words": 22527,
+"est_pages": 100
+},
+{
+"label": "Jul 2026 \u2013 Sep 2026",
+"from": "2026-07-01",
+"to": "2026-09-03",
+"posts": 12,
+"words": 24950,
+"est_pages": 112
+}
+]
+},
+"monthly": {
+"feasible": true,
+"volumes": [
+{
+"label": "Sep 2025 \u2013 May 2026",
+"from": "2025-09-26",
+"to": "2026-05-20",
+"posts": 11,
+"words": 15840,
+"est_pages": 78
+},
+{
+"label": "Jun 2026",
+"from": "2026-06-04",
+"to": "2026-06-26",
+"posts": 6,
+"words": 16386,
+"est_pages": 75
+},
+{
+"label": "Jul 2026",
+"from": "2026-07-01",
+"to": "2026-07-27",
+"posts": 6,
+"words": 12515,
+"est_pages": 60
+},
+{
+"label": "Aug 2026 \u2013 Sep 2026",
+"from": "2026-08-07",
+"to": "2026-09-03",
+"posts": 6,
+"words": 12435,
+"est_pages": 60
+}
+]
+}
+},
+"recommended": {
+"cadence": "single",
+"interior": "bw"
+},
+"host": "www.caithrin.com",
+"publication": "caithrin",
+"posts": 29,
+"public_posts": 29,
+"paid_posts": 0,
+"podcast_posts": 0,
+"capped": false,
+"words": 57176,
+"est_pages": 251,
+"cadence": "Annual",
+"volume_pages": 251,
+"kind": "essays",
+"noun": "essay",
+"from": "2025-09-26",
+"to": "2026-09-03",
+"titles": [
+"Thank you all for signing up to the first DC<>AI Bootcamp",
+"The data center backlash won\u2019t last",
+"Ten US-China AI Deals We Could Sign Tomorrow",
+"Fearmongering the Frontier",
+" \"Helpful Assistant\" - AI's Original Sin"
+],
+"sample": [
+{
+"t": "Thank you all for signing up to the first DC<>AI Bootcamp",
+"d": "2026-09-03",
+"w": 866
+},
+{
+"t": "The data center backlash won\u2019t last",
+"d": "2026-09-01",
+"w": 3728
+},
+{
+"t": "Ten US-China AI Deals We Could Sign Tomorrow",
+"d": "2026-08-31",
+"w": 1933
+},
+{
+"t": "Fearmongering the Frontier",
+"d": "2026-08-18",
+"w": 2596
+},
+{
+"t": " \"Helpful Assistant\" - AI's Original Sin",
+"d": "2026-08-14",
+"w": 2004
+},
+{
+"t": "China Writing & Wall Dancing",
+"d": "2026-08-07",
+"w": 1308
+}
+],
+"theme": {
+"cover_bg": "#6c0095",
+"cover_ink": "#ffffff",
+"cover_ink2": "#d9d9d9",
+"accent": "#6c0095",
+"heading_stack": null
+},
+"fetch_mode": "direct",
+"editorial": {
+"plan_version": 1,
+"model": "claude-opus-5",
+"attempts": 0,
+"errors": [],
+"attempt_errors": [],
+"usage": null,
+"window": {
+"label": "2025\u201326",
+"span": "Jul 2025 \u2013 Jun 2026",
+"from": "2025-07-01",
+"to": "2026-07-01",
+"periods": {
+"single": [
+{
+"label": "2025\u201326",
+"span": "Jul 2025 \u2013 Jun 2026"
+}
+],
+"half": [
+{
+"label": "H2 2025",
+"span": "Jul \u2013 Dec 2025"
+},
+{
+"label": "H1 2026",
+"span": "Jan \u2013 Jun 2026"
+}
+],
+"quarterly": [
+{
+"label": "Q3 2025",
+"span": "Jul \u2013 Sep 2025"
+},
+{
+"label": "Q4 2025",
+"span": "Oct \u2013 Dec 2025"
+},
+{
+"label": "Q1 2026",
+"span": "Jan \u2013 Mar 2026"
+},
+{
+"label": "Q2 2026",
+"span": "Apr \u2013 Jun 2026"
+}
+],
+"monthly": [
+{
+"label": "Jul 2025"
+},
+{
+"label": "Aug 2025"
+},
+{
+"label": "Sep 2025"
+},
+{
+"label": "Oct 2025"
+},
+{
+"label": "Nov 2025"
+},
+{
+"label": "Dec 2025"
+},
+{
+"label": "Jan 2026"
+},
+{
+"label": "Feb 2026"
+},
+{
+"label": "Mar 2026"
+},
+{
+"label": "Apr 2026"
+},
+{
+"label": "May 2026"
+},
+{
+"label": "Jun 2026"
+}
+]
+},
+"in_progress": {
+"label": "Q3 2026",
+"span": "Jul \u2013 Sep 2026",
+"posts": 12
+}
+},
+"totals": {
+"posts": 23,
+"words": 36037,
+"estimated_pages": 164
+},
+"planned_by": "calendar",
+"reason": "no api key",
+"plan": {
+"kind": "essays",
+"rhythm": "",
+"description": "caithrin: 23 public posts in Jul 2025 \u2013 Jun 2026.",
+"routes": [
+{
+"cadence": "single",
+"recommended": true,
+"why": "The whole window fits one book.",
+"volumes": [
+{
+"label": "2025\u201326",
+"title": "caithrin",
+"subtitle": "Jul 2025 \u2013 Jun 2026",
+"post_ids": [
+163753068,
+168160475,
+170104221,
+171130054,
+171921709,
+172272654,
+174572978,
+176608158,
+182217199,
+183082229,
+184432631,
+185543042,
+186226306,
+189878301,
+193017210,
+197753184,
+198554841,
+200676032,
+202492338,
+202631952,
+202753268,
+203132926,
+203723156
+],
+"periods": [],
+"parts": null,
+"notes_policy": "endnotes_per_article",
+"why": "Everything in the window, in order.",
+"posts": 23,
+"words": 36037,
+"est_pages": 164,
+"price": {
+"bw": 6.09,
+"color": 9.24
+},
+"from": "2025-07-18",
+"to": "2026-06-26"
+}
+],
+"est_pages": 164,
+"price": {
+"bw": 6.09,
+"color": 9.24
+}
+},
+{
+"cadence": "half",
+"recommended": false,
+"why": "Two half-years, one book each.",
+"volumes": [
+{
+"label": "H2 2025",
+"title": "caithrin",
+"subtitle": "Jul \u2013 Dec 2025",
+"post_ids": [
+163753068,
+168160475,
+170104221,
+171130054,
+171921709,
+172272654,
+174572978,
+176608158,
+182217199,
+183082229
+],
+"periods": [],
+"parts": null,
+"notes_policy": "endnotes_per_article",
+"why": "The period's posts in order.",
+"posts": 10,
+"words": 9705,
+"est_pages": 54,
+"price": {
+"bw": 3.34,
+"color": 4.38
+},
+"from": "2025-07-18",
+"to": "2025-12-31"
+},
+{
+"label": "H1 2026",
+"title": "caithrin",
+"subtitle": "Jan \u2013 Jun 2026",
+"post_ids": [
+184432631,
+185543042,
+186226306,
+189878301,
+193017210,
+197753184,
+198554841,
+200676032,
+202492338,
+202631952,
+202753268,
+203132926,
+203723156
+],
+"periods": [],
+"parts": null,
+"notes_policy": "endnotes_per_article",
+"why": "The period's posts in order.",
+"posts": 13,
+"words": 26332,
+"est_pages": 119,
+"price": {
+"bw": 4.97,
+"color": 7.25
+},
+"from": "2026-01-13",
+"to": "2026-06-26"
+}
+],
+"est_pages": 173,
+"price": {
+"bw": 8.31,
+"color": 11.63
+}
+}
+],
+"infeasible": [
+{
+"cadence": "quarterly",
+"reason": "most of the quarters would fold or split"
+},
+{
+"cadence": "monthly",
+"reason": "most of the months would fold or split"
+}
+],
+"contributors": [
+{
+"name": "Caithrin",
+"role": "principal",
+"posts": 23
+}
+],
+"excluded": [],
+"interior": {
+"recommended": "bw",
+"why": "Black and white by default; choose colour if your images carry the writing."
+},
+"dedication_post_id": null,
+"running_head": "publication",
+"sentences": {
+"plan_headline": "Your year is one book.",
+"plan_sub": "23 posts, about 164 pages, Jul 2025 \u2013 Jun 2026.",
+"proof_email_opening": "Here are the first pages of your edition."
+}
+},
+"editor_ms": 16,
+"pending": false
+}
+}

@@ -10,12 +10,14 @@ import ScrollHero from "../components/ScrollHero.astro";
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Inksheaf — your Substack, printed and bound</title>
-<meta name="description" content="Inksheaf turns a Substack publication into a printed quarterly or annual edition. 6×9, perfect bound, mailed to your readers. Private beta, US delivery." />
+<title>Inksheaf: your Substack, bound as a book</title>
+<meta name="description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order at cost. Private beta, US delivery." />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<meta property="og:title" content="Inksheaf — your Substack, printed and bound" />
-<meta property="og:description" content="A printed quarterly or annual edition of your publication, 6×9 and perfect bound, mailed to your readers. Private beta, US delivery." />
-<meta property="og:image" content="https://inksheaf.com/og.png" />
+<meta property="og:title" content="Inksheaf: your Substack, bound as a book" />
+<meta property="og:description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order at cost. Private beta, US delivery." />
+<meta property="og:image" content="https://inksheaf.com/og.png?v=20260904" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://inksheaf.com" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
@@ -193,6 +195,20 @@ p+p{margin-top:1rem}
 .faq .shead{color:#2a2118}.faq .rule-orn::before,.faq .rule-orn::after{border-color:rgba(42,33,24,.42)}
 .faq details{border-color:rgba(42,33,24,.17)}
 .faq details p{color:#4a3a26}
+.faq,.feedback{scroll-margin-top:5rem}
+.feedback{position:relative;max-width:40rem;margin:6vh auto 0;padding:clamp(1.8rem,4vw,3rem) clamp(1.6rem,5vw,3.4rem) 2.4rem;color:#2a2118;
+  background:linear-gradient(160deg,#f7eed9,#efe4cb);border-radius:2px;box-shadow:0 40px 80px -30px rgba(0,0,0,.75),0 2px 0 rgba(255,255,255,.25) inset}
+.feedback .shead{color:#2a2118}.feedback .rule-orn::before,.feedback .rule-orn::after{border-color:rgba(42,33,24,.42)}
+.fb-lede{text-align:center;color:#4a3a26;font-size:1.05rem;max-width:40ch;margin:0 auto 1.4rem}
+.fb-label{display:block;font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:#8e2f1c;margin:1rem 0 .4rem}
+.fb-opt{text-transform:none;letter-spacing:0;color:#6b5a44}
+.feedback textarea,.feedback input[type=email]{width:100%;font:inherit;font-size:1.05rem;color:#2a2118;background:rgba(255,252,245,.7);border:1px solid rgba(42,33,24,.28);border-radius:2px;padding:.65rem .8rem;line-height:1.5}
+.feedback textarea:focus-visible,.feedback input[type=email]:focus-visible{outline:2px solid #a8452c;outline-offset:2px}
+.fb-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.fb-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:1.1rem}
+.fb-send{font:600 .82rem/1.3 "EB Garamond",Garamond,serif;letter-spacing:.2em;text-transform:uppercase;color:#2a2118;background:rgba(244,234,212,.4);border:1.1px solid #2a2118;padding:.6rem 1.4rem;cursor:pointer}
+.fb-send:hover{background:#2a2118;color:#f4ead4}.fb-send:disabled{opacity:.55;cursor:wait}
+.fb-status{color:#4a3a26;font-style:italic}
 .faq-return{text-align:center;margin:5vh auto 0}
 .faq-return button{display:inline-flex;align-items:center;gap:.5rem;font:600 1.1rem/1 "EB Garamond",Garamond,serif;color:#f4ead4;
   background:#a8452c;border:0;border-radius:2px;padding:.9rem 1.7rem;cursor:pointer;box-shadow:0 2px 0 rgba(50,16,8,.5),0 10px 22px -8px rgba(140,50,26,.6)}
@@ -415,6 +431,20 @@ footer a{color:inherit}
       <button type="button" data-hero-try>Try it for my Stack <span class="return-caret" aria-hidden="true"></span></button>
     </div>
 
+    <section class="section feedback" id="feedback" aria-label="Tell us what you think">
+      <h2 class="shead">Tell us what you think</h2>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
+      <p class="fb-lede">This is a beta and every remark is read. What confused you, what you wanted, what you would change: a sentence is enough.</p>
+      <form id="fb-form" novalidate>
+        <label class="fb-label" for="fb-text">Your note</label>
+        <textarea id="fb-text" name="text" rows="4" maxlength="4000" required placeholder="The page turn is lovely, but I could not tell which edition I was reserving."></textarea>
+        <label class="fb-label" for="fb-email">Your email, if you want a reply <span class="fb-opt">(optional)</span></label>
+        <input id="fb-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" />
+        <input class="fb-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <div class="fb-row"><button class="fb-send" id="fb-send" type="submit">Send the note</button><span class="fb-status" id="fb-status" role="status" aria-live="polite"></span></div>
+      </form>
+    </section>
+
     <section class="beta" id="beta">
       <h2 class="shead">Join the private beta</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
@@ -571,17 +601,40 @@ async function runPreview(){
     trybtn.disabled = false; trybtn.textContent = 'Show my book';
   }
 }
+/* One edition, one set of numbers (Codex, production journey 2026-09-04: the cover, the
+   description, the announcement and the price disagreed because the rolling twelve-month read
+   and the editor's complete-year plan were painted by different functions). When a plan with a
+   route exists, that route is the edition everywhere; the rolling read is used only before or
+   without one. `cadence` picks the route the visitor selected on the desk. */
+function editionView(d: any, cadence?: string | null){
+  const ed = d.editorial, P = ed && ed.plan, w = ed && ed.window, t = ed && ed.totals;
+  const routes = (P && P.routes) || [];
+  const route = routes.find((r: any) => cadence && r.cadence === cadence) || routes.find((r: any) => r.recommended) || routes[0];
+  if (route && route.volumes && route.volumes.length && w){
+    const pages = route.volumes.reduce((a: number, v: any) => a + (Number(v.est_pages) || 0), 0);
+    return { source: 'plan', route, cadence: route.cadence, span: w.span || (fmt(w.from) + ' – ' + fmt(w.to)), label: w.label || '', year: String(w.to || d.to).slice(0, 4),
+      posts: (t && t.posts) ?? (d.public_posts ?? d.posts), words: (t && t.words) ?? d.words, pages, volumes: route.volumes.length, capped: !!d.capped };
+  }
+  const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
+  return { source: 'rolling', route: null, cadence: null, span: fmt(d.from) + ' – ' + fmt(d.to), label: '', year: String(d.to).slice(0, 4),
+    posts: d.public_posts ?? d.posts, words: d.words, pages: d.est_pages, volumes: recD && recD.volumes.length > 1 ? recD.volumes.length : 1, capped: !!d.capped };
+}
+function paintCover(d: any, E: any){
+  const kindName = E.source === 'plan' ? (E.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[E.cadence]) : (d.cadence || 'Annual');
+  (document.getElementById('pv-kind') as HTMLElement).textContent = kindName + ' · ' + (E.label || E.year);
+  (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
+  (document.getElementById('pv-dates') as HTMLElement).textContent = E.span;
+  (document.getElementById('pv-cvpages') as HTMLElement).textContent = E.volumes > 1
+    ? 'Vol. I of ' + (ROMAN[E.volumes - 1] || E.volumes) + ' · ' + E.posts + ' ' + kindLabel(d, E.posts) + ' · est. ' + E.pages + ' pages in all'
+    : E.posts + (E.capped ? '+' : '') + ' ' + kindLabel(d, E.posts) + ' · est. ' + E.pages + ' pages';
+  (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + (E.label || E.year);
+  const block = document.getElementById('pv-block') as HTMLElement;
+  block.style.width = Math.max(5, Math.min(14, Math.round(E.pages / Math.max(E.volumes, 1) / 22))) + 'px';
+}
 function renderPreview(d: any){
   const publicPosts = d.public_posts ?? d.posts;
-  const cadence = d.cadence || (d.est_pages > 300 ? 'Quarterly' : 'Annual');
-  const volumePages = d.volume_pages || (cadence === 'Quarterly' ? Math.round(d.est_pages / 4) : d.est_pages);
-  (document.getElementById('pv-kind') as HTMLElement).textContent = cadence + ' · ' + d.to.slice(0,4);
-  (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
-  (document.getElementById('pv-dates') as HTMLElement).textContent = fmt(d.from) + ' – ' + fmt(d.to);
-  (document.getElementById('pv-cvpages') as HTMLElement).textContent = d.est_pages > 300
-    ? 'Vol. I of IV · est. ' + volumePages + ' pages'
-    : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + d.est_pages + ' pages';
-  (document.getElementById('pv-spine') as HTMLElement).textContent = d.publication + ' · ' + d.to.slice(0,4);
+  const E = editionView(d);
+  paintCover(d, E);
   const over = d.est_pages > 300;
 
   /* the cover keeps the classic ivory style for every publication; web palettes stay on the web */
@@ -589,7 +642,7 @@ function renderPreview(d: any){
   const toc = document.getElementById('pv-toc')!;
   (document.getElementById('pv-runname') as HTMLElement).textContent = d.publication;
   const rows = (d.sample && d.sample.length ? d.sample.map((x: any) => x.t) : (d.titles || [])).slice(0, 6);
-  const step = Math.max(3, Math.round(d.est_pages / Math.max(publicPosts, 1)));
+  const step = Math.max(3, Math.round(E.pages / Math.max(E.posts, 1)));
   let folio = 9;
   toc.innerHTML = rows.map((t: string, i: number) => {
     const line = '<div class="toc-line" style="transition-delay:' + (0.45 + i * 0.12) + 's">' +
@@ -601,12 +654,10 @@ function renderPreview(d: any){
 
 
 
-  /* staged assembly: cover lands, then the spine thickens to their page count */
+  /* staged assembly: cover lands, then the spine thickens to the edition's page count */
   const block = document.getElementById('pv-block') as HTMLElement;
-  block.style.width = '5px';
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    block.style.width = Math.max(5, Math.min(14, Math.round(d.est_pages / 22))) + 'px';
-  }));
+  const spineW = block.style.width; block.style.width = '5px';
+  requestAnimationFrame(() => requestAnimationFrame(() => { block.style.width = spineW; }));
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   const ED = d.editorial && d.editorial.plan;
   if (ED && ED.sentences){
@@ -614,8 +665,9 @@ function renderPreview(d: any){
     const w = d.editorial.window || {};
     const t = d.editorial.totals || {};
     (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
+    const subHasCounts = new RegExp('\\b' + (t.posts || 0) + '\\b').test(ED.sentences.plan_sub || '');
     (document.getElementById('pv-sub') as HTMLElement).textContent =
-      ED.sentences.plan_sub + ' ' + (t.posts || 0) + ' public ' + kindLabel(d, t.posts || 0) + ', ' + (t.words || 0).toLocaleString('en-US') + ' words, ' + (w.span || '') + '. ' +
+      ED.sentences.plan_sub + ' ' + (subHasCounts ? '' : (t.posts || 0) + ' public ' + kindLabel(d, t.posts || 0) + ', ' + (t.words || 0).toLocaleString('en-US') + ' words, ' + (w.span || '') + '. ') +
       (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
       (d.capped ? 'This preview read your newest ' + publicPosts + ' ' + kindLabel(d, publicPosts) + '; the printed edition uses them all. Pages and prices below are estimates until we read the rest. ' : '') +
       (golden.volumes.length > 1 ? 'That is ' + (d.capped ? 'about ' : '') + golden.volumes.length + ' ' + unitOf(d, golden.volumes.length) + ' of ' + Math.min(...golden.volumes.map((v: any) => v.est_pages)) + ' to ' + Math.max(...golden.volumes.map((v: any) => v.est_pages)) + ' pages.' : 'Typeset at 6×9 with contents, running headers and your own cover.');
@@ -670,8 +722,9 @@ async function askTheEditor(d: any){
           renderPlan(previewData);
           const ED = j.editorial.plan;
           (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
+          const E2 = editionView(previewData);
           const status = document.getElementById('pv-status') as HTMLElement;
-          status.textContent = 'Our editor has planned your edition: ' + ED.sentences.plan_headline;
+          status.textContent = 'Our editor has planned your edition: ' + ED.sentences.plan_headline + ' ' + (E2.volumes > 1 ? E2.volumes + ' ' + unitOf(previewData, E2.volumes) + ', ' : '') + E2.pages + ' pages, ' + E2.span + '.';
         }
         return;
       }
@@ -686,11 +739,9 @@ async function askTheEditor(d: any){
 function revealBook(d: any){
   const bw = document.getElementById('bookwrap') as HTMLElement;
   const status = document.getElementById('pv-status') as HTMLElement;
-  const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
-  const pages = recD && recD.volumes.length > 1
-    ? recD.volumes.length + ' ' + unitOf(d, recD.volumes.length)
-    : d.est_pages + ' pages';
-  status.textContent = 'Your book is ready: ' + (d.capped ? 'about ' : '') + pages + '.';
+  const E = editionView(d);
+  const pages = E.volumes > 1 ? E.volumes + ' ' + unitOf(d, E.volumes) + ', ' + E.pages + ' pages in all' : E.pages + ' pages';
+  status.textContent = 'Your book is ready: ' + (E.capped ? 'about ' : '') + pages + (E.source === 'plan' ? ', ' + E.span : '') + '.';
   const smooth = matchMedia('(prefers-reduced-motion: no-preference)').matches;
   bw.focus({ preventScroll: true });
   bw.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
@@ -825,9 +876,7 @@ function drawPlan(){
     ', plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US, to one address. ' +
     'Readers pay the same. Nothing is marked up in the beta.';
   (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : (ed.pending ? 'Planned by the calendar · our editor is reading your archive' : 'Planned by the calendar');
-  const year = d.to.slice(0, 4);
-  (document.getElementById('pv-kind') as HTMLElement).textContent =
-    (plan.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[plan.cadence]) + ' · ' + (ed.window ? ed.window.label : year);
+  paintCover(d, editionView(d, plan.cadence));
   const publicPosts = d.public_posts ?? d.posts;
   (window as any).__chosenCadence = plan.cadence; /* the handoff prints the chosen route's counts */
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
@@ -949,6 +998,22 @@ function renderSnippet(d: any){
   (document.getElementById('snip-code') as HTMLElement).textContent =
     '<a href="https://inksheaf.com/?pub=' + d.host + '">Preview a print edition of ' + d.publication + '</a>';
 }
+document.getElementById('fb-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget as HTMLFormElement, btn = document.getElementById('fb-send') as HTMLButtonElement, st = document.getElementById('fb-status') as HTMLElement;
+  const text = (document.getElementById('fb-text') as HTMLTextAreaElement).value.trim();
+  if (text.length < 3) { st.textContent = 'Say a little more; even one sentence helps.'; return; }
+  btn.disabled = true; st.textContent = 'Sending.';
+  try {
+    const r = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+      text, email: (document.getElementById('fb-email') as HTMLInputElement).value.trim(), website: (form.querySelector('.fb-hp') as HTMLInputElement).value,
+      publication: previewData ? previewData.host : '', page: location.pathname + location.search }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) { st.textContent = 'Kept. Thank you; it is read by a person.'; form.reset(); beacon('feedback'); }
+    else st.textContent = j.error || 'Could not save that just now. Write to caithrin@caithrin.com and it reaches the same place.';
+  } catch { st.textContent = 'Could not reach us just now. Write to caithrin@caithrin.com and it reaches the same place.'; }
+  btn.disabled = false;
+});
 document.getElementById('snip-copy')?.addEventListener('click', async (e) => {
   const btn = e.currentTarget as HTMLButtonElement;
   try {

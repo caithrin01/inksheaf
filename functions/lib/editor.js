@@ -83,27 +83,42 @@ export function calendarFallback(input) {
     return out;
   };
   const build = (cadence, periods) => fold(periods.flatMap(pd => splitParts(pd.label, pd.span || pd.label, posts.filter(p => inPeriod(p, pd.fromIso, pd.toIso)))));
+  /* the periods that hold posts: an empty month is not a month that folded */
+  const lived = periods => (periods || []).filter(pd => posts.some(p => inPeriod(p, pd.fromIso, pd.toIso))).length;
   const totalPages = pages(posts);
   const routes = [], infeasible = [];
-  const consider = (cadence, vols, why) => {
+  /* the sentence is written from the volumes that exist after folding and splitting, never from
+     the cadence's ideal (2026-09-04: "Four quarters, one book each" sat over two folded volumes) */
+  const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const whyFor = (cadence, vols, periods) => {
+    const n = vols.length, whole = vols.filter(v => !/ – | · /.test(v.label)).length;
+    const unit = { half: "half-years", quarterly: "quarters", monthly: "months" }[cadence];
+    if (whole === n && n === periods) return cadence === "half" ? (n === 2 ? "Two half-years, one book each." : "One half-year, one book.") : cadence === "quarterly" ? (n === 4 ? "Four quarters, one book each." : `${cap(WORDS[n])} quarters, one book each.`) : (n === 12 ? "A book a month." : `${cap(WORDS[n])} months, one book each.`);
+    const list = vols.map(v => v.label).join(n === 2 ? " and " : ", ");
+    const folded = vols.some(v => / – /.test(v.label)), parts = vols.some(v => / · /.test(v.label));
+    return `${cap(WORDS[n] || String(n))} books from the ${WORDS[periods] || periods} ${unit}${folded && parts ? ", thin ones folded and a long one split" : folded ? ", thin ones folded together" : parts ? ", a long one split in parts" : ""}: ${list}.`;
+  };
+  const consider = (cadence, vols, periods) => {
     const fat = vols.find(v => pages(v._posts) > 300);
     if (fat) { infeasible.push({ cadence, reason: `${fat.label} alone would run about ${pages(fat._posts)} pages, past what one volume can bind` }); return; }
     const thin = vols.find(v => rawPages(v._posts) < 32 && v._posts.length);
     if (cadence !== "single" && vols.length < 2) { infeasible.push({ cadence, reason: vols.length ? "the archive folds down to one volume" : "no posts in the window" }); return; }
-    /* a cadence is only itself when most of its volumes are whole periods, not folds or parts */
+    /* a cadence is only itself when most of its periods survive as whole volumes: eleven months
+       folded into one book beside a single whole month is not "monthly" */
     const whole = vols.filter(v => !/ – | · /.test(v.label)).length;
-    if (cadence !== "single" && whole < Math.ceil(vols.length / 2)) {
+    if (cadence !== "single" && whole < Math.ceil(periods / 2)) {
       const unit = { half: "half-years", quarterly: "quarters", monthly: "months" }[cadence];
       infeasible.push({ cadence, reason: whole === 0 ? `every one of the ${unit} would fold or split` : `most of the ${unit} would fold or split` }); return;
     }
     if (thin && vols.length > 1) { infeasible.push({ cadence, reason: `the ${thin.label} volume would be under 32 pages` }); return; }
-    routes.push({ cadence, recommended: false, why, volumes: vols.map(({ _posts, ...v }) => v) });
+    routes.push({ cadence, recommended: false, why: cadence === "single" ? "The whole window fits one book." : whyFor(cadence, vols, periods), volumes: vols.map(({ _posts, ...v }) => v) });
   };
-  if (totalPages <= 300 && posts.length) consider("single", [vol(w.label, w.span, posts, "Everything in the window, in order.")], "The whole window fits one book.");
+  if (totalPages <= 300 && posts.length) consider("single", [vol(w.label, w.span, posts, "Everything in the window, in order.")], 1);
   else infeasible.push({ cadence: "single", reason: posts.length ? `one volume would run about ${totalPages} pages` : "no posts in the window" });
-  consider("half", build("half", w.halves), "Two half-years, one book each.");
-  consider("quarterly", build("quarterly", w.quarters), "Four quarters, one book each.");
-  consider("monthly", build("monthly", w.months), "A book a month.");
+  consider("half", build("half", w.halves), lived(w.halves));
+  consider("quarterly", build("quarterly", w.quarters), lived(w.quarters));
+  consider("monthly", build("monthly", w.months), lived(w.months));
   /* the golden route: the coarsest cadence whose volumes are whole periods; else the fewest volumes */
   const golden = routes.find(r => !r.volumes.some(v => /\s·\s[IVX]+$/.test(v.label)))
     || [...routes].sort((a, b) => a.volumes.length - b.volumes.length)[0];

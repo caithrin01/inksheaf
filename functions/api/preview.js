@@ -48,7 +48,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 6) return json({ ok: true, cached: true, served: "cache", ...pay });
+    if (pay.summary_version === 7) return json({ ok: true, cached: true, served: "cache", ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -160,7 +160,7 @@ export async function fetchArchive(host, env) {
             "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
           if (stale){
             const pay = JSON.parse(stale.payload);
-            if (pay.summary_version === 6) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
+            if (pay.summary_version === 7) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
           }
           /* The direct read failed on a retryable status (429, 5xx, timeout, DNS) and the
              relay failed too. The relay's error text cannot tell a dead domain from an
@@ -233,7 +233,7 @@ export async function fetchArchive(host, env) {
   const tEd = Date.now();
   const editorial = await planEdition({ posts, identity, host, capped });
   data.editorial = { ...editorial, editor_ms: Date.now() - tEd, pending: !!(env.OPENROUTER_API_KEY || env.ANTHROPIC_API_KEY) };
-  data.summary_version = 6;
+  data.summary_version = 7;
   if (relayMeta) Object.assign(data, relayMeta);
   return { ok: true, data, posts, identity };
 }

@@ -41,7 +41,7 @@ for (const [label, publicationUrl, expectedKind] of cases) {
     const body = await r.json();
     assert.equal(r.status, 200, JSON.stringify(body));
     assert.equal(body.ok, true, JSON.stringify(body));
-    assert.equal(body.summary_version, 6);
+    assert.equal(body.summary_version, 7);
     assert.ok(body.divisions && body.recommended, label + ": divisions plan present");
     assert.ok(body.publication && body.publication.length > 1);
     assert.ok(body.public_posts > 0);

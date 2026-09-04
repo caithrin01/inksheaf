@@ -78,7 +78,7 @@ ok("no text glued to a link by the compressor", glued.length === 0, glued.join("
 ok("no dead hello@ anywhere in page", !html.includes("hello@inksheaf.com"));
 ok("contact is caithrin@", html.includes("caithrin@caithrin.com"));
 ok("substack non-affiliation", html.includes("not affiliated"));
-ok("og domain canonical", html.includes('content="https://inksheaf.com/og.png"'));
+ok("og domain canonical", /content="https:\/\/inksheaf\.com\/og\.png(\?v=\d+)?"/.test(html));
 
 /* voice lint (launch-hardening 2.2): the visible copy, the client bundle's strings, and
    the CSS. Exclamation marks, marketing words and any affiliation construction are refused;

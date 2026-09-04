@@ -47,6 +47,31 @@ const small = buildEditorInput({ posts: year.slice(0, 20), identity, host: "s", 
 const fbs = checkPlan(calendarFallback(small), small);
 ok("fallback: young archive is a single volume", fbs.ok && fbs.plan.routes.find(r => r.recommended)?.cadence === "single", fbs.errors.join("; "));
 
+/* ---------- the cadence sentence is written from the folded volumes (2026-09-04) ---------- */
+ok("prose: four whole quarters say so", fb.plan.routes.find(r => r.cadence === "quarterly").why === "Four quarters, one book each.");
+{
+  /* a year with almost everything in one quarter: the other three fold, so "quarterly" is not itself */
+  const lop = [mk("2025-08-03", 1500), mk("2025-08-20", 1500), mk("2025-11-05", 1500), mk("2025-11-20", 1500), mk("2026-02-04", 1500), mk("2026-02-18", 1500),
+    ...Array.from({ length: 14 }, (_, i) => mk(`2026-0${(i % 3) + 4}-${String((i % 7) + 2).padStart(2, "0")}`, 1500))];
+  const li = buildEditorInput({ posts: lop, identity, host: "lop", nowMs: sep1 });
+  const lp = checkPlan(calendarFallback(li), li);
+  ok("prose: lopsided year passes the checker", lp.ok, lp.errors.join("; "));
+  const q = lp.plan.routes.find(r => r.cadence === "quarterly"), qi = lp.plan.infeasible.find(r => r.cadence === "quarterly");
+  ok("prose: quarterly is not offered when most quarters fold", !q && qi && /most of the quarters would fold/.test(qi.reason), JSON.stringify(q || qi));
+  const m = lp.plan.routes.find(r => r.cadence === "monthly"), mi = lp.plan.infeasible.find(r => r.cadence === "monthly");
+  ok("prose: monthly, if offered, never claims a book a month over folded volumes", !m || (!/A book a month/.test(m.why) && new RegExp("^" + ["no","one","two","three","four","five","six"][m.volumes.length] + " books from", "i").test(m.why)), JSON.stringify(m ? m.why : mi));
+  const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+  const agrees = plan => plan.routes.every(r => {
+    const n = r.volumes.length;
+    if (/A book a month/.test(r.why)) return n === 12;
+    if (/one book each/.test(r.why)) { const mm = r.why.match(/^(\w+) (half-years|quarters|months)/); return !mm || mm[1].toLowerCase() === WORDS[n]; }
+    const mm = r.why.match(/^(\w+) books from/); return !mm || mm[1].toLowerCase() === WORDS[n];
+  });
+  ok("prose: every offered route's sentence counts its own volumes (full year)", agrees(fb.plan));
+  ok("prose: every offered route's sentence counts its own volumes (lopsided year)", agrees(lp.plan));
+  ok("prose: every offered route's sentence counts its own volumes (young archive)", agrees(fbs.plan));
+}
+
 /* ---------- checker rules ---------- */
 const good = () => structuredClone(fb.plan);
 const strip = p => { for (const r of p.routes) { delete r.est_pages; delete r.price; for (const v of r.volumes) { delete v.posts; delete v.words; delete v.est_pages; delete v.price; delete v.from; delete v.to; } } return p; };

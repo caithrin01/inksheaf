@@ -3,7 +3,7 @@
 // It exercises cold paint, every dissolve, both CTA routes, error/success preview states, and the
 // static reduced-motion treatment. Screenshots are evidence; assertions decide the verdict.
 import { chromium } from "playwright";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, existsSync } from "node:fs";
 
 const url = process.argv[2] || "http://localhost:8798/";
 const out = process.argv[3] || "/tmp/inksheaf-scroll-qa";
@@ -17,6 +17,10 @@ const fixture = {
   sample:[{t:"The Shape of Attention"},{t:"Notes from the Workshop"},{t:"The Durable Web"}],
 };
 
+/* a real production response (caithrin.com, 2026-09-04) carrying both the rolling read and the
+   editor's plan: the page must show one edition everywhere (Codex, production journey) */
+const realPath = new URL("./fixtures/preview-caithrin-2026-09-04.json", import.meta.url);
+const real = existsSync(realPath) ? JSON.parse(readFileSync(realPath, "utf8")) : null;
 const browser = await chromium.launch();
 const problems = [];
 function problem(message){problems.push(message);}
@@ -32,7 +36,7 @@ for (const scheme of ["light","dark"]) {
       const requested = requestUrl.searchParams.get("url") || "";
       const body = requested.includes("broken")
         ? {ok:false,message:"We could not read that archive. Try again or ask for a hand-built preview."}
-        : fixture;
+        : (requested.includes("caithrin") && real) ? real : fixture;
       await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
     });
     await page.route("**/api/plan?*", route => route.fulfill({status:404,body:"not found"}));
@@ -94,6 +98,35 @@ for (const scheme of ["light","dark"]) {
       await page.waitForTimeout(400);
       await page.screenshot({path:`${out}/success-${scheme}-1280.png`});
 
+      if (real) {
+        /* the real payload: one edition on the cover, in the announcement, in the description and on the desk */
+        await page.fill('#tryurl','caithrin.com');
+        await page.click('#trybtn');
+        await page.waitForFunction(pub => document.getElementById('pv-mast')?.textContent === pub, real.publication, {timeout:15000});
+        await page.waitForTimeout(600);
+        const ed = real.editorial, golden = ed.plan.routes.find(r => r.recommended) || ed.plan.routes[0];
+        const goldenPages = golden.volumes.reduce((a, v) => a + v.est_pages, 0);
+        const seen = await page.evaluate(() => ({ dates: document.getElementById('pv-dates').textContent, cv: document.getElementById('pv-cvpages').textContent,
+          status: document.getElementById('pv-status').textContent, sub: document.getElementById('pv-sub').textContent, kind: document.getElementById('pv-kind').textContent }));
+        if (seen.dates !== ed.window.span) problem(`${scheme}: cover dates "${seen.dates}" are not the planned window "${ed.window.span}"`);
+        if (!seen.cv.includes(String(goldenPages))) problem(`${scheme}: cover pages line "${seen.cv}" does not carry the planned ${goldenPages} pages`);
+        if (!seen.status.includes(String(goldenPages)) || !seen.status.includes(ed.window.span)) problem(`${scheme}: announcement "${seen.status}" does not name the planned edition`);
+        if (seen.sub.split(ed.window.span).length - 1 > 1) problem(`${scheme}: description repeats the window: "${seen.sub}"`);
+        if (seen.cv.includes(String(real.est_pages)) && real.est_pages !== goldenPages) problem(`${scheme}: cover carries the rolling ${real.est_pages} pages beside the plan`);
+        /* every enabled cadence tab: the sentence counts the volumes actually shown */
+        const WORDS = ["no","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+        const tabs = await page.locator('.desk-tab:not([disabled])').count();
+        for (let t = 0; t < tabs; t++) {
+          await page.locator('.desk-tab:not([disabled])').nth(t).click(); await page.waitForTimeout(150);
+          const row = await page.evaluate(() => ({ why: document.getElementById('route-why').textContent, segs: document.querySelectorAll('#foliobar .folio-seg').length, dates: document.getElementById('pv-dates').textContent }));
+          const each = row.why.match(/(\w+) (half-years|quarters|months), one book each/), mm = row.why.match(/(\w+) books from/);
+          if (/A book a month/.test(row.why) && row.segs !== 12) problem(`${scheme}: "${row.why}" over ${row.segs} volumes`);
+          if (each && WORDS[row.segs] !== each[1].toLowerCase()) problem(`${scheme}: "${row.why}" over ${row.segs} volumes`);
+          if (mm && WORDS[row.segs] !== mm[1].toLowerCase()) problem(`${scheme}: "${row.why}" over ${row.segs} volumes`);
+          if (row.dates !== ed.window.span) problem(`${scheme}: cover dates changed to "${row.dates}" on a cadence switch`);
+        }
+        await page.screenshot({path:`${out}/real-${scheme}-1280.png`});
+      }
       await page.locator('[data-hero-try]').last().scrollIntoViewIfNeeded();
       await page.locator('[data-hero-try]').last().click();
       await page.waitForTimeout(800);
