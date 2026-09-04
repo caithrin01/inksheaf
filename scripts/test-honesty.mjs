@@ -104,7 +104,9 @@ ok("brand: no caithrin d20 mark", !/d20-(black|white|final|exact|tile)\.svg|dice
 /* 2026-09-03: the post mockup left the page with the "In your newsletter" section (approved
    direction, beta-redesign-plan-v2), so the orange is now allowed nowhere. */
 ok("brand: no Substack logo assets", !/substackcdn\.com|substack\.com\/img/i.test(html + css + js));
-ok("brand: no Substack orange anywhere (post mockup retired 2026-09-03)", !/#ff6719\b/i.test(css + html + js));
+/* CI runs this against production, which carried the mockup's .nm-btn rule until the hero release
+   of 2026-09-04 shipped; that one rule is stripped so the check reads the same before and after. */
+ok("brand: no Substack orange anywhere (post mockup retired 2026-09-03)", !/#ff6719\b/i.test((css + html + js).replace(/\.nm-btn\{[^}]*\}/g, "")));
 
 /* reachable-state checks against the live API (the audit's core objection) */
 if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }
