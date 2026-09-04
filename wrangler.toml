@@ -6,6 +6,7 @@ pages_build_output_dir = "dist"
 # INKSHEAF_ENV="staging" and a separate D1 database; never reuse this binding.
 [vars]
 INKSHEAF_ENV = "production"
+FUNNEL_ALERT_EMAIL = "caithrin@caithrin.com"
 
 [[d1_databases]]
 binding = "DB"

@@ -5,8 +5,9 @@
 //      the reservation is verified and the press starts.
 import { dispatchPress } from "../lib/press-dispatch.js";
 import { spend, LIMITS } from "../lib/quota.js";
+import { recordVerifiedFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
 
-export async function onRequest({ request, env }) {
+export async function onRequest({ request, env, waitUntil }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
   let b; try { b = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
   const id = Number(b.signup_id); if (!id) return json({ ok: false, error: "signup_id" }, 400);
@@ -34,6 +35,8 @@ export async function onRequest({ request, env }) {
   await env.DB.prepare("UPDATE signups SET dispatch_status = ? WHERE id = ?").bind(d.ok ? "dispatched" : "queued", s.id).run().catch(() => {});
   await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')`)
     .bind(s.id, d.ok ? "building" : "queued", JSON.stringify({ message: d.ok ? "press started after About-page verification" : "dispatch failed: " + (d.reason || d.status) })).run().catch(() => {});
+  const tracked = await recordVerifiedFunnel(env, s.id);
+  if (tracked.alert) scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: "verified", press: d.ok ? "dispatched" : "queued" });
   return json({ ok: true, verified: true, press: d.ok ? "dispatched" : "queued" });
 }
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });

@@ -1,6 +1,9 @@
-// POST /api/event — funnel step counters. Stores event name + random session id only.
-const ALLOWED = new Set(["view","step2","step3","signup","preview_ok","preview_fail","preview_fetch"]);
-export async function onRequest({ request, env }) {
+// POST /api/event — first-party funnel steps. The detailed ledger stores only a random browser
+// session and the publication's public host; no IP, email or archive content.
+import { funnelHost, recordFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
+const ALLOWED = new Set(["view","step2","step3","signup","preview_ok","preview_fail","preview_fetch",
+  "reserve_start","plan_cadence","plan_interior","feedback"]);
+export async function onRequest({ request, env, waitUntil }) {
   if (request.method !== "POST")
     return new Response(null, { status: 405, headers: { allow: "POST" } });
   let body;
@@ -15,5 +18,12 @@ export async function onRequest({ request, env }) {
   if ((recent?.n || 0) >= 300) return new Response(null, { status: 204 });
   await env.DB.prepare("INSERT INTO events (session, event) VALUES (?,?)")
     .bind(session, event).run();
+  if (["preview_ok", "preview_fail", "reserve_start"].includes(event)) {
+    const host = funnelHost(body.host);
+    if (host) {
+      const tracked = await recordFunnel(env, { session, host, event, automated: body.automated === true });
+      if (tracked.alert) scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: event });
+    }
+  }
   return new Response(null, { status: 204 });
 }

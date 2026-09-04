@@ -8,15 +8,17 @@
 import { hmacHex, dispatchPress } from "../lib/press-dispatch.js";
 import { spend, LIMITS } from "../lib/quota.js";
 import { prepareOutboundEmail } from "../lib/runtime.js";
+import { recordVerifiedFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
 
-export async function onRequest({ request, env }) {
+export async function onRequest({ request, env, waitUntil }) {
   const u = new URL(request.url);
   if (request.method === "GET") {
     const t = String(u.searchParams.get("t") || ""); if (!/^[0-9a-f]{40}$/.test(t)) return page("That link is not valid.", "Open the link from the confirmation email again.", 403);
     const row = await env.DB.prepare("SELECT token, email, signup_id, verified_at, expires_at FROM email_verifications WHERE token = ?").bind(t).first().catch(() => null);
     if (!row) return page("That link is not valid.", "Ask for a new confirmation from the site.", 404);
     if (row.expires_at < new Date().toISOString()) return page("That link has expired.", "Ask for a new confirmation from the site.", 410);
-    if (!row.verified_at) {
+    const newlyVerified = !row.verified_at;
+    if (newlyVerified) {
       await env.DB.prepare("UPDATE email_verifications SET verified_at = datetime('now') WHERE token = ?").bind(t).run();
       await env.DB.prepare("UPDATE signups SET email_verified_at = datetime('now') WHERE id = ?").bind(row.signup_id).run().catch(() => {});
     }
@@ -27,6 +29,10 @@ export async function onRequest({ request, env }) {
     await env.DB.prepare("UPDATE signups SET dispatch_status = ? WHERE id = ?").bind(d.ok ? "dispatched" : "queued", s.id).run().catch(() => {});
     await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')`)
       .bind(s.id, d.ok ? "building" : "queued", JSON.stringify({ message: d.ok ? "press started after verification" : "dispatch failed: " + (d.reason || d.status) })).run().catch(() => {});
+    if (newlyVerified) {
+      const tracked = await recordVerifiedFunnel(env, s.id);
+      if (tracked.alert) scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: "verified", press: d.ok ? "dispatched" : "queued" });
+    }
     return page("Confirmed. Your proof is being made.", d.ok ? `It lands at ${s.email} in a few minutes: the first pages attached, the whole book linked, and a page to approve or change it.` : "A person starts the press by hand; the proof follows today.");
   }
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);

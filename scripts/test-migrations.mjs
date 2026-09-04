@@ -7,7 +7,7 @@ const q = (sql) => { const r = JSON.parse(execFileSync("npx", ["wrangler", "d1",
 rmSync(".wrangler/state", { recursive: true, force: true });
 execFileSync("node", ["scripts/migrate.mjs", "--local"], { stdio: "ignore" });
 const tables = q("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").map(r => r.name);
-for (const t of ["signups", "events", "preview_cache", "press", "mailings", "links", "edition_versions", "stripe_events", "print_commands", "email_verifications", "allowlist", "quota_hits", "schema_migrations"]) ok(tables.includes(t), "table " + t);
+for (const t of ["signups", "events", "preview_cache", "press", "mailings", "links", "edition_versions", "stripe_events", "print_commands", "email_verifications", "allowlist", "quota_hits", "funnel_sessions", "schema_migrations"]) ok(tables.includes(t), "table " + t);
 /* the transaction, as rows */
 q("INSERT INTO signups (publication_url, email, raw_json, plan_json) VALUES ('https://www.example.com', 'w@example.com', '{}', '{\"cadence\":\"single\"}')");
 q("UPDATE signups SET email_verified_at = datetime('now'), dispatch_status = 'dispatched' WHERE id = 1");
@@ -21,9 +21,13 @@ q("INSERT INTO print_commands (mailing_id, version_id, external_id, status) VALU
 q("INSERT INTO email_verifications (token, email, signup_id, expires_at) VALUES ('t1', 'w@example.com', 1, datetime('now', '+1 day'))");
 q("INSERT INTO allowlist (email, host) VALUES ('w@example.com', 'www.example.com')");
 q("INSERT INTO quota_hits (key, bucket, n) VALUES ('host:www.example.com', '2026-09-02T23', 1) ON CONFLICT(key, bucket) DO UPDATE SET n = n + 1");
+q("INSERT INTO funnel_sessions (session, host, last_event, preview_ok_at) VALUES ('abc12345', 'www.example.com', 'preview_ok', datetime('now'))");
+q("UPDATE funnel_sessions SET last_event = 'signup', signup_id = 1, signup_at = datetime('now') WHERE session = 'abc12345' AND host = 'www.example.com'");
+q("UPDATE funnel_sessions SET last_event = 'verified', verified_at = datetime('now') WHERE signup_id = 1");
 ok(q("SELECT status FROM mailings WHERE id = 1")[0].status === "dispatching", "mailing claimed");
 ok(q("SELECT status FROM edition_versions WHERE id = 1")[0].status === "approved", "version approved");
 ok(q("SELECT count(*) AS n FROM print_commands")[0].n === 1, "one print command");
+ok(q("SELECT last_event FROM funnel_sessions WHERE signup_id = 1")[0].last_event === "verified", "funnel joins preview through signup and verification");
 let dup = false; try { q("INSERT INTO stripe_events (id, type) VALUES ('evt_1', 'x')"); } catch { dup = true; } ok(dup, "a replayed Stripe event id is refused");
 let dup2 = false; try { q("INSERT INTO print_commands (mailing_id, external_id) VALUES (1, 'inksheaf-m1-v1-b')"); } catch { dup2 = true; } ok(dup2, "a second print command for the same mailing is refused");
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

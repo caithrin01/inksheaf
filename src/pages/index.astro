@@ -496,19 +496,25 @@ footer a{color:inherit}
 
 <script>
 const f = document.getElementById('f') as HTMLFormElement;
-const sid = Math.random().toString(36).slice(2,10);
+const sid = sessionStorage.getItem('inksheaf_sid') || Math.random().toString(36).slice(2,10);
+sessionStorage.setItem('inksheaf_sid', sid);
 const seen = new Set();
-function beacon(ev: string){
-  if (seen.has(ev)) return; seen.add(ev);
+function beacon(ev: string, host = ''){
+  const key = ev + ':' + host.toLowerCase();
+  if (seen.has(key)) return; seen.add(key);
   navigator.sendBeacon?.('/api/event', new Blob(
-    [JSON.stringify({session:sid, event:ev})], {type:'application/json'}));
+    [JSON.stringify({session:sid, event:ev, host, automated:navigator.webdriver === true})], {type:'application/json'}));
 }
 beacon('view');
 function show(n: number){
   for (const k of [1,2]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
   document.getElementById('stepnum')!.textContent = String(n);
   document.getElementById('err')!.textContent = '';
-  if (n>1) beacon('step'+n);
+  if (n>1){
+    beacon('step'+n);
+    const pub = previewData?.host || (f.elements.namedItem('publication_url') as HTMLInputElement)?.value || '';
+    if (pub) beacon('reserve_start', pub);
+  }
 }
 show(1);
 
@@ -571,6 +577,7 @@ async function runPreview(){
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw), { signal: ctl.signal });
     const d = await r.json();
     if (!d.ok){
+      beacon('preview_fail', raw);
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
         raw.startsWith('http') ? raw : 'https://' + raw;
       stage.classList.remove('on');
@@ -582,12 +589,14 @@ async function runPreview(){
       return;
     }
     previewData = d;
+    beacon('preview_ok', d.host);
     if (interludeOn && d.host !== lastShownHost) await interludeFacts(d);
     else { stage.classList.remove('on'); document.getElementById('preview')!.classList.remove('staging'); }
     lastShownHost = d.host;
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
   } catch (e) {
+    beacon('preview_fail', raw);
     stage.classList.remove('on');
     document.getElementById('preview')!.classList.remove('staging');
     document.getElementById('preview')!.classList.remove('personalized');
@@ -1115,11 +1124,10 @@ f.addEventListener('submit', async (e)=>{
     document.getElementById('err')!.textContent = 'That email does not look right.';
     return;
   }
-  const data = Object.fromEntries(new FormData(f).entries());
+  const data = { ...Object.fromEntries(new FormData(f).entries()), session: sid };
   const r = await fetch('/api/signup', {method:'POST',
     headers:{'content-type':'application/json'}, body: JSON.stringify(data)});
   if (r.ok){
-    beacon('signup');
     (f as HTMLElement).style.display='none';
     (document.querySelector('.steps') as HTMLElement).style.display='none';
     document.getElementById('done')!.style.display='block';

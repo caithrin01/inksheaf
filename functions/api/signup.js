@@ -1,11 +1,12 @@
 // POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
 import { dispatchPress } from "../lib/press-dispatch.js";
 import { sendVerification } from "./verify.js";
+import { funnelHost, funnelSession, recordFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
   "founding_count","price_range","interview_ok","concern","plan_json"];
 
-export async function onRequest({ request, env }) {
+export async function onRequest({ request, env, waitUntil }) {
   if (request.method !== "POST")
     return new Response(JSON.stringify({ ok:false, error:"method not allowed" }),
       { status: 405, headers: { "content-type":"application/json", "allow":"POST" } });
@@ -63,6 +64,11 @@ export async function onRequest({ request, env }) {
      publication's own Substack address; the press starts when its link is opened. Journey test
      reservations (+journeytest@) neither send nor dispatch. */
   if (!row?.id) return ok();
+  const session = funnelSession(body.session) || funnelSession(`signup${row.id}`);
+  const host = funnelHost(url);
+  const tracked = await recordFunnel(env, { session, host, event: "signup", signup_id: row.id });
+  if (tracked.alert && !/\+journeytest@caithrin\.com$/i.test(email))
+    scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: "signup", email });
   if (/\+journeytest@caithrin\.com$/i.test(email)) { await env.DB.prepare("UPDATE signups SET dispatch_status = 'test' WHERE id = ?").bind(row.id).run().catch(() => {}); return new Response(JSON.stringify({ ok: true, id: row.id, press: "test" }), { headers: { "content-type": "application/json" } }); }
   await env.DB.prepare("UPDATE signups SET dispatch_status = 'awaiting-verification' WHERE id = ?").bind(row.id).run().catch(() => {});
   const v = await sendVerification(env, { id: row.id, publication_url: url, email }, new URL(request.url).origin);
