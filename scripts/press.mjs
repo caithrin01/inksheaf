@@ -16,6 +16,7 @@ import { printCost } from "../functions/lib/editor-input.js";
 import { createHmac } from "node:crypto";
 import { PDFDocument } from "pdf-lib";
 import { sendMail } from "./lib/mail.mjs";
+import { reviewPdf, writerLine, operatorBlock } from "./lib/page-review.mjs";
 import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 import { makeClient } from "./lulu-client.mjs";
 import prices from "../functions/lib/print-prices.json" with { type: "json" };
@@ -140,11 +141,16 @@ if (EVENT === "press") {
     const key = proofKey(`${slug}-${ID}`, `interior-v${i + 1}`, b.pdf);
     await uploadProof(b.pdf, key);
     const sha = createHash("sha256").update(readFileSync(b.pdf)).digest("hex");
+    /* the page review (plan-page-review-v1): a model reads every page before the writer does.
+       It annotates the proof email and the operator email; it never holds the proof. */
+    const review = await reviewPdf(b.pdf, { outDir: `${DIR}/${slug}-${ID}-v${i + 1}-review`, log: m => log("review", `${v.label}: ${m}`) });
+    for (const line of operatorBlock(review).split("\n")) log("review", `${v.label}: ${line}`);
+    b.review = review;
     for (const o of (b.report.postOrder || [])) postOrder.push(o);
     Object.assign(bodyHashes, b.report.bodyHashes || {});
     vols.push({ label: v.label, title: v.title || null, subtitle: v.subtitle || null, pages, key, sha256: sha, included: b.report.included, pubName: b.report.pubName || host, kind: plan?.kind || "essays", postOrder: b.report.postOrder || [],
       leftOut: [...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })), ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))],
-      pdf: b.pdf, report: b.report });
+      pdf: b.pdf, report: b.report, review: b.review });
     log("press", `${v.label}: ${pages} pages, ${key}, sha256 ${sha.slice(0, 12)}`);
   }
   const totalPages = vols.reduce((n, x) => n + x.pages, 0);
@@ -176,13 +182,15 @@ ${approve}
 Want to change something first (leave posts out, bring one back, retitle, switch to a different set, add a dedication or an ISBN)?
 ${change}
 
+${vols.map(x => writerLine(x.review)).filter(Boolean).map((l, i) => (n > 1 ? `${vols[i].label}: ` : "") + l).join("\n")}
+
 Nothing prints until you approve. Reply to this email and a person answers.
 
 Inksheaf`;
   await sendMail({ to: TO, subject: `Your proof: ${vols[0].pubName || host}`, text,
     attachments: [{ filename: `${slug}-first-pages.pdf`, content: first }] });
-  await sendMail({ to: OPERATOR, subject: `press: proof sent for ${host} (#${ID}, version ${versionId})`,
-    text: `Reservation #${ID}\n${URL_}\n${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\n` + vols.map(x => `${x.label}: ${x.pages} pages, ${x.key}, ${x.sha256.slice(0, 12)}`).join("\n") + `\nproof ${proofUrl}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n` });
+  await sendMail({ to: OPERATOR, subject: `press: proof sent for ${host} (#${ID}, version ${versionId})${vols.some(x => x.review && x.review.findings.length) ? `, ${vols.reduce((t, x) => t + (x.review?.findings.length || 0), 0)} page(s) flagged` : ""}`,
+    text: `Reservation #${ID}\n${URL_}\n${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\n` + vols.map(x => `${x.label}: ${x.pages} pages, ${x.key}, ${x.sha256.slice(0, 12)}`).join("\n") + `\nproof ${proofUrl}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n\n` + vols.map(x => `${x.label}\n${operatorBlock(x.review)}`).join("\n\n") + "\n" });
   const leftOut = vols.flatMap(x => x.leftOut);
   /* the estimate against the typeset book (Codex audit P0-2): recorded, and over 15% it is said */
   const est = Number(plan?.est_pages) || vols.reduce((t, x, i) => t + (Number(volumes[i]?.est_pages) || 0), 0);
