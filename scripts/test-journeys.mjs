@@ -194,7 +194,8 @@ const assertLanding = async (page, viewportH) => {
       bookTop: Math.round(b.top), bookBottom: Math.round(b.bottom), bigTop: Math.round(big.top) };
   });
   assert.equal(r.active, "bookwrap", "focus moved to the book");
-  assert.match(r.status, /^Your book is ready: (about )?\d+ (pages|volumes|issues)\.$/, "status announced: " + r.status);
+  /* 2026-09-04: the announcement names one edition: "164 pages, Jul 2025 – Jun 2026" or "2 volumes, 164 pages in all, Jul 2025 – Jun 2026" */
+  assert.match(r.status, /^Your book is ready: (about )?\d+ (pages|volumes|issues)(, \d+ pages in all)?(, [A-Z][a-z]{2} \d{4} – [A-Z][a-z]{2} \d{4})?\.$/, "status announced: " + r.status);
   assert.ok(r.bookTop >= 0 && r.bookTop <= 120, "book top near the top of the viewport: " + r.bookTop);
   assert.ok(r.bookBottom <= viewportH, "whole book inside the viewport: bottom " + r.bookBottom);
   assert.ok(r.bigTop < viewportH, "the one-line fact is inside the first viewport: " + r.bigTop);
