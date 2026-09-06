@@ -13,7 +13,10 @@ import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+const fixtureMode = process.argv.includes('--fixture');
+const { edited: fixture } = fixtureMode ? await import('./fixtures/preview-editor-exclusion.mjs') : {edited:null};
 const base = (process.argv[2] || "https://inksheaf.com").replace(/\/$/, "");
+if (fixtureMode && !['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw new Error('Fixture mode requires a local build');
 /* ship.sh runs from a frozen export without .git and passes INKSHEAF_HEAD instead */
 const head = process.env.INKSHEAF_HEAD ||
   (() => { try { return execSync("git rev-parse --short HEAD", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return "nohead"; } })();
@@ -54,6 +57,12 @@ for (const scheme of ["light", "dark"]) {
   for (const state of Object.keys(STATES)) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, colorScheme: scheme });
     const page = await ctx.newPage();
+    if (fixtureMode) await page.route('**/api/**', route => {
+      const u = new URL(route.request().url());
+      return route.fulfill({json:u.pathname==='/api/preview'
+        ? u.searchParams.get('url')?.includes('nytimes') ? {ok:false,message:'We could not read that archive. Request a hand-built preview.'} : fixture
+        : {ok:true}});
+    });
     const errors = [];
     page.on("pageerror", e => errors.push(String(e).slice(0, 140)));
     try {
@@ -78,6 +87,7 @@ for (const scheme of ["light", "dark"]) {
         otherViolations += other.length;
         for (const v of other)
           console.log(`  note ${state}/${scheme}/${w}: ${v.id} (${v.impact}) x${v.nodes.length}: ${v.help}`);
+        assert.equal(other.length, 0, `${state}/${scheme}/${w}: WCAG violations: ${other.map(v=>v.id).join(', ')}`);
         const detail = contrast.flatMap(v => v.nodes.map(n => n.target.join(" ") + " " + (n.any[0]?.message || "")))
           .slice(0, 6).join(" | ");
         rows.push({ state, scheme, width: w, contrast: contrast.reduce((s, v) => s + v.nodes.length, 0), other: other.length });

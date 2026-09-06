@@ -1,0 +1,103 @@
+---
+// One publication-owned cover and one readable archive sampler. No invented folios.
+---
+<div class="book-presentation">
+  <div class="bookwrap" id="bookwrap" aria-describedby="book-instruction">
+    <div class="bookobj" id="pvbook" aria-hidden="true">
+      <div class="pv-page" id="pv-page">
+        <div class="run" id="pv-runname">Your publication</div>
+        <div class="page-heading">From the archive</div>
+        <div class="page-rule"></div>
+        <div id="pv-toc">
+          <div class="toc-line"><span class="t">Your writing, set on paper.</span></div>
+        </div>
+        <div class="fol">Recent writing.<br />Final contents are set in your proof.</div>
+      </div>
+      <div class="cover">
+        <div class="cv-kind" id="pv-kind">Collected edition</div>
+        <div class="cv-mast" id="pv-mast">Your publication</div>
+        <div class="cv-orn"></div>
+        <div class="cv-dates" id="pv-dates">The past twelve months</div>
+        <div class="cv-mid"></div>
+        <div class="cv-footwrap"><span class="cv-pages" id="pv-cvpages">6 × 9 · perfect bound</span></div>
+      </div>
+      <div class="spinetext"><span id="pv-spine">Your publication</span></div>
+      <div class="pageblock" id="pv-block"></div>
+    </div>
+    <div class="bookhint" id="book-instruction"><span class="book-open-hint">Look inside <span aria-hidden="true">↗</span></span><span class="book-close-hint">Back to the cover <span aria-hidden="true">↶</span></span></div>
+  </div>
+  <p class="sr-only" id="book-text" hidden></p>
+</div>
+
+<style is:global>
+.book-presentation{min-width:0;align-self:start}
+.bookwrap{margin:0 auto;width:min(100%,19rem);perspective:1500px;position:relative;scroll-margin-top:6rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bookwrap:focus-visible{outline:2px solid #e7c698;outline-offset:12px;border-radius:2px}
+.bookobj{position:relative;width:100%;aspect-ratio:6/9;transform-style:flat;transform:rotateY(-6deg) rotateZ(-1deg);transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.bookwrap.open .bookobj,.bookwrap.peek .bookobj{transform:rotateY(0) rotateZ(0)}
+.pv-page{position:absolute;inset:0;background:linear-gradient(90deg,#ded4bd,#f4efe2 8%,#fbf6e9 92%,#eee5d0);border:1px solid #cfc3a9;
+  padding:1.7rem 1.65rem 1.1rem;display:flex;flex-direction:column;color:#2a2118;line-height:1.4;
+  box-shadow:2px 3px 1px #d9cdb5,5px 6px 1px #cfc1a7,14px 24px 36px -16px #0008;overflow:hidden}
+.pv-page .run{font:500 .58rem/1.4 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#6b5a44;overflow-wrap:anywhere}
+.page-heading{font-size:1.7rem;line-height:1.1;margin-top:1.45rem;font-weight:500}
+.page-rule{width:2rem;border-top:1px solid #9b8260;margin:1rem 0 .5rem}
+#pv-toc{overflow:hidden}
+.toc-line{margin-top:.75rem;line-height:1.3;font-size:.86rem;color:#2a2118}
+.toc-line .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.pv-page .fol{margin-top:auto;padding-top:1rem;font:400 .6rem/1.5 system-ui,sans-serif;color:#6b5a44}
+.cover{--cover-paper:#f9f4e6;--cover-ink:#211c15;position:absolute;inset:0;
+  background:var(--cover-paper);color:var(--cover-ink);border:1px solid #0003;
+  transform-origin:left center;backface-visibility:hidden;z-index:2;
+  display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:2.15rem 1.9rem 1.7rem;
+  box-shadow:inset 7px 0 10px -5px #0005,inset 11px 0 0 -10px #fff7,12px 28px 40px -17px #000b;
+  transition:transform .65s cubic-bezier(.2,.7,.2,1),opacity .4s .08s;overflow:hidden}
+.cover::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,#fff2,transparent 35%,#00000008);border:1px solid #ffffff24}
+.bookwrap.open .cover,.bookwrap.peek .cover{transform:rotateY(-105deg);opacity:0;pointer-events:none}
+.cv-kind{font:500 .6rem/1.5 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;max-width:100%;overflow-wrap:anywhere}
+.cv-mast{font-family:"EB Garamond",Georgia,serif;font-size:var(--mast-size,clamp(2.1rem,3.7vw,3rem));font-weight:500;line-height:1.06;margin-top:2.4rem;overflow-wrap:anywhere;max-width:100%;text-wrap:balance}
+.cv-orn{width:2rem;border-top:1px solid currentColor;margin:1.6rem 0 1rem;opacity:.7}
+.cv-dates{font-size:.88rem;line-height:1.5}
+.cv-mid{flex:1;min-height:1rem}
+.cv-footwrap{width:100%;border-top:1px solid currentColor;padding-top:.65rem}
+.cv-pages{display:block;font:400 .66rem/1.6 system-ui,sans-serif;letter-spacing:.01em;overflow-wrap:anywhere}
+.spinetext{display:none}
+.pageblock{position:absolute;top:3px;bottom:2px;right:-7px;width:7px;background:repeating-linear-gradient(180deg,#faf6eb 0 2px,#d2c5aa 2px 3px);box-shadow:2px 4px 4px #0004;transition:width .7s}
+.bookhint{display:flex;justify-content:center;align-items:center;min-height:44px;margin-top:1.1rem;font:400 .74rem/1.4 system-ui,sans-serif;letter-spacing:.03em;color:#dfcda8}
+.bookhint span span{margin-left:.6rem}
+.book-close-hint{display:none}
+.bookwrap.open .book-open-hint{display:none}.bookwrap.open .book-close-hint{display:inline}
+.preview .bookwrap{opacity:1}
+@media(min-width:900px){.book-presentation{position:sticky;top:7.5rem}}
+@media(max-width:560px){
+  .bookwrap{width:min(100% - 1rem,18.5rem)}
+  .cv-mast{font-size:var(--mast-size,2.6rem)}
+  .pv-page{padding:1.45rem 1.4rem 1rem}
+  .page-heading{margin-top:1.15rem;font-size:1.6rem}
+}
+@media(prefers-reduced-motion:reduce){.bookobj{transform:none}.bookwrap.open .cover,.bookwrap.peek .cover{transform:none;visibility:hidden}}
+</style>
+
+<script>
+const book = document.getElementById('bookwrap');
+if (book) {
+  book.tabIndex = 0;
+  book.setAttribute('role', 'button');
+  book.setAttribute('aria-label', 'Open the book to look inside');
+  book.setAttribute('aria-pressed', 'false');
+  const toggle = () => {
+    const open = book.classList.toggle('open');
+    book.classList.remove('peek');
+    book.setAttribute('aria-pressed', String(open));
+    book.setAttribute('aria-label', open ? 'Close the book and return to the cover' : 'Open the book to look inside');
+    document.getElementById('book-text')!.hidden = !open;
+  };
+  book.addEventListener('click', toggle);
+  book.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); }
+  });
+  book.addEventListener('pointerenter', event => {
+    if (event.pointerType === 'mouse' && matchMedia('(hover:hover)').matches) book.classList.add('peek');
+  });
+  book.addEventListener('pointerleave', () => book.classList.remove('peek'));
+}
+</script>

@@ -8,7 +8,7 @@
     <b>Inksheaf</b>
   </a>
   <button class="sheaf-header-cta" id="hero-try" type="button" data-hero-try>
-    Try it for my Stack <span class="sheaf-caret" aria-hidden="true"></span>
+    Try it for my Stack <span aria-hidden="true">↗</span>
   </button>
 </header>
 
@@ -55,9 +55,9 @@
       <button class="sheaf-handoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
       <label for="tryurl">Your publication</label>
       <div class="sheaf-input-wrap">
-        <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="off" aria-describedby="tryerr" />
-        <span class="sheaf-caret" aria-hidden="true"></span>
+        <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="url" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="tryerr" />
       </div>
+      <noscript><p class="sheaf-say">For a hand-built preview, <a href="mailto:caithrin@caithrin.com">write to Caithrin</a>.</p></noscript>
       <div><button class="sheaf-go" id="trybtn" type="button">Show my book</button></div>
     </div>
 
@@ -68,6 +68,9 @@
   <style>
     /* no scripts: the settled title page, usable, and the specimen book below it (journey A13) */
     /* id-qualified so these outrank Astro's attribute-scoped component rules */
+    .sheaf-header .sheaf-header-cta,#hero-story .sheaf-title label,#hero-story .sheaf-input-wrap,#hero-story .sheaf-go{display:none}
+    #fb-form,.faq-return button,.bookhint{display:none}
+    #bookwrap{cursor:default}
     #hero-story.sheaf-scroll{height:100vh;height:100svh}
     #hero-story .sheaf-stage{position:relative}
     #hero-story .sheaf-frame{display:none}
@@ -119,9 +122,11 @@
     color:#2a2118;text-align:center;width:22ch;max-width:100%;outline:none;caret-color:#a8452c}
   .sheaf-input-wrap input::placeholder{color:rgba(42,33,24,.62)}
   .sheaf-input-wrap .sheaf-caret{color:#a8452c}
-  .sheaf-go{margin-top:11px;display:inline-block;border:1.1px solid #2a2118;padding:7px 20px;font:600 11px/1.3 "EB Garamond",Garamond,serif;
+  .sheaf-go{min-height:44px;margin-top:11px;display:inline-block;border:1.1px solid #2a2118;padding:7px 20px;font:600 11px/1.3 "EB Garamond",Garamond,serif;
     letter-spacing:.2em;text-transform:uppercase;color:#2a2118;background:rgba(244,234,212,.4);cursor:pointer}
   .sheaf-go:hover{background:#2a2118;color:#f4ead4}
+  .sheaf-input-wrap:focus-within{outline-color:#8e2f1c}
+  .sheaf-go:focus-visible,.sheaf-handoff:focus-visible{outline-color:#8e2f1c}
   .sheaf-go:disabled{opacity:.55;cursor:wait}
   .sheaf-error{color:#8e2f1c;font-size:clamp(12px,min(1.05vw,1.9vh),14px);line-height:1.35;margin:8px auto 0;max-width:30ch}
   .sheaf-error:empty{display:none}
@@ -145,6 +150,7 @@
     .sheaf-scroll{height:400vh}
     .sheaf-frame{object-position:58% 50%}
     .sheaf-title{left:50%;top:36%;width:68%;max-width:none;transform:translateX(-50%) translateY(10px)}
+    .sheaf-title h1{font-size:26px}.sheaf-say{font-size:15px}.sheaf-title label{font-size:10px}.sheaf-input-wrap input{font-size:16px}.sheaf-go{font-size:12px}
     .sheaf-narration{bottom:11vh}.sheaf-line{font-size:28px}
     .sheaf-header-cta{font-size:.96rem;padding:.7rem 1.05rem}.sheaf-brand b{font-size:1.16rem}
   }
@@ -158,6 +164,16 @@
     .sheaf-narration,.sheaf-hint{display:none}
     .sheaf-title{opacity:1!important;pointer-events:auto!important;transform:none!important}
     .sheaf-header-cta{transition:none}
+  }
+  @media (max-height:500px) and (min-width:641px){
+    .sheaf-title{top:23%;left:56%;width:33%}
+    .sheaf-title h1{font-size:20px;line-height:1.05}
+    .sheaf-say{display:none}
+    .sheaf-title label{margin:7px 0 3px;font-size:9px}
+    .sheaf-input-wrap input{padding:2px 0;font-size:14px;line-height:1.3}
+    .sheaf-go{min-height:36px;margin-top:7px;padding:7px 16px;font-size:10px}
+    .sheaf-error,.sheaf-working,.sheaf-handoff{font-size:12px;line-height:1.3;margin-top:4px}
+    .sheaf-title:has(.sheaf-error:not(:empty)) h1,.sheaf-title:has(.sheaf-working:not(:empty)) h1{display:none}
   }
   @media (prefers-reduced-motion:reduce) and (max-width:640px){
     .sheaf-title{transform:translateX(-50%)!important}
@@ -195,8 +211,11 @@
       return;
     }
 
+    field.addEventListener('focus',function(){
+      if(parseFloat(title.style.opacity||'0')<.92) window.scrollTo({top:root.offsetTop+root.offsetHeight-window.innerHeight,behavior:'auto'});
+    });
     var transitions=[0.30,0.56,0.82], dissolve=0.06;
-    var lineWindows=[[0.04,0.26],[0.36,0.52],[0.62,0.78]], lineFade=0.05;
+    var lineWindows=[[-0.05,0.26],[0.36,0.52],[0.62,0.78]], lineFade=0.05;
     function clamp(x){return x<0?0:x>1?1:x;}
     function smooth(x){x=clamp(x);return x*x*(3-2*x);}
     function frameOpacity(index,progress){

@@ -97,7 +97,7 @@ const cssPaths = [...html.matchAll(/href="(\/_astro\/[^"]+\.css)"/g)].map(m => m
 const css = sourceOnly
   ? cssPaths.map(p => readFileSync(new URL("../dist" + p, import.meta.url), "utf8")).join("\n")
   : (await Promise.all(cssPaths.map(p => fetch(base + p).then(r => r.text())))).join("\n");
-ok("brand: EB Garamond is the face", /EB Garamond/.test(css) && /family=EB\+Garamond/.test(html));
+ok("brand: EB Garamond is the face", /EB Garamond/.test(css) && /href="\/fonts\/eb-garamond.css"/.test(html));
 ok("brand: no Cormorant Garamond (caithrin face)", !/Cormorant/i.test(css + html));
 ok("brand: no caithrin palette", !/#(16120e|f4efe6|7d6448)\b/i.test(css + html));
 ok("brand: no caithrin d20 mark", !/d20-(black|white|final|exact|tile)\.svg|dice-(bold|all)\.svg/.test(html + css + js));
