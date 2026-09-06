@@ -81,6 +81,31 @@ for (const scheme of ["light","dark"]) {
       problem(`${scheme}/${width}: title controls clip outside the viewport`);
     if (width===1280 || width===390) await page.screenshot({path:`${out}/title-${scheme}-${width}.png`});
 
+    if (width===1280 || width===390) {
+      /* the wait: with the archive read slowed to three seconds, the visitor must see the pressroom's
+         lines on the title page within a second of the click (incident 2026-09-05) */
+      await page.unroute("**/api/preview?*");
+      await page.route("**/api/preview?*", async route => { await new Promise(r => setTimeout(r, 3000)); await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(fixture)}); });
+      await page.evaluate(() => window.scrollTo(0, document.getElementById('hero-story').offsetHeight - innerHeight));
+      await page.waitForTimeout(300);
+      await page.fill('#tryurl','slow.substack.com');
+      await page.click('#trybtn');
+      await page.waitForTimeout(900);
+      const wait = await page.evaluate(() => { const w = document.getElementById('tryworking'); const r = w ? w.getBoundingClientRect() : null;
+        return { text: w ? w.textContent.trim() : "", inView: !!r && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight, staging: document.getElementById('preview').classList.contains('staging') }; });
+      if (!wait.text || !wait.inView) problem(`${scheme}/${width}: nothing visible during the archive read (working line "${wait.text}", inView ${wait.inView}, staging ${wait.staging})`);
+      await page.screenshot({path:`${out}/waiting-${scheme}-${width}.png`});
+      await page.waitForFunction(() => document.getElementById('preview')?.classList.contains('personalized'), null, {timeout:15000});
+      await page.waitForTimeout(400);
+      const after = await page.evaluate(() => document.getElementById('tryworking').textContent.trim());
+      if (after) problem(`${scheme}/${width}: working line still reads "${after}" after the reveal`);
+      await page.unroute("**/api/preview?*");
+      await page.route("**/api/preview?*", async route => {
+        const requested = new URL(route.request().url()).searchParams.get("url") || "";
+        const body = requested.includes("broken") ? {ok:false,message:"We could not read that archive. Try again or ask for a hand-built preview."} : (requested.includes("caithrin") && real) ? real : fixture;
+        await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
+      });
+    }
     if (width===1280) {
       await page.evaluate(() => window.scrollTo(0,0));
       await page.click('#hero-try');

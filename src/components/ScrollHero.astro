@@ -50,6 +50,7 @@
     <div class="sheaf-title" id="tryit">
       <h1>Your Substack,<br />bound as a book.</h1>
       <p class="sheaf-say">We find your writing, set it in type, and print it to order.</p>
+      <div class="sheaf-working" id="tryworking" aria-live="polite"></div>
       <div class="sheaf-error" id="tryerr" role="alert"></div>
       <button class="sheaf-handoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
       <label for="tryurl">Your publication</label>
@@ -124,6 +125,11 @@
   .sheaf-go:disabled{opacity:.55;cursor:wait}
   .sheaf-error{color:#8e2f1c;font-size:clamp(12px,min(1.05vw,1.9vh),14px);line-height:1.35;margin:8px auto 0;max-width:30ch}
   .sheaf-error:empty{display:none}
+  /* while the archive is read, the pressroom's lines play here, where the visitor is looking */
+  .sheaf-working{color:#4a3626;font-style:italic;font-size:clamp(13px,min(1.1vw,2vh),15px);line-height:1.4;margin:8px auto 0;max-width:30ch;min-height:1.4em}
+  .sheaf-working:empty{display:none}
+  .sheaf-working b{color:#a8452c;font-weight:600;font-style:normal}
+  .sheaf-title:has(.sheaf-working:not(:empty)) .sheaf-say{display:none}
   /* a failure is one quiet line where the sub-line was, never the hero */
   .sheaf-title:has(.sheaf-error:not(:empty)) .sheaf-say{display:none}
   .sheaf-handoff{margin-top:4px;border:0;background:none;color:#8e2f1c;padding:0;font:600 clamp(12px,min(1.05vw,1.9vh),14px)/1.3 "EB Garamond",Garamond,serif;

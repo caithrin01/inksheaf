@@ -527,6 +527,8 @@ let previewData: any = null;
 
 /* ---------- typesetting interlude: facts fade through while the press runs ---------- */
 const stage = document.getElementById('pv-stage')!;
+/* the title-page working line (#tryworking) plays the pressroom's beats where the visitor is looking; it clears with the stage */
+function stageOff(){ stage.classList.remove('on'); const w = document.getElementById('tryworking'); if (w) w.textContent = ''; }
 const setline = document.getElementById('pv-setline')!;
 let lastShownHost: string | null = null;
 const motionOK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -534,6 +536,7 @@ async function beat(html: string, hold = 620){
   setline.classList.remove('in'); setline.classList.add('out');
   await new Promise(r => setTimeout(r, 230));
   setline.innerHTML = html;
+  const working = document.getElementById('tryworking'); if (working) working.innerHTML = html;
   setline.classList.remove('out'); setline.classList.add('in');
   await new Promise(r => setTimeout(r, 290 + hold));
 }
@@ -542,6 +545,7 @@ function interludeStart(){
   const pv = document.getElementById('preview')!;
   pv.classList.remove('on'); pv.classList.add('staging');
   setline.innerHTML = 'Reading your archive&hellip;';
+  const working = document.getElementById('tryworking'); if (working) working.innerHTML = 'Reading your archive&hellip;';
   setline.classList.add('in');
   stage.classList.add('on');
   return true;
@@ -558,7 +562,7 @@ async function interludeFacts(d: any){
   const recDiv = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   if (recDiv && recDiv.volumes.length > 1)
     await beat('Divided into <b>' + recDiv.volumes.length + '</b> ' + (d.unit || 'volume') + 's.', 780);
-  stage.classList.remove('on');
+  stageOff();
   setline.classList.remove('in');
   document.getElementById('preview')!.classList.remove('staging');
 }
@@ -580,7 +584,7 @@ async function runPreview(){
       beacon('preview_fail', raw);
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
         raw.startsWith('http') ? raw : 'https://' + raw;
-      stage.classList.remove('on');
+      stageOff();
       document.getElementById('preview')!.classList.remove('staging');
       document.getElementById('preview')!.classList.remove('personalized');
       document.getElementById('preview')!.classList.add('on');
@@ -591,13 +595,13 @@ async function runPreview(){
     previewData = d;
     beacon('preview_ok', d.host);
     if (interludeOn && d.host !== lastShownHost) await interludeFacts(d);
-    else { stage.classList.remove('on'); document.getElementById('preview')!.classList.remove('staging'); }
+    else { stageOff(); document.getElementById('preview')!.classList.remove('staging'); }
     lastShownHost = d.host;
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
   } catch (e) {
     beacon('preview_fail', raw);
-    stage.classList.remove('on');
+    stageOff();
     document.getElementById('preview')!.classList.remove('staging');
     document.getElementById('preview')!.classList.remove('personalized');
     document.getElementById('preview')!.classList.add('on');
