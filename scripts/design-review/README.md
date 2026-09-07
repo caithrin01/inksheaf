@@ -67,16 +67,18 @@ photo-background pixels behind the small text. These checks are distinct from mo
   in `study-content.json` comes from the owner's [September 1 essay](https://caithrin.com/p/the-data-center-backlash-wont-last).
   It is an excerpt, not invented sample copy or a final typeset proof.
 
-## Continue the product work
+## Integrated product checkpoint
 
 The owner accepted: their own publications only; correct publication name; their own Substack
 logo; different designs; real readable previews; exploration of a top-down desk. Next work
 must retain those constraints and use this model-review command on the next meaningful
 visual checkpoint. Do not describe local sampling as launch coverage.
 
-Still not built into the working production flow: the overhead hero replacement, four presets
-persisted into reservations and rendered identically in proofs, and a real public excerpt
-reader for arbitrary owner publications. The production-candidate naming/logo fix and WebKit
-cover painting repair are implemented separately in the main source and tested locally.
+The overhead hero, four presets persisted into reservations and rendered in proofs, and a
+real public excerpt reader are now integrated in the working candidate. `LAUNCH_REVIEW.md`
+contains the current review server, validation evidence and remaining launch acceptance.
+`integrated-review.json` names the six-image product checkpoint; its completed Opus response
+is saved under `evidence/frontend-review/2026-09-07-integrated-opus/`. The earlier study and
+its screenshots remain historical design evidence.
 
 Keep the protected GitHub approval-gated release path. No direct Cloudflare deployment.

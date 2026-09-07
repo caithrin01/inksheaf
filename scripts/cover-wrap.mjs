@@ -3,19 +3,25 @@
 //   node scripts/cover-wrap.mjs <width_pt> <height_pt> <out.html> [plate.png]
 //     [--meta meta.json] [--brand brand.json]
 // Geometry from /cover-dimensions/ (includes bleed). Panels: back | spine | front.
+// --design-file supplies a versioned selection from the preview/reservation.
 // --meta supplies publication copy (title, noun, dates, counts, blurb, host); without it the
 // original caithrin edition values apply, so the shipped artifact stays reproducible.
 // Design (Caithrin, 2026-08-31): the classic ivory literary paperback for every publication,
 // whatever its web palette: ivory ground, a black rule inside a red rule, the masthead set in
 // Garamond, red rubric, muted ink for dates and foot. --brand is still accepted so older
-// callers keep working, but its colours stay on the web; the plate border is the only use.
+// callers keep working. New reservations use the shared versioned cover design below.
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import QRCode from "qrcode";
+import { coverMarkup, coverStyle, coverColors, validDesign } from "../functions/lib/book-design.js";
+import { printLogo } from "./lib/print-logo.mjs";
+import { printFonts } from "./lib/print-assets.mjs";
 
-const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--meta" && all[i - 1] !== "--brand" && all[i - 1] !== "--isbn");
+const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--meta" && all[i - 1] !== "--brand" && all[i - 1] !== "--isbn" && all[i - 1] !== "--design-file");
 const [W, H, OUT] = [+pos[0], +pos[1], pos[2]];
 if (!W || !H || !OUT) { console.error("usage: cover-wrap.mjs <w_pt> <h_pt> <out.html> [plate] [--meta m.json] [--brand b.json]"); process.exit(2); }
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
+const DESIGN = argOf("--design-file") ? JSON.parse(readFileSync(argOf("--design-file"), "utf8")) : null;
+if (DESIGN && !validDesign(DESIGN)) throw new Error("Unsupported cover design");
 const BLEED = 9, TRIM_W = 432;
 const SPINE = W - 2 * BLEED - 2 * TRIM_W;
 
@@ -33,7 +39,7 @@ const META = argOf("--meta") ? JSON.parse(readFileSync(argOf("--meta"), "utf-8")
 /* the ivory palette, shared with the site's preview cover (src/pages/index.astro .cover) */
 const IVORY = "#f9f4e6", INK = "#1e1710", RED = "#a93b22", MUTED = "rgba(30,23,16,.62)";
 const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const qr = await QRCode.toDataURL(`https://${META.host}`, { margin: 0, width: 300, color: { dark: INK, light: "#0000" } });
+const qr = await QRCode.toDataURL(`https://${META.host}`, { margin: 4, width: 300, color: { dark: INK, light: "#ffffff" } });
 const plate = pos[3] || null;
 // spine text is physically unreadable on a very thin book; suppress rather than clip (R2)
 const spine = SPINE >= 18 ? `<span>${esc(META.spineText)}</span>` : "";
@@ -53,7 +59,7 @@ if (/^97[89]\d{10}$/.test(isbnRaw)) {
   const bwipjs = (await import("bwip-js")).default;
   barcode = bwipjs.toSVG({ bcid: "ean13", text: isbnRaw, includetext: false, height: 20, scale: 2, paddingwidth: 8, paddingheight: 4 });
 } else if (isbnRaw) console.error("--isbn ignored on the cover: not a 13-digit ISBN:", isbnRaw);
-const html = `<!doctype html><html><head><meta charset="utf-8">
+let html = `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@500;600&display=swap" rel="stylesheet">
 <style>
 @page { size: ${W}pt ${H}pt; margin: 0; }
@@ -111,5 +117,21 @@ h1{ font-weight:500; font-size:38pt; line-height:1.12; margin:.12in 0 0; color:$
   <div class="footwrap"><span class="pages">${esc(META.countLine)} · 6 × 9 · perfect bound</span><span class="foot"><span>${esc(host)}</span><span>Inksheaf</span></span></div>
 </div>
 </body></html>`;
+if (DESIGN) {
+  const brand=brandPath && existsSync(brandPath)?JSON.parse(readFileSync(brandPath,"utf8")):{};
+  const palette=DESIGN.palette || {cover_bg:brand.cover_bg,cover_ink:brand.cover_print};
+  const [bg,ink,accent]=coverColors(DESIGN.cover,palette);
+  const face=coverMarkup({publication:META.pubName,kind:META.kindLine,dates:META.dates,foot:META.countLine+' · 6 × 9 · perfect bound',logo:await printLogo(brand.logo_url,META.host)});
+  html=html.replace(/<div class="panel front">[\s\S]*?<\/body>/, `<div class="panel front"><div class="cover-face" data-design="${DESIGN.cover}" style="width:432pt;height:648pt;${coverStyle(DESIGN.cover,palette,META.pubName)}">${face}</div></div></body>`);
+  html=html.replace('</style>', `
+    ${printFonts()}
+    ${readFileSync('public/book/cover.css','utf8')}
+    html,body{background:${bg};color:${ink}}
+    .panel.front{top:${BLEED}pt;padding:0;height:648pt}
+    .back .blurb,.back .desc,.back .imprint,.spine span{color:${ink}}
+    .back .imprint{border-color:${accent}}
+    .back .frame{display:none}
+    </style>`);
+}
 writeFileSync(OUT, html);
-console.log(JSON.stringify({ W, H, SPINE, out: OUT, spineTextShown: !!spine, design: "ivory", barcode: !!barcode }));
+console.log(JSON.stringify({ W, H, SPINE, out: OUT, spineTextShown: !!spine, design: DESIGN?.cover || "ivory", barcode: !!barcode }));

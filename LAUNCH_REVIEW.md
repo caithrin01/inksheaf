@@ -1,100 +1,41 @@
-# Inksheaf launch candidate — 2026-09-06
+# Inksheaf — integrated overhead candidate, September 7
 
-**September 7 revision checkpoint:** the owner rejected the remaining angled perspective.
-The new overhead study is at <http://127.0.0.1:8808/design-study/>; see
-`scripts/design-review/README.md` and `evidence/frontend-review/README.md`. Three external
-Opus critiques completed; one earlier call was truncated and is marked failed. The working
-source fixes publication-name resolution, displays the actual publication logo and repairs
-a blank WebKit cover the model caught. Unit/build/local-browser checks passed. No deployment.
+The working site now has an overhead desk with a directly usable publication field, four cover designs and a paginated reader for real public text. The old angled scroll-to-open experience is no longer mounted. Publication names, their own logos and current cover colours drive the preview. The selected cover and palette survive reservation and enter the actual proof and print-cover generators.
 
-The study's overhead hero, four cover proposals and real Caithrin excerpts are **not yet
-integrated into the production preview or print renderer**. The model still finds the book
-insufficiently physical. The earlier motion implementation below is historical, not the
-accepted final design. Resume from the vault's `frontend-topdown-review-2026-09-07.md`.
+## Review it
 
-The delayed editor could reduce a 23-post archive to a 22-essay edition while the
-description and accessible announcement kept old totals. The selected binding now
-drives every edition total and the reservation snapshot, including changes made
-while the editor is still reading. The two P1s are fixed locally; production has not
-received this candidate.
-
-The personalised book has a substantial desktop cover, a readable mobile archive
-sampler, publication colours supplied by the API, and a keyboard-operated cover.
-Pricing and reservation sit beside the book before binding details. The hero now has
-one continuous opening against a fixed photographic desk, with a separate portrait
-composition that keeps the engraving visible. A short scroll triggers the completed
-800 ms opening; the header action immediately focuses the settled title-page field.
-The personal book opens only on deliberate click, tap or keyboard input. Loading and
-errors preserve the field position; compact typing has a usable paper surface. The
-existing font is served locally and the result and price appear without a fixed pause.
-
-## Try the candidate
-
-In `/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06`:
+The server at **http://127.0.0.1:8810/** reads real public archives through the local API handlers. Try caithrin.com or the original reported case, manifund.substack.com. Every reservation, event, verification and email effect is simulated. It uses an in-memory cache, not D1.
 
 ```sh
 npm run build
-npm run review:launch
+INKSHEAF_REVIEW_PORT=8810 INKSHEAF_REVIEW_PUBLIC_READS=1 npm run review:launch
 ```
 
-Open <http://127.0.0.1:8807/> and enter `caithrin.com`. A server was left running on
-that port at handoff; restart only if it is unavailable. This is a fixed sample
-archive and a synthesized editor-exclusion result, clearly labelled on the page.
-Every API effect is simulated. Other publication URLs show an explanatory error.
+The fixed local sample remains available at port 8809 (start `INKSHEAF_REVIEW_PORT=8809 npm run review:launch`). It uses the synthesized delayed-editor exclusion case and an actual excerpt from the owner's writing. The older `/design-study/` route remains historical and is not the implementation.
 
-1. Use the header action or scroll through the book story; submit the publication.
-2. Watch the calendar edition update to the editor's 22 essays / 163 pages.
-3. Open the cover. Recent titles are labelled as an archive sampler; final contents
-   belong to the proof. The excluded post may appear in this sampler by design.
-4. Try Half-year and Quarterly, keyboard arrows/Home/End, and both interiors.
-5. Open the reservation and submit any example address. This demo creates nothing
-   and returns the test acknowledgement. Feedback is also explicitly not saved.
+## What changed
 
-## Evidence
+- The cover, reading controls, edition copy and reservation form are connected in the working page. The cover picker uses a single selected state; the reader has explicit page controls, keyboard access, an enlarged view and actual-size reading.
+- `functions/lib/book-design.js` and `public/book/cover.css` define the same cover faces for web and print. Version/palette are preserved in `plan_json.design`; invalid or truncated plans are rejected instead of silently losing the choice. Existing reservations without a design keep their historical print style.
+- `functions/lib/book-interior.js` is shared with the real Paged.js proof renderer. The reader shows **recent public text**, not a claim that those paragraphs are selected for the displayed annual edition. The complete proof supplies images, notes, final contents and pagination. Paywalled posts are not sampled.
+- Identity resolution uses verified publication metadata. It no longer guesses author bylines for print mastheads either. Schema 9 replaces old cached names/colours and adds bounded sample post references. The entered alias and canonical host share the preview cache.
+- The publication's current Substack cover background takes priority over legacy accent fields. Print logos are embedded before rendering; a declared logo that cannot be fetched fails the proof instead of printing a broken image. QR codes retain a white quiet zone on dark covers.
+- The existing selected-edition truth/accessibility repairs remain. Owner verification still precedes press dispatch. Printing another person's publication is not a product feature.
 
-- Production build: pass; validator: 13; source honesty: 47; hero assets: 36.
-- `npm run test:launch:ui`: seven motion journeys, four edition configurations, 16 edge
-  journeys, and full scroll/CTA/loading/error/reduced-motion acceptance pass.
-- WebKit: seven motion journeys and four edition configurations pass. Compact typing
-  checks include full form bounds, preserved focus, a clickable action and axe.
-  The handoff also checks actual painted paper pixels to catch a blank image frame.
-  The design matrix has six clean states, 30 screenshots and zero WCAG violations.
-- Full preview unit chain and print-renderer acceptance (69) passed on the preceding
-  candidate. This motion pass changes neither the backend nor the print renderer.
-- Local review server smoke: preview → delayed editor → simulated reservation,
-  with no external requests or browser errors.
+## Verification and its limits
 
-Screenshots, before evidence, videos and logs are under `output/playwright/`; see
-`NIGHTLOG.md` for exact folders. The latest MP4s in `motion-review/` show desktop and
-mobile opening, preview reveal and cover interaction. `final-motion/` records the
-preceding candidate. Browser evidence is local and ignored
-by Git. The release workflow will upload acceptance evidence when run in GitHub.
+Local build and Cloudflare Functions compilation pass. The full unit chain passes, including 13 new public-sample/design checks. The print renderer gate passes all 69 checks. All four new cover wraps were rendered as one-page PDFs at 903×666 pt with the original logo and no face overflow; rasterized PDFs were inspected. A new-design proof fixture rendered as 12 pages.
 
-The initial preferred poster is 30 kB desktop / 48 kB portrait. Both preferred posters
-plus the opening total 604 kB / 850 kB respectively; the browser selects one composition.
-Each sequence has 24 frames, lasts 799 ms and plays once. Reduced motion avoids the
-animation download. The exact prompts, saved master paths and offline rebuild recipe
-are in `scripts/motion/asset-prompts.md` and `scripts/motion/README.md`.
+The release browser gate passes: four overhead/reader journeys in Chromium and WebKit, four edition configurations, four painted-cover/identity cases and 16 edge journeys. This includes real text painting, page turns, actual size, focus restoration, rejected unauthenticated reader messages, long titles, reduced motion, no-JavaScript contact, loading/failure and selected-edition preservation. Axe reports no WCAG A/AA violations in the tested states. The old opening-animation assertions were replaced by acceptance for the new interaction. GitHub now installs WebKit as well as Chromium, and PRs run checks without entering release jobs.
 
-## Still required before calling launch acceptance complete
+Two real public-GET journeys through the local handlers confirmed caithrin and **The Fox Says**, with their original logos, current colours and real excerpts. The complete browser UI also passed those real-public-data reads. These are not Cloudflare edge or inbox-delivery tests.
 
-- Live preview-only email check in an ordinary browser and confirmation of the owner
-  alert in the inbox. It was not attempted in this unattended run. No mailbox connector
-  or approved normal browser session was used; automation suppresses this alert.
-- Explicit confirmation of the chosen publication/address for one real reservation
-  and ownership verification. Confirm all three owner messages share one funnel ID,
-  and record whether the proof was queued or dispatched. A pending question proposed
-  caithrin.com and caithrin@caithrin.com; no answer was received during this run.
-- Physical iPhone/software keyboard and VoiceOver review. Local WebKit and axe do not
-  prove these human checks, nor do fixtures prove live OpenRouter/editor behavior.
-- Review and authorize the branch push/merge. Let GitHub's checks run on Linux/Node 22;
-  this run used macOS/Node 26. The new browser step has not yet executed in GitHub.
-- Release through manual `workflow_dispatch`, allowed `PROJECT_STATUS`, and Caithrin's
-  protected `production` approval. Preserve the artifact digest and migration gates.
-  Never use direct Cloudflare deployment. Recheck the real publication on the released
-  SHA before closing the P1s in the production audit.
+Opus completed a new six-image critique via the runnable OpenRouter workflow ($0.07576). It judged the overhead direction credible enough to carry forward and identified control hierarchy/selection ambiguity. Its "stale selection ring" was the Classic cover's printed frame, not stale application state; that visual ambiguity was removed. See `evidence/frontend-review/2026-09-07-integrated-opus/`. The response is critique, not design or launch approval.
 
-No backend, migration, print renderer, credential or production configuration was changed.
-Two built-in image-generation edits supplied fixed desk plates; Blender rendered the
-book and opening locally. No OpenRouter calls or image/video API credentials were used.
-The local preview and proof checks do not establish the live email system's delivery.
+Durable checks: `evidence/frontend-review/integrated/`. Full screenshots: `output/playwright/public-integration/`, `output/playwright/launch/`. PDFs: `output/pdf/integrated/`. Masters remain local; reproducible sources and compact evidence are committed.
+
+## Remaining launch acceptance
+
+Real inbox delivery is still unverified. Complete the preview-only owner-alert check, then the specifically approved reservation/verification journey. Physical iPhone keyboard/VoiceOver and an actual physical proof remain human checks. A browser sample cannot certify paper, binding, colour reproduction or final print pagination.
+
+Nothing in this work deploys directly to Cloudflare. Production still requires the existing manual GitHub workflow, PROJECT_STATUS policy, protected production approval, artifact digest and migration gates. No production database, reservation, email, order or verification was created by this run.

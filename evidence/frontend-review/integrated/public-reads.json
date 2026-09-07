@@ -1,0 +1,48 @@
+{
+  "at": "2026-09-07T20:11:44.402Z",
+  "environment": "Local handlers, memory DB, real public GETs. No production mutations or email.",
+  "rows": [
+    {
+      "host": "caithrin.com",
+      "status": 200,
+      "publication": "caithrin",
+      "expected": "caithrin",
+      "logo": true,
+      "theme": {
+        "cover_bg": "#1d1e1d",
+        "cover_ink": "#ffffff",
+        "cover_ink2": "#d9d9d9",
+        "accent": "#1d1e1d",
+        "heading_stack": null
+      },
+      "summary_version": 9,
+      "identity_pass": true,
+      "sample_status": 200,
+      "sample_ok": true,
+      "source": "https://www.caithrin.com/p/thank-you-all-for-signing-up-to-the",
+      "sample_title": "Thank you all for signing up to the first DC<>AI Bootcamp",
+      "sample_characters": 5427
+    },
+    {
+      "host": "manifund.substack.com",
+      "status": 200,
+      "publication": "The Fox Says",
+      "expected": "The Fox Says",
+      "logo": true,
+      "theme": {
+        "cover_bg": "#ffffff",
+        "cover_ink": "#221d16",
+        "cover_ink2": "#5a554b",
+        "accent": "#ffffff",
+        "heading_stack": null
+      },
+      "summary_version": 9,
+      "identity_pass": true,
+      "sample_status": 200,
+      "sample_ok": true,
+      "source": "https://manifund.substack.com/p/work-at-manifund-or-mox",
+      "sample_title": "Work at Manifund or Mox",
+      "sample_characters": 5651
+    }
+  ]
+}

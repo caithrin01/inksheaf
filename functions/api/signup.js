@@ -1,4 +1,5 @@
 // POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
+import { validDesign } from "../lib/book-design.js";
 import { dispatchPress } from "../lib/press-dispatch.js";
 import { sendVerification } from "./verify.js";
 import { funnelHost, funnelSession, recordFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
@@ -37,6 +38,11 @@ export async function onRequest({ request, env, waitUntil }) {
   for (const k of FIELDS) clean[k] = body[k] == null ? null : String(body[k]).slice(0, 300);
   /* plan_json is a JSON document, not a form field; it gets its own cap */
   clean.plan_json = body.plan_json == null ? null : String(body.plan_json).slice(0, 24000);
+  if (clean.plan_json) {
+    let selection;
+    try { selection = JSON.parse(clean.plan_json); } catch { return bad("invalid edition plan"); }
+    if (selection?.design && !validDesign(selection.design)) return bad("unsupported cover design");
+  }
   clean.publication_url = url;
   clean.email = email;
   clean.posts_per_year = Number.parseInt(clean.posts_per_year, 10) || null;

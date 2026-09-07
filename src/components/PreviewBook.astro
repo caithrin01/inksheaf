@@ -1,107 +1,150 @@
 ---
-// One publication-owned cover and one readable archive sampler. No invented folios.
+import { COVER_DESIGNS, coverMarkup, coverStyle } from '../../functions/lib/book-design.js';
 ---
 <div class="book-presentation">
+  <p class="book-edition-label" id="book-edition-label"></p>
+  <div class="book-designs" role="group" aria-label="Cover design">
+    {COVER_DESIGNS.map((d,i)=><button type="button" class="design-choice" data-cover={d.id} aria-pressed={i===0?'true':'false'} title={d.description}>
+      <span class="design-thumbnail cover-face" data-design={d.id} style={coverStyle(d.id,{},'Aa')} aria-hidden="true" set:html={coverMarkup({publication:'Aa',kind:'',dates:'',foot:''})} />
+      <span>{d.name}</span>
+    </button>)}
+  </div>
   <div class="bookwrap" id="bookwrap" aria-describedby="book-instruction">
-    <div class="bookobj" id="pvbook" aria-hidden="true">
+    <div class="bookobj physical-book" id="pvbook" aria-hidden="true">
       <div class="pv-page" id="pv-page">
-        <div class="run" id="pv-runname">Your publication</div>
-        <div class="page-heading">From the archive</div>
-        <div class="page-rule"></div>
-        <div id="pv-toc">
-          <div class="toc-line"><span class="t">Your writing, set on paper.</span></div>
-        </div>
-        <div class="fol">Recent writing.<br />Final contents are set in your proof.</div>
+        <div class="run" id="pv-runname">Your publication</div><div class="page-heading">From the archive</div>
+        <div id="pv-toc"></div><div class="fol">Recent writing.<br />Final contents are set in your proof.</div>
       </div>
-      <div class="cover"><div class="cover-front">
-        <div class="cv-kind" id="pv-kind">Collected edition</div>
-        <img class="cv-logo" id="pv-logo" alt="" hidden width="52" height="52" referrerpolicy="no-referrer" />
-        <div class="cv-mast" id="pv-mast">Your publication</div>
-        <div class="cv-orn"></div>
-        <div class="cv-dates" id="pv-dates">The past twelve months</div>
-        <div class="cv-mid"></div>
-        <div class="cv-footwrap"><span class="cv-pages" id="pv-cvpages">6 × 9 · perfect bound</span></div>
-      </div><div class="cover-back" aria-hidden="true"></div></div>
-      <div class="spinetext"><span id="pv-spine">Your publication</span></div>
-      <div class="pageblock" id="pv-block"></div>
+      <div class="cover cover-face" data-design="masthead" style={coverStyle('masthead',{},'Your publication')} set:html={coverMarkup({ids:true})} />
+      <div class="spinetext"><span id="pv-spine"></span></div><div class="pageblock" id="pv-block"></div>
     </div>
     <div class="bookhint" id="book-instruction"><span class="book-open-hint">Look inside <span aria-hidden="true">↗</span></span><span class="book-close-hint">Back to the cover <span aria-hidden="true">↶</span></span></div>
   </div>
+  <div class="sample-reader" id="sample-reader" hidden>
+    <div class="sample-paper"><iframe id="sample-frame" title="Typeset text excerpt" sandbox="allow-scripts allow-same-origin" hidden></iframe><p id="sample-status" role="status">Loading a public text sample…</p></div>
+  </div>
+  <div class="book-views" role="group" aria-label="Book view"><button type="button" id="view-cover" aria-pressed="true">Cover</button><button type="button" id="view-sample" aria-pressed="false">Read a sample <span aria-hidden="true">↗</span></button></div>
+  <div class="reader-controls" id="reader-controls" hidden><button type="button" id="sample-previous" aria-label="Previous sample page">←</button><span id="sample-position" role="status"></span><button type="button" id="sample-next" aria-label="Next sample page">→</button><button type="button" id="sample-enlarge">Enlarge</button><button type="button" id="sample-scale" hidden>Actual size</button></div>
+  <p class="sample-caption" id="sample-caption" hidden>Recent public writing, typeset as a text sample. Your complete proof confirms contents, images, notes and pagination. <a id="sample-source" target="_blank" rel="noopener noreferrer" hidden>Source essay ↗</a></p>
   <p class="sr-only" id="book-text" hidden></p>
 </div>
-
 <style is:global>
-.book-presentation{min-width:0;align-self:start}
-.bookwrap{margin:0 auto;width:min(100%,19rem);position:relative;scroll-margin-top:6rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.bookwrap:focus-visible{outline:2px solid #e7c698;outline-offset:12px;border-radius:2px}
-.bookobj{position:relative;width:100%;aspect-ratio:6/9}
-.bookwrap.open .bookobj{transform:rotateZ(0)}
-.pv-page{position:absolute;inset:0;background:linear-gradient(90deg,#ded4bd,#f4efe2 8%,#fbf6e9 92%,#eee5d0);border:1px solid #cfc3a9;
-  padding:1.7rem 1.65rem 1.1rem;display:flex;flex-direction:column;color:#2a2118;line-height:1.4;
-  box-shadow:2px 3px 1px #d9cdb5,5px 6px 1px #cfc1a7,14px 24px 36px -16px #0008;overflow:hidden}
-.pv-page .run{font:500 .58rem/1.4 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#6b5a44;overflow-wrap:anywhere}
-.page-heading{font-size:1.7rem;line-height:1.1;margin-top:1.45rem;font-weight:500}
-.page-rule{width:2rem;border-top:1px solid #9b8260;margin:1rem 0 .5rem}
-#pv-toc{overflow:hidden}
-.toc-line{margin-top:.75rem;line-height:1.3;font-size:.86rem;color:#2a2118}
-.toc-line .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
-.pv-page .fol{margin-top:auto;padding-top:1rem;font:400 .6rem/1.5 system-ui,sans-serif;color:#6b5a44}
-.cover{--cover-paper:#f9f4e6;--cover-ink:#211c15;position:absolute;inset:0;
-  background:var(--cover-paper);color:var(--cover-ink);border:1px solid #0003;
-  z-index:2;
-  padding:0;
-  box-shadow:inset 7px 0 10px -5px #0005,inset 11px 0 0 -10px #fff7,12px 28px 40px -17px #000b;
-  transition:opacity .18s ease,visibility .18s;}
-.cover-front::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,#fff2,transparent 35%,#00000008);border:1px solid #ffffff24}
-.cover-front,.cover-back{position:absolute;inset:0;border:1px solid #0002}
-.cover-front{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:2.15rem 1.9rem 1.7rem;background:var(--cover-paper);overflow:hidden}
-.cover-back{display:none}
-.bookwrap.open .cover{opacity:0;visibility:hidden;pointer-events:none}
-.cv-kind{font:500 .6rem/1.5 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;max-width:100%;overflow-wrap:anywhere}
-.cv-logo{position:absolute;top:1.4rem;right:1.4rem;width:2.75rem;height:2.75rem;object-fit:contain}
-.cv-logo[hidden]{display:none}
-.cover-front:has(.cv-logo:not([hidden])) .cv-kind{max-width:calc(100% - 3.5rem)}
-.cover-front:has(.cv-logo:not([hidden])) .cv-mast{margin-top:2.8rem}
-.cv-mast{font-family:"EB Garamond",Georgia,serif;font-size:var(--mast-size,clamp(2.1rem,3.7vw,3rem));font-weight:500;line-height:1.06;margin-top:2.4rem;overflow-wrap:anywhere;max-width:100%;text-wrap:balance}
-.cv-orn{width:2rem;border-top:1px solid currentColor;margin:1.6rem 0 1rem;opacity:.7}
-.cv-dates{font-size:.88rem;line-height:1.5}
-.cv-mid{flex:1;min-height:1rem}
-.cv-footwrap{width:100%;border-top:1px solid currentColor;padding-top:.65rem}
-.cv-pages{display:block;font:400 .66rem/1.6 system-ui,sans-serif;letter-spacing:.01em;overflow-wrap:anywhere}
-.spinetext{display:none}
-.pageblock{position:absolute;top:3px;bottom:2px;right:-7px;width:7px;background:repeating-linear-gradient(180deg,#faf6eb 0 2px,#d2c5aa 2px 3px);box-shadow:2px 4px 4px #0004;transition:width .7s}
-.bookhint{display:flex;justify-content:center;align-items:center;min-height:44px;margin-top:1.1rem;font:400 .74rem/1.4 system-ui,sans-serif;letter-spacing:.03em;color:#dfcda8}
-.bookhint span span{margin-left:.6rem}
-.book-close-hint{display:none}
-.bookwrap.open .book-open-hint{display:none}.bookwrap.open .book-close-hint{display:inline}
-.preview .bookwrap{opacity:1}
-@media(min-width:900px){.book-presentation{position:sticky;top:7.5rem}}
-@media(max-width:560px){
-  .bookwrap{width:min(100% - 1rem,18.5rem)}
-  .cv-mast{font-size:var(--mast-size,2.6rem)}
-  .pv-page{padding:1.45rem 1.4rem 1rem}
-  .page-heading{margin-top:1.15rem;font-size:1.6rem}
-}
-@media(prefers-reduced-motion:reduce){.cover{transition:none}.bookobj{transform:none}.bookwrap.open .cover{transform:none;visibility:hidden}}
+.book-presentation{display:flex;flex-direction:column;min-width:0;align-self:start;--book-width:330px}
+.book-edition-label{font:500 12px/1.5 "Inter",Arial,sans-serif;color:#eadbc2;text-align:center;margin:0 0 15px;order:-1}
+.book-designs{order:0;display:flex;justify-content:center;gap:12px;margin-bottom:10px}
+.design-choice{border:0;border-bottom:1px solid transparent;padding:0 1px 8px;color:#ddceb4;background:none;cursor:pointer;font:400 10px/1.4 'Inter',Arial,sans-serif;min-width:61px}
+.design-choice[aria-pressed=true]{border-bottom:2px solid #f9e8c7;padding-bottom:7px;color:#fff1d6;font-weight:600}.design-choice[aria-pressed=true]>span:last-child::before{content:"✓ ";font-size:9px}.design-choice:focus-visible{outline:2px solid #f5dfb7;outline-offset:5px}
+.design-thumbnail{display:block;width:41px;margin:0 auto 9px;box-shadow:1px 2px 2px #0006}.design-thumbnail .cv-kind,.design-thumbnail .cv-dates,.design-thumbnail .cv-mid,.design-thumbnail .cv-footwrap{display:none}.design-thumbnail .cv-mast{font-size:40cqw!important;margin-top:24cqw}.design-thumbnail .cv-orn{margin-top:auto}
+.bookwrap{order:3;margin:0 auto;width:min(100% - 20px,var(--book-width));position:relative;scroll-margin-top:25px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bookwrap:focus-visible{outline:2px solid #e7c698;outline-offset:12px}
+.bookobj{width:100%;aspect-ratio:2/3;position:relative}.bookobj .cover{position:absolute;inset:0;z-index:2;transition:opacity .18s,visibility .18s}
+.pv-page{position:absolute;inset:0;background:#faf5e8;padding:10%;color:#2a2118;display:flex;flex-direction:column;line-height:1.4;overflow:hidden}
+.pv-page .run{font:500 .58rem/1.4 'Inter',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;overflow-wrap:anywhere}
+.page-heading{font-size:1.7rem;line-height:1.1;margin:1.5rem 0 .5rem}.toc-line{margin-top:.8rem;font-size:.9rem;line-height:1.35}.toc-line .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.pv-page .fol{margin-top:auto;padding-top:1rem;font:400 10px/1.5 'Inter',Arial,sans-serif;color:#6b5a44}
+.bookwrap.open .cover{opacity:0;visibility:hidden}.bookhint,.spinetext,.pageblock{display:none}
+.book-views{order:1;display:flex;justify-content:center;gap:0;margin:0 auto 22px;width:min(100% - 20px,var(--book-width));border:1px solid #c7b69b70}.book-views button{flex:1;font:500 15px/1.4 'EB Garamond',Georgia,serif;color:#f6e7cc;border:0;border-bottom:1px solid transparent;background:none;min-height:44px;padding:7px 2px;cursor:pointer}.book-views button[aria-pressed=true]{background:#f6e7cc;color:#302619;border-color:transparent}.book-views button span{margin-left:5px}
+.book-views button:focus-visible,.reader-controls button:focus-visible{outline:2px solid #f5dfb7;outline-offset:4px}
+.sample-reader{order:3;margin:0 auto;width:min(100% - 10px,390px)}.sample-reader[hidden],.reader-controls[hidden],.sample-caption[hidden]{display:none}
+.sample-paper{position:relative;aspect-ratio:2/3;background:#faf7ee;color:#26251f;box-shadow:3px 4px 0 #d5cbb9,7px 10px 12px #0004}
+.sample-paper iframe{border:0;display:block;width:100%;height:100%;position:absolute;inset:0}.sample-paper iframe[hidden]{display:none}
+#sample-status{padding:13%;font-size:20px;line-height:1.45}#sample-status[hidden]{display:none}
+.reader-controls{order:2;display:flex;justify-content:center;align-items:center;gap:14px;margin-top:-8px;margin-bottom:15px;font:400 11px/1.4 'Inter',Arial,sans-serif;color:#f6e7cc}.reader-controls button{background:none;border:0;color:inherit;cursor:pointer;min-width:44px;min-height:44px;font:inherit}.reader-controls button:disabled{opacity:.35;cursor:default}.reader-controls #sample-enlarge{border-bottom:1px solid #baa58a;min-height:30px;margin-left:8px}
+.sample-caption{order:4;font:400 11px/1.6 'Inter',Arial,sans-serif;color:#deceb4;max-width:45ch;margin:12px auto 0;text-align:center}.sample-caption a{color:inherit;display:inline-block;margin-top:4px}.sample-caption a[hidden]{display:none}
+.book-presentation.reading .bookwrap{display:none}
+.book-presentation.enlarged{position:fixed!important;inset:0;z-index:100;background:#241c13;overflow:auto;padding:22px;display:flex;flex-direction:column;align-items:center}
+.book-presentation.enlarged .book-designs,.book-presentation.enlarged .book-edition-label{display:none}.book-presentation.enlarged .sample-reader{width:min(576px,100%,calc((100svh - 165px) * 2/3));flex:none}.book-presentation.enlarged .book-views{margin:0 0 8px;flex:none}.book-presentation.enlarged .sample-caption{display:none}
+@media(min-width:900px){.book-presentation{position:sticky;top:30px}}
+@media(max-width:560px){.book-designs{gap:15px;margin-bottom:6px}.design-choice{font-size:10px}.design-thumbnail{width:35px}.book-presentation{--book-width:290px}.book-views{margin-top:0;margin-bottom:18px}.sample-reader{width:100%}}
+.reader-controls #sample-scale[hidden]{display:none}
+.book-presentation.enlarged.actual-size .sample-reader{width:min(100%,640px);max-height:calc(100svh - 170px);overflow:auto}
+.book-presentation.enlarged.actual-size .sample-paper{width:576px;min-width:576px;height:864px}
 </style>
-
 <script>
-const book = document.getElementById('bookwrap');
-if (book) {
-  book.tabIndex = 0;
-  book.setAttribute('role', 'button');
-  book.setAttribute('aria-label', 'Open the book to look inside');
-  book.setAttribute('aria-pressed', 'false');
-  const toggle = () => {
-    const open = book.classList.toggle('open');
-    book.setAttribute('aria-pressed', String(open));
-    book.setAttribute('aria-label', open ? 'Close the book and return to the cover' : 'Open the book to look inside');
-    document.getElementById('book-text')!.hidden = !open;
-  };
-  book.addEventListener('click', toggle);
-  book.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); }
-  });
-
+const book=document.getElementById('bookwrap')!;
+const presentation=document.querySelector('.book-presentation')!;
+const reader=document.getElementById('sample-reader')!;
+const frame=document.getElementById('sample-frame') as HTMLIFrameElement;
+const status=document.getElementById('sample-status')!;
+const caption=document.getElementById('sample-caption')!;
+const controls=document.getElementById('reader-controls')!;
+const previous=document.getElementById('sample-previous') as HTMLButtonElement;
+const next=document.getElementById('sample-next') as HTMLButtonElement;
+let channel=crypto.randomUUID();
+let host='', publication='', sample:any=null, loading=false, controller:AbortController|null=null, frameReady=false;
+book.tabIndex=0;book.setAttribute('role','button');book.setAttribute('aria-label','Open the book to look inside');book.setAttribute('aria-pressed','false');
+let inertSiblings:HTMLElement[]=[];
+function closeLarge(){
+  presentation.classList.remove('enlarged','actual-size');presentation.removeAttribute('role');presentation.removeAttribute('aria-modal');presentation.removeAttribute('aria-label');
+  for(const el of inertSiblings)el.inert=false;inertSiblings=[];document.body.style.removeProperty('overflow');
+  document.getElementById('sample-scale')!.hidden=true;document.getElementById('sample-scale')!.textContent='Actual size';document.getElementById('sample-enlarge')!.textContent='Enlarge';
 }
+function cover(){closeLarge();const label=document.getElementById('book-edition-label')!;label.textContent=label.dataset.coverLabel||'';
+ presentation.classList.remove('reading','enlarged');reader.hidden=true;caption.hidden=true;controls.hidden=true;
+ book.classList.remove('open');book.setAttribute('aria-pressed','false');
+ document.getElementById('view-cover')!.setAttribute('aria-pressed','true');document.getElementById('view-sample')!.setAttribute('aria-pressed','false');
+ document.getElementById('sample-enlarge')!.textContent='Enlarge';
+}
+// WebKit misattributes the sender WindowProxy from module event callbacks.
+// Both sides authenticate the same origin and a fresh per-frame capability instead.
+function sendToReader(message:object){frame.contentWindow?.postMessage({...message,channel},location.origin);}
+function sendSample(){if(frameReady && sample)sendToReader({type:'sample-render',sample});}
+async function read(){
+ if(!host)return;
+ presentation.classList.add('reading');document.getElementById('book-edition-label')!.textContent=publication+' · Recent public writing';reader.hidden=false;caption.hidden=false;
+ document.getElementById('view-cover')!.setAttribute('aria-pressed','false');document.getElementById('view-sample')!.setAttribute('aria-pressed','true');
+ if(sample){controls.hidden=false;return;}if(loading)return;
+ loading=true;status.hidden=false;status.textContent='Loading a public text sample…';
+ const ownHost=host;controller=new AbortController();const ownController=controller;
+ const timeout=setTimeout(()=>ownController.abort(),14000);
+ try{
+  const r=await fetch('/api/sample?url='+encodeURIComponent(host),{signal:ownController.signal});const result=await r.json();
+  if(host!==ownHost || controller!==ownController)return;
+  if(!result.ok || typeof result.html!=='string' || !result.html.length || typeof result.source!=='string' || !result.source.startsWith('https://'))throw new Error(result.message||'We could not load a public text sample.');
+  sample=result;status.textContent='Setting the sample…';frame.hidden=false;
+  const source=document.getElementById('sample-source') as HTMLAnchorElement;source.href=result.source;source.hidden=false;
+  if(!frame.src){frame.src='/reader/#'+channel;}else sendSample();
+ }catch(error){if(host===ownHost){status.textContent=(error as any).name==='AbortError'?'The sample is taking too long. Try opening it again, or reserve for a complete proof.':(error as Error).message;frame.hidden=true;}}
+ finally{clearTimeout(timeout);if(controller===ownController)loading=false;}
+}
+document.getElementById('view-cover')!.addEventListener('click',cover);
+document.getElementById('view-sample')!.addEventListener('click',read);
+book.addEventListener('click',read);book.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();read();}});
+for(const button of document.querySelectorAll<HTMLButtonElement>('[data-cover]'))button.addEventListener('click',()=>{
+ for(const other of document.querySelectorAll('[data-cover]'))other.setAttribute('aria-pressed',String(other===button));
+ document.dispatchEvent(new CustomEvent('cover-design',{detail:button.dataset.cover}));cover();
+});
+document.addEventListener('publication-preview',(event:Event)=>{
+ const data=(event as CustomEvent).detail;if(data?.host===host)return;
+ controller?.abort();channel=crypto.randomUUID();host=data?.host||'';publication=data?.publication||'';sample=null;loading=false;cover();frame.hidden=true;frameReady=false;frame.removeAttribute('src');status.hidden=false;document.getElementById('sample-source')!.hidden=true;
+});
+addEventListener('message',event=>{
+ if(event.origin!==location.origin || event.data?.channel!==channel)return;
+ if(event.data?.type==='sample-ready'){frameReady=true;sendSample();}
+ if(event.data?.type==='sample-pages'){
+   status.hidden=true;controls.hidden=!presentation.classList.contains('reading');
+   document.getElementById('sample-position')!.textContent=`${event.data.index+1} / ${event.data.count}`;
+   previous.disabled=event.data.index===0;next.disabled=event.data.index===event.data.count-1;
+ }
+ if(event.data?.type==='sample-failed'){sample=null;frame.hidden=true;status.hidden=false;status.textContent='The sample could not be typeset. Try again, or reserve for your complete proof.';}
+});
+previous.addEventListener('click',()=>sendToReader({type:'sample-turn',delta:-1}));
+next.addEventListener('click',()=>sendToReader({type:'sample-turn',delta:1}));
+document.getElementById('sample-enlarge')!.addEventListener('click',()=>{
+ if(presentation.classList.contains('enlarged')){closeLarge();return;}
+ presentation.classList.add('enlarged');presentation.setAttribute('role','dialog');presentation.setAttribute('aria-modal','true');presentation.setAttribute('aria-label','Read your typeset sample');
+ let current=presentation as HTMLElement;
+ while(current.parentElement && current!==document.body){for(const sibling of current.parentElement.children){if(sibling!==current && sibling instanceof HTMLElement && !sibling.inert){sibling.inert=true;inertSiblings.push(sibling);}}current=current.parentElement;}
+ document.body.style.overflow='hidden';document.getElementById('sample-enlarge')!.textContent='Close';document.getElementById('sample-scale')!.hidden=false;
+});
+document.getElementById('sample-scale')!.addEventListener('click',()=>{const actual=presentation.classList.toggle('actual-size');document.getElementById('sample-scale')!.textContent=actual?'Fit page':'Actual size';});
+addEventListener('keydown',e=>{
+ if(!presentation.classList.contains('enlarged'))return;
+ if(e.key==='Escape'){closeLarge();document.getElementById('sample-enlarge')!.focus();}
+ if(e.key==='Tab'){
+  const items=[...presentation.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],iframe')].filter(el=>el.getClientRects().length);
+  const first=items[0],last=items[items.length-1];
+  if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
+ }
+});
 </script>

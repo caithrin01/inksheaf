@@ -28,7 +28,7 @@ async function preview(page,host='caithrin.com'){
 for(const [width,height]of [[320,568],[768,1024],[844,390],[1024,768],[2560,1440]]){
   await journey(`title-${width}x${height}`,{viewport:{width,height},reducedMotion:'no-preference'},async page=>{
     await page.goto(base,{waitUntil:'domcontentloaded'});
-    await page.locator('#hero-try').click();
+    await page.locator('#tryurl').click();
     await page.waitForFunction(()=>document.activeElement?.id==='tryurl');
     await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(250);
     const geometry=await page.evaluate(()=>{
@@ -42,7 +42,7 @@ for(const [width,height]of [[320,568],[768,1024],[844,390],[1024,768],[2560,1440
 await journey('no JavaScript offers a visible contact', {javaScriptEnabled:false},async page=>{
   await page.goto(base);
   ok(await page.locator('h1').isVisible(),'headline missing');
-  ok(await page.locator('#tryit a[href^="mailto:"]').isVisible(),'no contact in title page');
+  ok(await page.locator('#hero-story a[href^="mailto:"]').isVisible(),'no contact in title page');
   ok(!(await page.locator('#trybtn').isVisible()),'inert preview action still shown');
   ok(!(await page.locator('#fb-form').isVisible()),'nonfunctional feedback form still shown');
   ok(await page.locator('#bookwrap').getAttribute('role')!=='button','inert book announced as a button');
@@ -90,11 +90,12 @@ await journey('long masthead and low-contrast publication palette',{},async page
   await preview(page);await page.evaluate(()=>document.fonts.ready);
   await page.mouse.move(0,0);
   const state=await page.evaluate(()=>{
-    const mast=document.querySelector('#pv-mast').getBoundingClientRect(),foot=document.querySelector('.cv-footwrap').getBoundingClientRect();
-    return{fit:mast.bottom<foot.top,ink:getComputedStyle(document.querySelector('.cover')).getPropertyValue('--cover-ink'),overflow:document.documentElement.scrollWidth>innerWidth};
+    const mast=document.querySelector('#pv-mast').getBoundingClientRect(),foot=document.querySelector('#pvbook .cv-footwrap').getBoundingClientRect();
+    const style=getComputedStyle(document.querySelector('#pvbook .cover'));const lum=hex=>[1,3,5].map(i=>parseInt(hex.trim().slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);const a=lum(style.getPropertyValue('--cover-paper')),b=lum(style.getPropertyValue('--cover-ink'));
+    return{fit:mast.bottom<foot.top,contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),overflow:document.documentElement.scrollWidth>innerWidth};
   });
   ok(state.fit&&!state.overflow,'long masthead overlaps the edition details');
-  ok(state.ink.trim()==='#000000','unreadable publication colour retained');
+  ok(state.contrast>=4.5,'unreadable publication colour retained');
   await page.screenshot({path:`${out}/long-masthead.png`});
 });
 await journey('hand-plan result has a truthful action and reservation',{},async page=>{

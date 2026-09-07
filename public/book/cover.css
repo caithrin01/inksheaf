@@ -1,0 +1,29 @@
+/* One cover face, at any display scale and at 6×9 print trim. No site-specific layout here. */
+.cover-face{container-type:inline-size;position:relative;aspect-ratio:2/3;background:var(--cover-paper,#eee9de);color:var(--cover-ink,#25231e)}
+.edition-cover{position:absolute;inset:0;display:flex;flex-direction:column;padding:10% 10% 8%;box-sizing:border-box;background:var(--cover-paper,#eee9de);color:var(--cover-ink,#25231e);overflow:hidden;text-align:left;font-family:'EB Garamond',Georgia,serif}
+.edition-cover *{box-sizing:border-box}
+.edition-cover .cv-kind{font:500 2.7cqw/1.5 'Inter',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;overflow-wrap:anywhere}
+.edition-cover .cv-logo{display:block;width:20cqw;height:20cqw;object-fit:contain;margin:10cqw 0 8cqw;flex:none}
+.edition-cover .cv-logo[hidden]{display:none}
+.edition-cover .cv-mast{font-size:var(--title-size,16cqw);font-weight:500;line-height:1;letter-spacing:-.035em;overflow-wrap:anywhere;text-wrap:balance;max-width:100%;margin-top:10cqw}
+.edition-cover:has(.cv-logo:not([hidden])) .cv-mast{margin-top:0}
+.edition-cover .cv-orn{width:100%;border-top:1px solid var(--cover-accent,currentColor);margin:5cqw 0 4cqw}
+.edition-cover .cv-dates{font-size:4.2cqw;line-height:1.4;overflow-wrap:anywhere}
+.edition-cover .cv-mid{flex:1;min-height:5cqw}
+.edition-cover .cv-footwrap{width:100%;font:400 2.8cqw/1.6 'Inter',Arial,sans-serif;letter-spacing:.02em;overflow-wrap:anywhere}
+[data-design=masthead] .cv-mast{font-family:'Inter',Arial,sans-serif;font-weight:700;letter-spacing:-.055em;line-height:1.03}
+[data-design=masthead] .cv-orn{border-top-width:2px}
+[data-design=classic] .edition-cover{padding:12% 13%;text-align:center;align-items:center}
+[data-design=classic] .edition-cover::before,[data-design=classic] .edition-cover::after{content:'';position:absolute;inset:4%;border:1px solid var(--cover-ink);pointer-events:none}
+[data-design=classic] .edition-cover::after{display:none}
+[data-design=classic] .cv-logo{width:16cqw;height:16cqw;margin:9cqw 0 7cqw}
+[data-design=classic] .cv-mast{font-size:min(var(--title-size,16cqw),15cqw)}
+[data-design=classic] .cv-orn{width:8cqw;margin:7cqw 0 5cqw}
+[data-design=field] .edition-cover{padding-left:15%;border-left:4cqw solid var(--cover-accent)}
+[data-design=field] .cv-logo{width:16cqw;height:16cqw;margin-top:auto}
+[data-design=field] .cv-mast{font-family:'Inter',Arial,sans-serif;font-size:min(var(--title-size,16cqw),12cqw);font-weight:600;letter-spacing:-.045em}
+[data-design=field] .cv-mid{flex:0;min-height:9cqw}
+[data-design=midnight] .edition-cover{align-items:center;text-align:center;padding-top:14%}
+[data-design=midnight] .cv-mast{font-size:min(var(--title-size,16cqw),14cqw);letter-spacing:.015em}
+[data-design=midnight] .cv-logo{width:18cqw;height:18cqw;margin:12cqw 0}
+[data-design=midnight] .cv-orn{width:10cqw;margin:7cqw 0 5cqw}

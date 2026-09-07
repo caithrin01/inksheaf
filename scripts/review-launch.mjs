@@ -3,11 +3,17 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
+import { onRequest as publicPreview } from '../functions/api/preview.js';
+import { onRequest as publicSample } from '../functions/api/sample.js';
+import { reviewMemoryDb } from './lib/review-memory-db.mjs';
 import { calendar, editorial } from './fixtures/preview-editor-exclusion.mjs';
+const sample=JSON.parse(await readFile('scripts/fixtures/public-sample-caithrin.json','utf8'));
+const identity=JSON.parse(await readFile('scripts/fixtures/publication-caithrin.json','utf8'));
+const liveReads=process.env.INKSHEAF_REVIEW_PUBLIC_READS==='1', DB=reviewMemoryDb();
 const root=resolve('dist'), port=Number(process.env.INKSHEAF_REVIEW_PORT||8807);
 await stat(resolve(root,'index.html'));
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml',
-  '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2'};
+  '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf'};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');
   // Review-only studies never enter Astro's public build or the release artifact.
@@ -27,12 +33,18 @@ const server=createServer(async(req,res)=>{
   const json=body=>{res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(body));};
   if(url.pathname.startsWith('/api/')){
     req.resume();
+    if(liveReads && ['/api/preview','/api/sample'].includes(url.pathname)){
+      try{const handler=url.pathname==='/api/preview'?publicPreview:publicSample;const response=await handler({request:new Request(url.href,{method:req.method}),env:{DB}});res.writeHead(response.status,{'content-type':'application/json','cache-control':'no-store'});return res.end(await response.text());}
+      catch(error){res.writeHead(502,{'content-type':'application/json'});return res.end(JSON.stringify({ok:false,message:'The public archive did not answer. Please try again.'}));}
+    }
     if(url.pathname==='/api/preview'){
       const input=url.searchParams.get('url')||'';
-      return json(/^(https?:\/\/)?caithrin\.com\/?$/i.test(input)?calendar:
+      return json(/^(https?:\/\/)?caithrin\.com\/?$/i.test(input)?{...calendar,logo_url:identity.logo_url,theme:identity.theme}:
         {ok:false,message:'This local review uses the caithrin.com fixture. Enter caithrin.com to try it.'});
     }
+    if(url.pathname==='/api/sample')return json(sample);
     if(url.pathname==='/api/plan'){
+      if(liveReads)return json({ok:false,message:'No external editor is connected to local review.'});
       await new Promise(resolve=>setTimeout(resolve,3000));return json({ok:true,editorial});
     }
     if(url.pathname==='/api/signup')return json({ok:true,press:'test'});
@@ -46,8 +58,8 @@ const server=createServer(async(req,res)=>{
     if((await stat(path)).isDirectory())path=resolve(path,'index.html');
     let content=await readFile(path);
     if(path===resolve(root,'index.html'))content=Buffer.from(content.toString().replace('</body>',
-      '<aside style="position:fixed;bottom:0;left:0;right:0;z-index:1000;background:#211c15;color:#fff5df;font:11px/1.4 system-ui,sans-serif;text-align:center;padding:6px 12px">Local review · caithrin.com sample archive · No email, reservations, or printing are sent.</aside></body>'));
+      '<aside style="position:relative;z-index:1000;background:#211c15;color:#fff5df;font:11px/1.4 system-ui,sans-serif;text-align:center;padding:6px 12px">'+(liveReads?'Local review · Real public archives · Reservations are simulated. No email or printing.':'Local review · caithrin.com sample archive · No email, reservations, or printing are sent.')+'</aside></body>'));
     res.writeHead(200,{'content-type':types[extname(path)]||'application/octet-stream','cache-control':'no-store'});res.end(content);
   }catch{res.writeHead(404);res.end('Not found');}
 });
-server.listen(port,'127.0.0.1',()=>console.log(`Local review: http://127.0.0.1:${port}/ — use caithrin.com. All API effects are simulated.`));
+server.listen(port,'127.0.0.1',()=>console.log(`Local review: http://127.0.0.1:${port}/ — ${liveReads?'real public GETs; all reservations simulated':'use caithrin.com; all API effects simulated'}.`));

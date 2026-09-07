@@ -135,7 +135,7 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
     from: new Date(dates[0]).toISOString().slice(0, 10),
     to: new Date(dates[dates.length - 1]).toISOString().slice(0, 10),
     titles: publicPosts.slice(0, 5).map(p => String(p.title || "").slice(0, 90)),
-    sample: publicPosts.slice(0, 6).map(p => ({ t: String(p.title || "").slice(0, 80),
+    sample: publicPosts.slice(0, 6).map(p => ({ id:p.id, slug:p.slug, t: String(p.title || "").slice(0, 80),
       d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
     theme: identity.theme,
   };

@@ -55,3 +55,6 @@ proofs/*.typ
 proofs/*.pages.json
 proofs/fixtures/*.pdf
 proofs/fixtures/*.typ
+
+# Local print design verification artifacts
+output/pdf/

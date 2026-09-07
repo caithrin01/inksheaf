@@ -74,10 +74,12 @@ export async function onRequest({ request, env }) {
   if (result.data.stale) return json({ ok: true, cached: false, served: "stale", ...result.data });
   // attempts/latency_ms describe this fetch, not the archive: they never enter the cache
   const { attempts, latency_ms, ...cacheable } = result.data;
-  await env.DB.prepare(
+  // Both the entered alias and the confirmed canonical host must resolve the same preview.
+  // The sample reader uses the canonical host returned to the browser.
+  await Promise.all([...new Set([host, result.data.host])].filter(Boolean).map(cacheHost => env.DB.prepare(
     "INSERT INTO preview_cache (host, fetched_at, payload) VALUES (?, datetime('now'), ?) " +
     "ON CONFLICT(host) DO UPDATE SET fetched_at = datetime('now'), payload = excluded.payload")
-    .bind(host, JSON.stringify(cacheable)).run().catch(() => {});
+    .bind(cacheHost, JSON.stringify(cacheable)).run().catch(() => {})));
   return json({ ok: true, cached: false, served: "origin", ...result.data });
 }
 
@@ -341,7 +343,7 @@ export async function resolvePublicationIdentity(posts, host) {
   const logo = publicationLogo(pub, host);
   const identity = { publicationName, logo_url: logo, publication_id: pub?.id ?? null,
     identity_source: homepage ? "publication_homepage" : archive ? "matched_archive" : "unresolved", theme: null };
-  const bg = parseColor(pub?.theme_var_background_pop || pub?.theme?.background_pop_color);
+  const bg = parseColor(pub?.theme?.cover_bg_color || pub?.theme?.web_bg_color || pub?.theme_var_cover_bg_color || pub?.theme?.background_pop_color || pub?.theme_var_background_pop);
   if (!bg) return identity;
   const light = [255, 255, 255], dark = [34, 29, 22];
   const ink = contrast(bg, light) >= contrast(bg, dark) ? light : dark;

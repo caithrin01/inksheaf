@@ -12,8 +12,9 @@ after an incident about substituting session inspection. At meaningful visual ch
 use the runnable OpenRouter review in `scripts/design-review/README.md`, save the actual
 response and distinguish its findings from browser tests and your own inspection. Do not
 call a truncated/failed request reviewed, or a completed critique design approval.
-Current overhead exploration and unfinished product integration are recorded in the vault's
-`frontend-topdown-review-2026-09-07.md`. Preserve the writer-own-publication-only scope.
+The integrated overhead candidate and remaining launch acceptance are recorded in
+`LAUNCH_REVIEW.md` and the vault's `frontend-topdown-review-2026-09-07.md`.
+Preserve the writer-own-publication-only scope.
 
 ## Renderer test gate
 `node scripts/test-renderer.mjs` must exit 0 before committing renderer changes. It builds the

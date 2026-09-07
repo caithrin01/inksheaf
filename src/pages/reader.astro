@@ -1,0 +1,60 @@
+---
+// Isolated, paginated text excerpt. Print geometry and typography come from the renderer.
+---
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Typeset publication excerpt</title>
+<style is:global>
+html,body{margin:0;background:#faf7ee;color:#26251f}body{overflow:hidden}
+#pages{position:absolute;inset:0 auto auto 0;width:576px;transform-origin:top left}
+#pages .pagedjs_page{margin:0!important;background:#faf7ee;box-shadow:none!important}#pages.ready .pagedjs_page{opacity:0;pointer-events:none}
+#pages.ready .pagedjs_page.active{opacity:1;pointer-events:auto}
+#status{padding:40px;font:18px/1.5 Georgia,serif}
+</style>
+<script is:inline>window.PagedConfig={auto:false};</script>
+<script is:inline src="/book/paged-0.4.3.js"></script>
+</head><body><div id="status" role="status">Setting the sample…</div><div id="pages"></div>
+<script>
+import { interiorCss } from '../../functions/lib/book-interior.js';
+import { escapeHtml } from '../../functions/lib/book-design.js';
+const channel=location.hash.slice(1);
+const output=document.getElementById('pages')!;
+const status=document.getElementById('status')!;
+let pageIndex=0, pages:HTMLElement[]=[], generation=0, rendering=false;
+function fit(){if(!rendering)output.style.transform=`scale(${innerWidth/576}) translateY(${-pageIndex*864}px)`;}
+addEventListener('resize',fit);fit();
+function show(index:number){
+ pageIndex=Math.max(0,Math.min(index,pages.length-1));
+ pages.forEach((p,i)=>{p.classList.toggle('active',i===pageIndex);p.setAttribute('aria-hidden',String(i!==pageIndex));});
+ fit();parent.postMessage({type:'sample-pages',channel,index:pageIndex,count:pages.length},location.origin);
+}
+addEventListener('message',async event=>{
+ if(event.origin!==location.origin || !/^[0-9a-f-]{36}$/.test(channel) || event.data?.channel!==channel)return;
+ if(event.data?.type==='sample-turn'){show(pageIndex+event.data.delta);return;}
+ if(event.data?.type!=='sample-render')return;
+ const seq=++generation, sample=event.data.sample;
+ if(!sample || typeof sample.html!=='string' || sample.html.length>32000)return;
+ try{
+   const fonts=await fetch('/fonts/book.css').then(r=>r.text());
+   if(seq!==generation)return;
+   rendering=true;output.style.transform='none';output.classList.remove('ready');output.replaceChildren();pages=[];pageIndex=0;
+   // Only inert, attribute-free text markup returned by the sample endpoint enters this document.
+   const content=document.createElement('div');
+   content.innerHTML=`<section class="article"><div class="pubsrc">${escapeHtml(sample.publication)}</div><header class="arthead"><div class="artnum">1</div><h2 class="arttitle">${escapeHtml(sample.title)}</h2>${sample.subtitle?`<p class="artsub">${escapeHtml(sample.subtitle)}</p>`:''}<div class="artmeta">${escapeHtml(sample.date)} · Text excerpt</div></header><div class="artbody">${sample.html}</div></section>`;
+   // Remove any tag or attribute outside the excerpt vocabulary, including forged postMessage HTML.
+   for(const el of [...content.querySelectorAll('.artbody *')]){
+     if(!['P','H2','H3','H4','BLOCKQUOTE','UL','OL','LI','PRE','EM','STRONG','B','I','SUP','SUB','CODE','BR'].includes(el.tagName)){el.remove();continue;}
+     for(const attr of [...el.attributes])el.removeAttribute(attr.name);
+   }
+   content.querySelector('.artbody p')?.classList.add('opener');
+   const css=fonts+`\n:root{--ink:#221d16;--rubric:#26251f;--faint:#6d675c;--rule:#d8d2c2;--headfont:'Source Serif 4';--headweight:560}\n`+interiorCss();
+   const fontStyle=document.createElement('style');fontStyle.textContent=fonts;document.head.append(fontStyle);await Promise.all([document.fonts.load('14px \"Source Serif 4\"'),document.fonts.load('560 23px \"Source Serif 4\"'),document.fonts.load('italic 14px \"Source Serif 4\"')]);
+   const previewer=new (window as any).Paged.Previewer();
+   await previewer.preview(content,[{'excerpt.css':css}],output);
+   if(seq!==generation)return;
+   // This is a fixed print page. Scaling or hiding the reader must never repaginate it.
+   for(const page of previewer.chunker.pages)page.removeListeners();
+   pages=[...output.querySelectorAll<HTMLElement>('.pagedjs_page')];
+   rendering=false;output.classList.add('ready');status.hidden=true;fit();show(0);
+ }catch(error){rendering=false;console.error('Sample pagination failed',error);status.textContent='The sample could not be typeset. Your complete proof is still available after reservation.';parent.postMessage({type:'sample-failed',channel},location.origin);}
+});
+parent.postMessage({type:'sample-ready',channel},location.origin);
+</script></body></html>

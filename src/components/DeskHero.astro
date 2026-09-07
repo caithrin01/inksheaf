@@ -1,0 +1,81 @@
+---
+import { coverMarkup, coverStyle } from '../../functions/lib/book-design.js';
+---
+<header class="desk-header">
+  <a class="desk-brand" href="/" aria-label="Inksheaf home"><img src="/brand/mark.svg" width="25" height="29" alt="" />inksheaf</a>
+  <a href="#how-it-works">How it works <span aria-hidden="true">↘</span></a>
+</header>
+<section id="hero-story" class="overhead-hero" aria-label="Your Substack as a book">
+  <div class="desk-invitation">
+    <p class="desk-kicker">A small press for your Substack</p>
+    <h1>Your writing.<br />A place on the shelf.</h1>
+    <p class="desk-intro">A printed edition of your publication,<br class="desktop-break" /> bound and mailed to your readers.</p>
+    <label for="tryurl">Your publication URL</label>
+    <div class="desk-input">
+      <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="url" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="tryerr" />
+      <button id="trybtn" type="button">Show my book <span aria-hidden="true">↗</span></button>
+    </div>
+    <p class="desk-promise">Free preview · 6 × 9 paperback · US delivery</p>
+    <div class="desk-request-status">
+      <p id="tryworking" role="status" aria-live="polite"></p>
+      <p id="tryerr" role="alert"></p>
+      <button id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
+    </div>
+    <noscript><style>.desk-input,.desk-invitation label,.desk-request-status,.beta,.feedback,.faq-return{display:none!important}</style><p><a href="mailto:caithrin@caithrin.com">Write to Caithrin for a preview.</a></p></noscript>
+  </div>
+  <div class="desk-specimen" aria-label="Example book design">
+    <div class="physical-book hero-book" aria-hidden="true">
+      <div class="cover-face" data-design="classic" style={coverStyle('classic',{},'Your publication')} set:html={coverMarkup({publication:'Your publication',kind:'The collected edition',dates:'Your words, on paper.',foot:'6 × 9 · perfect bound'})} />
+    </div>
+    <p class="specimen-caption">Your name. Your mark. Your writing.</p>
+  </div>
+</section>
+<div id="how-it-works" class="desk-process"><span><b>01</b> Paste your publication</span><span><b>02</b> Choose a cover &amp; look inside</span><span><b>03</b> Approve your proof</span></div>
+<style is:global>
+.desk-header{height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(24px,5vw,80px);color:#f6efdf;position:absolute;inset:0 0 auto;z-index:10}
+.desk-header a{color:inherit;text-decoration:none;font:400 13px/1.5 'Inter',Arial,sans-serif}
+.desk-header a.desk-brand{font:500 31px/1 'EB Garamond',Georgia,serif;letter-spacing:-.045em;display:flex;align-items:center;gap:10px}
+.desk-brand img{filter:invert(1)}
+.overhead-hero{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);overflow:clip;align-items:center;gap:7%;min-height:min(880px,100svh);padding:120px clamp(24px,8vw,130px) 70px;color:#fff5e3;background:#5b391f url('/book/desk.webp') center/cover no-repeat}
+.overhead-hero::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#170e08c9,#170e0840 70%)}
+.desk-invitation{max-width:470px;align-self:start;padding-top:45px;padding-bottom:0}.desk-kicker{font:500 10px/1.6 'Inter',Arial,sans-serif;text-transform:uppercase;letter-spacing:.2em;margin-bottom:20px}
+.desk-invitation h1{font:500 clamp(42px,4.6vw,68px)/1.01 'EB Garamond',Georgia,serif;letter-spacing:-.025em;text-wrap:balance}
+.desk-intro{font-size:21px;line-height:1.45;margin:23px 0 26px}
+.desk-invitation label{display:block;text-align:left;font:500 11px/1.5 'Inter',Arial,sans-serif;margin-bottom:8px;letter-spacing:.03em}
+.desk-input{display:flex;background:#fbf7ed;padding:5px;box-shadow:0 2px 6px #0003}
+.desk-input input{text-align:left;letter-spacing:normal;min-width:0;width:100%;border:0;background:none;color:#25231e;font:400 15px/1.5 'Inter',Arial,sans-serif;padding:10px}
+.desk-input button{flex:none;border:0;background:#873c29;color:#fff7e6;font:500 15px/1.3 'EB Garamond',Georgia,serif;padding:12px 15px;min-height:46px;cursor:pointer}
+.desk-input button:disabled{opacity:.75;cursor:wait}.desk-input button span{margin-left:6px}
+.desk-promise{margin-top:13px!important;font:400 11px/1.6 'Inter',Arial,sans-serif;color:#f6e7d0}
+.desk-request-status{font:400 13px/1.5 'Inter',Arial,sans-serif;margin-top:12px;max-width:44ch}
+.desk-request-status p:empty{display:none}.desk-request-status button{font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid currentColor;padding:8px 0;cursor:pointer}
+.desk-request-status button[hidden]{display:none}
+.desk-specimen{width:min(100%,375px);justify-self:center;padding:0 12px;text-align:center}
+.physical-book{position:relative;isolation:isolate;aspect-ratio:2/3}
+.physical-book::before{content:'';pointer-events:none;position:absolute;inset:-4% -8%;z-index:-1;background:url('/book/overhead-object.webp') center/129.310345% 123.45679% no-repeat}
+.physical-book::after{content:'';position:absolute;inset:0;pointer-events:none;border:1px solid #0002;background:url('/book/overhead-object.webp') center/150% 133.333% no-repeat;mix-blend-mode:multiply;box-shadow:inset 2px 0 3px -2px #0007,inset 0 1px #ffffff50}
+.hero-book{transform:rotate(-3deg)}.hero-book .cv-mast{font-size:12cqw;max-width:100%}
+.specimen-caption{font:400 11px/1.5 'Inter',Arial,sans-serif;margin:26px 0 0;color:#ffedcf}
+.desk-process{display:flex;align-items:center;justify-content:center;gap:clamp(25px,6vw,90px);padding:22px 24px;background:#eee8dc;color:#44392c;font:400 11px/1.5 'Inter',Arial,sans-serif;scroll-margin-top:15px}
+.desk-process b{font-weight:500;color:#8e4834;margin-right:8px}
+.desk-header a:focus-visible,.desk-input button:focus-visible,.desk-request-status button:focus-visible{outline:2px solid #f5dfb7;outline-offset:5px}
+.desk-input input:focus-visible{outline:2px solid #873c29;outline-offset:-2px}
+@media(prefers-reduced-motion:no-preference){.desk-invitation{animation:up .5s both}.desk-specimen{animation:up .65s .12s both}.desk-input button{transition:background .15s}.desk-input button:hover{background:#653021}}
+@media(max-width:800px){
+ .desk-header{height:68px;padding-inline:23px}.desk-header a.desk-brand{font-size:29px}.desk-header a{font-size:11px}
+ .overhead-hero{grid-template-columns:1fr;gap:22px;padding:94px 25px 36px;min-height:0;background-size:auto 900px;background-position:60% top}
+ .overhead-hero::before{background:linear-gradient(#170e0890,#170e0840)}
+ .desk-invitation{padding:0;max-width:500px;width:100%;margin:auto}.desk-kicker{font-size:9px;margin-bottom:15px}.desk-invitation h1{font-size:45px;max-width:15ch}.desk-intro{font-size:19px;margin:18px 0 22px;max-width:33ch}.desktop-break{display:none}
+ .desk-input input{font-size:16px;padding:10px 6px}.desk-input button{padding:12px 10px;font-size:14px}.desk-input button span{display:none}.desk-promise{font-size:10px}
+ .desk-request-status:has(p:empty):not(:has(p:not(:empty))):has(button[hidden]){margin-top:0}
+ .desk-specimen{width:210px;padding:0 6px}.specimen-caption{font-size:10px;margin-top:19px}
+ .desk-process{gap:15px;padding:18px 16px;font-size:10px;align-items:start}.desk-process span{max-width:12ch}.desk-process b{display:block;margin-bottom:4px}
+}
+@media(max-width:350px){.overhead-hero{padding-inline:18px}.desk-invitation h1{font-size:40px}.desk-input{flex-direction:column}.desk-specimen{width:185px}}
+</style>
+<script>
+for(const button of document.querySelectorAll('[data-hero-try]'))button.addEventListener('click',()=>{
+ const input=document.getElementById('tryurl') as HTMLInputElement;
+ input.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'center'});input.focus({preventScroll:true});
+});
+</script>

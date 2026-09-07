@@ -83,7 +83,7 @@ for (const width of [1280,390]) for (const scheme of ['light','dark']) {
     await page.locator('#bookwrap').focus();
     await page.keyboard.press('Enter');
     await page.screenshot({path:`${out}/contents-${label}.png`});
-    check(await page.locator('#bookwrap').getAttribute('aria-pressed')==='true',`${label}: keyboard cannot open contents`);
+    check(await page.locator('#view-sample').getAttribute('aria-pressed')==='true',`${label}: keyboard cannot open contents`);
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${label}: horizontal overflow`);
     await page.addScriptTag({content:axeSource});
     const axe=await page.evaluate(()=>window.axe.run({runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));

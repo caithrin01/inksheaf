@@ -1,6 +1,14 @@
 # Inksheaf Astra launch pass — 2026-09-06
 
-## September 7 interactive revision checkpoint
+## Current: September 7 integrated candidate
+
+The continued interactive task integrates the overhead hero, four print-supported covers,
+original publication identities/logos and a real public excerpt reader. Local checks pass;
+see `LAUNCH_REVIEW.md` and the final checkpoint below. A draft PR packages the work for
+review; it does not authorize a production release. The original unattended contract and
+study-only status below are historical. Real inbox acceptance remains outstanding.
+
+## Earlier September 7 study checkpoint (superseded)
 
 Owner rejected the angled perspective and requested top-down, publication-name correctness,
 own Substack logos, designs and real samples. Other people's publications explicitly excluded.
@@ -230,3 +238,22 @@ Human normal-speed motion review, a physical iPhone/software keyboard and VoiceO
 remain acceptance work; automated WebKit and axe do not establish those results.
 The local review at port 8807 remains explicitly simulated. Production remains unchanged
 and any eventual release must use GitHub's protected production approval path.
+
+## September 7 — integrated overhead revision (in progress)
+
+Visual thesis: a warm overhead writing desk, a materially convincing 6×9 paperback, and the publication's identity in clear type.
+Content plan: immediate publication field and book; cover and readable sample controls; chosen edition and reservation; binding details and FAQ.
+Interaction thesis: the book appears in place after the archive resolves; cover choices update its printed face; explicit cover/sample controls replace scroll-to-open. Reduced motion stays immediate.
+Implementation contract: shared cover definitions and print typography, persisted design in plan_json, bounded public-only sample reads. No live signup/email or deployment is authorized by this frontend continuation.
+
+## September 7 — integrated candidate verified
+
+The overhead frontend is now connected to the real preview, sample and reservation code. The historical separate study is superseded. Cover selections/palettes persist through plan_json into proof and print wrap, and the shared print CSS supplies a real paginated public-text reader. Recent writing is labelled separately from the chosen edition's contents. The publication identity fix extends to print, current cover colours outrank obsolete accents, and canonical host aliases share the preview cache.
+
+Browser debugging caught two issues missed by static images: Paged.js tried to repaginate hidden/scaled pages; fixed by rendering at native size and disconnecting resize listeners. WebKit misattributes MessageEvent.source for cross-frame calls from module button callbacks; fixed with same-origin messages authenticated by a fresh per-frame UUID. Tests check page changes and reject an incorrect capability. Transparent render padding also caused horizontal scrolling; its image box is now cropped without changing book geometry.
+
+Pass: full unit chain; 13 new sample/design checks; build; Worker compilation; 69 renderer checks; four actual print-cover PDFs; 12-page proof fixture; 4 Chromium/WebKit overhead journeys + 4 edition cases + 4 painted cover cases + 16 edge journeys; validator 13; source honesty 47. Real public reads and browser journeys passed for caithrin and The Fox Says without production mutations. PDF inspection caught a dark-on-dark back-cover QR, corrected with a white quiet zone.
+
+One new completed Opus review cost $0.07576. It supports the direction and gave control hierarchy feedback; its claimed stale selection ring was a printed Classic frame, which was visually ambiguous rather than stale state. The control treatment and Classic frame were revised. The full response and compact evidence are committed.
+
+Current review: http://127.0.0.1:8810/ (real public archives, memory cache, all outgoing actions simulated). See LAUNCH_REVIEW.md for exact startup and remaining inbox/release acceptance. No production deployment, real signup, email, verification or print order was performed.

@@ -3,7 +3,7 @@
 // Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
 // Demo numbers are REAL caithrin archive data (research.md §1a + live fetch 2026-08-27); renders labeled as renders.
 import prices from "../../functions/lib/print-prices.json";
-import ScrollHero from "../components/ScrollHero.astro";
+import DeskHero from "../components/DeskHero.astro";
 import PreviewBook from "../components/PreviewBook.astro";
 ---
 <html lang="en">
@@ -22,6 +22,8 @@ import PreviewBook from "../components/PreviewBook.astro";
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="/fonts/eb-garamond.css" />
+<link rel="stylesheet" href="/fonts/book.css" />
+<link rel="stylesheet" href="/book/cover.css" />
 <style is:global>
 :root{
   --paper:#f7f3e9; --ink:#211c15; --red:#8e2f1c;
@@ -37,7 +39,7 @@ import PreviewBook from "../components/PreviewBook.astro";
 html{scroll-behavior:smooth}
 body{background:#0b0602;color:var(--ink);
   font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.62;font-size:1.14rem;min-height:100vh}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opacity:var(--grain);mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
+body::before{display:none;content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opacity:var(--grain);mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
 @media (prefers-color-scheme: dark){ body::before{mix-blend-mode:screen} }
 @media (max-width:560px){
   .folio-seg .fs-price{display:none}
@@ -47,6 +49,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opa
   max-width:none;margin:0;padding:1px 1.6rem 5rem;color:var(--ink);background:
   radial-gradient(140% 90% at 50% 0%,rgba(228,180,106,.1),transparent 40%),
   radial-gradient(150% 130% at 50% 30%,#2a1d10 0%,#150d06 60%,#0b0602 100%)}
+.sheet:has(.preview.personalized){background:linear-gradient(#21170ed9,#21170ee8 950px,#21170e),url('/book/desk.webp') center top/1700px auto no-repeat,#21170e}
 /* book paper never inverts: the preview's pages and spines stay ivory with dark ink on the walnut ground */
 .sheet .pv-page,.sheet .spine{--card:#f4efe2;--ink:#2a2118;--faint:#6b5a44;--rule:rgba(42,33,24,.4);--hair:rgba(42,33,24,.18);color:var(--ink)}
 a{color:var(--red);text-decoration-thickness:1px;text-underline-offset:3px}
@@ -295,7 +298,7 @@ footer a{color:inherit}
 </head>
 <body>
 <script is:inline type="application/json" id="print-prices" set:html={JSON.stringify({ measured: prices.measured, shipping: prices.shipping_mail, shipping_set: prices.shipping_by_volumes, bw: { base: prices.pods.bw.base, per_page: prices.pods.bw.per_page }, color: { base: prices.pods.color.base, per_page: prices.pods.color.per_page } })}></script>
-<ScrollHero />
+<DeskHero />
 <div class="sheet">
   <main>
 
@@ -454,6 +457,8 @@ footer a{color:inherit}
 </div>
 
 <script>
+import { COVER_DESIGNS, designSelection, coverStyle } from '../../functions/lib/book-design.js';
+let selectedDesign = 'masthead';
 const f = document.getElementById('f') as HTMLFormElement;
 let sid = Math.random().toString(36).slice(2,10);
 try { sid = sessionStorage.getItem('inksheaf_sid') || sid; sessionStorage.setItem('inksheaf_sid', sid); } catch { /* Private storage restrictions must not stop a preview. */ }
@@ -558,10 +563,12 @@ async function runPreview(){
   }
 }
 function clearPreview(){
+  document.dispatchEvent(new CustomEvent('publication-preview', {detail:null}));
   previewData = null; plan = null; desk = null; editorAsk = null;
   for (const name of ['plan_json','cadence_pref','posts_per_year','frequency'])
     (f.elements.namedItem(name) as HTMLInputElement).value = '';
   document.getElementById('pv-status')!.textContent = '';
+  const label=document.getElementById('book-edition-label')!;label.textContent='';delete label.dataset.coverLabel;
   document.getElementById('pv-mast')!.textContent = 'Your publication';
   paintPublicationLogo(null);
   document.getElementById('pv-kind')!.textContent = 'Your collected edition';
@@ -641,23 +648,15 @@ function paintPublicationLogo(d: any){
   logo.src = next;
 }
 function paintCover(d: any, E: any){
-  const cover = document.querySelector('.cover') as HTMLElement;
-  const validHex = (v: any) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
-  const bg = validHex(d.theme?.cover_bg) ? d.theme.cover_bg : '#f9f4e6';
-  const luminance = (hex: string) => {
-    const c = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255).map(v => v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4);
-    return c[0]*.2126+c[1]*.7152+c[2]*.0722;
-  };
-  const l = luminance(bg);
-  const proposed = validHex(d.theme?.cover_ink) ? d.theme.cover_ink : '#211c15';
-  const il = luminance(proposed);
-  const ink = (Math.max(l,il)+.05)/(Math.min(l,il)+.05) >= 4.5 ? proposed : (l > .179 ? '#000000' : '#ffffff');
-  cover.style.setProperty('--mast-size', d.publication.length > 80 ? '1.3rem' : d.publication.length > 55 ? '1.6rem' : d.publication.length > 30 ? '2rem' : '2.6rem');
-  cover.style.setProperty('--cover-paper', bg);
-  cover.style.setProperty('--cover-ink', ink);
+  const cover = document.querySelector('#pvbook .cover') as HTMLElement;
+  cover.dataset.design = selectedDesign;
+  cover.setAttribute('style', coverStyle(selectedDesign, d.theme, d.publication));
+  document.querySelector('[data-cover=masthead] .cover-face')?.setAttribute('style',coverStyle('masthead',d.theme,'Aa'));
 
   const kindName = E.source === 'plan' ? (E.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[E.cadence]) : (d.cadence || 'Annual');
   (document.getElementById('pv-kind') as HTMLElement).textContent = kindName + ' · ' + (E.label || E.year);
+  const editionLabel=document.getElementById('book-edition-label')!;editionLabel.dataset.coverLabel=d.publication+' · '+kindName+' '+(E.label||E.year);
+  if(!document.querySelector('.book-presentation.reading'))editionLabel.textContent=editionLabel.dataset.coverLabel;
   (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
   paintPublicationLogo(d);
   (document.getElementById('pv-dates') as HTMLElement).textContent = E.span;
@@ -669,6 +668,7 @@ function paintCover(d: any, E: any){
   block.style.width = Math.max(5, Math.min(14, Math.round(E.pages / Math.max(E.volumes, 1) / 22))) + 'px';
 }
 function renderPreview(d: any){
+  document.dispatchEvent(new CustomEvent('publication-preview', {detail:d}));
   document.getElementById('pv-cta')!.textContent = 'Reserve this print run';
   const publicPosts = d.public_posts ?? d.posts;
   const E = editionView(d);
@@ -763,7 +763,7 @@ function revealBook(d: any){
   const bw = document.getElementById('bookwrap') as HTMLElement;
   announceEdition(d, editionView(d, plan?.cadence));
   bw.focus({ preventScroll: true });
-  bw.scrollIntoView({ behavior: 'instant', block: 'start' });
+  document.getElementById('preview')!.scrollIntoView({ behavior: 'instant', block: 'start' });
 }
 
 /* ---------- the composing desk: all the math done, defaults pre-set ---------- */
@@ -1110,7 +1110,7 @@ function captureReservation(){
     const route = plan.P.routes.find((r: any) => r.cadence === plan.cadence);
     (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = plan.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
-      plan_version: plan.ed.plan_version, planned_by: plan.ed.planned_by, cadence: plan.cadence || 'concierge', interior: plan.interior,
+      design: designSelection(selectedDesign, previewData?.theme), plan_version: plan.ed.plan_version, planned_by: plan.ed.planned_by, cadence: plan.cadence || 'concierge', interior: plan.interior,
       window: plan.ed.window ? { label: plan.ed.window.label, from: plan.ed.window.from, to: plan.ed.window.to } : null,
       kind: plan.P.kind, running_head: plan.P.running_head, dedication_post_id: plan.P.dedication_post_id,
       contributors: plan.P.contributors, excluded: plan.P.excluded,
@@ -1120,7 +1120,7 @@ function captureReservation(){
     const div = desk.cadence && d.divisions[desk.cadence];
     (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
-      cadence: desk.cadence || 'concierge', interior: desk.interior,
+      design: designSelection(selectedDesign, previewData?.theme), cadence: desk.cadence || 'concierge', interior: desk.interior,
       volumes: div && div.feasible ? div.volumes : [],
       needs_hand_plan: !(div && div.feasible) || undefined,
       form: d.form, unit: d.unit, prices_measured: PRICES.measured });
@@ -1134,9 +1134,16 @@ function captureReservation(){
     const selected = editionView(d, plan?.cadence || desk?.cadence);
     const chosenPages = selected.pages, chosenPosts = selected.posts;
     document.getElementById('carried')!.textContent =
-      d.publication + ' · ' + chosenPosts + ' pieces in the chosen set · about ' + chosenPages + ' pages, estimated until the proof is typeset. Leave one email for the proof.';
+      d.publication + ' · ' + COVER_DESIGNS.find(x => x.id === selectedDesign)!.name + ' cover · ' + chosenPosts + ' pieces in the chosen set · about ' + chosenPages + ' pages, estimated until the proof is typeset. Leave one email for the proof.';
   }
 }
+document.addEventListener('cover-design', (event: Event) => {
+  const next = (event as CustomEvent).detail;
+  if (!COVER_DESIGNS.some(d => d.id === next)) return;
+  selectedDesign = next;
+  if (previewData) paintCover(previewData, editionView(previewData, plan?.cadence || desk?.cadence));
+  refreshCapturedReservation();
+});
 function reservationMatchesPreview(){
   if (!previewData) return false;
   try { return new URL((f.elements.namedItem('publication_url') as HTMLInputElement).value).hostname.toLowerCase() === previewData.host.toLowerCase(); }
