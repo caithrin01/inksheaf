@@ -18,7 +18,7 @@ import { escapeHtml } from '../../functions/lib/book-design.js';
 const channel=location.hash.slice(1);
 const output=document.getElementById('pages')!;
 const status=document.getElementById('status')!;
-let pageIndex=0, pages:HTMLElement[]=[], generation=0, rendering=false;
+let pageIndex=0, pages:HTMLElement[]=[], generation=0, rendering=false, enlarged=false;
 function fit(){if(!rendering)output.style.transform=`scale(${innerWidth/576}) translateY(${-pageIndex*864}px)`;}
 addEventListener('resize',fit);fit();
 function show(index:number){
@@ -28,6 +28,7 @@ function show(index:number){
 }
 addEventListener('message',async event=>{
  if(event.origin!==location.origin || !/^[0-9a-f-]{36}$/.test(channel) || event.data?.channel!==channel)return;
+ if(event.data?.type==='sample-modal'){enlarged=event.data.enlarged===true;return;}
  if(event.data?.type==='sample-turn'){show(pageIndex+event.data.delta);return;}
  if(event.data?.type!=='sample-render')return;
  const seq=++generation, sample=event.data.sample;
@@ -55,6 +56,10 @@ addEventListener('message',async event=>{
    pages=[...output.querySelectorAll<HTMLElement>('.pagedjs_page')];
    rendering=false;output.classList.add('ready');status.hidden=true;fit();show(0);
  }catch(error){rendering=false;console.error('Sample pagination failed',error);status.textContent='The sample could not be typeset. Your complete proof is still available after reservation.';parent.postMessage({type:'sample-failed',channel},location.origin);}
+});
+addEventListener('keydown',event=>{
+ if(!enlarged || !['Escape','Tab'].includes(event.key))return;
+ event.preventDefault();parent.postMessage({type:'sample-key',channel,key:event.key,shiftKey:event.shiftKey},location.origin);
 });
 parent.postMessage({type:'sample-ready',channel},location.origin);
 </script></body></html>

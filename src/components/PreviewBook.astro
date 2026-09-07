@@ -74,6 +74,7 @@ let host='', publication='', sample:any=null, loading=false, controller:AbortCon
 book.tabIndex=0;book.setAttribute('role','button');book.setAttribute('aria-label','Open the book to look inside');book.setAttribute('aria-pressed','false');
 let inertSiblings:HTMLElement[]=[];
 function closeLarge(){
+  sendToReader({type:'sample-modal',enlarged:false});
   presentation.classList.remove('enlarged','actual-size');presentation.removeAttribute('role');presentation.removeAttribute('aria-modal');presentation.removeAttribute('aria-label');
   for(const el of inertSiblings)el.inert=false;inertSiblings=[];document.body.style.removeProperty('overflow');
   document.getElementById('sample-scale')!.hidden=true;document.getElementById('sample-scale')!.textContent='Actual size';document.getElementById('sample-enlarge')!.textContent='Enlarge';
@@ -119,6 +120,13 @@ document.addEventListener('publication-preview',(event:Event)=>{
 });
 addEventListener('message',event=>{
  if(event.origin!==location.origin || event.data?.channel!==channel)return;
+ if(event.data?.type==='sample-key' && presentation.classList.contains('enlarged')){
+   if(event.data.key==='Escape'){closeLarge();document.getElementById('sample-enlarge')!.focus();}
+   if(event.data.key==='Tab'){
+     const buttons=[...presentation.querySelectorAll<HTMLButtonElement>('.book-views button,.reader-controls button:not(:disabled)')].filter(el=>el.getClientRects().length);
+     (event.data.shiftKey?buttons.at(-1):buttons[0])?.focus();
+   }
+ }
  if(event.data?.type==='sample-ready'){frameReady=true;sendSample();}
  if(event.data?.type==='sample-pages'){
    status.hidden=true;controls.hidden=!presentation.classList.contains('reading');
@@ -135,6 +143,7 @@ document.getElementById('sample-enlarge')!.addEventListener('click',()=>{
  let current=presentation as HTMLElement;
  while(current.parentElement && current!==document.body){for(const sibling of current.parentElement.children){if(sibling!==current && sibling instanceof HTMLElement && !sibling.inert){sibling.inert=true;inertSiblings.push(sibling);}}current=current.parentElement;}
  document.body.style.overflow='hidden';document.getElementById('sample-enlarge')!.textContent='Close';document.getElementById('sample-scale')!.hidden=false;
+ sendToReader({type:'sample-modal',enlarged:true});
 });
 document.getElementById('sample-scale')!.addEventListener('click',()=>{const actual=presentation.classList.toggle('actual-size');document.getElementById('sample-scale')!.textContent=actual?'Fit page':'Actual size';});
 addEventListener('keydown',e=>{

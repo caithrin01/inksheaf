@@ -31,7 +31,12 @@ for(const [name,type]of[['chromium',chromium],['webkit',webkit]]){
  check((await frame.locator('.pagedjs_page.active').innerText())!==text,'page did not turn');
  await p.locator('#sample-enlarge').click();check(await p.locator('[role=dialog]').isVisible(),'Enlarge did not open');
  await p.locator('#sample-scale').click();await frame.waitForFunction(()=>Math.abs(new DOMMatrix(getComputedStyle(document.querySelector('#pages')).transform).a-1)<.01,null,{timeout:3000});
- await p.keyboard.press('Escape');check(await p.locator('[role=dialog]').count()===0,'Escape did not close');check(await p.evaluate(()=>!document.querySelector('.pv-facts').inert),'background remained inert');
+ await frame.locator('body').evaluate(el=>{el.tabIndex=-1;el.focus();});await p.keyboard.press('Tab');
+ await p.waitForFunction(()=>document.activeElement?.id==='view-cover');
+ await frame.locator('body').evaluate(el=>el.focus());await p.keyboard.press('Shift+Tab');
+ await p.waitForFunction(()=>document.activeElement?.id==='sample-scale');
+ await frame.locator('body').evaluate(el=>el.focus());await p.keyboard.press('Escape');await p.locator('[role=dialog]').waitFor({state:'detached'});
+ check(await p.evaluate(()=>document.activeElement?.id==='sample-enlarge'),'Escape from sample did not restore focus');check(await p.evaluate(()=>!document.querySelector('.pv-facts').inert),'background remained inert');
  await p.locator('#view-cover').click();check(await p.locator('#pv-mast').isVisible(),'return to cover failed');
  await p.addScriptTag({content:axeSource});const axe=await p.evaluate(()=>window.axe.run({runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));check(!axe.violations.length,'axe: '+axe.violations.map(x=>x.id).join(','));
  check(!errors.length,errors.join(';'));check(!events.includes('/api/signup'),'test unexpectedly submitted');
