@@ -62,7 +62,7 @@ p+p{margin-top:1rem}
 .preview{display:none;max-width:70rem;margin:0 auto;min-width:0;padding:4rem 0 1rem;scroll-margin-top:5rem}
 .preview.on{display:block}
 @media (prefers-reduced-motion: no-preference){
-  .preview.on{animation:pv .8s cubic-bezier(.2,.7,.2,1) both}
+  .preview.on{animation:pv .45s cubic-bezier(.2,.7,.2,1) both}
   @keyframes pv{from{opacity:0;transform:translateY(16px) scale(.99)}to{opacity:1;transform:none}}
 }
 .preview.staging{display:block}
@@ -96,7 +96,7 @@ p+p{margin-top:1rem}
 .pv-big{font-size:clamp(2rem,3.4vw,2.9rem);font-weight:500;line-height:1.15;text-wrap:balance;text-shadow:var(--press)}
 .pv-big b{color:var(--red);font-weight:560}
 .pv-sub{margin-top:.9rem;color:var(--faint);max-width:44ch;margin-inline:auto;font-size:1.1rem;line-height:1.5}
-.pv-price{margin-top:1.3rem;font-size:.98rem;color:var(--faint);opacity:0;transform:scale(.97);transition:opacity .4s 1.05s,transform .4s 1.05s}
+.pv-price{margin-top:1.3rem;font-size:.98rem;color:var(--faint);opacity:1;transform:none;transition:none}
 .preview.on .pv-price{opacity:1;transform:none}
 .pv-cta{margin-top:1.7rem;display:inline-block;padding:.95rem 2.6rem 1rem;background:var(--ink);color:var(--paper);
   border:1px solid var(--ink);text-decoration:none;font-weight:500;font-size:.85rem;letter-spacing:.26em;padding-left:2.86rem;
@@ -742,15 +742,13 @@ async function askTheEditor(d: any){
   }
   if (editorAsk === host) by.textContent = 'Planned by the calendar';
 }
-/* The reveal must land on the book: scroll it to the top of the viewport, move focus to it
-   so keyboard and screen-reader users arrive where sighted users are looking, and announce
-   the result once. Reduced-motion users get the same landing without the smooth scroll. */
+/* A successful request navigates once to the edition. The short reveal supplies the transition;
+   do not combine it with a long animated scroll through the preceding desk scene. */
 function revealBook(d: any){
   const bw = document.getElementById('bookwrap') as HTMLElement;
   announceEdition(d, editionView(d, plan?.cadence));
-  const smooth = matchMedia('(prefers-reduced-motion: no-preference)').matches;
   bw.focus({ preventScroll: true });
-  bw.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+  bw.scrollIntoView({ behavior: 'instant', block: 'start' });
 }
 
 /* ---------- the composing desk: all the math done, defaults pre-set ---------- */

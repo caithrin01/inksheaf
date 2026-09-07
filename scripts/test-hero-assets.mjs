@@ -1,40 +1,41 @@
 #!/usr/bin/env node
-// The hero is four full-viewport frames. Keep its preferred payload bounded and its durable render
-// recipe present; a visual redesign must not quietly become a multi-megabyte first experience.
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-
-const root = new URL("..", import.meta.url).pathname;
-const names = ["s1-desk", "s2-open", "s3-turn", "s4-title"];
-const caps = { avif: 90_000, webp: 220_000, jpg: 400_000 };
-const totals = { avif: 260_000, webp: 600_000, jpg: 1_500_000 };
-let pass = 0, fail = 0;
-function check(condition, label) {
-  if (condition) { pass++; console.log("ok  ", label); }
-  else { fail++; console.error("FAIL", label); }
+// Bound the delivered motion payload and verify the actual one-shot animation, not its label.
+import {readFileSync,statSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {resolve} from 'node:path';
+const root=resolve(new URL('..',import.meta.url).pathname),dir=resolve(root,'public/motion');
+const manifest=JSON.parse(readFileSync(`${dir}/manifest.json`));
+let pass=0,fail=0;
+function check(ok,label){if(ok){pass++;console.log('PASS '+label);}else{fail++;console.error('FAIL '+label);}}
+function animation(buffer){
+ let offset=12,loops=null,frames=0,duration=0;
+ while(offset+8<=buffer.length){
+  const id=buffer.toString('ascii',offset,offset+4),size=buffer.readUInt32LE(offset+4),data=offset+8;
+  if(id==='ANIM')loops=buffer.readUInt16LE(data+4);
+  if(id==='ANMF'){frames++;duration+=buffer.readUIntLE(data+12,3);}
+  offset=data+size+(size%2);
+ }
+ return {loops,frames,duration};
 }
-
-for (const format of Object.keys(caps)) {
-  let total = 0;
-  for (const name of names) {
-    const file = join(root, "public", "storyboard", `${name}.${format}`);
-    check(existsSync(file), `${name}.${format} exists`);
-    if (!existsSync(file)) continue;
-    const size = statSync(file).size;
-    total += size;
-    check(size <= caps[format], `${name}.${format} is within ${caps[format] / 1000} kB (${Math.ceil(size / 1000)} kB)`);
+for(const [lane,entry]of Object.entries(manifest.lanes)){
+ let preferred=0;
+ for(const [name,expected]of Object.entries(entry.files)){
+  const path=`${dir}/${name}`;check(existsSync(path),`${name} exists`);if(!existsSync(path))continue;
+  const data=readFileSync(path);
+  check(data.length===expected.bytes&&createHash('sha256').update(data).digest('hex')===expected.sha256,`${name} matches reviewed asset`);
+  if(name.endsWith('.avif')){preferred+=data.length;check(data.length<=120000,`${name} poster stays below 120 kB`);}
+  if(name.endsWith('-opening.webp')){
+   preferred+=data.length;const a=animation(data);
+   check(a.loops===1,`${lane} opening plays once`);
+   check(a.frames===24,`${lane} has a complete 24-frame opening`);
+   check(Math.abs(a.duration-800)<=16,`${lane} completes in 800 ms (${a.duration} ms)`);
   }
-  check(total <= totals[format], `${format} set is within ${totals[format] / 1000} kB (${Math.ceil(total / 1000)} kB)`);
+ }
+ check(preferred<=(lane==='desk'?750000:1000000),`${lane} preferred path stays within its payload budget (${Math.round(preferred/1000)} kB)`);
 }
-
-const component = readFileSync(join(root, "src", "components", "ScrollHero.astro"), "utf8");
-check(!component.includes("data:image/jpeg;base64"), "no padded inline JPEG placeholder ships in the component");
-check(names.every(name => component.includes(`${name}.avif`)), "every frame advertises its AVIF source");
-
-const promptDir = join(root, "assets", "storyboard", "prompts");
-const prompts = ["scene1.txt", "scene2.txt", "scene3.txt", "scene4.txt", "edit1.txt", "edit2.txt", "edit3.txt", "s3-fix.txt"];
-check(prompts.every(name => existsSync(join(promptDir, name))), "all eight storyboard prompts are durable");
-check(readFileSync(join(promptDir, "scene1.txt"), "utf8").includes("{{TITLE}}"), "cover title remains a render parameter");
-
-console.log(`hero assets: ${pass} pass, ${fail} fail`);
-if (fail) process.exit(1);
+const component=readFileSync(resolve(root,'src/components/ScrollHero.astro'),'utf8');
+check(!component.includes('data:image/'),'no inline photographic payload');
+check(!component.includes('/storyboard/'),'retired four-scene sequence is not fetched');
+check(component.includes('prefers-reduced-motion')&&component.includes('saveData'),'motion has reduced-motion and data-saving fallbacks');
+check(existsSync(resolve(root,'scripts/motion/render-book.py'))&&existsSync(resolve(root,'scripts/motion/asset-prompts.md')),'render recipe and image prompts are durable');
+console.log(`hero assets: ${pass} pass, ${fail} fail`);process.exitCode=fail?1:0;

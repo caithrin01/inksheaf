@@ -14,8 +14,15 @@ try{
     await page.route('**/api/**',route=>route.fulfill({json:new URL(route.request().url()).pathname==='/api/preview'?edited:{ok:true}}));
     await page.goto(base,{waitUntil:'domcontentloaded'});await page.evaluate(()=>document.fonts.ready);
     await page.waitForTimeout(800);await page.screenshot({path:`${out}/opening-${width}.png`});
-    const travel=await page.locator('#hero-story').evaluate(el=>el.offsetHeight-innerHeight);
-    for(let i=1;i<=12;i++){await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),travel*i/12);await page.waitForTimeout(180);}
+    await page.waitForFunction(()=>document.querySelector('#hero-story').dataset.motionReady==='true');
+    await page.mouse.wheel(0,120);
+    await page.waitForFunction(()=>document.querySelector('#hero-story').dataset.phase==='opening');
+    for(const [phase,delay]of [['early',120],['middle',200],['late',220]]){
+      await page.waitForTimeout(delay);await page.screenshot({path:`${out}/hero-${phase}-${width}.png`});
+    }
+    await page.waitForFunction(()=>document.querySelector('#hero-story').dataset.phase==='ready');
+    await page.waitForTimeout(600);
+    await page.locator('#hero-try').click();
     await page.locator('#tryurl').fill('caithrin.com');await page.locator('#trybtn').click();
     await page.waitForFunction(()=>document.querySelector('#preview').classList.contains('personalized'),null,{timeout:25000});
     await page.mouse.move(0,0);await page.waitForTimeout(1000);

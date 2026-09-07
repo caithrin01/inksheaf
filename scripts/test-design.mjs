@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 // Design gate (launch-hardening 2.2, automated half). Three page states (specimen,
 // personalized with caithrin.com, error with nytimes.com) in light and dark:
-//   - axe-core WCAG 2 AA run at 1440 and 390 wide; zero color-contrast violations is the
-//     pass condition, every other violation is printed and counted but does not fail
-//     (the person's read at the freeze decides those).
+//   - axe-core WCAG 2 AA run at 1440 and 390 wide; all WCAG violations fail the gate.
+//     The human read additionally judges composition and motion.
 //   - the screenshot set: 5 viewports (390, 768, 1024, 1440, 2560) x 2 schemes x 3 states
 //     = 30 full-page JPEGs written to <evidence>/shots/<head>/, for the checklist read.
 // Usage: node scripts/test-design.mjs [base-url]   (default https://inksheaf.com)

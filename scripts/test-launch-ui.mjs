@@ -27,6 +27,7 @@ async function run(script,args){
   if(code!==0)throw new Error(`${script} exited ${code}`);
 }
 try{
+  await run('scripts/test-hero-motion.mjs',[base,'output/playwright/launch/motion']);
   await run('scripts/test-edition-journey.mjs',[base,'output/playwright/launch/edition']);
   await run('scripts/test-launch-states.mjs',[base,'output/playwright/launch/states']);
   await run('scripts/scroll-qa.mjs',[base,'output/playwright/launch/scroll']);

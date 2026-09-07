@@ -8,9 +8,13 @@ received this candidate.
 
 The personalised book has a substantial desktop cover, a readable mobile archive
 sampler, publication colours supplied by the API, and a keyboard-operated cover.
-Pricing and reservation sit beside the book before binding details. The existing
-four-render hero remains, with more usable title-page controls and visible loading
-without a fixed pause after the response. The existing font is served locally.
+Pricing and reservation sit beside the book before binding details. The hero now has
+one continuous opening against a fixed photographic desk, with a separate portrait
+composition that keeps the engraving visible. A short scroll triggers the completed
+800 ms opening; the header action immediately focuses the settled title-page field.
+The personal book opens only on deliberate click, tap or keyboard input. Loading and
+errors preserve the field position; compact typing has a usable paper surface. The
+existing font is served locally and the result and price appear without a fixed pause.
 
 ## Try the candidate
 
@@ -36,19 +40,29 @@ Every API effect is simulated. Other publication URLs show an explanatory error.
 
 ## Evidence
 
-- `npm run test:preview:unit`: pass; renderer acceptance: 69 pass.
-- Production build: pass; validator: 13; source honesty: 47; hero assets: 31.
-- `npm run test:launch:ui`: four edition configurations, 16 edge journeys, and full
-  scroll/CTA/loading/error/reduced-motion acceptance pass.
-- WebKit edition journey: four configurations pass. Chromium and WebKit axe checks
-  are clean. The design matrix has six clean states and 30 screenshots.
+- Production build: pass; validator: 13; source honesty: 47; hero assets: 36.
+- `npm run test:launch:ui`: seven motion journeys, four edition configurations, 16 edge
+  journeys, and full scroll/CTA/loading/error/reduced-motion acceptance pass.
+- WebKit: seven motion journeys and four edition configurations pass. Compact typing
+  checks include full form bounds, preserved focus, a clickable action and axe.
+  The handoff also checks actual painted paper pixels to catch a blank image frame.
+  The design matrix has six clean states, 30 screenshots and zero WCAG violations.
+- Full preview unit chain and print-renderer acceptance (69) passed on the preceding
+  candidate. This motion pass changes neither the backend nor the print renderer.
 - Local review server smoke: preview → delayed editor → simulated reservation,
   with no external requests or browser errors.
 
 Screenshots, before evidence, videos and logs are under `output/playwright/`; see
-`NIGHTLOG.md` for exact folders. The MP4s in `final-motion/` show desktop and mobile
-entrance, preview reveal and cover interaction. Browser evidence is local and ignored
+`NIGHTLOG.md` for exact folders. The latest MP4s in `motion-review/` show desktop and
+mobile opening, preview reveal and cover interaction. `final-motion/` records the
+preceding candidate. Browser evidence is local and ignored
 by Git. The release workflow will upload acceptance evidence when run in GitHub.
+
+The initial preferred poster is 30 kB desktop / 48 kB portrait. Both preferred posters
+plus the opening total 604 kB / 850 kB respectively; the browser selects one composition.
+Each sequence has 24 frames, lasts 799 ms and plays once. Reduced motion avoids the
+animation download. The exact prompts, saved master paths and offline rebuild recipe
+are in `scripts/motion/asset-prompts.md` and `scripts/motion/README.md`.
 
 ## Still required before calling launch acceptance complete
 
@@ -68,6 +82,7 @@ by Git. The release workflow will upload acceptance evidence when run in GitHub.
   Never use direct Cloudflare deployment. Recheck the real publication on the released
   SHA before closing the P1s in the production audit.
 
-No backend, migration, renderer, credential or production configuration was changed.
-No additional OpenRouter integration or paid asset generation was needed. The local
-preview and proof checks do not establish the live email system's delivery.
+No backend, migration, print renderer, credential or production configuration was changed.
+Two built-in image-generation edits supplied fixed desk plates; Blender rendered the
+book and opening locally. No OpenRouter calls or image/video API credentials were used.
+The local preview and proof checks do not establish the live email system's delivery.

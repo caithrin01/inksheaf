@@ -1,6 +1,7 @@
 ---
-// The landing story is deliberately image-led: four art-directed renders dissolve as the reader
-// scrolls. The URL controls keep the stable ids consumed by index.astro's preview journey.
+// One short, deliberate opening. The field keeps the stable hooks used by the reservation flow.
+import motion from "../../public/motion/manifest.json";
+const motionVersion = motion.lanes.desk.files["desk-opening.webp"].sha256.slice(0, 12) + motion.lanes.portrait.files["portrait-opening.webp"].sha256.slice(0, 12);
 ---
 <header class="sheaf-header">
   <a class="sheaf-brand" href="#hero-story" aria-label="Inksheaf, back to the opening">
@@ -12,47 +13,35 @@
   </button>
 </header>
 
-<section class="sheaf-scroll" id="hero-story" aria-label="How Inksheaf turns a newsletter into a book">
+<section class="sheaf-scroll" id="hero-story" data-motion-version={motionVersion} aria-label="How Inksheaf turns a newsletter into a book">
   <div class="sheaf-stage">
+    <div class="sheaf-scene">
     <picture>
-      <source type="image/avif" srcset="/storyboard/s1-desk.avif?v=20260903b" />
-      <source type="image/webp" srcset="/storyboard/s1-desk.webp?v=20260903b" />
-      <img class="sheaf-frame" id="hero-f0" src="/storyboard/s1-desk.jpg?v=20260903b"
-        alt="A closed Your Newsletter book resting on a lamplit walnut desk"
-        width="1800" height="1004" fetchpriority="high" decoding="async" />
+      <source media="(max-aspect-ratio: 4/5)" type="image/avif" srcset={"/motion/portrait-ready.avif?v=" + motionVersion} />
+      <source type="image/avif" srcset={"/motion/desk-ready.avif?v=" + motionVersion} />
+      <source media="(max-aspect-ratio: 4/5)" type="image/webp" srcset={"/motion/portrait-ready.webp?v=" + motionVersion} />
+      <img class="sheaf-frame" id="hero-f3" src={"/motion/desk-ready.webp?v=" + motionVersion}
+        alt="The same book open to its title page" width="1600" height="900" decoding="async" />
     </picture>
     <picture>
-      <source type="image/avif" srcset="/storyboard/s2-open.avif?v=20260903b" />
-      <source type="image/webp" srcset="/storyboard/s2-open.webp?v=20260903b" />
-      <img class="sheaf-frame" id="hero-f1" src="/storyboard/s2-open.jpg?v=20260903b"
-        alt="The book open to its printed pages" width="1800" height="1004" decoding="async" />
+      <source media="(max-aspect-ratio: 4/5)" type="image/avif" srcset={"/motion/portrait-closed.avif?v=" + motionVersion} />
+      <source type="image/avif" srcset={"/motion/desk-closed.avif?v=" + motionVersion} />
+      <source media="(max-aspect-ratio: 4/5)" type="image/webp" srcset={"/motion/portrait-closed.webp?v=" + motionVersion} />
+      <img class="sheaf-frame" id="hero-f0" src={"/motion/desk-closed.webp?v=" + motionVersion}
+        alt="An ivory book on a lamplit walnut desk, with the Inksheaf sheaf engraved in the wood"
+        width="1600" height="900" fetchpriority="high" decoding="async" />
     </picture>
-    <picture>
-      <source type="image/avif" srcset="/storyboard/s3-turn.avif?v=20260903c" />
-      <source type="image/webp" srcset="/storyboard/s3-turn.webp?v=20260903c" />
-      <img class="sheaf-frame" id="hero-f2" src="/storyboard/s3-turn.jpg?v=20260903c"
-        alt="One leaf turning through lamplight" width="1800" height="1004" decoding="async" />
-    </picture>
-    <picture>
-      <source type="image/avif" srcset="/storyboard/s4-title.avif?v=20260903b" />
-      <source type="image/webp" srcset="/storyboard/s4-title.webp?v=20260903b" />
-      <img class="sheaf-frame" id="hero-f3" src="/storyboard/s4-title.jpg?v=20260903b"
-        alt="The book open to a blank title page" width="1800" height="1004" decoding="async" />
-    </picture>
+    <img class="sheaf-frame sheaf-motion" id="hero-motion" alt="" aria-hidden="true" width="1600" height="900" />
     <div class="sheaf-vignette" aria-hidden="true"></div>
-
-    <div class="sheaf-narration" aria-hidden="true">
-      <div class="sheaf-line">Your Substack, as a book you can hold.</div>
-      <div class="sheaf-line">Every essay, set in type &mdash; contents, running heads, notes.</div>
-      <div class="sheaf-line">Six by nine. Perfect bound. Priced at cost.</div>
-    </div>
 
     <div class="sheaf-title" id="tryit">
       <h1>Your Substack,<br />bound as a book.</h1>
-      <p class="sheaf-say">We find your writing, set it in type, and print it to order.</p>
-      <div class="sheaf-working" id="tryworking" aria-live="polite"></div>
-      <div class="sheaf-error" id="tryerr" role="alert"></div>
-      <button class="sheaf-handoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
+      <div class="sheaf-message-slot">
+        <p class="sheaf-say">We find your writing, set it in type, and print it to order.</p>
+        <div class="sheaf-working" id="tryworking" aria-live="polite"></div>
+        <div class="sheaf-error" id="tryerr" role="alert"></div>
+        <button class="sheaf-handoff" id="tryhandoff" type="button" hidden>Send me a hand-built preview</button>
+      </div>
       <label for="tryurl">Your publication</label>
       <div class="sheaf-input-wrap">
         <input type="url" id="tryurl" placeholder="yourname.substack.com" autocomplete="url" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="tryerr" />
@@ -61,7 +50,14 @@
       <div><button class="sheaf-go" id="trybtn" type="button">Show my book</button></div>
     </div>
 
-    <div class="sheaf-hint" id="hero-hint" aria-hidden="true">Scroll<span></span></div>
+    </div>
+    <div class="sheaf-narration" aria-hidden="true">
+      <div class="sheaf-line">Your Substack, as a book you can hold.</div>
+
+
+    </div>
+
+    <div class="sheaf-hint" id="hero-hint" aria-hidden="true">Scroll to open<span></span></div>
   </div>
 </section>
 <noscript>
@@ -76,7 +72,7 @@
     #hero-story .sheaf-frame{display:none}
     #hero-story #hero-f3{display:block;opacity:1}
     #hero-story .sheaf-narration,#hero-story .sheaf-hint{display:none}
-    #hero-story .sheaf-title{opacity:1;pointer-events:auto;transform:none}
+    #hero-story .sheaf-title{opacity:1;pointer-events:auto;transform:translateX(-50%)}
     #preview.preview{display:block}
     #preview .bookwrap,#preview .pv-page,#preview .pv-price,#preview .pv-page .toc-line{opacity:1;transform:none;animation:none}
   </style>
@@ -99,22 +95,23 @@
   .sheaf-caret{display:inline-block;width:2px;height:1.05em;background:currentColor;animation:sheaf-blink 1.1s step-end infinite}
   @keyframes sheaf-blink{50%{opacity:0}}
 
-  .sheaf-scroll{height:440vh;position:relative;background:#0b0602}
+  .sheaf-scroll{height:190svh;position:relative;background:#0b0602}
   .sheaf-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:
     radial-gradient(100% 80% at 58% 16%,rgba(198,133,67,.28),transparent 58%),
     linear-gradient(132deg,#24170d 0%,#0b0602 72%)}
-  .sheaf-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;will-change:opacity,transform;opacity:0;transition:none;pointer-events:none}
+  .sheaf-scene{position:absolute;left:50%;top:50%;width:max(100%,177.778svh);aspect-ratio:16/9;transform:translate(-50%,-50%)}
+  .sheaf-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:none;pointer-events:none}
   .sheaf-stage picture{pointer-events:none}
-  #hero-f0{opacity:1}
+  #hero-f0,#hero-f3{opacity:1}
   .sheaf-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 100% at 55% 46%,transparent 52%,rgba(0,0,0,.5))}
 
   .sheaf-narration{position:absolute;left:clamp(1.2rem,5vw,4.5rem);bottom:13vh;z-index:5;width:min(23ch,82vw)}
-  .sheaf-line{position:absolute;left:0;bottom:0;width:100%;opacity:0;transform:translateY(14px);
+  .sheaf-line{position:absolute;left:0;bottom:0;width:100%;opacity:1;transform:none;
     font-size:clamp(24px,2.7vw,39px);line-height:1.14;color:#f2e6cd;font-weight:500;text-shadow:0 2px 18px rgba(0,0,0,.7)}
 
-  .sheaf-title{position:absolute;left:58%;top:37%;width:28%;max-width:420px;text-align:center;color:#2a2118;
-    opacity:0;z-index:6;transform:translateY(10px);pointer-events:none}
-  .sheaf-title h1{font-size:clamp(20px,min(2.3vw,4vh),32px);line-height:1.1;font-weight:600;margin:0;animation:none;text-shadow:none}
+  .sheaf-title{position:absolute;left:72%;top:30%;width:20%;transform:translateX(-50%);max-width:420px;text-align:center;color:#2a2118;
+    opacity:0;z-index:6;pointer-events:none}
+  .sheaf-title h1{font-size:clamp(20px,min(2.3vw,3.8vh),32px);line-height:1.1;font-weight:600;margin:0;animation:none;text-shadow:none}
   .sheaf-say{font-size:clamp(13px,min(1.1vw,2vh),15px);font-style:italic;color:#4a3626;margin:8px auto 0;max-width:30ch;line-height:1.4}
   .sheaf-title label{display:block;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#a8452c;margin:13px 0 5px}
   .sheaf-input-wrap{display:inline-flex;align-items:center;gap:1px;max-width:100%;border-bottom:1.4px solid rgba(90,66,30,.55);padding-bottom:3px}
@@ -133,6 +130,15 @@
   /* while the archive is read, the pressroom's lines play here, where the visitor is looking */
   .sheaf-working{color:#4a3626;font-style:italic;font-size:clamp(13px,min(1.1vw,2vh),15px);line-height:1.4;margin:8px auto 0;max-width:30ch;min-height:1.4em}
   .sheaf-working:empty{display:none}
+  .sheaf-message-slot{position:relative;min-height:4.9rem;margin-top:.5rem;display:grid;align-content:start}
+  .sheaf-message-slot .sheaf-say,.sheaf-message-slot .sheaf-working,.sheaf-message-slot .sheaf-error{margin-top:0}
+  .sheaf-title:has(.sheaf-working:not(:empty)) .sheaf-say,.sheaf-title:has(.sheaf-error:not(:empty)) .sheaf-say{display:none}
+  .sheaf-title label{margin-top:0}
+  .sheaf-motion{visibility:hidden}
+  #hero-story[data-phase="opening"] .sheaf-motion{visibility:visible;opacity:1}
+  #hero-story[data-phase="opening"] #hero-f0{opacity:0!important}
+  #hero-story[data-image-fallback] .sheaf-title{background:#f4ead4;padding:1rem}
+
   .sheaf-working b{color:#a8452c;font-weight:600;font-style:normal}
   .sheaf-title:has(.sheaf-working:not(:empty)) .sheaf-say{display:none}
   /* a failure is one quiet line where the sub-line was, never the hero */
@@ -146,15 +152,23 @@
     border-bottom:1.5px solid #d9c8a6;transform:rotate(45deg);animation:sheaf-bob 1.8s ease-in-out infinite}
   @keyframes sheaf-bob{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(3px,3px)}}
 
-  @media (max-width:640px){
-    .sheaf-scroll{height:400vh}
-    .sheaf-frame{object-position:58% 50%}
-    .sheaf-title{left:50%;top:36%;width:68%;max-width:none;transform:translateX(-50%) translateY(10px)}
+  @media (max-aspect-ratio:4/5){
+    .sheaf-scroll{height:170svh}
+    .sheaf-scene{width:max(100%,65.625svh);aspect-ratio:21/32}
+    .sheaf-frame{object-position:50% 50%}
+    .sheaf-title{left:55%;top:28%;width:48%;max-width:none;transform:translateX(-50%)}
     .sheaf-title h1{font-size:26px}.sheaf-say{font-size:15px}.sheaf-title label{font-size:10px}.sheaf-input-wrap input{font-size:16px}.sheaf-go{font-size:12px}
-    .sheaf-narration{bottom:11vh}.sheaf-line{font-size:28px}
+    .sheaf-narration{left:auto;right:7%;bottom:16%;width:48%}.sheaf-line{font-size:clamp(22px,4.3vw,28px)}
     .sheaf-header-cta{font-size:.96rem;padding:.7rem 1.05rem}.sheaf-brand b{font-size:1.16rem}
   }
 
+  @media (max-aspect-ratio:4/5) and (max-height:650px){
+    .sheaf-title h1{font-size:22px}.sheaf-say{font-size:13px}.sheaf-message-slot{min-height:3.5rem}
+  }
+  @media(max-width:380px){
+    .sheaf-header{gap:.5rem}.sheaf-brand{gap:.4rem}.sheaf-brand img{width:22px}.sheaf-brand b{font-size:1.05rem}
+    .sheaf-header-cta{font-size:.88rem;gap:.35rem;padding:.75rem .6rem;white-space:nowrap}
+  }
   @media (prefers-reduced-motion:reduce){
     .sheaf-caret,.sheaf-hint span{animation:none}
     .sheaf-scroll{height:100vh;height:100svh}
@@ -162,94 +176,119 @@
     .sheaf-frame{display:none!important;will-change:auto;transform:none!important}
     #hero-f3{display:block!important;opacity:1!important}
     .sheaf-narration,.sheaf-hint{display:none}
-    .sheaf-title{opacity:1!important;pointer-events:auto!important;transform:none!important}
+    .sheaf-title{opacity:1!important;pointer-events:auto!important;transform:translateX(-50%)!important}
     .sheaf-header-cta{transition:none}
   }
   @media (max-height:500px) and (min-width:641px){
-    .sheaf-title{top:23%;left:56%;width:33%}
+    .sheaf-title{top:30%;left:72%;width:20%}
     .sheaf-title h1{font-size:20px;line-height:1.05}
     .sheaf-say{display:none}
+    .sheaf-message-slot{min-height:3.5rem;margin-top:.4rem}
     .sheaf-title label{margin:7px 0 3px;font-size:9px}
     .sheaf-input-wrap input{padding:2px 0;font-size:14px;line-height:1.3}
-    .sheaf-go{min-height:36px;margin-top:7px;padding:7px 16px;font-size:10px}
+    .sheaf-go{min-height:44px;margin-top:7px;padding:7px 16px;font-size:10px}
     .sheaf-error,.sheaf-working,.sheaf-handoff{font-size:12px;line-height:1.3;margin-top:4px}
-    .sheaf-title:has(.sheaf-error:not(:empty)) h1,.sheaf-title:has(.sheaf-working:not(:empty)) h1{display:none}
   }
-  @media (prefers-reduced-motion:reduce) and (max-width:640px){
+  /* A software keyboard can leave less height than the photographic page needs. Keep the
+     same field and action on a compact paper surface, with focus and input untouched. */
+  @media(max-height:500px) and (max-width:640px){
+    .sheaf-stage:has(.sheaf-title:focus-within){z-index:20}
+    .sheaf-scene{transform:none;left:0;top:0;width:100%;height:100%;aspect-ratio:auto}
+    .sheaf-title:focus-within{position:fixed}
+    .sheaf-title{top:calc(50% + 20px);left:50%;width:min(86vw,340px);max-width:none;transform:translate(-50%,-50%);padding:.75rem 1rem;background:#f4ead4;border:1px solid #cfc3a9;box-shadow:0 8px 30px #0004}
+    .sheaf-title h1{font-size:20px;line-height:1.1}.sheaf-say{display:none}
+    .sheaf-message-slot{min-height:3.3rem;margin-top:.4rem}.sheaf-input-wrap input{font-size:16px;padding:4px 0}
+    .sheaf-go{min-height:44px;margin-top:7px}.sheaf-title label{font-size:9px;margin-top:0}
+    #hero-story .sheaf-title{transform:translate(-50%,-50%)!important}
+  }
+  @media (prefers-reduced-motion:reduce) and (max-aspect-ratio:4/5){
     .sheaf-title{transform:translateX(-50%)!important}
   }
 </style>
 
 <script is:inline>
-  (function(){
-    var root=document.getElementById('hero-story');
-    if(!root) return;
-    var frames=['hero-f0','hero-f1','hero-f2','hero-f3'].map(function(id){return document.getElementById(id);});
-    var title=document.getElementById('tryit');
-    var hint=document.getElementById('hero-hint');
-    var lines=[].slice.call(root.querySelectorAll('.sheaf-line'));
-    var field=document.getElementById('tryurl');
-    var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    frames.forEach(function(image){if(image&&image.decode) image.decode().catch(function(){});});
-
-    function focusTitle(){
-      if(reduce){field&&field.focus();return;}
-      var target=root.offsetTop+root.offsetHeight-window.innerHeight;
-      window.scrollTo({top:target,behavior:'smooth'});
-      window.setTimeout(function(){field&&field.focus();},650);
+(function(){
+  const root=document.getElementById('hero-story');
+  if(!root)return;
+  const first=document.getElementById('hero-f0'),last=document.getElementById('hero-f3');
+  const moving=document.getElementById('hero-motion'),title=document.getElementById('tryit');
+  const field=document.getElementById('tryurl'),narration=root.querySelector('.sheaf-narration'),hint=document.getElementById('hero-hint');
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),portrait=matchMedia('(max-aspect-ratio: 4/5)');
+  let phase='closed',timer=0,blob=null,objectURL=null,generation=0,openingCount=0,attempt=0;
+  const duration=800;
+  function paint(ready){
+    first.style.opacity=ready?'0':'1';
+    narration.style.opacity=ready?'0':'1';hint.style.opacity=ready?'0':'1';
+    title.style.opacity=ready?'1':'0';title.style.pointerEvents=ready?'auto':'none';
+  }
+  function setPhase(next){phase=next;root.dataset.phase=next;}
+  function release(){
+    attempt++;clearTimeout(timer);moving.removeAttribute('src');
+    if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}
+  }
+  function settle(){
+    if(!last.complete||!last.naturalWidth)root.dataset.imageFallback='true';
+    setPhase('ready');paint(true);release();
+  }
+  function target(){return root.offsetTop+Math.max(0,root.offsetHeight-root.querySelector('.sheaf-stage').offsetHeight);}
+  function focusTitle(){
+    settle();window.scrollTo({top:target(),behavior:'instant'});
+    field.focus({preventScroll:true});
+  }
+  async function prepare(){
+    const version=++generation;blob=null;root.dataset.motionReady='false';
+    if(reduced.matches||navigator.connection?.saveData)return;
+    try{
+      const asset=portrait.matches?'/motion/portrait-opening.webp':'/motion/desk-opening.webp';
+      const response=await fetch(asset+'?v='+root.dataset.motionVersion,{cache:'force-cache',priority:'low'});
+      if(!response.ok)return;
+      const next=await response.blob();
+      if(version===generation){blob=next;root.dataset.motionReady='true';}
+    }catch{ /* The still title page is always usable without the motion asset. */ }
+  }
+  async function open(){
+    if(phase!=='closed')return;
+    if(reduced.matches||!blob){root.dataset.motionSkipped='true';settle();return;}
+    const current=++attempt;setPhase('preparing');objectURL=URL.createObjectURL(blob);moving.src=objectURL;
+    // A decoder failure or slow device must never hold the invitation hostage.
+    timer=setTimeout(()=>{if(current===attempt&&phase==='preparing')settle();},200);
+    try{await moving.decode();}catch{if(current===attempt&&phase==='preparing')settle();return;}
+    if(current!==attempt||phase!=='preparing')return;
+    clearTimeout(timer);setPhase('opening');root.dataset.openings=String(++openingCount);
+    narration.style.opacity='0';hint.style.opacity='0';
+    timer=setTimeout(settle,duration);
+  }
+  function sync(){
+    if(reduced.matches){settle();return;}
+    if(phase==='closed'&&scrollY-root.offsetTop>Math.min(100,innerHeight*.12))open();
+  }
+  document.addEventListener('click',event=>{
+    if(event.target.closest?.('[data-hero-try]'))focusTitle();
+    if(event.target.closest?.('.sheaf-brand')){
+      event.preventDefault();release();setPhase(reduced.matches?'ready':'closed');paint(reduced.matches);
+      delete root.dataset.motionSkipped;if(!reduced.matches&&!blob)prepare();window.scrollTo({top:root.offsetTop,behavior:'instant'});
     }
-    document.addEventListener('click',function(event){
-      var target=event.target;
-      if(target&&target.closest&&target.closest('[data-hero-try]')) focusTitle();
-    });
-    var brand=root.previousElementSibling&&root.previousElementSibling.querySelector('.sheaf-brand');
-    if(brand) brand.addEventListener('click',function(event){event.preventDefault();window.scrollTo({top:root.offsetTop,behavior:reduce?'auto':'smooth'});});
-
-    if(reduce){
-      if(title) title.style.pointerEvents='auto';
-      return;
-    }
-
-    field.addEventListener('focus',function(){
-      if(parseFloat(title.style.opacity||'0')<.92) window.scrollTo({top:root.offsetTop+root.offsetHeight-window.innerHeight,behavior:'auto'});
-    });
-    var transitions=[0.30,0.56,0.82], dissolve=0.06;
-    var lineWindows=[[-0.05,0.26],[0.36,0.52],[0.62,0.78]], lineFade=0.05;
-    function clamp(x){return x<0?0:x>1?1:x;}
-    function smooth(x){x=clamp(x);return x*x*(3-2*x);}
-    function frameOpacity(index,progress){
-      var entered=index>0?smooth((progress-(transitions[index-1]-dissolve))/(2*dissolve)):1;
-      var nextEntered=index<3?smooth((progress-(transitions[index]-dissolve))/(2*dissolve)):0;
-      return nextEntered>=1?0:entered;
-    }
-    function update(){
-      var rect=root.getBoundingClientRect();
-      var total=root.offsetHeight-window.innerHeight;
-      var progress=clamp((-rect.top)/Math.max(total,1));
-      for(var i=0;i<frames.length;i++){
-        if(!frames[i]) continue;
-        frames[i].style.opacity=String(frameOpacity(i,progress));
-        frames[i].style.transform='scale('+(1.02+0.06*progress).toFixed(4)+')';
-      }
-      for(var j=0;j<lines.length;j++){
-        var opacity=smooth((progress-lineWindows[j][0])/lineFade)*(1-smooth((progress-lineWindows[j][1])/lineFade));
-        lines[j].style.opacity=String(opacity);
-        lines[j].style.transform='translateY('+((1-opacity)*16).toFixed(1)+'px)';
-      }
-      var titleOpacity=smooth((progress-0.80)/0.15);
-      title.style.opacity=String(titleOpacity);
-      title.style.pointerEvents=titleOpacity>.92?'auto':'none';
-      hint.style.opacity=String(clamp(1-progress/0.05));
-    }
-    var ticking=false;
-    function queueUpdate(){
-      if(ticking) return;
-      ticking=true;
-      requestAnimationFrame(function(){update();ticking=false;});
-    }
-    document.addEventListener('scroll',queueUpdate,{passive:true});
-    window.addEventListener('resize',queueUpdate);
-    update();
-  })();
+  });
+  field.addEventListener('focus',()=>{if(phase!=='ready')focusTitle();});
+  let queued=false;
+  addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;sync();});}},{passive:true});
+  addEventListener('resize',sync,{passive:true});
+  addEventListener('pageshow',()=>{if(scrollY>root.offsetTop+80)settle();});
+  addEventListener('pagehide',release);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&(phase==='opening'||phase==='preparing'))settle();});
+  portrait.addEventListener('change',()=>{
+    if(phase==='opening'||phase==='preparing')settle();
+    if(phase==='closed')prepare();else{generation++;blob=null;root.dataset.motionReady='false';}
+  });
+  reduced.addEventListener('change',()=>{if(reduced.matches)settle();else prepare();});
+  // Keep the decoded title poster underneath the closed cover and moving image.
+  // Revealing a previously transparent async image can otherwise flash the empty desk.
+  function decodePoster(){last.decode().then(()=>{delete root.dataset.imageFallback;}).catch(()=>{root.dataset.imageFallback='true';});}
+  last.addEventListener('load',decodePoster);
+  last.addEventListener('error',()=>{root.dataset.imageFallback='true';});
+  decodePoster();
+  setPhase(reduced.matches?'ready':'closed');paint(reduced.matches);
+  if(scrollY>root.offsetTop+80)settle();
+  prepare();
+})();
 </script>

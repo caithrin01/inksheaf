@@ -159,3 +159,52 @@ All paths below are relative to this worktree and intentionally ignored by Git:
 
 See `LAUNCH_REVIEW.md` for review steps and the remaining external acceptance gates.
 The vault handoff is `05-Projects/Substack Magazine/astra-launch-run-2026-09-06.md`.
+
+## Approved motion pass — 2026-09-06 evening
+
+Caithrin approved `frontend-motion-plan-2026-09-06.md` with “ok great. do it”. The
+accepted default is a short scroll that triggers a complete opening. This supersedes
+the retained four-render hero described in the earlier checkpoints.
+
+- Replaced four photographic dissolves with one 24-position book opening against a
+  fixed desk plate. Desktop and portrait each use one camera and deterministic book
+  geometry. The portrait composition keeps the book and desk engraving visible.
+- Hero height is 190svh desktop / 170svh portrait. Native scroll starts an 800 ms opening
+  that completes after the wheel stops and does not replay on small reversals. The
+  header settles immediately and focuses the field. No extra decorative page turn.
+- Slow/missing motion, reduced motion and data saving have a still, usable fallback;
+  no-JavaScript contact remains. Asset hashes version the URLs. Loading/error space is
+  reserved; compact typing preserves focus and has a fully visible, clickable action.
+- Final visual review caught a transient empty background when the transparent async
+  poster became visible. The title poster is now decoded and kept beneath the closed
+  cover/motion throughout; the motion gate checks painted paper pixels at the handoff.
+- Personal-book hover no longer changes state. Click/tap/Enter/Space share one persistent
+  open/close action with solid cover faces. Preview reveal is shorter; price is immediate.
+- Built-in image generation supplied two edited desk plates; exact prompts and saved
+  local master paths are in `scripts/motion/asset-prompts.md`. Blender 4.5.1 rendered the
+  fixed scene offline. Delivered assets total 604 kB desktop / 850 kB portrait for the
+  preferred poster pair plus once-playing WebP, with 30 kB / 48 kB initial AVIF posters.
+  The manifest and asset gate verify actual hashes, 24 frames, 799 ms and one play.
+- Blender was used from a read-only temporary disk image; task-owned processes were
+  closed and the image detached afterward. No system install, preferences, OpenRouter
+  calls, production credentials, real signup or deployment occurred.
+- Build, validator (13), source honesty (47), hero assets (36) and diff whitespace pass.
+  Chromium and WebKit each pass seven motion journeys, including compact typing bounds,
+  hit targets and axe. WebKit edition acceptance passes all four configurations.
+  The full local UI suite includes seven motion, four edition and 16 edge journeys plus
+  scroll acceptance. Six design states / 30 screenshots report zero WCAG violations.
+  The earlier full unit chain and print-renderer (69) remain the relevant backend/print
+  evidence; this pass does not modify those systems.
+
+Latest evidence, relative to this worktree and intentionally ignored by Git:
+
+- Motion recordings: `output/playwright/motion-review/journey-1280.mp4` and `journey-390.mp4`.
+- Motion acceptance: `output/playwright/launch/motion/`, `motion-accepted-webkit/`.
+- Design: `output/playwright/motion-design/shots/motion-local/`.
+- Logs: `output/playwright/motion-logs/`.
+
+Continuous journeys were recorded and intermediate/settled states visually inspected.
+Human normal-speed motion review, a physical iPhone/software keyboard and VoiceOver
+remain acceptance work; automated WebKit and axe do not establish those results.
+The local review at port 8807 remains explicitly simulated. Production remains unchanged
+and any eventual release must use GitHub's protected production approval path.
