@@ -1,0 +1,14 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 8000,
+  "reasoning_effort": "low",
+  "brief": "study-review-brief.md",
+  "images": [
+    { "file": "../../output/playwright/topdown-study/chromium-1280-classic.png", "label": "Revised overhead design study, desktop, Classic cover. caithrin is the correct publication name." },
+    { "file": "../../output/playwright/topdown-study/chromium-1280-field.png", "label": "Same local study, Field notes cover." },
+    { "file": "../../output/playwright/topdown-study/chromium-1280-midnight.png", "label": "Same local study, Midnight cover; printed ink, not cloth or foil." },
+    { "file": "../../output/playwright/topdown-study/chromium-390-masthead.png", "label": "Same local study, full-page mobile screenshot, Masthead cover." },
+    { "file": "../../output/playwright/topdown-study/chromium-390-excerpt-1.png", "label": "Same local study, mobile excerpt view showing the owner's real essay, not final pagination." },
+    { "file": "../../output/playwright/identity-webkit/edition-light-1280.png", "label": "Separate working-site candidate: WebKit after removal of 3D cover layers. Its title now paints; oblique hero above remains pending replacement. This is NOT the overhead design study." }
+  ]
+}

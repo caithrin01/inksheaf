@@ -1,0 +1,32 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 8000,
+  "reasoning_effort": "low",
+  "brief": "topdown-brief.md",
+  "images": [
+    {
+      "file": "../../output/playwright/launch/motion/ready-1280.png",
+      "label": "Local 31d10a2 desktop hero, open/input state; oblique direction rejected by owner."
+    },
+    {
+      "file": "../../output/playwright/launch/motion/ready-390.png",
+      "label": "Local 31d10a2 narrow mobile hero, open/input state; oblique direction rejected by owner."
+    },
+    {
+      "file": "../../output/playwright/grounded-draft/title-1280.png",
+      "label": "Subsequent angled correction draft, also rejected and parked; not the running candidate."
+    },
+    {
+      "file": "../../output/playwright/motion-edition-webkit-final/edition-light-1280.png",
+      "label": "Current local publication preview, light cover, desktop; screenshot from 31d10a2 validation."
+    },
+    {
+      "file": "../../output/playwright/motion-edition-webkit-final/contents-dark-390.png",
+      "label": "Current local mobile look-inside state; title list only, no actual essay page yet. Screenshot from 31d10a2 validation."
+    },
+    {
+      "file": "../../assets/motion/topdown-study-2026-09-07/open-desk.png",
+      "label": "New overhead image-model study, blank pages intentionally reserved for later live text. No UI or behavior implemented from this study yet."
+    }
+  ]
+}

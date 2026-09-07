@@ -15,6 +15,7 @@
       </div>
       <div class="cover"><div class="cover-front">
         <div class="cv-kind" id="pv-kind">Collected edition</div>
+        <img class="cv-logo" id="pv-logo" alt="" hidden width="52" height="52" referrerpolicy="no-referrer" />
         <div class="cv-mast" id="pv-mast">Your publication</div>
         <div class="cv-orn"></div>
         <div class="cv-dates" id="pv-dates">The past twelve months</div>
@@ -31,9 +32,9 @@
 
 <style is:global>
 .book-presentation{min-width:0;align-self:start}
-.bookwrap{margin:0 auto;width:min(100%,19rem);perspective:2800px;position:relative;scroll-margin-top:6rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bookwrap{margin:0 auto;width:min(100%,19rem);position:relative;scroll-margin-top:6rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .bookwrap:focus-visible{outline:2px solid #e7c698;outline-offset:12px;border-radius:2px}
-.bookobj{position:relative;width:100%;aspect-ratio:6/9;transform-style:preserve-3d;transform:rotateZ(-1deg);transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.bookobj{position:relative;width:100%;aspect-ratio:6/9}
 .bookwrap.open .bookobj{transform:rotateZ(0)}
 .pv-page{position:absolute;inset:0;background:linear-gradient(90deg,#ded4bd,#f4efe2 8%,#fbf6e9 92%,#eee5d0);border:1px solid #cfc3a9;
   padding:1.7rem 1.65rem 1.1rem;display:flex;flex-direction:column;color:#2a2118;line-height:1.4;
@@ -47,16 +48,20 @@
 .pv-page .fol{margin-top:auto;padding-top:1rem;font:400 .6rem/1.5 system-ui,sans-serif;color:#6b5a44}
 .cover{--cover-paper:#f9f4e6;--cover-ink:#211c15;position:absolute;inset:0;
   background:var(--cover-paper);color:var(--cover-ink);border:1px solid #0003;
-  transform-origin:left center;transform-style:preserve-3d;z-index:2;
+  z-index:2;
   padding:0;
   box-shadow:inset 7px 0 10px -5px #0005,inset 11px 0 0 -10px #fff7,12px 28px 40px -17px #000b;
-  transition:transform .58s cubic-bezier(.25,.65,.3,1);}
+  transition:opacity .18s ease,visibility .18s;}
 .cover-front::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,#fff2,transparent 35%,#00000008);border:1px solid #ffffff24}
-.cover-front,.cover-back{position:absolute;inset:0;backface-visibility:hidden;border:1px solid #0002}
+.cover-front,.cover-back{position:absolute;inset:0;border:1px solid #0002}
 .cover-front{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:2.15rem 1.9rem 1.7rem;background:var(--cover-paper);overflow:hidden}
-.cover-back{transform:rotateY(180deg);background:linear-gradient(90deg,#b8a990,#ebe0c8 15%,#f4e9d1);box-shadow:inset -6px 0 10px #0002}
-.bookwrap.open .cover{transform:rotateY(-102deg);pointer-events:none}
+.cover-back{display:none}
+.bookwrap.open .cover{opacity:0;visibility:hidden;pointer-events:none}
 .cv-kind{font:500 .6rem/1.5 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;max-width:100%;overflow-wrap:anywhere}
+.cv-logo{position:absolute;top:1.4rem;right:1.4rem;width:2.75rem;height:2.75rem;object-fit:contain}
+.cv-logo[hidden]{display:none}
+.cover-front:has(.cv-logo:not([hidden])) .cv-kind{max-width:calc(100% - 3.5rem)}
+.cover-front:has(.cv-logo:not([hidden])) .cv-mast{margin-top:2.8rem}
 .cv-mast{font-family:"EB Garamond",Georgia,serif;font-size:var(--mast-size,clamp(2.1rem,3.7vw,3rem));font-weight:500;line-height:1.06;margin-top:2.4rem;overflow-wrap:anywhere;max-width:100%;text-wrap:balance}
 .cv-orn{width:2rem;border-top:1px solid currentColor;margin:1.6rem 0 1rem;opacity:.7}
 .cv-dates{font-size:.88rem;line-height:1.5}
@@ -74,11 +79,10 @@
 @media(max-width:560px){
   .bookwrap{width:min(100% - 1rem,18.5rem)}
   .cv-mast{font-size:var(--mast-size,2.6rem)}
-  .bookwrap.open .cover{transform:rotateY(-92deg)}
   .pv-page{padding:1.45rem 1.4rem 1rem}
   .page-heading{margin-top:1.15rem;font-size:1.6rem}
 }
-@media(prefers-reduced-motion:reduce){.bookobj{transform:none}.bookwrap.open .cover{transform:none;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.cover{transition:none}.bookobj{transform:none}.bookwrap.open .cover{transform:none;visibility:hidden}}
 </style>
 
 <script>

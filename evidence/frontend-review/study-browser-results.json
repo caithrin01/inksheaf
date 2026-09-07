@@ -1,0 +1,142 @@
+{
+  "study": true,
+  "production": false,
+  "rows": [
+    {
+      "browser": "chromium",
+      "width": 1280,
+      "ratio": 0.6666666666666666,
+      "overflow": false,
+      "formVisible": true,
+      "photoContrast": [
+        {
+          "text": "Back to the working preview",
+          "minimum": 14.778681353552757
+        },
+        {
+          "text": "A place for your writing",
+          "minimum": 6.517645470078694
+        },
+        {
+          "text": "6 × 9. Perfect bound. Printed to order.You approve",
+          "minimum": 10.434140889047383
+        },
+        {
+          "text": "The publication’s own logo and words.Sample layout",
+          "minimum": 12.169191827172705
+        },
+        {
+          "text": "Four cover directions",
+          "minimum": 14.136961483919382
+        },
+        {
+          "text": "Warm paper, centred Garamond, the publication’s ow",
+          "minimum": 12.959500572477648
+        }
+      ],
+      "pass": true
+    },
+    {
+      "browser": "chromium",
+      "width": 390,
+      "ratio": 0.6666782693445648,
+      "overflow": false,
+      "formVisible": true,
+      "photoContrast": [
+        {
+          "text": "Back to the working preview",
+          "minimum": 11.085053658014507
+        },
+        {
+          "text": "A place for your writing",
+          "minimum": 15.259687588312591
+        },
+        {
+          "text": "6 × 9. Perfect bound. Printed to order.You approve",
+          "minimum": 12.63325751730683
+        },
+        {
+          "text": "The publication’s own logo and words.Sample layout",
+          "minimum": 12.12498384069076
+        },
+        {
+          "text": "Four cover directions",
+          "minimum": 15.62524776509618
+        },
+        {
+          "text": "Warm paper, centred Garamond, the publication’s ow",
+          "minimum": 12.964189394342261
+        }
+      ],
+      "pass": true
+    },
+    {
+      "browser": "webkit",
+      "width": 1280,
+      "ratio": 0.6666666666666666,
+      "overflow": false,
+      "formVisible": true,
+      "photoContrast": [
+        {
+          "text": "Back to the working preview",
+          "minimum": 14.610428069773503
+        },
+        {
+          "text": "A place for your writing",
+          "minimum": 6.612667421227445
+        },
+        {
+          "text": "6 × 9. Perfect bound. Printed to order.You approve",
+          "minimum": 10.434140889047383
+        },
+        {
+          "text": "The publication’s own logo and words.Sample layout",
+          "minimum": 12.073529899194883
+        },
+        {
+          "text": "Four cover directions",
+          "minimum": 14.136961483919382
+        },
+        {
+          "text": "Warm paper, centred Garamond, the publication’s ow",
+          "minimum": 12.954556267445605
+        }
+      ],
+      "pass": true
+    },
+    {
+      "browser": "webkit",
+      "width": 390,
+      "ratio": 0.6666782693445648,
+      "overflow": false,
+      "formVisible": true,
+      "photoContrast": [
+        {
+          "text": "Back to the working preview",
+          "minimum": 11.085053658014507
+        },
+        {
+          "text": "A place for your writing",
+          "minimum": 15.259687588312591
+        },
+        {
+          "text": "6 × 9. Perfect bound. Printed to order.You approve",
+          "minimum": 12.689578528043327
+        },
+        {
+          "text": "The publication’s own logo and words.Sample layout",
+          "minimum": 12.067946736176458
+        },
+        {
+          "text": "Four cover directions",
+          "minimum": 15.62524776509618
+        },
+        {
+          "text": "Warm paper, centred Garamond, the publication’s ow",
+          "minimum": 12.911600368237627
+        }
+      ],
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "runs": [
+    {
+      "directory": "2026-09-07-opus-topdown",
+      "status": "failed",
+      "model": "anthropic/claude-opus-5",
+      "cost": 0.166635,
+      "prompt_tokens": 8327,
+      "completion_tokens": 5000
+    },
+    {
+      "directory": "2026-09-07-opus-topdown-complete",
+      "status": "completed",
+      "model": "anthropic/claude-opus-5",
+      "cost": 0.119185,
+      "prompt_tokens": 8327,
+      "completion_tokens": 3102
+    },
+    {
+      "directory": "2026-09-07-opus-study-revision",
+      "status": "completed",
+      "model": "anthropic/claude-opus-5",
+      "cost": 0.077635,
+      "prompt_tokens": 8402,
+      "completion_tokens": 1425
+    },
+    {
+      "directory": "2026-09-07-opus-study-final",
+      "status": "completed",
+      "model": "anthropic/claude-opus-5",
+      "cost": 0.07806,
+      "prompt_tokens": 8402,
+      "completion_tokens": 1442
+    }
+  ],
+  "total_openrouter_cost": 0.44151500000000005
+}

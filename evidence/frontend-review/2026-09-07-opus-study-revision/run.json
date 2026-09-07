@@ -1,0 +1,82 @@
+{
+  "status": "completed",
+  "started": "2026-09-07T18:26:15.709Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Revised overhead design study, desktop, Classic cover. caithrin is the correct publication name.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/topdown-study/chromium-1280-classic.png",
+      "saved": "input-1.png",
+      "sha256": "905c98886a4d1f6eca75c4d2e30d88f2a9a55ecfdc65d82207210ad67e759b0f"
+    },
+    {
+      "label": "Same local study, Field notes cover.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/topdown-study/chromium-1280-field.png",
+      "saved": "input-2.png",
+      "sha256": "62be9b113f3f6301a1b34eaed8e108110fac0806018dd3e78acf803aa9a6b7ea"
+    },
+    {
+      "label": "Same local study, Midnight cover; printed ink, not cloth or foil.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/topdown-study/chromium-1280-midnight.png",
+      "saved": "input-3.png",
+      "sha256": "d87e4a5608e3682098118c69955398e8542b513ddbf1be87c85057c86d0993a9"
+    },
+    {
+      "label": "Same local study, full-page mobile screenshot, Masthead cover.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/topdown-study/chromium-390-masthead.png",
+      "saved": "input-4.png",
+      "sha256": "ccf4bd751d43a77bf4710695119b9095e1a674be0c6bb8f022611903da94d8d3"
+    },
+    {
+      "label": "Same local study, mobile excerpt view showing the owner's real essay, not final pagination.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/topdown-study/chromium-390-excerpt-1.png",
+      "saved": "input-5.png",
+      "sha256": "9f500f08f8f286bed0f1ac575291e65138eb8749f303e8d4a427af93e7265a39"
+    },
+    {
+      "label": "Separate working-site candidate: WebKit after removal of 3D cover layers. Its title now paints; oblique hero above remains pending replacement. This is NOT the overhead design study.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/identity-webkit/edition-light-1280.png",
+      "saved": "input-6.png",
+      "sha256": "ab898516a87a4931cb39846cceaaffff3e3e0e79901239f2f150bbca4b3e615a"
+    }
+  ],
+  "git_head": "31d10a2c18e29331c16c23ec041c09f0a26c5cd6",
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 8000,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788805577-Kj2aWPIT3eE66uyWLCnE",
+  "usage": {
+    "prompt_tokens": 8402,
+    "completion_tokens": 1425,
+    "total_tokens": 9827,
+    "cost": 0.077635,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.077635,
+      "upstream_inference_prompt_cost": 0.04201,
+      "upstream_inference_completions_cost": 0.035625
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 9,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-07T18:26:48.413Z"
+}

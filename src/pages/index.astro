@@ -563,6 +563,7 @@ function clearPreview(){
     (f.elements.namedItem(name) as HTMLInputElement).value = '';
   document.getElementById('pv-status')!.textContent = '';
   document.getElementById('pv-mast')!.textContent = 'Your publication';
+  paintPublicationLogo(null);
   document.getElementById('pv-kind')!.textContent = 'Your collected edition';
   document.getElementById('pv-dates')!.textContent = 'A preview of your writing';
   document.getElementById('pv-cvpages')!.textContent = '6 × 9 · perfect bound';
@@ -626,6 +627,19 @@ function paintEditionCopy(d: any, E: any){
     d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export.' : ''];
   document.getElementById('plan-what')!.textContent = notes.filter(Boolean).join(' ');
 }
+function paintPublicationLogo(d: any){
+  const logo = document.getElementById('pv-logo') as HTMLImageElement;
+  const next = typeof d?.logo_url === 'string' && d.logo_url.startsWith('https://') ? d.logo_url : '';
+  if (next && logo.getAttribute('src') === next) return;
+  logo.hidden = true;
+  logo.onload = null; logo.onerror = null;
+  logo.removeAttribute('src');
+  if (!next) return;
+  logo.onload = () => { logo.hidden = false; };
+  logo.onerror = () => { logo.hidden = true; };
+  // The masthead supplies the accessible publication name. The image adds its visual mark.
+  logo.src = next;
+}
 function paintCover(d: any, E: any){
   const cover = document.querySelector('.cover') as HTMLElement;
   const validHex = (v: any) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
@@ -638,13 +652,14 @@ function paintCover(d: any, E: any){
   const proposed = validHex(d.theme?.cover_ink) ? d.theme.cover_ink : '#211c15';
   const il = luminance(proposed);
   const ink = (Math.max(l,il)+.05)/(Math.min(l,il)+.05) >= 4.5 ? proposed : (l > .179 ? '#000000' : '#ffffff');
-  cover.style.setProperty('--mast-size', d.publication.length > 55 ? '1.6rem' : d.publication.length > 30 ? '2rem' : '2.6rem');
+  cover.style.setProperty('--mast-size', d.publication.length > 80 ? '1.3rem' : d.publication.length > 55 ? '1.6rem' : d.publication.length > 30 ? '2rem' : '2.6rem');
   cover.style.setProperty('--cover-paper', bg);
   cover.style.setProperty('--cover-ink', ink);
 
   const kindName = E.source === 'plan' ? (E.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[E.cadence]) : (d.cadence || 'Annual');
   (document.getElementById('pv-kind') as HTMLElement).textContent = kindName + ' · ' + (E.label || E.year);
   (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
+  paintPublicationLogo(d);
   (document.getElementById('pv-dates') as HTMLElement).textContent = E.span;
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = E.volumes > 1
     ? 'Vol. I of ' + (ROMAN[E.volumes - 1] || E.volumes) + ' · ' + E.posts + ' ' + kindLabel(d, E.posts) + ' · est. ' + E.pages + ' pages in all'

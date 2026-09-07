@@ -1,5 +1,17 @@
 # Inksheaf launch candidate — 2026-09-06
 
+**September 7 revision checkpoint:** the owner rejected the remaining angled perspective.
+The new overhead study is at <http://127.0.0.1:8808/design-study/>; see
+`scripts/design-review/README.md` and `evidence/frontend-review/README.md`. Three external
+Opus critiques completed; one earlier call was truncated and is marked failed. The working
+source fixes publication-name resolution, displays the actual publication logo and repairs
+a blank WebKit cover the model caught. Unit/build/local-browser checks passed. No deployment.
+
+The study's overhead hero, four cover proposals and real Caithrin excerpts are **not yet
+integrated into the production preview or print renderer**. The model still finds the book
+insufficiently physical. The earlier motion implementation below is historical, not the
+accepted final design. Resume from the vault's `frontend-topdown-review-2026-09-07.md`.
+
 The delayed editor could reduce a 23-post archive to a 22-essay edition while the
 description and accessible announcement kept old totals. The selected binding now
 drives every edition total and the reservation snapshot, including changes made

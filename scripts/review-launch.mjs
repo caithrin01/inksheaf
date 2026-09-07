@@ -10,6 +10,20 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
   '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2'};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');
+  // Review-only studies never enter Astro's public build or the release artifact.
+  const studyFiles={
+    '/design-study/':'scripts/design-review/study.html',
+    '/design-study/content.json':'scripts/design-review/study-content.json',
+    '/design-study/desk.png':'assets/motion/topdown-study-2026-09-07/desk-only.png',
+  };
+  if(url.pathname==='/design-study/paper.svg'){
+    res.writeHead(200,{'content-type':'image/svg+xml'});
+    return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".065"/></feComponentTransfer></filter><rect width="100%" height="100%" filter="url(#n)" opacity=".6"/></svg>');
+  }
+  if(studyFiles[url.pathname]){
+    try{const file=studyFiles[url.pathname];const content=await readFile(file);res.writeHead(200,{'content-type':types[extname(file)]||'application/json','cache-control':'no-store'});return res.end(content);}
+    catch{res.writeHead(404);return res.end('Study asset unavailable. See scripts/design-review/README.md.');}
+  }
   const json=body=>{res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(body));};
   if(url.pathname.startsWith('/api/')){
     req.resume();

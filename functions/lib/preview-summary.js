@@ -1,3 +1,4 @@
+import { PREVIEW_SCHEMA_VERSION } from "./publication-identity.js";
 const DATE_TITLE = /^[A-Z][a-z]+ \d{1,2},? \d{4}[.\s]*$/;
 const NOUN_ONE = { essays: "essay", letters: "letter", recipes: "recipe", poems: "poem",
   stories: "story", reviews: "review", dispatches: "dispatch", pieces: "piece" };
@@ -104,7 +105,7 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
     : divisions.quarterly.feasible ? "quarterly"
     : divisions.monthly.feasible ? "monthly" : "concierge";
   return {
-    summary_version: 7,
+    summary_version: PREVIEW_SCHEMA_VERSION,
     form: FORM_NAMES[kind] || "a collected edition",
     unit: ISSUE_KINDS.has(kind) ? "issue" : "volume",
     span_months: Math.round(spanMonths * 10) / 10,
@@ -116,7 +117,10 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
        60% price premium. Colour stays one tap away with its measured price. */
     recommended: { cadence: recommendedCadence, interior: "bw" },
     host,
-    publication: identity.publicationName || publicationName(publicPosts, host),
+    publication: identity.publicationName || host,
+    publication_id: identity.publication_id ?? null,
+    identity_source: identity.identity_source || (identity.publicationName ? "provided" : "unresolved"),
+    logo_url: identity.logo_url || null,
     posts: publicPosts.length,
     public_posts: publicPosts.length,
     paid_posts: paid.length,
@@ -135,16 +139,6 @@ export function summarizeArchive(posts, identity, host, cutoff, capped = false) 
       d: String(p.post_date || "").slice(0, 10), w: Number(p.wordcount) || 0 })),
     theme: identity.theme,
   };
-}
-
-function publicationName(posts, host) {
-  const names = {};
-  for (const post of posts) for (const byline of (post.publishedBylines || []))
-    if (byline?.name) names[byline.name] = (names[byline.name] || 0) + 1;
-  const distinct = Object.keys(names);
-  if (distinct.length === 1) return distinct[0];
-  const label = host.replace(/^www\./, "").split(".")[0];
-  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function parseRelayedArchive(text) {

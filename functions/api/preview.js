@@ -15,6 +15,7 @@ const RELAY_WAITS_MS = [2500, 6000];
 const RELAY_MIN_ATTEMPT_MS = 4000;
 const WINDOW_DAYS = 366;
 import { summarizeArchive } from "../lib/preview-summary.js";
+import { PREVIEW_SCHEMA_VERSION, publicationFromArchive, publicationFromHomepage, publicationLogo, publicationLabel } from "../lib/publication-identity.js";
 import { planEdition } from "../lib/editor.js";
 import { spend, ipKey, LIMITS } from "../lib/quota.js";
 import { editionWindow } from "../lib/edition-window.js";
@@ -48,7 +49,7 @@ export async function onRequest({ request, env }) {
     .catch(() => null);
   if (cached && Date.now() - Date.parse(cached.fetched_at) < 24 * 3600 * 1000) {
     const pay = JSON.parse(cached.payload);
-    if (pay.summary_version === 7) return json({ ok: true, cached: true, served: "cache", ...pay });
+    if (pay.summary_version === PREVIEW_SCHEMA_VERSION) return json({ ok: true, cached: true, served: "cache", ...pay });
   }
 
   // Global rate cap, no IP involved.
@@ -160,7 +161,7 @@ export async function fetchArchive(host, env) {
             "SELECT payload FROM preview_cache WHERE host = ?").bind(host).first().catch(() => null);
           if (stale){
             const pay = JSON.parse(stale.payload);
-            if (pay.summary_version === 7) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
+            if (pay.summary_version === PREVIEW_SCHEMA_VERSION) return { ok: true, data: { ...pay, stale: true, ...relayMeta } };
           }
           /* The direct read failed on a retryable status (429, 5xx, timeout, DNS) and the
              relay failed too. The relay's error text cannot tell a dead domain from an
@@ -222,7 +223,9 @@ export async function fetchArchive(host, env) {
     return { ok: false, error: "empty", status: 200,
       message: "The public archive there looks empty for the last year. Paid-only archives preview after you join the beta." };
   const capped = relayed ? !relayComplete : posts.length >= MAX_POSTS;
-  const identity = identityFromArchive(identityPost, host);
+  const identity = await resolvePublicationIdentity(posts, host);
+  if (!identity.publicationName) return { ok: false, error: "publication_identity", status: 422,
+    message: "We found the archive but could not confirm its publication name. Try again, or ask for a hand-built preview." };
   const data = summarizeArchive(posts, identity, host, cutoff, capped);
   if (!data) return { ok: false, error: "empty", status: 200,
     message: "There are no public essays to preview from the last year. Join the beta and send a Substack export for paid work." };
@@ -233,7 +236,7 @@ export async function fetchArchive(host, env) {
   const tEd = Date.now();
   const editorial = await planEdition({ posts, identity, host, capped });
   data.editorial = { ...editorial, editor_ms: Date.now() - tEd, pending: !!(env.OPENROUTER_API_KEY || env.ANTHROPIC_API_KEY) };
-  data.summary_version = 7;
+  data.summary_version = PREVIEW_SCHEMA_VERSION;
   if (relayMeta) Object.assign(data, relayMeta);
   return { ok: true, data, posts, identity };
 }
@@ -321,28 +324,31 @@ function archiveUnavailable(detail) {
     detail: String(detail || "unavailable").slice(0, 120) };
 }
 
-function identityFromArchive(post, host) {
-  const pub = publicationFromPost(post, host);
-  const publicationName = pub?.name ? String(pub.name).slice(0, 120) : null;
-  const bg = parseColor(pub?.theme_var_background_pop);
-  if (!bg) return { publicationName, theme: null };
+export async function resolvePublicationIdentity(posts, host) {
+  let homepage = null;
+  const ctl = new AbortController();
+  // This bounded read fits between the 40s archive budget and the client's 45s timeout.
+  const timer = setTimeout(() => ctl.abort(), 2500);
+  try {
+    const response = await fetch(`https://${host}/`, { redirect: "manual", signal: ctl.signal,
+      headers: { accept: "text/html", "user-agent": "inksheaf-preview/1.0 (+https://inksheaf.com)" } });
+    if (response.ok) homepage = publicationFromHomepage(await readLimitedText(response), host, posts);
+  } catch { /* Verified archive membership can still supply the publication identity. */ }
+  finally { clearTimeout(timer); }
+  const archive = publicationFromArchive(posts, host);
+  const pub = homepage || archive;
+  const publicationName = publicationLabel(pub);
+  const logo = publicationLogo(pub, host);
+  const identity = { publicationName, logo_url: logo, publication_id: pub?.id ?? null,
+    identity_source: homepage ? "publication_homepage" : archive ? "matched_archive" : "unresolved", theme: null };
+  const bg = parseColor(pub?.theme_var_background_pop || pub?.theme?.background_pop_color);
+  if (!bg) return identity;
   const light = [255, 255, 255], dark = [34, 29, 22];
   const ink = contrast(bg, light) >= contrast(bg, dark) ? light : dark;
-  if (contrast(bg, ink) < 4.5) return { publicationName, theme: null };
-  return { publicationName, theme: { cover_bg: hex(bg), cover_ink: hex(ink),
-    cover_ink2: lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b", accent: hex(bg), heading_stack: null } };
-}
-
-function publicationFromPost(post, host) {
-  const pubs = [];
-  for (const byline of (post?.publishedBylines || []))
-    for (const user of (byline?.publicationUsers || []))
-      if (user?.publication?.name) pubs.push(user.publication);
-  const normalized = host.replace(/^www\./, "");
-  return pubs.find(p => String(p.custom_domain || "").replace(/^www\./, "") === normalized)
-    || pubs.find(p => `${p.subdomain}.substack.com` === normalized)
-    || pubs.find(p => p.id === post?.publication_id)
-    || pubs[0];
+  if (contrast(bg, ink) < 4.5) return identity;
+  identity.theme = { cover_bg: hex(bg), cover_ink: hex(ink),
+    cover_ink2: lum(bg) < 0.45 ? "#d9d9d9" : "#5a554b", accent: hex(bg), heading_stack: null };
+  return identity;
 }
 
 async function readLimitedText(resp, cap = MAX_BYTES) {

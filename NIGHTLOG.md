@@ -1,5 +1,27 @@
 # Inksheaf Astra launch pass — 2026-09-06
 
+## September 7 interactive revision checkpoint
+
+Owner rejected the angled perspective and requested top-down, publication-name correctness,
+own Substack logos, designs and real samples. Other people's publications explicitly excluded.
+Read the September 4 model-review incident and actually built/ran `review:frontend` through
+OpenRouter: three completed Opus critiques, one truncated failure, $0.441515 reported cost.
+Responses and decisions: `evidence/frontend-review/README.md`; runnable workflow and study:
+`scripts/design-review/README.md`. The old no-OpenRouter statements below describe earlier work.
+
+Name resolution now uses matched publication metadata, cache schema 8, and a truthful
+unresolved-name fallback. Logo loading/reset/failure and long-name fit are tested. A model
+found a blank WebKit cover in prior screenshots; removing 3D backface layers fixed the paint,
+and new pixel-difference checks catch this failure. Full unit/build/local launch checks passed;
+final typography also passed four cover cases and 16 state journeys. Study separately passed
+four browser/viewport cases with all designs/excerpts, keyboard, axe and photographic contrast.
+
+Study: http://127.0.0.1:8808/design-study/ . Regular review: http://127.0.0.1:8807/ .
+The overhead hero, renderer-supported presets and arbitrary-publication excerpt reader are
+not integrated into the working product. Physical book realism still needs work. No push,
+deployment, email, reservation, production DB change or press run. Temporary Blender image
+detached. Resume from the vault's `frontend-topdown-review-2026-09-07.md`.
+
 ## Contract
 
 Produce a beautiful, functional, reviewable local launch candidate from `0312f76`.
