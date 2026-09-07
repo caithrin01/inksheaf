@@ -29,9 +29,10 @@ jobs:
           sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
           python3 -m pip install --quiet pymupdf
       - run: npm run test:preview:unit
-      - run: node scripts/test-signup.mjs && node scripts/test-honesty.mjs
       - run: node scripts/test-typst-fixtures.mjs
       - run: npm run build
+      - name: Candidate copy and claim checks
+        run: node scripts/test-honesty.mjs --source-only
       - name: Local browser acceptance
         run: |
           npx playwright install --with-deps chromium webkit

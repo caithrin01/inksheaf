@@ -30,6 +30,8 @@ The release browser gate passes: four overhead/reader journeys in Chromium and W
 
 Two real public-GET journeys through the local handlers confirmed caithrin and **The Fox Says**, with their original logos, current colours and real excerpts. The complete browser UI also passed those real-public-data reads. These are not Cloudflare edge or inbox-delivery tests.
 
+The first PR run passed the unit chain but exposed a CI wiring error: the pre-release honesty gate fetched the older production page and compared it with this candidate's source. It now runs after the build with `--source-only`, against the artifact under review. The separate live honesty command remains available for post-release acceptance; signup checks already run in the full unit chain.
+
 Opus completed a new six-image critique via the runnable OpenRouter workflow ($0.07576). It judged the overhead direction credible enough to carry forward and identified control hierarchy/selection ambiguity. Its "stale selection ring" was the Classic cover's printed frame, not stale application state; that visual ambiguity was removed. See `evidence/frontend-review/2026-09-07-integrated-opus/`. The response is critique, not design or launch approval.
 
 Durable checks: `evidence/frontend-review/integrated/`. Full screenshots: `output/playwright/public-integration/`, `output/playwright/launch/`. PDFs: `output/pdf/integrated/`. Masters remain local; reproducible sources and compact evidence are committed.
