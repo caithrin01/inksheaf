@@ -43,7 +43,7 @@ export function emailResult(row) {
     id: row?.id || null, provider_id: row?.provider_id || null };
 }
 
-export async function sendQueuedEmail(env, id, { now = Date.now(), fetcher = fetch } = {}) {
+export async function sendQueuedEmail(env, id, { now = Date.now(), fetcher = fetch, requireCurrentProof = false } = {}) {
   let row = await get(env, id);
   if (!row) throw new Error('Email operation not found');
   // Even accepted-message replays are checked before exposing any result across environments.
@@ -66,9 +66,13 @@ export async function sendQueuedEmail(env, id, { now = Date.now(), fetcher = fet
     return emailResult(await get(env, id));
   }
   if (!env.RESEND_API_KEY) return { ...emailResult(row), error: 'Email delivery is unavailable' };
+  const proofGuard = requireCurrentProof ? ` AND EXISTS (SELECT 1 FROM edition_versions v JOIN signups s ON s.id = v.signup_id
+    WHERE v.id = email_outbox.version_id AND v.status = 'proofed' AND s.email_verified_at IS NOT NULL
+    AND s.email = email_outbox.intended_to AND s.plan_json = v.plan_json
+    AND v.id = (SELECT MAX(newer.id) FROM edition_versions newer WHERE newer.signup_id = v.signup_id))` : '';
   const claim = await env.DB.prepare(`UPDATE email_outbox SET send_status = 'sending', lease_started_ms = ?,
     first_attempt_ms = COALESCE(first_attempt_ms, ?), attempts = attempts + 1, last_error = NULL, updated_ms = ?
-    WHERE id = ? AND attempts < 5 AND (send_status IN ('queued','failed','uncertain') OR (send_status = 'sending' AND lease_started_ms <= ?))`)
+    WHERE id = ? AND attempts < 5 AND (send_status IN ('queued','failed','uncertain') OR (send_status = 'sending' AND lease_started_ms <= ?))${proofGuard}`)
     .bind(now, now, now, id, now - LEASE_MS).run();
   if (claim.meta?.changes !== 1) return emailResult(await get(env, id));
   let state = 'uncertain', providerId = null, error = 'Provider acceptance is unknown';

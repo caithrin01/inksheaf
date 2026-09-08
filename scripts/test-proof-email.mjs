@@ -9,7 +9,7 @@ const originalFetch = globalThis.fetch;
 function setup() {
   const db = new DatabaseSync(':memory:');
   for (const file of readdirSync('migrations').filter(f => f.endsWith('.sql')).sort()) db.exec(readFileSync(`migrations/${file}`, 'utf8'));
-  db.exec("INSERT INTO signups (id,publication_url,email,raw_json,email_verified_at) VALUES (1,'https://writer.substack.com','owner@example.com','{}',datetime('now'))");
+  db.exec("INSERT INTO signups (id,publication_url,email,raw_json,plan_json,email_verified_at) VALUES (1,'https://writer.substack.com','owner@example.com','{}','{}',datetime('now'))");
   db.exec(`INSERT INTO edition_versions (id,signup_id,plan_json,post_ids,body_hashes,renderer_sha,print_mode,volumes,status)
     VALUES (1,1,'{}','[1,2]','{}','fixture','bw','[{"label":"Volume I","key":"first.pdf"},{"label":"Volume II","key":"second.pdf"}]','proofed')`);
   const DB = { prepare(sql) { const stmt = db.prepare(sql); let args = []; return {
@@ -90,5 +90,17 @@ await test('operator retry recovers the saved message without providing content 
   const response = await send(c, { action: 'retry', text: undefined, subject: undefined });
   assert.equal(response.status, 200); assert.equal(c.calls.length, 1);
   assert.equal(JSON.parse(c.calls[0].options.body).text, message.text);
+});
+await test('a pending revision blocks an old ready email before the replacement is rendered', async c => {
+  c.db.exec(`UPDATE signups SET plan_json='{"changed_at":"now"}'`);
+  assert.equal((await send(c)).status, 409); assert.equal(c.calls.length, 0);
+});
+await test('a revision racing the send claim cannot emit an old ready message', async c => {
+  const prepare = c.env.DB.prepare;
+  c.env.DB.prepare = sql => {
+    if (sql.startsWith("UPDATE email_outbox SET send_status = 'sending'")) c.db.exec(`UPDATE signups SET plan_json='{"changed_at":"now"}'`);
+    return prepare(sql);
+  };
+  const result = await (await send(c)).json(); assert.equal(result.delivery.accepted, false); assert.equal(c.calls.length, 0);
 });
 console.log(`${passed} creator proof-email checks passed`);
