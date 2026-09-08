@@ -67,6 +67,16 @@ A seven-image OpenRouter `anthropic/claude-opus-5` critique completed (9,950 inp
 - Initial dirty-file backup: `output/site-integration/before/`.
 - Vault pickup and permanent screenshots: `05-Projects/Substack Magazine/site-implementation-2026-09-07.md`.
 
+## Live sample correction
+
+The design release `4f09178` completed in GitHub run `34174900620`. Post-release checks passed the asset hashes, publication previews and 84 live honesty/API assertions, but exposed a direct-only sample request that failed from Cloudflare for relay-served publications.
+
+The correction adds a separate public-sample endpoint to the existing authenticated Modal relay. Requests are signed for the exact cached host, slug, post ID and a five-minute time bucket. Both relay and Pages Function revalidate the public post identity and audience. The existing excerpt sanitizer, 2 MB limit, two-candidate bound and fresh-preview requirement remain. Known relay-served archives immediately use their working route; direct archives can fall back within the reader's time budget. Archive reads are unchanged.
+
+The same live check found a missing owner logo: the archive relay omitted `logo_url` from verified publication metadata when the homepage read failed. That field now survives the relay; preview schema 10 and relay result schema 2 invalidate incomplete cached identity.
+
+Targeted validation: 22 sample/design assertions, eight relay tests and 21 archive-paging checks. GitHub runs these in its complete unit chain. The new Modal endpoint must be deployed and checked before the protected Cloudflare API release. Final live-reader verification and release records are saved in the vault implementation note.
+
 ## Release status
 
 The owner explicitly requested “push it to inksheaf.com” after reviewing the implemented design. The approved source, assets, guide and evidence are staged for the existing PR. Earlier local experiments remain outside this release. Merge follows green GitHub checks; production follows the existing manual workflow and protected-environment review. Final run and deployed commit are recorded in the vault implementation note.

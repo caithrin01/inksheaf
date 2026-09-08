@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { PREVIEW_SCHEMA_VERSION } from "../functions/lib/publication-identity.js";
 // Regression test for the understandingai.org incident (2026-09-01 15:27 PDT). The direct
 // archive read failed on a retryable status, the relay failed three times in 31s, and the
 // page told the writer "Could not find a Substack archive there. Check the address?" for a
@@ -89,7 +90,7 @@ try {
 
   // 3. stale cache still serves through an outage
   directStatus = 503;
-  r = await call({ DB: fakeDb({ summary_version: 9, marker: "stale-row", host: HOST }), ARCHIVE_RELAY_TOKEN: TOKEN });
+  r = await call({ DB: fakeDb({ summary_version: PREVIEW_SCHEMA_VERSION, marker: "stale-row", host: HOST }), ARCHIVE_RELAY_TOKEN: TOKEN });
   ok("stale cache row served during an outage", r.status === 200 && r.body.marker === "stale-row" && r.body.stale === true,
     `status ${r.status} error ${r.body.error}`);
 

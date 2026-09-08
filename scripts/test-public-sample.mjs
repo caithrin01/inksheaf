@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHmac} from 'node:crypto';
 import {publicExcerpt} from '../functions/lib/public-excerpt.js';
 import {onRequest} from '../functions/api/sample.js';
 import {PREVIEW_SCHEMA_VERSION} from '../functions/lib/publication-identity.js';
@@ -19,7 +20,7 @@ const DB={ prepare(sql) { return {
 }; }};
 const original=globalThis.fetch;globalThis.fetch=async(url,opts)=>{fetched++;assert.equal(opts.redirect,'manual');return reply(url);};
 const request=new Request('https://inksheaf.invalid/api/sample?url=example.substack.com');
-async function call(){return onRequest({request,env:{DB}});}
+async function call(env={}){return onRequest({request,env:{DB,...env}});}
 try{
  let r=await call(),j=await r.json();check('confirmed post body returns source and real text',()=>{assert.equal(r.status,200);assert.match(j.html,/Real/);assert.equal(j.source,'https://example.substack.com/p/a-real-essay');});
  reply=()=>new Response(JSON.stringify({...post,id:99}));r=await call();check('mismatched post ID rejected',()=>assert.equal(r.status,422));
@@ -28,5 +29,20 @@ try{
  reply=url=>url.includes('www.example')?new Response(JSON.stringify(post)):new Response('',{status:301,headers:{location:'https://www.example.substack.com/api/v1/posts/'+post.slug}});r=await call();check('www alias redirect accepted for same post only',()=>assert.equal(r.status,200));
  expired=true;fetched=0;r=await call();check('expired preview cannot initiate a body read',()=>{assert.equal(r.status,422);assert.equal(fetched,0);});expired=false;
  snapshot={...snapshot,summary_version:PREVIEW_SCHEMA_VERSION-1};fetched=0;r=await call();check('old wrong-identity caches do not supply excerpts',()=>{assert.equal(r.status,422);assert.equal(fetched,0);});
+ snapshot={...snapshot,summary_version:PREVIEW_SCHEMA_VERSION};
+ const secret='local-public-sample-fixture',relayHost='caithrin--inksheaf-archive-relay-sample.modal.run';let relayedUrl;
+ reply=url=>{const u=new URL(url);if(u.hostname!==relayHost)return new Response('',{status:403});relayedUrl=u;return new Response(JSON.stringify(post));};
+ fetched=0;r=await call({ARCHIVE_RELAY_TOKEN:secret});j=await r.json();check('blocked direct sample uses authenticated relay and remains sanitized',()=>{
+   assert.equal(r.status,200);assert.equal(fetched,2);assert.doesNotMatch(j.html,/script|onclick|tracker/);
+   assert.equal(relayedUrl.searchParams.get('host'),snapshot.host);assert.equal(relayedUrl.searchParams.get('slug'),post.slug);assert.equal(relayedUrl.searchParams.get('post_id'),'12');
+   const bucket=Math.floor(Date.now()/300000),sig=relayedUrl.searchParams.get('sig');assert([bucket,bucket-1].some(b=>sig===createHmac('sha256',secret).update(`${snapshot.host}:sample:${post.slug}:12:${b}`).digest('hex')));
+ });
+ snapshot={...snapshot,fetch_mode:'relay'};fetched=0;r=await call({ARCHIVE_RELAY_TOKEN:secret});check('relayed publication uses its working path immediately',()=>{assert.equal(r.status,200);assert.equal(fetched,1);});
+ for(const edit of [{id:99},{slug:'different-post'},{audience:'only_paid'},{is_published:false}]){
+   reply=()=>new Response(JSON.stringify({...post,...edit}));r=await call({ARCHIVE_RELAY_TOKEN:secret});check('relayed post revalidates '+Object.keys(edit)[0],()=>assert.equal(r.status,422));
+ }
+ reply=()=>new Response('',{status:302,headers:{location:'https://example.substack.com/api/v1/posts/'+post.slug}});fetched=0;r=await call({ARCHIVE_RELAY_TOKEN:secret});check('relay redirect is never followed',()=>{assert.equal(r.status,422);assert.equal(fetched,1);});
+ reply=()=>new Response('{}',{headers:{'content-length':'2000001'}});r=await call({ARCHIVE_RELAY_TOKEN:secret});check('oversized relay response rejected',()=>assert.equal(r.status,422));
+ snapshot={...snapshot,sample:[{id:-1,slug:post.slug},{id:12,slug:'../secret'}]};fetched=0;r=await call({ARCHIVE_RELAY_TOKEN:secret});check('invalid cached IDs and slugs never reach relay',()=>{assert.equal(r.status,422);assert.equal(fetched,0);});
 }finally{globalThis.fetch=original;}
 console.log(`${count} public sample and design checks passed`);
