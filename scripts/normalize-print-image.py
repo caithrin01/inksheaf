@@ -32,7 +32,11 @@ with tempfile.TemporaryDirectory(prefix='inksheaf-image-') as tmp:
             command = ['heif-convert', a.source, decoded]
         else:
             raise RuntimeError('Image needs an HEIC-capable decoder (sips, ImageMagick or heif-convert).')
-        subprocess.run(command, check=True, capture_output=True, timeout=60)
+        try:
+            subprocess.run(command, check=True, capture_output=True, timeout=60)
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or error.stdout or b'').decode('utf8', errors='replace').strip()
+            raise RuntimeError(f'{command[0]} could not decode the image: {detail[:600]}') from error
         im = Image.open(decoded)
         im.load()
     im = ImageOps.exif_transpose(im).convert('RGBA')
