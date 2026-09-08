@@ -4,9 +4,9 @@ import { onRequest } from "../functions/api/approve.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const NONCE = "a".repeat(36);
 function db() {
-  const state = { versions: { 5: { id: 5, signup_id: 9, status: "proofed", pages: 150, print_mode: "bw", volumes: JSON.stringify([{ label: "2025–26", pages: 150 }]), proof_sha256: "f".repeat(64), approval_nonce: NONCE } }, writes: [] };
+  const state = { versions: { 5: { id: 5, signup_id: 9, status: "proofed", pages: 150, print_mode: "bw", plan_json: "{}", volumes: JSON.stringify([{ label: "2025–26", pages: 150 }]), proof_sha256: "f".repeat(64), approval_nonce: NONCE } }, writes: [] };
   const api = { prepare(sql) { let args = []; return { bind(...a) { args = a; return this; },
-    async first() { if (/FROM edition_versions/.test(sql)) return state.versions[args[0]] || null; if (/FROM signups/.test(sql)) return { publication_url: "https://www.example.com", email: "w@example.com", plan_json: "{}" }; return null; },
+    async first() { if (/ORDER BY id DESC/.test(sql)) return { id: 5 }; if (/FROM edition_versions/.test(sql)) return state.versions[args[0]] || null; if (/FROM signups/.test(sql)) return { publication_url: "https://www.example.com", email: "w@example.com", plan_json: "{}", email_verified_at: "2026-09-08 00:00:00" }; return null; },
     async run() { state.writes.push(sql.slice(0, 60));
       if (/UPDATE edition_versions SET status = 'approved'/.test(sql)) { const v = state.versions[args[1]]; if (v && v.status === "proofed" && v.approval_nonce === args[2]) { v.status = "approved"; v.approval_nonce = null; return { meta: { changes: 1 } }; } return { meta: { changes: 0 } }; }
       return { meta: { changes: 0 } }; } }; } };
