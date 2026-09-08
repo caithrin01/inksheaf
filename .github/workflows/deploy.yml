@@ -135,7 +135,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: real-browser-acceptance-${{ github.sha }}
-          path: output/playwright/launch
+          # This repository is public. Retain pass/fail records, not screenshots
+          # of books generated from other publications' real archive reads.
+          path: output/playwright/launch/real-journeys-*/results.json
           if-no-files-found: ignore
           retention-days: 14
       - name: Migrate the production database
@@ -166,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: production-browser-${{ github.sha }}
-          path: output/playwright/production
+          path: output/playwright/production/results.json
           if-no-files-found: ignore
           retention-days: 14
       - name: Record the release
