@@ -62,7 +62,8 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, host = "" } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], host = "" } = opts;
+  const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
@@ -155,12 +156,12 @@ export function emitTypst(html, opts = {}) {
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
     const id = attr(imgEl, "data-fig") || src;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
-    const tagFor = extra => `#layout(sz => context [#metadata((id: ${str(id)}, page: here().page(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])`;
+    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, page: here().page(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
+    const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     if (isLast && figTotal > 0) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* the last figure stays in flow, before the notes */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
@@ -186,6 +187,10 @@ export function emitTypst(html, opts = {}) {
     if (!isEl(n)) return "";
     const c = cls(n);
     if (n.name === "script" || n.name === "style") return "";
+    // Empty editor paragraphs/headings are not intentional print spacing. A trailing
+    // empty heading can otherwise create a whole page containing only a running head.
+    if (/^(p|h[1-6])$/.test(n.name) && !textOf(n).trim() &&
+        !find(n, k => isEl(k) && k.name === 'img')) return '';
     if (has(n, "footnote") && n.name === "div") return ""; /* collected beforehand */
     if (has(n, "footnote-container")) return "";
     if (has(n, "linknote")) {
@@ -220,15 +225,31 @@ export function emitTypst(html, opts = {}) {
         const t = kids(n).map(k => inline(k)).join("").trim();
         let s = "";
         for (const im of imgs) s += figureOf(im, "");
-        if (t) s += (has(n, "verse") ? `#block(text(hyphenate: false)[${kids(n).map(k => inline(k)).join("")}])\n\n` : t + "\n\n");
+        const exampleLead = textOf(n).trim().length <= 160 && /(?:^\s*Before:|\b(?:Before|After):\s*$)/i.test(textOf(n));
+        if (t) s += (exampleLead ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${kids(n).map(k => inline(k)).join("")}])\n\n` : t + "\n\n");
         return s;
       }
       case "h1": case "h2": return `== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
-      case "h3": case "h4": case "h5": case "h6": return `=== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
+      case "h3": case "h4": case "h5": case "h6": {
+        const content = kids(n).map(k => inline(k)).join('').trim();
+        // Substack authors sometimes use H5/H6 as small-print paragraphs. Making a
+        // whole disclaimer into consecutive sticky headings strands half a page.
+        if (['h5','h6'].includes(n.name) && textOf(n).trim().length > 160)
+          return `#block(above: 0.5em, below: 0.5em, breakable: true)[#set par(first-line-indent: 0em, justify: false); #text(size: 9.5pt)[${content}]]\n\n`;
+        return `=== ${content}\n\n`;
+      }
       case "ul": case "ol": { hoisted = []; const l = list(n, n.name === "ol"); const h = hoisted.join(""); hoisted = []; return l + "\n" + h; }
       case "blockquote": return `#quote(block: true)[\n${kids(n).map(block).join("").trim()}\n]\n\n`;
-      case "pre": return `#raw(block: true, ${str(textOf(n).replace(/\n$/, ""))})\n\n`;
-      case "hr": return `#v(0.4em)\n#align(center, text(fill: rgb("${RUBRIC}"), size: 10pt)[❦])\n#v(0.4em)\n\n`;
+      case "pre": {
+        if (!has(n, 'preformatted-text')) return `#raw(block: true, ${str(textOf(n).replace(/\n$/, ""))})\n\n`;
+        // Preserve verse lineation and keep a normal stanza together at a page turn.
+        // Long preformatted passages can still break; they must never exceed the page.
+        return textOf(n).trimEnd().split(/\n[ \t]*\n/).map(stanza => {
+          const lines = stanza.split('\n');
+          return `#block(width: 100%, breakable: ${lines.length > 12 || stanza.length > 650}, above: 0.7em, below: 0.7em)[#set par(justify: false, first-line-indent: 0em, leading: 0.5em); #set text(hyphenate: false); ${lines.map(line => `#text(${str(line || ' ')})`).join(' \\\n')}]\n\n`;
+        }).join('');
+      }
+      case "hr": return `#block(above: 0.5em, below: 0.5em)[#align(center)[#line(length: 14pt, stroke: 0.5pt + rgb("${RULE}"))]]\n\n`;
       case "img": return figureOf(n, "");
       case "figure": {
         const im = find(n, k => isEl(k) && k.name === "img"); const fc = find(n, k => isEl(k) && k.name === "figcaption");
@@ -268,15 +289,27 @@ export function emitTypst(html, opts = {}) {
     const sub = head && find(head, k => has(k, "artsub")); const meta = head && find(head, k => has(k, "artmeta"));
     const bodyEl = find(sec, k => isEl(k) && has(k, "artbody")) || sec;
     const T = title ? textOf(title).trim() : `Untitled ${index + 1}`; curTitle = T;
-    let s = `#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${str(meta ? textOf(meta).replace(/\s+/g, " ").trim() : "")}${index === 0 ? ", first: true" : ""}, index: ${index + 1})\n`;
+    // Copyright/contents and a previous article's endnotes have their own settings.
+    // Restore the body explicitly so their small type and ragged paragraphs cannot leak.
+    const leading = Math.min(.66, Math.max(.54, Number(fitText[index + 1]) || .66)).toFixed(2);
+    const metaText = meta ? textOf(meta).replace(/\s+/g, ' ').trim() : '';
+    const metaArg = linksAtBack.has(index + 1) ? `[${esc(metaText)} · Links on page #context counter(page).at(<links-${index + 1}>).first()]` : str(metaText);
+    const blockSpace = (.5 * Number(leading) / .66).toFixed(2);
+    const headSpace = Math.max(.2, .55 - (.66 - Number(leading)) * 3).toFixed(2);
+    // At the tightest fit this is -15 units per em, a small copy-fitting adjustment.
+    const tracking = (-(.66 - Number(leading)) / 8).toFixed(3);
+    const compact = Number(leading) <= .58 && textOf(bodyEl).trim().split(/\s+/).length < 600;
+    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact})\n`;
     s += kids(bodyEl).map(block).join("");
     /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
-    s += kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join("");
+    const linkBlocks = kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join('');
+    if (linkBlocks && linksAtBack.has(index + 1)) collectedLinks.push({n:index + 1,title:T,body:linkBlocks});
+    else if (linkBlocks) s += `#context [#metadata((n: ${index + 1}, page: here().page())) <linkstart>]\n${linkBlocks}`;
     if (endnotes.length) {
       s += `#v(0.8em)\n#line(length: 30%, stroke: 0.5pt + rgb("${RULE}"))\n#v(0.3em)\n#set text(size: 8.5pt)\n#set par(first-line-indent: 0em)\n`;
       s += endnotes.map(e => `#box(width: 1.4em)[#super[${esc(e.num)}]] ${e.note}\n\n`).join("");
     }
-    s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]\n`;
+    s += `#block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]]\n`;
     return s + "\n";
   }
 
@@ -355,18 +388,18 @@ export function emitTypst(html, opts = {}) {
 #set enum(indent: 1em, spacing: 0.5em)
 #set footnote.entry(separator: line(length: 30%, stroke: 0.5pt + rgb("${RULE}")), indent: 0em, gap: 0.5em)
 #show footnote.entry: set text(size: 8.5pt)
-#let arthead(n, title, sub, meta, first: false, index: 0) = {
+#let arthead(n, title, sub, meta, first: false, index: 0, headspace: 0.55in, compact: false) = {
   if not first { place.flush() } /* no float from the previous essay crosses into this one */
   pagebreak(weak: true)
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
   arttitle.update(title)
-  v(0.55in)
-  if n != none { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
+  v(headspace)
+  if n != none and not compact { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
   context [#metadata((n: index, page: here().page())) <artstart>] /* the opener page, measured here in the head */
   block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
-  block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
+  block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
 #let partpage(kind, title) = page(header: none, footer: none)[ #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
 #let fmpage(body) = page(header: none, footer: none, body)
@@ -392,6 +425,10 @@ export function emitTypst(html, opts = {}) {
   if (backNotes.length) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[NOTES]\n#v(0.8em)\n#set par(first-line-indent: 0em, justify: false)\n`);
     for (const b of backNotes) out.push(`#text(size: 9.5pt, weight: 600)[${esc(b.title)}]\n${b.blk}`);
+  }
+  if (collectedLinks.length) {
+    out.push('#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[LINKS]\n#v(0.8em)\n');
+    for (const item of collectedLinks) out.push(`#block(sticky: true, above: 1em)[#text(size: 11pt, weight: 600)[${item.n}. ${esc(item.title)}]] <links-${item.n}>\n${item.body}`);
   }
   if (fm.appendix) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[FROM THE COMMENTS]\n#v(0.8em)\n`);

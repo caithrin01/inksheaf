@@ -41,6 +41,7 @@ const ISBN = (() => { const raw = String(argOf("--isbn") || "").replace(/[^0-9Xx
 if (argOf("--isbn") && !ISBN) console.error("--isbn ignored: not a 10- or 13-digit ISBN:", argOf("--isbn"));
 const AFTER = argOf("--after"), BEFORE = argOf("--before");
 const BW = process.argv.includes("--interior-bw");
+const DIRECT_LINKS = process.argv.includes("--direct-links"); // private proofs need no redirect registration
 const COVER_PHOTO = process.argv.includes("--cover-photo");
 const TOP = argOf("--top") ? +argOf("--top") : null;
 // --posts <file.json>: an exact post list (ids or slugs, in reading order) from an editorial
@@ -225,7 +226,7 @@ const B = {
 };
 if (COVER_DESIGN) Object.assign(B, { bodyFont: 'Source Serif 4', headingFont: 'Source Serif 4', headingWeight: 560, accent: '#26251f' });
 B.coverRule = B.coverBg && contrastHex(B.accent, B.coverBg) >= 3 ? B.accent : (B.coverInk || "#a63a2b");
-if (!FIXTURE) {
+if (!FIXTURE || publicationFromArchive(full,host)) {
   pubName = publicationLabel(publicationFromHomepage(home,host,full)) || publicationLabel(publicationFromArchive(full,host));
   if (!pubName) throw new Error("Could not confirm the publication name; refusing to print an author name as its masthead.");
 }
@@ -326,14 +327,19 @@ for (const p2 of full) {
 /* parts: month sections for letters; named sections when a publication truly uses them */
 const distinctSections = [...new Set(full.map(p2 => p2.section_name).filter(Boolean))];
 const sectionCoverage = full.filter(p2 => p2.section_name).length / Math.max(1, full.length);
-let partOf = null, partTitles = [];
+let partOf = null, partTitles = [], inlineSections = false;
 if (kind === "letters") {
   partOf = p2 => new Date(Date.parse(p2.post_date)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 } else if (distinctSections.length >= 2 && sectionCoverage >= 0.6) {
-  partOf = p2 => p2.section_name || "General";
+  const runs = full.filter((p2, i) => !i || (p2.section_name || 'General') !== (full[i-1].section_name || 'General'));
+  // Recurring columns alternate within a chronological collection. A fresh part leaf
+  // on every change wastes pages and repeats duplicate anchors; keep their labels inline.
+  inlineSections = runs.length > distinctSections.length || full.length / runs.length < 2;
+  if (!inlineSections) partOf = p2 => p2.section_name || "General";
 }
 if (partOf) for (const p2 of full) { const t = partOf(p2); if (!partTitles.includes(t)) partTitles.push(t); }
 report.parts = partTitles;
+if (inlineSections) report.inlineSections = distinctSections;
 let authorLine = author;
 if (multi) {
   const cut = Math.max(2, Math.ceil(full.length * 0.1));
@@ -431,7 +437,7 @@ function clean(html, slug) {
     if (/class="[^"]*(footnote-anchor|fn)\b/.test(attrs) || /<img\b/i.test(inner)) return m;
     const href = (attrs.match(/href="([^"]+)"/) || [])[1] || ""; const target = normalizeUrl(href);
     if (!target) return inner; /* an anchor without a usable target keeps its words only */
-    const text = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    const text = decodeEntities(inner.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
     if (!text) return inner;
     let L = found.find(f => f.target === target)?.letter; if (!L) { L = letter(li++); found.push({ letter: L, target, text: text.slice(0, 120) }); }
     return `<a href="${href}" data-link="${L}">${inner}</a>`;
@@ -499,7 +505,7 @@ if (COMMENTS_N > 0 && !FIXTURE) {
 
 /* ---------------- QR codes ---------------- */
 const qrPub = await QRCode.toDataURL(`https://${host}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } });
-const qrInk = await QRCode.toDataURL("https://inksheaf.pages.dev", { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } });
+const qrInk = await QRCode.toDataURL("https://inksheaf.com", { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } });
 
 /* ---------------- assemble ---------------- */
 const dates = full.map(p => Date.parse(p.post_date)).sort((a, b) => a - b);
@@ -558,6 +564,7 @@ if (partOf) {
 const { detectNotes, askModel } = await import("./lib/notes-detect.mjs");
 const NOTES = new Map(); report.notesBlocks = [];
 const LINKS = new Map(); report.links = []; report.essayLinks = [];
+report.linkMode = DIRECT_LINKS ? 'direct' : 'redirect';
 for (const p of full) {
   let d = detectNotes(p.body_html || ""); let how = d ? d.method : null;
   if (d && d.method === "ambiguous") { const m = await askModel(d.heading, (p.body_html || "").slice(d.start)); how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null; }
@@ -573,13 +580,15 @@ async function withLinkNotes(articlesHtml) {
     const found = LINKS.get(p.slug) || [];
     const canon = normalizeUrl(p.canonical_url || `https://${host}/p/${p.slug}`);
     const essayCode = canon ? await linkCode(canon) : null;
-    if (essayCode) report.essayLinks.push({ slug: p.slug, code: essayCode, target: canon });
+    if (essayCode && !DIRECT_LINKS) report.essayLinks.push({ slug: p.slug, code: essayCode, target: canon });
     if (!found.length) continue;
     const rows = [];
-    for (const f of found) { const code = await linkCode(f.target); report.links.push({ slug: p.slug, letter: f.letter, code, target: f.target, text: f.text });
-      rows.push(`<li><span class="lk">${f.letter}</span><span class="lk-text">${esc(f.text)}</span><span class="lk-url">${SHORT_HOST}${code}</span><span class="lk-target" data-target="${esc(f.target)}"></span></li>`); }
-    const qr = essayCode ? await QRCode.toDataURL(`https://${SHORT_HOST}${essayCode}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } }) : null;
-    const note = `<section class="linknote"><h2 class="linknote-h">Links</h2><ul>${rows.join("")}</ul>${qr ? `<div class="lk-qr"><img src="${qr}" alt="QR: this essay online"><span class="lk-essay">${SHORT_HOST}${essayCode}</span></div>` : ""}</section>`;
+    for (const f of found) { const code = await linkCode(f.target);
+      if (!DIRECT_LINKS) report.links.push({ slug: p.slug, letter: f.letter, code, target: f.target, text: f.text });
+      const label = DIRECT_LINKS ? new URL(f.target).hostname.replace(/^www\./, '') : SHORT_HOST + code;
+      rows.push(`<li><span class="lk">${f.letter}</span><span class="lk-text">${esc(f.text)}</span><span class="lk-url">${esc(label)}</span><span class="lk-target" data-target="${esc(f.target)}"></span></li>`); }
+    const qr = essayCode ? await QRCode.toDataURL(DIRECT_LINKS ? canon : `https://${SHORT_HOST}${essayCode}`, { margin: 0, width: 220, color: { dark: "#221d16", light: "#0000" } }) : null;
+    const note = `<section class="linknote"><h2 class="linknote-h">Links</h2><ul>${rows.join("")}</ul>${qr ? `<div class="lk-qr"><img src="${qr}" alt="QR: this essay online"><span class="lk-essay">${DIRECT_LINKS ? 'Read online' : SHORT_HOST + essayCode}</span></div>` : ""}</section>`;
     const marker = `<section class="article" id="art-${full.indexOf(p)}">`;
     const i = out.indexOf(marker); if (i < 0) continue;
     const end = out.indexOf("</section>", out.indexOf('<div class="artbody">', i));
@@ -600,6 +609,7 @@ const articles = full.map((p, i) => {
   const b = bylinesOf(p).map(x => x.name).join(", ");
   const showBy = multi && b && (dominantShare < 0.5 || b !== author);
   const meta = [
+    inlineSections ? esc(p.section_name || 'General') : null,
     p._dateTitled ? null : dayfmt(Date.parse(p.post_date)),
     (p.wordcount || 0) >= 50 ? (p.wordcount || 0).toLocaleString("en-US") + " words" : null,
     showBy ? (isGuestPost(p) ? "guest post by " : "by ") + esc(b) : null,
@@ -741,7 +751,7 @@ ${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(p
     const every = eligible > 0 && eligible === full.length && cuts === 0;
     return `<p>This volume collects ${every ? "every public" : `${full.length} of the ${eligible || full.length + cuts} public`} ${every ? noun : noun} published at ${host.replace(/^www\./, "")} from
   ${range}${author.toLowerCase() !== pubName.toLowerCase() ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
-  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.${cuts ? ` ${cuts === 1 ? "One piece is" : cuts + " pieces are"} not included${(report.editorExcluded || 0) ? ", " + ((report.editorExcluded === 1) ? "one" : report.editorExcluded) + " by the editor's choice" : ""}; the reasons follow.` : ""}</p>`; })()}
+  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.${cuts ? ` ${cuts === 1 ? "One piece is" : cuts + " pieces are"} not included${(report.editorExcluded || 0) ? ", " + ((report.editorExcluded === 1) ? "one" : report.editorExcluded) + " by the editor's choice" : ""}.` : ""}</p>`; })()}
   ${report.retrievalFailures ? `<p>${report.retrievalFailures} ${report.retrievalFailures === 1 ? nounOne : noun} could not be
   retrieved while this proof was built and will appear in the production edition.</p>` : ""}
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
@@ -750,8 +760,8 @@ ${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(p
   ${report.ruleCuts.length ? `<p>${report.ruleCuts.length === 1 ? "One piece was" : report.ruleCuts.length + " pieces were"} left out by rule: ${(() => { const by = {}; for (const c of report.ruleCuts) by[c.reason] = (by[c.reason] || 0) + 1; return Object.entries(by).map(([r, n]) => n > 1 ? `${n} ${r.replace(/^an? /, "")}s` : r).join(", "); })()}.</p>` : ""}
   ${report.guestCuts.length ? `<p>${report.guestCuts.length === 1 ? "One guest post is" : report.guestCuts.length + " guest posts are"} not included, because a guest owns their piece: ${report.guestCuts.map(g => `“${esc(g.title)}” by ${esc(g.by)}`).join("; ")}.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Linked words carry a
-  small letter, and each essay ends with its links as short addresses and a code to the essay
-  online. Source notes the author wrote into an essay stay with it. Web-only embeds become
+  small letter. ${DIRECT_LINKS ? 'Source names' : 'Short addresses'} and a code opening the original essay appear after the essay${argOf('--back-links') ? ' or in the Links section; the article heading gives the page when references are collected there' : ''}.
+  Source notes the author wrote into an essay stay with it. Web-only embeds become
   printed source notes; media-only pieces remain in the online edition.</p>
   <div class="colophon">${ISBN ? `ISBN ${esc(ISBN)} · ` : ""}Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} ·
   © ${year} ${esc(brand?.copyright || author)}. All rights remain with the author.</div>
@@ -819,8 +829,8 @@ async function worker() {
     const h = crypto.createHash("sha1").update(u).digest("hex").slice(0, 16);
     const ext = /f_jpg|\.jpe?g/i.test(u) ? "jpg" : /\.png/i.test(u) ? "png" : "img";
     const base = `${IMGCACHE}/${h}.${ext}`;
-    const gray = `${IMGCACHE}/${h}-gray.${ext}`;
-    const want = BW ? gray : base;
+    const normalized = `${IMGCACHE}/${h}-print-v2-${BW ? 'gray' : 'color'}.jpg`;
+    const want = normalized;
     try {
       const { existsSync: ex, writeFileSync: wf } = await import("node:fs");
       if (!ex(base)) {
@@ -828,19 +838,10 @@ async function worker() {
         if (!r.ok) throw new Error(r.status);
         wf(base, Buffer.from(await r.arrayBuffer()));
       }
-      /* print mode: originals over 2700 px wide are resampled (300 ppi across the text block is
-         1350 px) so the interior stays sharp and small; the resampled file replaces the base */
-      if (MODE === "print" && !ex(base + ".rs")) {
-        try { execF("python3", ["scripts/resample-image.py", base, base + ".tmp", "2700"], { stdio: "pipe" }); execF("mv", [base + ".tmp", base]);
-          if (ex(gray)) execF("rm", [gray]); /* the grey copy was made from the old file */ } catch (e) { report.resampleFailed = (report.resampleFailed || 0) + 1; }
-        wf(base + ".rs", "1");
-      }
-      if (BW && !ex(gray)) {
-        try {
-          execF("sips", ["-m", "/System/Library/ColorSync/Profiles/Generic Gray Profile.icc",
-            base, "--out", gray], { stdio: "pipe" });
-        } catch { execF("cp", [base, gray]); }
-      }
+      // A guessed extension or grayscale profile does not convert HEIC into a format
+      // Typst can print. Normalize explicitly, retaining the original cache file.
+      if (!ex(normalized)) execF("python3", ["scripts/normalize-print-image.py", base, normalized,
+        ...(BW ? ['--bw'] : []), '--max-width', MODE === 'print' ? '2700' : '5400'], { stdio: "pipe" });
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${relPath(OUTDIR, want)}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
@@ -863,10 +864,15 @@ if (ENGINE === "typst") {
   const { dirname } = await import("node:path");
   /* --fit-figs slug:3=2.1,other:1=3.4 : figures the fit loop asks to scale to a height (inches) */
   const fitFigs = Object.fromEntries(String(argOf("--fit-figs") || "").split(",").filter(Boolean).map(x => { const i = x.lastIndexOf("="); return [x.slice(0, i), Number(x.slice(i + 1))]; }).filter(([k, v]) => k && v > 0));
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, host: host.replace(/^www\./, "") });
+  const fitText = Object.fromEntries(String(argOf('--fit-text') || '').split(',').filter(Boolean).map(x=>x.split('='))
+    .filter(([n, v])=>/^\d+$/.test(n)&&Number(v)>=.54&&Number(v)<=.66).map(([n,v])=>[n,Number(v)]));
+  const backLinks = String(argOf('--back-links') || '').split(',').map(Number).filter(n=>Number.isInteger(n)&&n>0);
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, host: host.replace(/^www\./, "") });
   if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
+  if (Object.keys(fitText).length) report.fitText = fitText;
+  if (backLinks.length) report.backLinkArticles = backLinks;
   writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
-  report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article";
+  report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article"; report.printInterior = PRINT_INTERIOR;
 } else report.engine = "paged";
 { // the printed span, from the posts actually included (consumers: pipeline copy/cover steps)
   const ds = full.map(a => a.post_date || a.date).filter(Boolean).sort();

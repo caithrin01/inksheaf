@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {coverMarkup,coverStyle,coverColors,designSelection,validDesign} from '../functions/lib/book-design.js';
-import {coverLogo,classifyLogoPixels} from '../functions/lib/cover-logo.js';
+import {coverLogo,classifyLogoPixels,contrastingInk} from '../functions/lib/cover-logo.js';
 import {printCoverLogo} from './lib/print-logo.mjs';
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS',name)};
 test('new reservations use version 2; historical version 1 remains valid',()=>{
@@ -44,4 +44,14 @@ const result=await printCoverLogo(designSelection('classic'),{logo_url:'https://
 test('print embeds the same local transparent master without a network fetch',()=>{
  assert.equal(result.logo,'data:image/svg+xml;base64,'+readFileSync('public/book/caithrin-mark-charcoal.svg').toString('base64'));
 });
+
+
+if (JSON.stringify(coverColors('masthead', null)) !== JSON.stringify(coverColors('masthead', {}))) throw Error('Null publication theme must use neutral cover colours');
+
+test('our band labels meet 4.5:1 contrast on original logo grounds',()=>{
+ const luminance=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+ const grounds=['#00891a'];for(let r=0;r<256;r+=17)for(let g=0;g<256;g+=17)for(let b=0;b<256;b+=17)grounds.push('#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''));
+ for(const bg of grounds){const a=luminance(bg),b=luminance(contrastingInk(bg));assert.ok((Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=4.5,bg);}
+});
+
 console.log(`${count} cover version and logo policy checks passed`);

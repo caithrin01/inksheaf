@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "host": "thezvi.substack.com",
+  "publication": "Don't Worry About the Vase",
+  "logo_url": null,
+  "theme": {
+    "cover_bg": "#9a6600",
+    "cover_ink": "#ffffff",
+    "cover_ink2": "#d9d9d9",
+    "accent": "#9a6600",
+    "heading_stack": null
+  }
+}

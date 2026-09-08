@@ -215,6 +215,7 @@ async function runPreview(){
   if (trybtn.disabled) return;
   const raw = tryurl.value.trim();
   if (!raw){ tryerr.textContent = 'Paste your publication URL first.';tryurl.setAttribute('aria-invalid','true');tryurl.focus(); return; }
+  document.dispatchEvent(new CustomEvent('publication-preview-request'));
   tryurl.removeAttribute('aria-invalid');
   editorAsk = null;
   show(1);
@@ -246,6 +247,7 @@ async function runPreview(){
       return;
     }
     await prepareLogo(d);
+    document.dispatchEvent(new CustomEvent('hero-publication-preview', {detail:{raw,publication:d}}));
     previewData = d;
     beacon('preview_ok', d.host);
     stageOff(); document.getElementById('preview')!.classList.remove('staging');
@@ -621,7 +623,7 @@ function drawPlan(){
   const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
   (document.getElementById('pv-price') as HTMLElement).textContent =
     'Estimated printing: ' + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' per copy') +
-    '. Shipping: ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + ', mainland US, to one address. At cost during the beta.';
+    '. Shipping: ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + ', mainland US, to one address. At cost during the beta. Lulu confirms fees and tax before payment.';
   (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : (ed.pending ? 'Planned by the calendar · our editor is reading your archive' : 'Planned by the calendar');
   const E = editionView(d, plan.cadence);
   paintCover(d, E);
@@ -644,7 +646,7 @@ function renderDesk(d: any){
     el.hidden = true; reason.textContent = '';
     (document.getElementById('pv-price') as HTMLElement).innerHTML =
       'Estimated printing: <b>about $' + Math.round(priceFor(d.est_pages, 'bw')) + '</b>' +
-      '<span class="sub">Shipping and tax are calculated by Lulu.</span>';
+      '<span class="sub">Shipping, fees and tax are calculated by Lulu.</span>';
     return;
   }
   const feasible = ['single','quarterly','monthly'].filter(k => d.divisions[k] && d.divisions[k].feasible);
@@ -723,7 +725,7 @@ function drawDesk(){
   (document.getElementById('pv-price') as HTMLElement).textContent =
     'Readers pay print cost plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) +
     (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
-    'Beta editions sell at cost; your margin comes at launch.';
+    'Beta editions sell at cost. Lulu confirms fees and tax before payment.';
   const E = editionView(d, desk.cadence);
   paintCover(d, E);
   paintEditionCopy(d, E);

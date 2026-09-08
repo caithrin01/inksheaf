@@ -32,11 +32,13 @@ const example={host:'caithrin.com',logo_url:'/book/example-caithrin-logo.png',th
         <div class="physical-book hero-book hero-book-back"><div class="cover-face" data-design="field" style={coverStyle('field',theme,'caithrin')} set:html={coverMarkup({...example,...coverLogo(example,'field')})} /></div>
         <div class="physical-book hero-book hero-book-front"><div class="cover-face" data-design="masthead" style={coverStyle('masthead',theme,'caithrin')} set:html={coverMarkup({...example,...coverLogo(example,'masthead')})} /></div>
       </div>
-      <figcaption><span>caithrin · Collected essays</span><span>6 × 9 in. · Cover visualizations</span></figcaption>
+      <figcaption><span data-publication-caption>caithrin · Collected essays</span><span>6 × 9 in. · Cover visualizations</span></figcaption>
     </figure>
   </section>
 </div>
 <script>
+import { startLivePublication } from '../lib/live-publication';
+startLivePublication();
 for(const button of document.querySelectorAll('[data-hero-try]'))button.addEventListener('click',()=>{
  const input=document.getElementById('tryurl') as HTMLInputElement;
  input.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'center'});input.focus({preventScroll:true});

@@ -30,4 +30,9 @@ t = run(`<div class="new-widget" data-component-name="FutureBlockToDOM"><p>keep 
 ok(/keep me/.test(t.out) && t.r.components.FutureBlockToDOM === 1, "unknown block left alone and counted: " + JSON.stringify(t.r.components));
 t = run(`<div class="file-embed-wrapper"><a class="file-embed-button" href="https://cdn/paper.pdf"><span class="file-embed-details-h1">paper.pdf</span></a></div>`);
 ok(/Attachment: paper\.pdf · cdn\/paper\.pdf/.test(t.out), "file embed becomes an attachment line: " + t.out.slice(0, 120));
+t = run(`<div class="preformatted-block" data-component-name="PreformattedTextBlockToDOM"><label class="hide-text">Text within this block will maintain its original spacing when published</label><pre class="text">First line
+  indented &amp; intact
+
+Last line</pre></div>`);
+ok(!/maintain its original|<label/.test(t.out) && /preformatted-text/.test(t.out) && t.out.includes("First line\n  indented &amp; intact\n\nLast line"), "plain preformatted text preserves lineation and drops the editor hint: " + t.out);
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

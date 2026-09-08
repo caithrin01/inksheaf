@@ -26,7 +26,7 @@ jobs:
         run: |
           curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
           sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
-          sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
+          sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil libheif-examples > /dev/null
           python3 -m pip install --quiet pymupdf
       - run: npm run test:preview:unit
       - run: node scripts/test-typst-fixtures.mjs
@@ -112,6 +112,31 @@ jobs:
           HAVE=$( (cd dist && find . -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -d' ' -f1)
           [ "$HAVE" = "${{ needs.checks.outputs.sha256 }}" ] || { echo "artifact digest differs: $HAVE vs ${{ needs.checks.outputs.sha256 }}"; exit 1; }
           echo "artifact digest verified: $HAVE"
+      - name: Install browsers for real public-read acceptance
+        run: npx playwright install --with-deps chromium webkit
+      - name: Candidate browser gate with real public archives
+        env:
+          ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
+          INKSHEAF_REVIEW_PORT: 8852
+          INKSHEAF_REVIEW_PUBLIC_READS: 1
+          INKSHEAF_REVIEW_RELAY: 1
+        run: |
+          mkdir -p output/playwright/launch/real-reads
+          node scripts/review-launch.mjs > output/playwright/launch/real-reads/server.log 2>&1 &
+          REVIEW_PID=$!
+          trap 'kill "$REVIEW_PID" 2>/dev/null || true' EXIT
+          for i in 1 2 3 4 5; do curl --fail --silent http://127.0.0.1:8852/ -o /dev/null && break; sleep 1; done
+          node scripts/test-journeys.mjs chromium http://127.0.0.1:8852/
+          node scripts/test-journeys.mjs webkit http://127.0.0.1:8852/
+          node scripts/test-inputs.mjs chromium http://127.0.0.1:8852/
+      - name: Real browser gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-browser-acceptance-${{ github.sha }}
+          path: output/playwright/launch
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Migrate the production database
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -131,6 +156,18 @@ jobs:
           sleep 20
           for i in 1 2 3 4 5 6; do H=$(curl -s https://inksheaf.com/api/preview?url=caithrin.com -o /dev/null -w '%{http_code}'); [ "$H" = "200" ] && break; sleep 15; done
           curl -s -o /dev/null -w 'inksheaf.com -> %{http_code}\n' https://inksheaf.com/
+      - name: Production browser verification with real public reads
+        env:
+          INKSHEAF_JOURNEY_OUT: output/playwright/production
+        run: node scripts/test-journeys.mjs chromium https://inksheaf.com/
+      - name: Production browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-browser-${{ github.sha }}
+          path: output/playwright/production
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Record the release
         run: |
           {

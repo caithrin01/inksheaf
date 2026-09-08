@@ -2,7 +2,7 @@
 // Hostile-input battery (beta-launch-readiness Track B), frozen from the Phase 1/2 sweeps.
 // Every row is typed into the real page in a real browser. Pass condition per row: the
 // expected outcome (a personalized preview, or an honest message matching the regex),
-// the specimen book still visible, the hand-built offer shown on every failure, and zero
+// the homepage cover visualization still visible, the hand-built offer shown on every failure, and zero
 // pageerrors. Runs against production by default; pass a base URL to gate a preview deploy.
 // Usage: node scripts/test-inputs.mjs [chromium|webkit|firefox] [base]
 import { strict as assert } from "node:assert";
@@ -41,17 +41,20 @@ const rows = [
 const pw = await import("playwright");
 const browser = await pw[engineName].launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+await ctx.route('**/api/**', route => ['GET', 'HEAD'].includes(route.request().method()) ? route.continue() : route.fulfill({ json: { ok: true } }));
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(String(e).slice(0, 140)));
 await page.goto(base + "/");
 
-let failures = 0;
+let failures = 0, attempted = 0;
 for (const [name, input, expect] of rows) {
   if (only && !only.test(name)) continue;
+  attempted++;
   const before = errors.length;
   const t0 = Date.now();
   try {
+    await page.goto(base + "/");
     await page.fill("#tryurl", input);
     await page.click("#trybtn");
     await page.waitForFunction(() =>
@@ -64,10 +67,10 @@ for (const [name, input, expect] of rows) {
     const state = await page.evaluate(() => ({
       personalized: document.getElementById("preview").classList.contains("personalized"),
       err: document.getElementById("tryerr").textContent.trim(),
-      bookVisible: (() => { const r = document.getElementById("bookwrap").getBoundingClientRect(); return r.width > 50 && r.height > 50; })(),
+      bookVisible: (() => { const r = document.querySelector(".hero-book-front").getBoundingClientRect(); return r.width > 50 && r.height > 50; })(),
       handoffShown: !document.getElementById("tryhandoff").hidden,
     }));
-    assert.ok(state.bookVisible, "specimen book vanished");
+    assert.ok(state.bookVisible, "homepage book vanished");
     if (expect === "preview") {
       assert.ok(state.personalized, "expected a personalized preview, got: " + (state.err || "nothing"));
     } else {
@@ -84,5 +87,5 @@ for (const [name, input, expect] of rows) {
 }
 
 await browser.close();
-console.log(failures ? `INPUT GATE FAILED: ${failures} rows` : `INPUT GATE: ${rows.length} rows passed`);
+console.log(failures ? `INPUT GATE FAILED: ${failures} rows` : `INPUT GATE: ${attempted} rows passed`);
 process.exit(failures ? 1 : 0);

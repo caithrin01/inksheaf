@@ -26,7 +26,7 @@ jobs:
         run: |
           curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
           sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
-          sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
+          sudo apt-get install -y -q poppler-utils python3-pil libheif-examples > /dev/null
       - name: Press
         env:
           INKSHEAF_ENV: production
