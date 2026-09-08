@@ -60,6 +60,7 @@ proofs/fixtures/*.typ
 output/pdf/
 output/private-acceptance/
 output/live-hero/
+output/press-result.json
 node_modules
 
 # Generated renderer fixtures; their source is the test scripts.

@@ -69,5 +69,7 @@ jobs:
         if: always()
         with:
           name: press-${{ github.run_id }}
-          path: proofs/press/**/*.json
+          # This repository is public. Raw reports and outbox payloads can contain private
+          # edition metadata and signed links. Only the redacted result may be retained.
+          path: output/press-result.json
           if-no-files-found: ignore
