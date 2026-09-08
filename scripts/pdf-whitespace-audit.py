@@ -7,7 +7,7 @@ not automatic exemptions. No page is suppressed by a --skip switch.
 """
 import argparse,hashlib,json,subprocess
 from pathlib import Path
-import fitz
+import pymupdf as fitz
 p=argparse.ArgumentParser();p.add_argument('pdf');p.add_argument('--out',required=True);p.add_argument('--typ');a=p.parse_args()
 def query(tag):
     if not a.typ:return []

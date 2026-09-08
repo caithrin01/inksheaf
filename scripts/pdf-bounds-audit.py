@@ -2,7 +2,7 @@
 """Check rendered glyphs/images against physical paper, independent of HTML layout."""
 import argparse,hashlib,json
 from pathlib import Path
-import fitz
+import pymupdf as fitz
 p=argparse.ArgumentParser();p.add_argument('pdf');p.add_argument('--out',required=True);a=p.parse_args()
 doc=fitz.open(a.pdf);bad=[];glyphs=0;images=0;missing=[]
 for number,page in enumerate(doc,1):

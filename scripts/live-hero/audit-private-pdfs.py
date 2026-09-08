@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 from PIL import Image, ImageDraw
 
 root = Path('output/private-acceptance')

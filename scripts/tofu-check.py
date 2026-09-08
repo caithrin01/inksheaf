@@ -3,7 +3,8 @@
 # font covers (upstream issue #5137), and the blank-page gate cannot see tofu because a box is ink.
 # This scans real glyph ids with PyMuPDF get_texttrace; glyph id 0 is .notdef, i.e. tofu.
 # Usage: python3 scripts/tofu-check.py book.pdf   -> exit 0 clean, exit 1 with page/char report.
-import sys, fitz
+import sys
+import pymupdf as fitz
 def main(path):
     doc = fitz.open(path)
     bad = []

@@ -46,7 +46,8 @@ ok(r.ok, 'literary block compiles: '+(r.err||''));
 if(r.ok){
   const t=text(r.pdf);
   ok(/The first line\s+The indented second line\s+The final line/.test(t), 'all verse lines print in source order');
-  const geometry=JSON.parse(execFileSync('python3',['-c',`import fitz,json,sys
+  const geometry=JSON.parse(execFileSync('python3',['-c',`import pymupdf as fitz
+import json,sys
 d=fitz.open(sys.argv[1]); lines=[l for p in d for b in p.get_text('dict')['blocks'] if b['type']==0 for l in b['lines']]; spans=[s for l in lines for s in l['spans']]
 print(json.dumps({'body':[s['size'] for s in spans if 'BodyAfterNotesMarker' in s['text']], 'verse':[s['font'] for s in spans if 'The indented second line' in s['text']]}))`,r.pdf],{encoding:'utf8'}));
   ok(geometry.body.length===1 && Math.abs(geometry.body[0]-10.5)<.01, 'endnote typography cannot leak into the next essay');

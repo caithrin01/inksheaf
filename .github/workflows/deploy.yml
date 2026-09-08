@@ -29,8 +29,8 @@ jobs:
           sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil libheif-examples libheif-plugin-libde265 > /dev/null
           python3 -m pip install --quiet pymupdf
           python3 scripts/test-print-images.py
-      - run: npm run test:preview:unit
       - run: node scripts/test-typst-fixtures.mjs
+      - run: npm run test:preview:unit
       - run: npm run build
       - name: Candidate copy and claim checks
         run: node scripts/test-honesty.mjs --source-only
