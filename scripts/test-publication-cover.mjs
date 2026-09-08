@@ -46,7 +46,7 @@ for (const engine of [chromium, webkit]) {
       await page.locator('#tryurl').fill(fixture.host); await page.locator('#trybtn').click();
       await page.waitForFunction(() => document.querySelector('#pv-mast').textContent.startsWith('Letters about'));
       const fits = await page.evaluate(() => {
-        const mast=document.querySelector('#pv-mast').getBoundingClientRect(), dates=document.querySelector('#pv-dates').getBoundingClientRect(), foot=document.querySelector('#pvbook .cv-footwrap').getBoundingClientRect(), front=document.querySelector('#pvbook .edition-cover').getBoundingClientRect();
+        const mast=document.querySelector('#pv-mast').getBoundingClientRect(), dates=document.querySelector('#pv-dates').getBoundingClientRect(), foot=document.querySelector('#pv-cvpages').getBoundingClientRect(), front=document.querySelector('#pvbook .edition-cover').getBoundingClientRect();
         return mast.bottom<dates.top && dates.bottom<foot.top && foot.bottom<front.bottom;
       });
       if (!fits) throw new Error(`${name}: long publication name and logo overflow the cover`);

@@ -1,0 +1,7 @@
+PASS new reservations use version 2; historical version 1 remains valid
+PASS only confirmed owner hosts use the transparent owner marks
+PASS flat opaque logo background survives a reservation and changes footer contrast
+PASS transparent and complex edges preserve original artwork
+PASS invalid logo settings and unsafe markup cannot enter the cover
+PASS print embeds the same local transparent master without a network fetch
+6 cover version and logo policy checks passed

@@ -10,7 +10,7 @@ check('paid/unpublished/empty bodies never enter sample',()=>{for(const edit of 
 check('whole paragraphs retained, truncation stated',()=>{const x=publicExcerpt({...post,body_html:'<p>'+('a sentence. '.repeat(300))+'</p><p>'+('b sentence. '.repeat(300))+'</p><p>Last paragraph.</p>'});assert.equal(x.truncated,true);assert.ok(x.html.endsWith('</p>'));assert.doesNotMatch(x.html,/Last paragraph/);});
 check('cover title and logo attributes are escaped',()=>{const s=coverMarkup({publication:'<img onerror=bad()>',logo:'javascript:bad()'});assert.doesNotMatch(s,/<img onerror|src="javascript/);assert.match(s,/&lt;img/);});
 check('all four designs have safe versioned snapshots',()=>{for(const d of COVER_DESIGNS){assert.ok(validDesign(designSelection(d.id)));assert.match(coverStyle(d.id,{},'The Fox Says'),/--cover-paper:#[a-f0-9]{6}/);}});
-check('unknown version, design, or palette rejected',()=>{for(const d of [{version:2,cover:'classic'},{version:1,cover:'evil'},{version:1,cover:'classic',palette:{cover_bg:'url(bad)',cover_ink:'#ffffff'}}])assert.equal(validDesign(d),false);});
+check('unknown version, design, or palette rejected',()=>{for(const d of [{version:3,cover:'classic'},{version:1,cover:'evil'},{version:1,cover:'classic',palette:{cover_bg:'url(bad)',cover_ink:'#ffffff'}}])assert.equal(validDesign(d),false);});
 let snapshot={summary_version:PREVIEW_SCHEMA_VERSION,host:'example.substack.com',publication:'Example',sample:[{id:12,slug:post.slug,t:post.title}]};
 let expired=false, fetched=0, reply=()=>new Response(JSON.stringify(post));
 const DB={ prepare(sql) { return {

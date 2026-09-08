@@ -1,0 +1,26 @@
+.section-kicker{font:500 11px/1.5 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cover-collection{padding:85px 0;border-bottom:1px solid var(--hair);scroll-margin-top:30px}
+.collection-heading{display:grid;grid-template-columns:160px minmax(0,1.1fr) minmax(0,.8fr);gap:40px;align-items:start;margin-bottom:55px}
+.collection-heading h2,.interior-heading h2{font:500 clamp(34px,3.4vw,49px)/1.08 var(--sans);letter-spacing:-.055em}
+.collection-heading>p:last-child,.interior-heading>p:last-child{font:400 15px/1.75 var(--sans);color:var(--muted);max-width:39ch}
+.cover-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:34px}
+.cover-specimen{min-width:0;margin:0}.cover-specimen figcaption{padding-top:25px}
+.cover-specimen h3{display:flex;justify-content:space-between;gap:15px;font:500 15px/1.3 var(--sans)}
+.cover-specimen h3 span{font-weight:400;font-size:12px;color:var(--muted)}
+.cover-specimen p{font:400 12px/1.7 var(--sans);color:var(--muted);margin-top:10px;max-width:30ch}
+.collection-foot{display:flex;justify-content:space-between;gap:35px;align-items:center;margin-top:45px;padding-top:25px;border-top:1px solid var(--hair)}
+.collection-foot p{font:400 12px/1.7 var(--sans);color:var(--muted)}
+.text-action{background:none;color:var(--ink);border:0;border-bottom:1px solid currentColor;min-height:44px;padding:10px 0;font:500 14px/1.5 var(--sans)}
+.text-action span{margin-left:20px}
+.interior-story{padding:90px 0 70px;display:grid;grid-template-columns:minmax(0,.6fr) minmax(0,1.4fr);gap:70px;align-items:center}
+.interior-heading .section-kicker{margin-bottom:24px}.interior-heading h2{margin-bottom:27px}.interior-heading>p:last-child{font:400 20px/1.6 var(--serif);max-width:29ch}
+.real-interior{background:var(--stage);padding:35px 28px 24px;margin:0}
+.real-interior img{display:block;width:100%;height:auto;box-shadow:1px 1px 0 #e1dfd4,2px 3px 0 #bbbbae}
+.real-interior figcaption{font:400 11px/1.7 var(--sans);color:var(--muted);text-align:center;max-width:70ch;margin:23px auto 0}
+.edition-process{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:65px;padding:40px 0 0;border-top:1px solid var(--hair)}
+.edition-process>div>span{font:400 12px/1.5 var(--sans);color:var(--muted)}.edition-process h3{font:500 18px/1.4 var(--sans);letter-spacing:-.025em;margin:20px 0 12px}.edition-process p{font:400 14px/1.75 var(--sans);color:var(--muted);max-width:35ch}
+/* A trace of paper belongs behind printed lettering, not to every interface surface. */
+.edition-cover{isolation:isolate}.edition-cover::after{content:'';position:absolute;inset:0;pointer-events:none;background:url('/book/paper-grain.svg');opacity:.55;z-index:-1}
+@media(prefers-contrast:more),print{.edition-cover::after{display:none}}
+@media(max-width:1100px){.collection-heading{grid-template-columns:1fr 1fr;gap:25px}.collection-heading .section-kicker{grid-column:1/-1}.interior-story{gap:35px}.cover-gallery{gap:22px}.edition-process{gap:35px}}
+@media(max-width:720px){.cover-collection{padding:55px 0}.collection-heading{grid-template-columns:1fr;gap:20px;margin-bottom:32px}.collection-heading h2,.interior-heading h2{font-size:35px}.collection-heading>p:last-child{font-size:14px}.cover-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 22px}.cover-specimen figcaption{padding-top:18px}.cover-specimen h3{font-size:13px;gap:8px}.cover-specimen h3 span{font-size:10px}.cover-specimen p{font-size:11px;line-height:1.6}.collection-foot{display:block;margin-top:30px}.collection-foot button{margin-top:20px}.interior-story{grid-template-columns:1fr;padding:55px 0 45px;gap:30px}.interior-heading .section-kicker{margin-bottom:20px}.interior-heading h2{margin-bottom:22px}.interior-heading>p:last-child{font-size:20px;max-width:35ch}.real-interior{margin-inline:-24px;padding:25px 12px 20px}.real-interior figcaption{font-size:10px;padding:0 10px}.edition-process{grid-template-columns:1fr;gap:25px;padding-top:30px}.edition-process>div{display:grid;grid-template-columns:30px 1fr;column-gap:20px}.edition-process h3{margin:0 0 10px;font-size:17px}.edition-process p{grid-column:2}.edition-process>div>span{padding-top:4px}}

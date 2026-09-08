@@ -1,0 +1,34 @@
+[
+  {
+    "design": "masthead",
+    "width": 902.88,
+    "height": 666,
+    "pages": 1,
+    "logo": true,
+    "fit": true
+  },
+  {
+    "design": "classic",
+    "width": 902.88,
+    "height": 666,
+    "pages": 1,
+    "logo": true,
+    "fit": true
+  },
+  {
+    "design": "field",
+    "width": 902.88,
+    "height": 666,
+    "pages": 1,
+    "logo": true,
+    "fit": true
+  },
+  {
+    "design": "midnight",
+    "width": 902.88,
+    "height": 666,
+    "pages": 1,
+    "logo": true,
+    "fit": true
+  }
+]

@@ -13,7 +13,7 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import QRCode from "qrcode";
 import { coverMarkup, coverStyle, coverColors, validDesign } from "../functions/lib/book-design.js";
-import { printLogo } from "./lib/print-logo.mjs";
+import { printCoverLogo } from "./lib/print-logo.mjs";
 import { printFonts } from "./lib/print-assets.mjs";
 
 const pos = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--meta" && all[i - 1] !== "--brand" && all[i - 1] !== "--isbn" && all[i - 1] !== "--design-file");
@@ -120,12 +120,12 @@ h1{ font-weight:500; font-size:38pt; line-height:1.12; margin:.12in 0 0; color:$
 if (DESIGN) {
   const brand=brandPath && existsSync(brandPath)?JSON.parse(readFileSync(brandPath,"utf8")):{};
   const palette=DESIGN.palette || {cover_bg:brand.cover_bg,cover_ink:brand.cover_print};
-  const [bg,ink,accent]=coverColors(DESIGN.cover,palette);
-  const face=coverMarkup({publication:META.pubName,kind:META.kindLine,dates:META.dates,foot:META.countLine+' · 6 × 9 · perfect bound',logo:await printLogo(brand.logo_url,META.host)});
-  html=html.replace(/<div class="panel front">[\s\S]*?<\/body>/, `<div class="panel front"><div class="cover-face" data-design="${DESIGN.cover}" style="width:432pt;height:648pt;${coverStyle(DESIGN.cover,palette,META.pubName)}">${face}</div></div></body>`);
+  const [bg,ink,accent]=coverColors(DESIGN.cover,palette,DESIGN.version);
+  const face=coverMarkup({publication:META.pubName,kind:META.kindLine,dates:META.dates,foot:META.countLine+' · 6 × 9 · perfect bound',...await printCoverLogo(DESIGN,brand,META.host),version:DESIGN.version});
+  html=html.replace(/<div class="panel front">[\s\S]*?<\/body>/, `<div class="panel front"><div class="cover-face" data-design="${DESIGN.cover}" style="width:432pt;height:648pt;${coverStyle(DESIGN.cover,palette,META.pubName,DESIGN.version)}">${face}</div></div></body>`);
   html=html.replace('</style>', `
-    ${printFonts()}
-    ${readFileSync('public/book/cover.css','utf8')}
+    ${printFonts(DESIGN.version)}
+    ${readFileSync(DESIGN.version===1?'public/book/cover-v1.css':'public/book/cover.css','utf8')}
     html,body{background:${bg};color:${ink}}
     .panel.front{top:${BLEED}pt;padding:0;height:648pt}
     .back .blurb,.back .desc,.back .imprint,.spine span{color:${ink}}

@@ -3,15 +3,16 @@
 ---
 <!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Typeset publication excerpt</title>
 <style is:global>
-html,body{margin:0;background:#faf7ee;color:#26251f}body{overflow:hidden}
+html,body{margin:0;background:#f7f4ed;color:#26251f}body{overflow:hidden}
 #pages{position:absolute;inset:0 auto auto 0;width:576px;transform-origin:top left}
-#pages .pagedjs_page{margin:0!important;background:#faf7ee;box-shadow:none!important}#pages.ready .pagedjs_page{opacity:0;pointer-events:none}
+#pages .pagedjs_page{margin:0!important;background:#f7f4ed;box-shadow:none!important}#pages.ready .pagedjs_page{opacity:0;pointer-events:none}
 #pages.ready .pagedjs_page.active{opacity:1;pointer-events:auto}
+#reading{position:absolute;inset:0;overflow:auto;padding:32px clamp(22px,7vw,54px) 50px;font:400 18px/1.75 'Source Serif 4',Georgia,serif;overscroll-behavior:contain}#reading .pubsrc{height:auto;visibility:visible;overflow:visible;font:500 11px/1.5 Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px;color:#62665d}#reading .arthead{padding-top:0;margin:0 0 26px}#reading .artnum{display:none}#reading .arttitle{font:500 clamp(25px,5vw,34px)/1.2 'Source Serif 4',Georgia,serif;letter-spacing:-.025em;margin:0 0 15px}#reading .artsub{font:400 17px/1.6 'Source Serif 4',Georgia,serif;color:#55594f;margin-bottom:16px}#reading .artmeta{font:400 11px/1.5 Inter,Arial,sans-serif;color:#62665d;margin-bottom:30px}#reading .artbody p{font-size:18px;line-height:1.75;text-align:left;text-indent:0;margin:0 0 1.15em}#reading .artbody h2,#reading .artbody h3,#reading .artbody h4{font-size:1.15em;line-height:1.4;margin:1.4em 0 .7em}#reading blockquote{margin:1em 0;padding-left:1em;border-left:2px solid #bfc1b3}#reading pre{white-space:pre-wrap;overflow-wrap:anywhere}#reading ol,#reading ul{padding-left:1.4em;margin:1em 0}#reading li{text-align:left}#reading .artmeta{text-indent:0}#reading *{overflow-wrap:anywhere}body[data-mode=reading] #pages{visibility:hidden;pointer-events:none}body[data-mode=print] #reading{display:none}
 #status{padding:40px;font:18px/1.5 Georgia,serif}
 </style>
 <script is:inline>window.PagedConfig={auto:false};</script>
 <script is:inline src="/book/paged-0.4.3.js"></script>
-</head><body><div id="status" role="status">Setting the sample…</div><div id="pages"></div>
+</head><body data-mode="reading"><div id="reading"></div><div id="status" role="status">Setting the sample…</div><div id="pages"></div>
 <script>
 import { interiorCss } from '../../functions/lib/book-interior.js';
 import { escapeHtml } from '../../functions/lib/book-design.js';
@@ -28,13 +29,14 @@ function show(index:number){
 }
 addEventListener('message',async event=>{
  if(event.origin!==location.origin || !/^[0-9a-f-]{36}$/.test(channel) || event.data?.channel!==channel)return;
+ if(event.data?.type==='sample-view'){document.body.dataset.mode=event.data.mode==='print'?'print':'reading';return;}
  if(event.data?.type==='sample-modal'){enlarged=event.data.enlarged===true;return;}
  if(event.data?.type==='sample-turn'){show(pageIndex+event.data.delta);return;}
  if(event.data?.type!=='sample-render')return;
  const seq=++generation, sample=event.data.sample;
  if(!sample || typeof sample.html!=='string' || sample.html.length>32000)return;
  try{
-   const fonts=await fetch('/fonts/book.css').then(r=>r.text());
+   const fonts=await fetch('/fonts/site.css').then(r=>r.text());
    if(seq!==generation)return;
    rendering=true;output.style.transform='none';output.classList.remove('ready');output.replaceChildren();pages=[];pageIndex=0;
    // Only inert, attribute-free text markup returned by the sample endpoint enters this document.
@@ -45,6 +47,7 @@ addEventListener('message',async event=>{
      if(!['P','H2','H3','H4','BLOCKQUOTE','UL','OL','LI','PRE','EM','STRONG','B','I','SUP','SUB','CODE','BR'].includes(el.tagName)){el.remove();continue;}
      for(const attr of [...el.attributes])el.removeAttribute(attr.name);
    }
+   document.getElementById('reading')!.replaceChildren(content.cloneNode(true));
    content.querySelector('.artbody p')?.classList.add('opener');
    const css=fonts+`\n:root{--ink:#221d16;--rubric:#26251f;--faint:#6d675c;--rule:#d8d2c2;--headfont:'Source Serif 4';--headweight:560}\n`+interiorCss();
    const fontStyle=document.createElement('style');fontStyle.textContent=fonts;document.head.append(fontStyle);await Promise.all([document.fonts.load('14px \"Source Serif 4\"'),document.fonts.load('560 23px \"Source Serif 4\"'),document.fonts.load('italic 14px \"Source Serif 4\"')]);

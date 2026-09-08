@@ -16,6 +16,8 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
   '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf'};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');
+  const v3Alternative=url.pathname==='/v3-b/';
+  if(v3Alternative)url.pathname='/';
   // Review-only studies never enter Astro's public build or the release artifact.
   const studyFiles={
     '/design-study/':'scripts/design-review/study.html',
@@ -57,6 +59,7 @@ const server=createServer(async(req,res)=>{
     if(path!==root&&!path.startsWith(root+sep)){res.writeHead(403);return res.end();}
     if((await stat(path)).isDirectory())path=resolve(path,'index.html');
     let content=await readFile(path);
+    if(v3Alternative)content=Buffer.from(content.toString().replace('</head>','<style>'+await readFile('scripts/design-review/v3-alternative.css','utf8')+'</style></head>'));
     if(path===resolve(root,'index.html'))content=Buffer.from(content.toString().replace('</body>',
       '<aside style="position:relative;z-index:1000;background:#211c15;color:#fff5df;font:11px/1.4 system-ui,sans-serif;text-align:center;padding:6px 12px">'+(liveReads?'Local review · Real public archives · Reservations are simulated. No email or printing.':'Local review · caithrin.com sample archive · No email, reservations, or printing are sent.')+'</aside></body>'));
     res.writeHead(200,{'content-type':types[extname(path)]||'application/octet-stream','cache-control':'no-store'});res.end(content);

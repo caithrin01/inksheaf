@@ -1,43 +1,76 @@
-# Inksheaf — integrated overhead candidate, September 7
+# Inksheaf — approved design implemented, September 7
 
-The working site now has an overhead desk with a directly usable publication field, four cover designs and a paginated reader for real public text. The old angled scroll-to-open experience is no longer mounted. Publication names, their own logos and current cover colours drive the preview. The selected cover and palette survive reservation and enter the actual proof and print-cover generators.
+The owner approved the independent-editions style guide and requested implementation. The working site now carries that identity, four native 6×9 cover designs, restrained paper cues, real publication previews and the subscriber print-button story. The owner requested production release after reviewing the implementation; GitHub release is in progress.
 
 ## Review it
 
-The server at **http://127.0.0.1:8810/** reads real public archives through the local API handlers. Try caithrin.com or the original reported case, manifund.substack.com. Every reservation, event, verification and email effect is simulated. It uses an in-memory cache, not D1.
+**http://127.0.0.1:8841/** reads real public archives through the local handlers, with an in-memory cache. Try caithrin.com or the reported naming case, manifund.substack.com. Reservation, verification, email and order effects are simulated.
 
 ```sh
 npm run build
-INKSHEAF_REVIEW_PORT=8810 INKSHEAF_REVIEW_PUBLIC_READS=1 npm run review:launch
+INKSHEAF_REVIEW_PORT=8841 INKSHEAF_REVIEW_PUBLIC_READS=1 npm run review:launch
 ```
 
-The fixed local sample remains available at port 8809 (start `INKSHEAF_REVIEW_PORT=8809 npm run review:launch`). It uses the synthesized delayed-editor exclusion case and an actual excerpt from the owner's writing. The older `/design-study/` route remains historical and is not the implementation.
+The deterministic fixture review is at **http://127.0.0.1:8840/** (`INKSHEAF_REVIEW_PORT=8840 npm run review:launch`). The accepted standalone guide remains at **http://127.0.0.1:8830/**, sourced from `design/style-guide/` and excluded from the Astro release artifact.
 
 ## What changed
 
-- The cover, reading controls, edition copy and reservation form are connected in the working page. The cover picker uses a single selected state; the reader has explicit page controls, keyboard access, an enlarged view and actual-size reading.
-- `functions/lib/book-design.js` and `public/book/cover.css` define the same cover faces for web and print. Version/palette are preserved in `plan_json.design`; invalid or truncated plans are rejected instead of silently losing the choice. Existing reservations without a design keep their historical print style.
-- `functions/lib/book-interior.js` is shared with the real Paged.js proof renderer. The reader shows **recent public text**, not a claim that those paragraphs are selected for the displayed annual edition. The complete proof supplies images, notes, final contents and pagination. Paywalled posts are not sampled.
-- Identity resolution uses verified publication metadata. It no longer guesses author bylines for print mastheads either. Schema 9 replaces old cached names/colours and adds bounded sample post references. The entered alias and canonical host share the preview cache.
-- The publication's current Substack cover background takes priority over legacy accent fields. Print logos are embedded before rendering; a declared logo that cannot be fetched fails the proof instead of printing a broken image. QR codes retain a white quiet zone on dark covers.
-- The existing selected-edition truth/accessibility repairs remain. Owner verification still precedes press dispatch. Printing another person's publication is not a product feature.
+- Approved outlined wordmark, favicon, self-hosted Inter/Source Serif typography and a matching 1200×630 social image. The same identity reaches the reader, edition changes, mailing and error pages.
+- An immediately usable publication field; two overhead books on desktop and one larger book on phones. No scroll-to-open gate, 3D flip or custom cursor.
+- The core distribution story directly below the opening: a sample newsletter with Substack's signature-orange print button linking to the existing caithrin Lulu edition. The writer adds their edition link to a post; readers buy directly from the printer.
+- Four connected cover compositions, real text excerpts, explicit print-page controls, enlarged/actual-size reading and preserved selected-edition truth. Repeated preview recommendations and the redundant single-volume shelf were removed.
+- Actual print-file interior spread, eleven FAQs and connected reservation/feedback surfaces. Copy keeps the own-publication-only scope, explains proof approval and avoids unsupported payouts or calendar delivery promises.
 
-## Verification and its limits
+New saved choices use **design version 2**. `functions/lib/book-design.js` and `public/book/cover.css` share the screen/proof/wrap geometry. Version-1 snapshots delegate to the committed historic `book-design-v1.js`/`cover-v1.css`; reservations without a saved design retain their previous print path.
 
-Local build and Cloudflare Functions compilation pass. The full unit chain passes, including 13 new public-sample/design checks. The print renderer gate passes all 69 checks. All four new cover wraps were rendered as one-page PDFs at 903×666 pt with the original logo and no face overflow; rasterized PDFs were inspected. A new-design proof fixture rendered as 12 pages.
+The canonical caithrin transparent marks are used only for verified caithrin hosts, in charcoal on light covers and gold on dark covers. Other publications keep their original logo. Uniform opaque edge colours can become a continuous band, saved with the design snapshot. Complex images and CORS-unreadable sources remain intact. Print embeds original assets and still fails if a declared logo cannot be embedded. Long titles, unbroken names, CJK and Arabic cases are included in cover-fit checks.
 
-The release browser gate passes: four overhead/reader journeys in Chromium and WebKit, four edition configurations, four painted-cover/identity cases and 16 edge journeys. This includes real text painting, page turns, actual size, focus restoration, rejected unauthenticated reader messages, long titles, reduced motion, no-JavaScript contact, loading/failure and selected-edition preservation. Escape and Tab also work when focus is inside the enlarged sample iframe, verified in all four reader cases. Axe reports no WCAG A/AA violations in the tested states. The old opening-animation assertions were replaced by acceptance for the new interaction. GitHub now installs WebKit as well as Chromium, and PRs run checks without entering release jobs.
+## Verification
 
-Two real public-GET journeys through the local handlers confirmed caithrin and **The Fox Says**, with their original logos, current colours and real excerpts. The complete browser UI also passed those real-public-data reads. These are not Cloudflare edge or inbox-delivery tests.
+- Astro build, full preview/backend unit chain, 48 source-honesty checks and project validator (13 pass, zero warnings/failures).
+- Full release browser gate: four overhead journeys, four edition configurations, four painted publication-cover cases and sixteen edge journeys passed. Includes keyboard/focus restoration, actual-size reading, unauthenticated reader message refusal, stale/failed previews, no-JavaScript fallback and saved selections.
+- New site matrix: Chromium/WebKit × desktop/phone × light/dark, eight passing cases and zero axe WCAG A/AA violations in tested states.
+- Supporting edition/mailing forms: the same eight configurations, payload preservation and simulated sends; zero axe A/AA violations. `test-site-workflows.mjs` is included in `test:launch:ui`.
+- 360 cover-fit cases: two engines, three widths, four designs, five title cases and three logo modes.
+- Required renderer gate: **69 pass, 0 fail**. Four print wraps render as one page each at 903×666 pt, with original logos painted and no face overflow.
+- Complete version-2 synthetic letters fixture: **14-page PDF**, six articles and matching contents; proof lint clean. It exercises the canonical owner logo and does not represent an approved real edition.
+- Real public reads confirmed **caithrin** and **The Fox Says**, their logos and actual public excerpts through the local handlers. No production reservation was submitted.
 
-The first PR run passed the unit chain but exposed a CI wiring error: the pre-release honesty gate fetched the older production page and compared it with this candidate's source. It now runs after the build with `--source-only`, against the artifact under review. The separate live honesty command remains available for post-release acceptance; signup checks already run in the full unit chain.
+Useful commands:
 
-Opus completed a new six-image critique via the runnable OpenRouter workflow ($0.07576). It judged the overhead direction credible enough to carry forward and identified control hierarchy/selection ambiguity. Its "stale selection ring" was the Classic cover's printed frame, not stale application state; that visual ambiguity was removed. See `evidence/frontend-review/2026-09-07-integrated-opus/`. The response is critique, not design or launch approval.
+```sh
+npm run test:launch:ui
+npm run test:preview:unit
+node scripts/test-cover-fit-v2.mjs
+node scripts/test-renderer.mjs
+npm run test:print:designs
+node scripts/test-honesty.mjs --source-only
+python3 validate.py
+```
 
-Durable checks: `evidence/frontend-review/integrated/`. Full screenshots: `output/playwright/public-integration/`, `output/playwright/launch/`. PDFs: `output/pdf/integrated/`. Masters remain local; reproducible sources and compact evidence are committed.
+The print-fixture command uses `--brand-file` (the wrap command instead uses `--brand`):
 
-## Remaining launch acceptance
+```sh
+node scripts/build-book.mjs https://caithrin.com --fixture proofs/letters-fixture.json --brand-file output/pdf/integrated/brand.json --design-file output/pdf/integrated/design.json --out output/site-integration/v2-proof.html
+node scripts/render-book.mjs output/site-integration/v2-proof.html output/site-integration/v2-proof.pdf
+node scripts/proof-lint.mjs output/site-integration/v2-proof.html
+```
 
-Real inbox delivery is still unverified. Complete the preview-only owner-alert check, then the specifically approved reservation/verification journey. Physical iPhone keyboard/VoiceOver and an actual physical proof remain human checks. A browser sample cannot certify paper, binding, colour reproduction or final print pagination.
+## Actual external review and evidence
 
-Nothing in this work deploys directly to Cloudflare. Production still requires the existing manual GitHub workflow, PROJECT_STATUS policy, protected production approval, artifact digest and migration gates. No production database, reservation, email, order or verification was created by this run.
+A seven-image OpenRouter `anthropic/claude-opus-5` critique completed (9,950 input / 1,585 output tokens, reported cost $0.089375). It found the system coherent and the subscriber mechanism clear. Its phone-scale and preview-repetition observations were applied. Its gallery-clipping observation came from a tight locator screenshot; final full-width captures show the intact page margins and CTA. Final refinements were browser-checked after the call. This is critique, not owner acceptance or launch approval.
+
+- Actual model response, run metadata, image hashes and disposition: `evidence/frontend-review/2026-09-07-site-integration/`.
+- Compact checks: `evidence/frontend-review/site-implementation/`.
+- Full screenshots: `output/playwright/site-design/`, `site-public/`, `site-workflows/`, `launch/`.
+- PDFs: `output/pdf/integrated/`, `output/site-integration/v2-proof.pdf`.
+- Initial dirty-file backup: `output/site-integration/before/`.
+- Vault pickup and permanent screenshots: `05-Projects/Substack Magazine/site-implementation-2026-09-07.md`.
+
+## Release status
+
+The owner explicitly requested “push it to inksheaf.com” after reviewing the implemented design. The approved source, assets, guide and evidence are staged for the existing PR. Earlier local experiments remain outside this release. Merge follows green GitHub checks; production follows the existing manual workflow and protected-environment review. Final run and deployed commit are recorded in the vault implementation note.
+
+Real inbox delivery, the specifically approved reservation/verification journey, physical-device assistive-technology checks and a physical proof remain distinct launch acceptance. Browser and PDF tests do not certify paper, binding or colour reproduction. Local public reads are not Cloudflare edge tests.
+
+The existing GitHub workflow, protected production approval, PROJECT_STATUS policy, artifact digest and migration gates are unchanged. Do not deploy directly to Cloudflare. No production database, reservation, email, verification or order was created by this implementation run.

@@ -61,10 +61,11 @@ if (!process.argv.includes("--skip-render")) {
     { cwd: "proofs", stdio: "ignore" });
   await new Promise(r => setTimeout(r, 1000));
   let domOut = "";
+  const renderCli = `playwright-cli -s=isr-${process.pid}`;
   try {
-    execSync("playwright-cli open about:blank", { stdio: "pipe" });
+    execSync(`${renderCli} open about:blank`, { stdio: "pipe" });
     const pdfPath = resolve("proofs/torture-proof.pdf").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
-    domOut = execSync(`playwright-cli run-code "async page => {
+    domOut = execSync(`${renderCli} run-code "async page => {
       await page.goto('http://127.0.0.1:${port}/torture.html?v=' + Date.now(), {waitUntil:'domcontentloaded'});
       const n = await page.evaluate(() => Promise.race([window.__pagedDone, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), 180000))]));
       await page.waitForTimeout(2500);
@@ -105,7 +106,7 @@ if (!process.argv.includes("--skip-render")) {
       return 'DOM=' + JSON.stringify(r) + ' N=' + n;
     }"`, { encoding: "utf-8", timeout: 300000 });
   } finally {
-    try { execSync("playwright-cli close", { stdio: "pipe" }); } catch {}
+    try { execSync(`${renderCli} close`, { stdio: "pipe" }); } catch {}
     srv.kill();
   }
   const m = domOut.replace(/\\"/g, '"').match(/DOM=({.*?}) N=/);

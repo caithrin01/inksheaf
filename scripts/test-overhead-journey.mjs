@@ -19,9 +19,11 @@ for(const [name,type]of[['chromium',chromium],['webkit',webkit]]){
  await p.locator('#tryurl').fill('caithrin.com');await p.locator('#trybtn').click();await p.waitForFunction(()=>document.querySelector('#preview').classList.contains('personalized'));
  for(const design of ['masthead','classic','field','midnight']){
  await p.locator(`[data-cover=${design}]`).click();await p.locator('#pv-cta').click();
- const plan=JSON.parse(await p.locator('#plan_json').inputValue());check(plan.design.cover===design&&plan.design.version===1,'reservation loses design');
+ const plan=JSON.parse(await p.locator('#plan_json').inputValue());check(plan.design.cover===design&&plan.design.version===2,'reservation loses design');
  }
  await p.locator('#preview').scrollIntoViewIfNeeded();await p.locator('#view-sample').focus();await p.keyboard.press('Enter');
+ await p.waitForFunction(()=>document.querySelector('#sample-position').textContent==='Text excerpt');
+ await p.locator('#sample-mode').click();
  await p.waitForFunction(()=>document.querySelector('#sample-position').textContent==='1 / 4');
  const frame=p.frames().find(f=>f.url().includes('/reader/'));
  check((await frame.locator('.pagedjs_page.active').innerText()).includes('On the surface'),'first page is blank or invented');

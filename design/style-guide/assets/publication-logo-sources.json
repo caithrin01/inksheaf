@@ -1,0 +1,21 @@
+{
+  "publication": "caithrin",
+  "source_type": "existing owner brand master",
+  "same_path_geometry": true,
+  "assets": [
+    {
+      "file": "caithrin-mark-charcoal.svg",
+      "source": "/Users/caithrinrintoul/repos/caithrin-brand/logo/mark-d20-charcoal.svg",
+      "sha256": "09915496b7c4a015c47529c4552b942e7d9df3fdb1faf879814d1c562de2de15",
+      "usage": "publication cover only",
+      "background": "transparent"
+    },
+    {
+      "file": "caithrin-mark-gold.svg",
+      "source": "/Users/caithrinrintoul/repos/caithrin-brand/logo/mark-d20-gold.svg",
+      "sha256": "5e27845286225506a24fd588d55495cbd876c118d87af80583610e697cd37638",
+      "usage": "publication cover only",
+      "background": "transparent"
+    }
+  ]
+}

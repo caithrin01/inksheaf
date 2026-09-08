@@ -7,7 +7,7 @@
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
-import { printLogo } from "./lib/print-logo.mjs";
+import { printCoverLogo } from "./lib/print-logo.mjs";
 import { printFonts } from "./lib/print-assets.mjs";
 import { interiorCss } from "../functions/lib/book-interior.js";
 import { publicationFromHomepage, publicationFromArchive, publicationLabel } from "../functions/lib/publication-identity.js";
@@ -229,7 +229,8 @@ if (!FIXTURE) {
   pubName = publicationLabel(publicationFromHomepage(home,host,full)) || publicationLabel(publicationFromArchive(full,host));
   if (!pubName) throw new Error("Could not confirm the publication name; refusing to print an author name as its masthead.");
 }
-const designLogo = COVER_DESIGN && !PRINT_INTERIOR ? await printLogo(brand?.logo_url,host) : "";
+const designLogo = COVER_DESIGN && !PRINT_INTERIOR ? await printCoverLogo(SAVED_DESIGN || designSelection(COVER_DESIGN),brand,host) : {};
+const designVersion = SAVED_DESIGN?.version || 2;
 let coverPlate = null;
 if (COVER_PHOTO && brand?.cover_photo_url) {
   try {
@@ -703,12 +704,12 @@ a[data-link]::after{ content: attr(data-link); font-size:.62em; vertical-align:s
 .apc-art{ font-size:8.5pt; letter-spacing:.06em; text-transform:uppercase; color:var(--rubric) }
 .apc-body{ margin:.4em 0; font-size:9.5pt }
 .apc-by{ font-size:8.5pt; color:var(--faint) }
-${COVER_DESIGN ? printFonts() + readFileSync("public/book/cover.css", "utf-8") : ""}
+${COVER_DESIGN ? printFonts(designVersion) + readFileSync(designVersion===1?"public/book/cover-v1.css":"public/book/cover.css", "utf-8") : ""}
 </style>
 </head>
 <body data-retrieval-failures="${report.skips.filter(k => /429|5\d\d|timeout|fetch|unreachable/i.test(k.reason)).length}">
 
-${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : COVER_DESIGN ? `<div class="cover" style="padding:0;background:transparent"><div class="pubsrc">${esc(pubName)}</div><div class="cover-face" data-design="${COVER_DESIGN}" style="width:6in;height:9in;${coverStyle(COVER_DESIGN, SAVED_DESIGN?.palette || {cover_bg:B.coverBg,cover_ink:B.coverInk},pubName)}">${coverMarkup({publication:pubName,kind:volLabel,dates:range,foot:`${full.length} ${noun} · 6 × 9 · perfect bound`,logo:designLogo})}</div></div>` : `<div class="cover">
+${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : COVER_DESIGN ? `<div class="cover" style="padding:0;background:transparent"><div class="pubsrc">${esc(pubName)}</div><div class="cover-face" data-design="${COVER_DESIGN}" style="width:6in;height:9in;${coverStyle(COVER_DESIGN, SAVED_DESIGN?.palette || {cover_bg:B.coverBg,cover_ink:B.coverInk},pubName,designVersion)}">${coverMarkup({publication:pubName,kind:volLabel,dates:range,foot:`${full.length} ${noun} · 6 × 9 · perfect bound`,...designLogo,version:designVersion})}</div></div>` : `<div class="cover">
   <div class="pubsrc">${esc(pubName)}</div>
   <div class="kind">${kindLabel}</div>
   <h1>${esc(pubName)}</h1>

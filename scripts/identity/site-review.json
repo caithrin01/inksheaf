@@ -1,0 +1,12 @@
+{
+ "model":"anthropic/claude-opus-5","max_tokens":5000,"reasoning_effort":"low","brief":"site-review.md",
+ "images":[
+  {"file":"../../output/playwright/site-design/opening-1440.png","label":"Implemented opening, desktop 1440px"},
+  {"file":"../../output/playwright/site-design/opening-390.png","label":"Implemented opening, phone 390px"},
+  {"file":"../../output/playwright/site-design/for-your-readers-1440.png","label":"Core subscriber distribution story, actual orange Lulu link"},
+  {"file":"../../output/playwright/site-design/cover-collection-1440.png","label":"Four compositions using the same real owner publication"},
+  {"file":"../../output/playwright/site-design/masthead-1440.png","label":"Working personalised preview with simulated local archive fixture"},
+  {"file":"../../output/playwright/site-design/sample-390.png","label":"Phone reading view, actual prose from the owner's essay"},
+  {"file":"../../output/playwright/site-design/inside-1440.png","label":"Real print-file spread on the landing page"}
+ ]
+}

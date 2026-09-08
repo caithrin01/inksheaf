@@ -1,0 +1,73 @@
+{
+  "status": "completed",
+  "started": "2026-09-07T22:48:26.950Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "BEFORE: accepted typography sheet",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-paper/before/type-1440.png",
+      "saved": "input-1.png",
+      "sha256": "99d5847f4b54476f25967a1e06ccc9c33afc4dc9687cd5c453548f9eb72153a1"
+    },
+    {
+      "label": "AFTER: warmer reading leaf, subtle texture, edge and folio",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-paper/type-1440.png",
+      "saved": "input-2.png",
+      "sha256": "bcf24637596effd7bc92ebc8fbe3d5417aa3f06398bc09f467e9ce39d88fc802"
+    },
+    {
+      "label": "AFTER: phone reading leaf at actual browser width",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-paper/leaf-390.png",
+      "saved": "input-3.png",
+      "sha256": "51634da338db23fd1cee7c648b6e5742bc9dcd00edbaf8da2af9f7f770717cc9"
+    },
+    {
+      "label": "AFTER: book geometry specimen with subtle stock texture",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-paper/object-1440.png",
+      "saved": "input-4.png",
+      "sha256": "8d329dbdbfd9ecc0525f9f57d66d5a438db346a0480c756d16f3f8d577660b98"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "c310e3b7111d930722cdf4c3b96596b9798bf4e7032a96e0761459ca904a578a",
+  "git_head": "080c0b674c36f09e06e5c1a13436ef8197456118",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 4000,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788821307-EhdHLbdzBtmn0avMrWG2",
+  "usage": {
+    "prompt_tokens": 6454,
+    "completion_tokens": 897,
+    "total_tokens": 7351,
+    "cost": 0.054695,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.054695,
+      "upstream_inference_prompt_cost": 0.03227,
+      "upstream_inference_completions_cost": 0.022425
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 273,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-07T22:48:45.411Z"
+}

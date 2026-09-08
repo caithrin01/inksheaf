@@ -1,0 +1,67 @@
+{
+  "status": "completed",
+  "started": "2026-09-07T22:05:53.133Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Primary reference: Fitzcarraldo site, photographed overhead paperbacks",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/design-research/fitzcarraldo.png",
+      "saved": "input-1.png",
+      "sha256": "fa4cca0cae7edec830874a890e15af1cb159edf6780a4f419d4657528c1ce142"
+    },
+    {
+      "label": "Primary reference: A24 book shop, objects carry the colour",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/design-research/a24-books.png",
+      "saved": "input-2.png",
+      "sha256": "a553adcfd31bcab348f2bd68751499f32693a8edeae25955bb929081788d2e45"
+    },
+    {
+      "label": "Primary reference: Stripe Press, dominant book object and restrained publisher identity",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/design-research/stripe-press.png",
+      "saved": "input-3.png",
+      "sha256": "7ae1e594f580ffcab9ee164e3d21453adc080ed4031c53fe324bbc77c968940f"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "55808f6c095abc54cf6e2abdaa49c4aed531e700a92b4556d00d3839cedc0fc8",
+  "git_head": "080c0b674c36f09e06e5c1a13436ef8197456118",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 3600,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788818753-Ovpfsr6fydtk7hWjjP2J",
+  "usage": {
+    "prompt_tokens": 6823,
+    "completion_tokens": 2480,
+    "total_tokens": 9303,
+    "cost": 0.096115,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.096115,
+      "upstream_inference_prompt_cost": 0.034115,
+      "upstream_inference_completions_cost": 0.062
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 21,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-07T22:06:42.582Z"
+}

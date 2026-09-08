@@ -2,7 +2,6 @@
 import { COVER_DESIGNS, coverMarkup, coverStyle } from '../../functions/lib/book-design.js';
 ---
 <div class="book-presentation">
-  <p class="book-edition-label" id="book-edition-label"></p>
   <div class="book-designs" role="group" aria-label="Cover design">
     {COVER_DESIGNS.map((d,i)=><button type="button" class="design-choice" data-cover={d.id} aria-pressed={i===0?'true':'false'} title={d.description}>
       <span class="design-thumbnail cover-face" data-design={d.id} style={coverStyle(d.id,{},'Aa')} aria-hidden="true" set:html={coverMarkup({publication:'Aa',kind:'',dates:'',foot:''})} />
@@ -21,43 +20,28 @@ import { COVER_DESIGNS, coverMarkup, coverStyle } from '../../functions/lib/book
     <div class="bookhint" id="book-instruction"><span class="book-open-hint">Look inside <span aria-hidden="true">↗</span></span><span class="book-close-hint">Back to the cover <span aria-hidden="true">↶</span></span></div>
   </div>
   <div class="sample-reader" id="sample-reader" hidden>
-    <div class="sample-paper"><iframe id="sample-frame" title="Typeset text excerpt" sandbox="allow-scripts allow-same-origin" hidden></iframe><p id="sample-status" role="status">Loading a public text sample…</p></div>
+    <div class="sample-paper"><iframe id="sample-frame" title="Typeset text excerpt" sandbox="allow-scripts allow-same-origin" hidden></iframe><p id="sample-status" role="status">Loading a public text sample…</p></div><div class="sample-continuation"><button type="button" id="sample-continue">Open full sample <span aria-hidden="true">↗</span></button></div>
   </div>
-  <div class="book-views" role="group" aria-label="Book view"><button type="button" id="view-cover" aria-pressed="true">Cover</button><button type="button" id="view-sample" aria-pressed="false">Read a sample <span aria-hidden="true">↗</span></button></div>
-  <div class="reader-controls" id="reader-controls" hidden><button type="button" id="sample-previous" aria-label="Previous sample page">←</button><span id="sample-position" role="status"></span><button type="button" id="sample-next" aria-label="Next sample page">→</button><button type="button" id="sample-enlarge">Enlarge</button><button type="button" id="sample-scale" hidden>Actual size</button></div>
+  <div class="book-views" role="group" aria-label="Book view"><button type="button" id="view-cover" aria-pressed="true">Cover</button><button type="button" id="view-sample" aria-pressed="false">Read a sample</button></div>
+  <div class="reader-controls" id="reader-controls" hidden><button type="button" id="sample-previous" aria-label="Previous sample page">←</button><span id="sample-position" role="status"></span><button type="button" id="sample-next" aria-label="Next sample page">→</button><button type="button" id="sample-mode" aria-pressed="false">Print pages</button><button type="button" id="sample-enlarge">Enlarge</button><button type="button" id="sample-scale" hidden>Actual size</button></div>
   <p class="sample-caption" id="sample-caption" hidden>Recent public writing, typeset as a text sample. Your complete proof confirms contents, images, notes and pagination. <a id="sample-source" target="_blank" rel="noopener noreferrer" hidden>Source essay ↗</a></p>
   <p class="sr-only" id="book-text" hidden></p>
 </div>
 <style is:global>
-.book-presentation{display:flex;flex-direction:column;min-width:0;align-self:start;--book-width:330px}
-.book-edition-label{font:500 12px/1.5 "Inter",Arial,sans-serif;color:#eadbc2;text-align:center;margin:0 0 15px;order:-1}
-.book-designs{order:0;display:flex;justify-content:center;gap:12px;margin-bottom:10px}
-.design-choice{border:0;border-bottom:1px solid transparent;padding:0 1px 8px;color:#ddceb4;background:none;cursor:pointer;font:400 10px/1.4 'Inter',Arial,sans-serif;min-width:61px}
-.design-choice[aria-pressed=true]{border-bottom:2px solid #f9e8c7;padding-bottom:7px;color:#fff1d6;font-weight:600}.design-choice[aria-pressed=true]>span:last-child::before{content:"✓ ";font-size:9px}.design-choice:focus-visible{outline:2px solid #f5dfb7;outline-offset:5px}
-.design-thumbnail{display:block;width:41px;margin:0 auto 9px;box-shadow:1px 2px 2px #0006}.design-thumbnail .cv-kind,.design-thumbnail .cv-dates,.design-thumbnail .cv-mid,.design-thumbnail .cv-footwrap{display:none}.design-thumbnail .cv-mast{font-size:40cqw!important;margin-top:24cqw}.design-thumbnail .cv-orn{margin-top:auto}
-.bookwrap{order:3;margin:0 auto;width:min(100% - 20px,var(--book-width));position:relative;scroll-margin-top:25px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.bookwrap:focus-visible{outline:2px solid #e7c698;outline-offset:12px}
-.bookobj{width:100%;aspect-ratio:2/3;position:relative}.bookobj .cover{position:absolute;inset:0;z-index:2;transition:opacity .18s,visibility .18s}
-.pv-page{position:absolute;inset:0;background:#faf5e8;padding:10%;color:#2a2118;display:flex;flex-direction:column;line-height:1.4;overflow:hidden}
-.pv-page .run{font:500 .58rem/1.4 'Inter',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;overflow-wrap:anywhere}
-.page-heading{font-size:1.7rem;line-height:1.1;margin:1.5rem 0 .5rem}.toc-line{margin-top:.8rem;font-size:.9rem;line-height:1.35}.toc-line .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.pv-page .fol{margin-top:auto;padding-top:1rem;font:400 10px/1.5 'Inter',Arial,sans-serif;color:#6b5a44}
-.bookwrap.open .cover{opacity:0;visibility:hidden}.bookhint,.spinetext,.pageblock{display:none}
-.book-views{order:1;display:flex;justify-content:center;gap:0;margin:0 auto 22px;width:min(100% - 20px,var(--book-width));border:1px solid #c7b69b70}.book-views button{flex:1;font:500 15px/1.4 'EB Garamond',Georgia,serif;color:#f6e7cc;border:0;border-bottom:1px solid transparent;background:none;min-height:44px;padding:7px 2px;cursor:pointer}.book-views button[aria-pressed=true]{background:#f6e7cc;color:#302619;border-color:transparent}.book-views button span{margin-left:5px}
-.book-views button:focus-visible,.reader-controls button:focus-visible{outline:2px solid #f5dfb7;outline-offset:4px}
-.sample-reader{order:3;margin:0 auto;width:min(100% - 10px,390px)}.sample-reader[hidden],.reader-controls[hidden],.sample-caption[hidden]{display:none}
-.sample-paper{position:relative;aspect-ratio:2/3;background:#faf7ee;color:#26251f;box-shadow:3px 4px 0 #d5cbb9,7px 10px 12px #0004}
-.sample-paper iframe{border:0;display:block;width:100%;height:100%;position:absolute;inset:0}.sample-paper iframe[hidden]{display:none}
-#sample-status{padding:13%;font-size:20px;line-height:1.45}#sample-status[hidden]{display:none}
-.reader-controls{order:2;display:flex;justify-content:center;align-items:center;gap:14px;margin-top:-8px;margin-bottom:15px;font:400 11px/1.4 'Inter',Arial,sans-serif;color:#f6e7cc}.reader-controls button{background:none;border:0;color:inherit;cursor:pointer;min-width:44px;min-height:44px;font:inherit}.reader-controls button:disabled{opacity:.35;cursor:default}.reader-controls #sample-enlarge{border-bottom:1px solid #baa58a;min-height:30px;margin-left:8px}
-.sample-caption{order:4;font:400 11px/1.6 'Inter',Arial,sans-serif;color:#deceb4;max-width:45ch;margin:12px auto 0;text-align:center}.sample-caption a{color:inherit;display:inline-block;margin-top:4px}.sample-caption a[hidden]{display:none}
-.book-presentation.reading .bookwrap{display:none}
-.book-presentation.enlarged{position:fixed!important;inset:0;z-index:100;background:#241c13;overflow:auto;padding:22px;display:flex;flex-direction:column;align-items:center}
-.book-presentation.enlarged .book-designs,.book-presentation.enlarged .book-edition-label{display:none}.book-presentation.enlarged .sample-reader{width:min(576px,100%,calc((100svh - 165px) * 2/3));flex:none}.book-presentation.enlarged .book-views{margin:0 0 8px;flex:none}.book-presentation.enlarged .sample-caption{display:none}
-@media(min-width:900px){.book-presentation{position:sticky;top:30px}}
-@media(max-width:560px){.book-designs{gap:15px;margin-bottom:6px}.design-choice{font-size:10px}.design-thumbnail{width:35px}.book-presentation{--book-width:290px}.book-views{margin-top:0;margin-bottom:18px}.sample-reader{width:100%}}
-.reader-controls #sample-scale[hidden]{display:none}
-.book-presentation.enlarged.actual-size .sample-reader{width:min(100%,640px);max-height:calc(100svh - 170px);overflow:auto}
-.book-presentation.enlarged.actual-size .sample-paper{width:576px;min-width:576px;height:864px}
+.book-presentation{display:flex;flex-direction:column;min-width:0;align-self:start;--book-width:350px}
+.book-edition-label{font:500 15px/1.5 var(--sans);color:var(--ink);text-align:left;margin:0 0 24px;order:-1;overflow-wrap:anywhere}
+.book-designs{order:0;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:0 0 24px}
+.design-choice{border:0;border-bottom:2px solid transparent;padding:0 0 12px;color:var(--muted);background:none;cursor:pointer;font:400 12px/1.5 var(--sans);min-width:0;text-align:center;position:relative}
+.design-choice[aria-pressed=true]{border-bottom-color:var(--red);color:var(--ink);font-weight:600}.design-choice[aria-pressed=true]>span:last-child::before{content:'✓ ';font-size:11px}
+.design-thumbnail{display:block;width:64px;margin:0 auto 10px;box-shadow:1px 2px 3px #0002}.design-thumbnail .cv-kind,.design-thumbnail .cv-dates,.design-thumbnail .cv-footwrap{font-size:2.8cqw}.design-thumbnail .cv-mast{font-size:var(--title-size)!important}.design-thumbnail .cv-logo{pointer-events:none}
+.bookwrap{order:3;margin:0;width:100%;padding:40px max(34px,calc((100% - var(--book-width))/2));position:relative;background:var(--stage);scroll-margin-top:24px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bookwrap:focus-visible{outline:2px solid var(--red);outline-offset:5px}.bookobj.physical-book::before{display:none}.bookobj.physical-book::after{background:none;box-shadow:inset 2px 0 3px -2px #0005,inset 0 1px #ffffff50}.bookobj{box-shadow:1px 2px 0 #c7c4b6,2px 4px 0 #bcb9ac,8px 13px 20px #20231f22;width:100%;aspect-ratio:2/3;position:relative}.bookobj .cover{position:absolute;inset:0;z-index:2;transition:opacity .18s,visibility .18s}.pv-page{position:absolute;inset:0;background:#f7f4ed;padding:10%;color:#2a2118;display:flex;flex-direction:column;line-height:1.4;overflow:hidden}.pv-page .run{font:500 10px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;overflow-wrap:anywhere}.page-heading{font:400 28px/1.15 var(--serif);margin:24px 0 10px}.toc-line{margin-top:12px;font:400 15px/1.4 var(--serif)}.toc-line .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.pv-page .fol{margin-top:auto;padding-top:16px;font:400 11px/1.5 var(--sans);color:#6b5a44}.bookwrap.open .cover{opacity:0;visibility:hidden}.bookhint,.spinetext,.pageblock{display:none}
+.book-views{order:1;display:flex;justify-content:center;gap:0;margin:0 0 20px;width:100%;border-bottom:1px solid var(--hair)}.book-views button{flex:1;font:500 14px/1.5 var(--sans);color:var(--muted);border:0;border-bottom:2px solid transparent;background:none;min-height:48px;padding:10px;cursor:pointer}.book-views button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--ink)}.book-views button span{margin-left:9px}
+.sample-reader{order:3;margin:0;width:100%}.sample-paper{position:relative;height:610px;background:#f7f4ed;color:#26251f;border:1px solid var(--hair)}.sample-paper::after{content:"";position:absolute;bottom:0;left:0;right:0;height:55px;background:linear-gradient(transparent,#f7f4ed);pointer-events:none}.sample-continuation{padding:12px 0 0;text-align:center}.sample-continuation button{border:0;border-bottom:1px solid var(--ink);padding:10px 0;min-height:44px;background:none;color:var(--ink);font:500 14px/1.5 var(--sans)}.sample-continuation button span{margin-left:12px}.book-presentation.enlarged .sample-paper::after,.book-presentation.print-view .sample-paper::after,.book-presentation.enlarged .sample-continuation,.book-presentation.print-view .sample-continuation{display:none}.sample-paper iframe{border:0;display:block;width:100%;height:100%;position:absolute;inset:0}#sample-status{padding:36px;font:400 18px/1.6 var(--serif)}
+.reader-controls{order:2;display:flex;justify-content:center;align-items:center;gap:12px;margin:-6px 0 16px;font:400 13px/1.5 var(--sans);color:var(--ink);flex-wrap:wrap}.reader-controls button{background:none;border:1px solid var(--hair);color:inherit;cursor:pointer;min-width:44px;min-height:44px;padding:8px 12px;font:inherit}.reader-controls button:disabled{opacity:.45;cursor:default}.reader-controls #sample-position{color:var(--muted);margin-right:auto}.sample-caption{order:4;font:400 12px/1.65 var(--sans);color:var(--muted);margin:16px 0 0;max-width:65ch;text-align:left}.sample-caption a{color:var(--red);display:inline-block;margin-top:7px}.book-presentation.reading .bookwrap{display:none}.book-presentation.reading .book-designs{display:none}
+.book-presentation.print-view .sample-reader{max-width:390px;align-self:center}.book-presentation.print-view .sample-paper{height:auto;aspect-ratio:2/3}
+.book-presentation.enlarged{position:fixed!important;inset:0;z-index:100;background:var(--paper);overflow:auto;padding:24px;display:flex;flex-direction:column;align-items:center}.book-presentation.enlarged .book-designs,.book-presentation.enlarged .book-edition-label{display:none}.book-presentation.enlarged .sample-reader{width:min(720px,100%);max-width:720px;flex:none}.book-presentation.enlarged .sample-paper{height:calc(100svh - 185px)}.book-presentation.enlarged .book-views{margin:0 0 12px;width:min(720px,100%);flex:none}.book-presentation.enlarged .reader-controls{width:min(720px,100%);margin:0 0 16px}.book-presentation.enlarged .sample-caption{display:none}.book-presentation.enlarged.print-view .sample-reader{width:min(576px,100%,calc((100svh - 185px) * 2/3))}.book-presentation.enlarged.print-view .sample-paper{height:auto;aspect-ratio:2/3}.book-presentation.enlarged.actual-size .sample-reader{width:min(100%,640px);max-height:calc(100svh - 185px);overflow:auto}.book-presentation.enlarged.actual-size .sample-paper{width:576px;min-width:576px;height:864px}
+@media(max-width:560px){.book-presentation{--book-width:270px}.book-edition-label{font-size:14px;margin-bottom:20px}.book-designs{gap:12px;margin-bottom:15px}.design-thumbnail{width:57px}.design-choice{font-size:11px}.bookwrap{padding-block:30px}.book-views{margin-bottom:16px}.book-views button{font-size:13px}.reader-controls{font-size:12px;gap:9px}.reader-controls button{padding-inline:10px}.reader-controls #sample-position{font-size:11px}.sample-paper{height:min(560px,calc(100svh - 340px));min-height:380px}.sample-caption{font-size:12px}.book-presentation.enlarged{padding:16px}.book-presentation.enlarged .sample-paper{height:calc(100svh - 170px)}}
 </style>
 <script>
 const book=document.getElementById('bookwrap')!;
@@ -70,6 +54,19 @@ const controls=document.getElementById('reader-controls')!;
 const previous=document.getElementById('sample-previous') as HTMLButtonElement;
 const next=document.getElementById('sample-next') as HTMLButtonElement;
 let channel=crypto.randomUUID();
+let printView=false, pageIndex=0, pageCount=0;
+function updateReaderView(){
+ controls.hidden=!presentation.classList.contains('reading');
+ (document.getElementById('sample-mode') as HTMLButtonElement).disabled=pageCount===0;
+ presentation.classList.toggle('print-view',printView);
+ document.getElementById('sample-mode')!.textContent=printView?'Reading view':'Print pages';
+ document.getElementById('sample-mode')!.setAttribute('aria-pressed',String(printView));
+ previous.hidden=!printView;next.hidden=!printView;
+ document.getElementById('sample-position')!.textContent=printView?`${pageIndex+1} / ${pageCount}`:'Text excerpt';
+ document.getElementById('sample-scale')!.hidden=!printView||!presentation.classList.contains('enlarged');
+ sendToReader({type:'sample-view',mode:printView?'print':'reading'});
+}
+
 let host='', publication='', sample:any=null, loading=false, controller:AbortController|null=null, frameReady=false;
 book.tabIndex=0;book.setAttribute('role','button');book.setAttribute('aria-label','Open the book to look inside');book.setAttribute('aria-pressed','false');
 let inertSiblings:HTMLElement[]=[];
@@ -88,12 +85,12 @@ function cover(){closeLarge();const label=document.getElementById('book-edition-
 // WebKit misattributes the sender WindowProxy from module event callbacks.
 // Both sides authenticate the same origin and a fresh per-frame capability instead.
 function sendToReader(message:object){frame.contentWindow?.postMessage({...message,channel},location.origin);}
-function sendSample(){if(frameReady && sample)sendToReader({type:'sample-render',sample});}
+function sendSample(){if(frameReady && sample){sendToReader({type:'sample-render',sample});updateReaderView();}}
 async function read(){
  if(!host)return;
  presentation.classList.add('reading');document.getElementById('book-edition-label')!.textContent=publication+' · Recent public writing';reader.hidden=false;caption.hidden=false;
  document.getElementById('view-cover')!.setAttribute('aria-pressed','false');document.getElementById('view-sample')!.setAttribute('aria-pressed','true');
- if(sample){controls.hidden=false;return;}if(loading)return;
+ if(sample){controls.hidden=false;updateReaderView();return;}if(loading)return;
  loading=true;status.hidden=false;status.textContent='Loading a public text sample…';
  const ownHost=host;controller=new AbortController();const ownController=controller;
  const timeout=setTimeout(()=>ownController.abort(),14000);
@@ -116,7 +113,7 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('[data-cover]')
 });
 document.addEventListener('publication-preview',(event:Event)=>{
  const data=(event as CustomEvent).detail;if(data?.host===host)return;
- controller?.abort();channel=crypto.randomUUID();host=data?.host||'';publication=data?.publication||'';sample=null;loading=false;cover();frame.hidden=true;frameReady=false;frame.removeAttribute('src');status.hidden=false;document.getElementById('sample-source')!.hidden=true;
+ controller?.abort();channel=crypto.randomUUID();host=data?.host||'';publication=data?.publication||'';sample=null;pageCount=0;pageIndex=0;printView=false;loading=false;cover();frame.hidden=true;frameReady=false;frame.removeAttribute('src');status.hidden=false;document.getElementById('sample-source')!.hidden=true;
 });
 addEventListener('message',event=>{
  if(event.origin!==location.origin || event.data?.channel!==channel)return;
@@ -130,11 +127,13 @@ addEventListener('message',event=>{
  if(event.data?.type==='sample-ready'){frameReady=true;sendSample();}
  if(event.data?.type==='sample-pages'){
    status.hidden=true;controls.hidden=!presentation.classList.contains('reading');
-   document.getElementById('sample-position')!.textContent=`${event.data.index+1} / ${event.data.count}`;
+   pageIndex=event.data.index;pageCount=event.data.count;updateReaderView();
    previous.disabled=event.data.index===0;next.disabled=event.data.index===event.data.count-1;
  }
  if(event.data?.type==='sample-failed'){sample=null;frame.hidden=true;status.hidden=false;status.textContent='The sample could not be typeset. Try again, or reserve for your complete proof.';}
 });
+document.getElementById('sample-mode')!.addEventListener('click',()=>{printView=!printView;presentation.classList.remove('actual-size');document.getElementById('sample-scale')!.textContent='Actual size';updateReaderView();});
+document.getElementById('sample-continue')!.addEventListener('click',()=>document.getElementById('sample-enlarge')!.click());
 previous.addEventListener('click',()=>sendToReader({type:'sample-turn',delta:-1}));
 next.addEventListener('click',()=>sendToReader({type:'sample-turn',delta:1}));
 document.getElementById('sample-enlarge')!.addEventListener('click',()=>{
@@ -143,7 +142,7 @@ document.getElementById('sample-enlarge')!.addEventListener('click',()=>{
  let current=presentation as HTMLElement;
  while(current.parentElement && current!==document.body){for(const sibling of current.parentElement.children){if(sibling!==current && sibling instanceof HTMLElement && !sibling.inert){sibling.inert=true;inertSiblings.push(sibling);}}current=current.parentElement;}
  document.body.style.overflow='hidden';document.getElementById('sample-enlarge')!.textContent='Close';document.getElementById('sample-scale')!.hidden=false;
- sendToReader({type:'sample-modal',enlarged:true});
+ sendToReader({type:'sample-modal',enlarged:true});updateReaderView();
 });
 document.getElementById('sample-scale')!.addEventListener('click',()=>{const actual=presentation.classList.toggle('actual-size');document.getElementById('sample-scale')!.textContent=actual?'Fit page':'Actual size';});
 addEventListener('keydown',e=>{
