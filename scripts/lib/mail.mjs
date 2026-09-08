@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { prepareOutboundEmail } from "../../functions/lib/runtime.js";
 
-export async function sendMail({ to, subject, text, html, attachments = [], from = "Inksheaf <press@inksheaf.com>", replyTo = "caithrin@caithrin.com" }) {
+export async function sendMail({ to, subject, text, html, attachments = [], from = "Inksheaf <press@inksheaf.com>", replyTo = "caithrin@caithrin.com", timeoutMs }) {
   if (!to || typeof to !== "string" || to.includes(",")) throw new Error("sendMail: exactly one recipient");
   const raw = { from, to: [to], reply_to: replyTo, subject, text, html,
     attachments: attachments.map(a => ({ filename: a.filename, content: a.content.toString("base64") })) };
@@ -16,7 +16,8 @@ export async function sendMail({ to, subject, text, html, attachments = [], from
   }
   const msg = prepareOutboundEmail(process.env, raw);
   const r = await fetch("https://api.resend.com/emails", { method: "POST",
-    headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify(msg) });
+    headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify(msg),
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}) });
   const body = await r.text();
   if (!r.ok) throw new Error(`resend ${r.status}: ${body.slice(0, 200)}`);
   return { ok: true, id: JSON.parse(body).id };

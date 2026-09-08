@@ -5,7 +5,7 @@
 //
 //   press: build the first volume of the chosen route as a watermarked proof, slice its first
 //          pages, store both privately, email the writer the pages + proof link + approve link,
-//          email the operator one line, report status "proofed".
+//          email the operator complete PDFs and private links, report status "proofed".
 //   list:  build every volume as a print interior (no watermark), validate with Lulu, store,
 //          report status "listing" with the keys; the listing itself is phase 3.
 import { execFileSync } from "node:child_process";
@@ -17,6 +17,7 @@ import { printCost } from "../functions/lib/editor-input.js";
 import { createHmac } from "node:crypto";
 import { PDFDocument } from "pdf-lib";
 import { sendMail } from "./lib/mail.mjs";
+import { sendOperatorPdfNotice } from "./lib/operator-pdf-mail.mjs";
 import { reviewPdf, writerLine, operatorBlock } from "./lib/page-review.mjs";
 import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 import { makeClient } from "./lulu-client.mjs";
@@ -190,10 +191,14 @@ ${vols.map(x => writerLine(x.review)).filter(Boolean).map((l, i) => (n > 1 ? `${
 Nothing prints until you approve. Reply to this email and a person answers.
 
 Inksheaf`;
+  // Send the operator's complete files first, so a writer-email failure cannot hide them.
+  // This notification handles its own failure and never blocks delivery to the writer.
+  await sendOperatorPdfNotice({ to: OPERATOR, subject: `PDF ready: ${vols[0].pubName || host} (#${ID}, version ${versionId})${vols.some(x => x.review && x.review.findings.length) ? `, ${vols.reduce((t, x) => t + (x.review?.findings.length || 0), 0)} page(s) flagged` : ""}`,
+    text: `Reservation #${ID}\n${URL_}\nWriter: ${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n\n` + vols.map(x => `${x.label}, SHA-256 ${x.sha256}\n${operatorBlock(x.review)}`).join("\n\n"),
+    assets: vols.map(x => ({ label: x.label, pages: x.pages, key: x.key, pdf: x.pdf })) },
+    { log: m => log("operator-pdf", m) });
   await sendMail({ to: TO, subject: `Your proof: ${vols[0].pubName || host}`, text,
     attachments: [{ filename: `${slug}-first-pages.pdf`, content: first }] });
-  await sendMail({ to: OPERATOR, subject: `press: proof sent for ${host} (#${ID}, version ${versionId})${vols.some(x => x.review && x.review.findings.length) ? `, ${vols.reduce((t, x) => t + (x.review?.findings.length || 0), 0)} page(s) flagged` : ""}`,
-    text: `Reservation #${ID}\n${URL_}\n${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\n` + vols.map(x => `${x.label}: ${x.pages} pages, ${x.key}, ${x.sha256.slice(0, 12)}`).join("\n") + `\nproof ${proofUrl}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n\n` + vols.map(x => `${x.label}\n${operatorBlock(x.review)}`).join("\n\n") + "\n" });
   const leftOut = vols.flatMap(x => x.leftOut);
   /* the estimate against the typeset book (Codex audit P0-2): recorded, and over 15% it is said */
   const est = Number(plan?.est_pages) || vols.reduce((t, x, i) => t + (Number(volumes[i]?.est_pages) || 0), 0);
@@ -280,16 +285,23 @@ Inksheaf`;
   const cost = built.reduce((t, x) => t + printCost(x.pages, interior), 0);
   const quote = { print_cost: Math.round(cost * 100) / 100, volumes: built.map(b => ({ label: b.label, pages: b.pages })), interior, measured: new Date().toISOString() };
   const files = built.map(b => ({ label: b.label, pages: b.pages, interiorKey: b.interiorKey, coverKey: b.coverKey || null, validated: !!(b.validation && b.validation.interior === "NORMALIZED" && b.validation.cover === "NORMALIZED") }));
+  const operatorAssets = built.flatMap((b, i) => [
+    { label: `${b.label} — interior`, pages: b.pages, key: b.interiorKey, pdf: `${DIR}/${slug}-${ID}-v${i + 1}.pdf` },
+    ...(b.coverKey ? [{ label: `${b.label} — wrap cover`, key: b.coverKey, pdf: `${DIR}/${slug}-${ID}-v${i + 1}.cover.pdf` }] : []),
+  ]);
+  await sendOperatorPdfNotice({ to: OPERATOR,
+    subject: allValid ? `Print PDFs ready: ${vvols[0]?.pubName || host} (version ${VERSION_ID}, listing needed)` : `PDF review needed: ${vvols[0]?.pubName || host} (version ${VERSION_ID})`,
+    text: `Reservation #${ID}\n${URL_}\nWriter: ${TO}\nVersion ${VERSION_ID}\n\n` + built.map(b => `${b.label}: ${b.pages} pages; ${b.validation ? `interior ${b.validation.interior}, cover ${b.validation.cover}` : "not validated"}`).join("\n") +
+      (allValid ? `\n\nAll files passed Lulu validation. Print cost $${cost.toFixed(2)} (list price = print cost). The bookstore listing still needs to be created from these files, then recorded:\nPOST ${SITE}/api/listed {signup_id: ${ID}, version_id: ${VERSION_ID}, listing_url, sig: hmac("listed:${ID}")}` : "\n\nValidation is incomplete. These files are for inspection and are not ready to list."),
+    assets: operatorAssets }, { log: m => log("operator-pdf", m) });
   if (allValid) {
     await sendMail({ to: TO, subject: `Your book passed the printer's checks: ${vvols[0]?.pubName || host}`, text: `The printer's checks passed for version ${VERSION_ID}: ${built.map(b => `${b.label}, ${b.pages} pages`).join("; ")}, ${interior === "color" ? "colour" : "black and white"} interior. Print cost at Lulu: $${cost.toFixed(2)} per copy, at cost; Lulu adds its own shipping at checkout.
 
 Next, a person at Inksheaf sets up the book's page at Lulu, where you and your readers order copies; that takes up to one working day. You will get one more email with the link, a short link and QR code you can print or post, and a ready-made button for your Substack.
 
 Inksheaf` });
-    await sendMail({ to: OPERATOR, subject: `press: version ${VERSION_ID} validated, LISTING NEEDED (#${ID})`, text: `Reservation #${ID}\n${URL_}\n${TO}\n\n` + built.map(b => `${b.label}: ${b.pages} pages, interior ${b.interiorKey}, cover ${b.coverKey}, ${b.validation.interior}/${b.validation.cover}`).join("\n") + `\n\nPrint cost $${cost.toFixed(2)} (list price = print cost). Make the Lulu listing from these files (proof store, seven days), then record it:\nPOST ${SITE}/api/listed {signup_id: ${ID}, version_id: ${VERSION_ID}, listing_url, sig: hmac("listed:${ID}")}` });
     await status("listing-pending", { version_id: VERSION_ID, message: `${built.length} volume(s), all NORMALIZED, print cost $${cost.toFixed(2)}; listing by hand`, files, version_status: "listing-pending", quote });
   } else {
-    await sendMail({ to: OPERATOR, subject: `press: version ${VERSION_ID} files built, validation incomplete (#${ID})`, text: `Reservation #${ID}\n${URL_}\n${TO}\n\n` + built.map(b => `${b.label}: ${b.pages} pages, ${b.interiorKey}` + (b.validation ? `, ${b.validation.interior}/${b.validation.cover}` : ", not validated")).join("\n") });
     await status("failed", { version_id: VERSION_ID, message: `${built.length} volume(s) built, validation incomplete`, files, version_status: "failed", error: "Lulu validation incomplete" });
   }
   console.log(`PRESS ${allValid ? "validated" : "built"} #${ID} ${host}: version ${VERSION_ID}, ${built.map(b => b.label + " " + b.pages + "pp").join(", ")}`);
