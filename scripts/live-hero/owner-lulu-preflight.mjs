@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {PDFDocument} from 'pdf-lib';
 import {makeClient} from '../lulu-client.mjs';
 import {proofKey,uploadProof,signedProofUrl} from '../lib/proof-store.mjs';
+import {sameDeliveryAddress} from './owner-order.mjs';
 const dir='output/private-acceptance/owner-order';
 const edition=JSON.parse(readFileSync(dir+'/edition.json'));
 if(edition.host!=='caithrin.com'||edition.quantity!==1)throw Error('This preflight is restricted to the owner’s one copy.');
@@ -37,7 +38,8 @@ if(process.argv.includes('--validate')){
 }
 if(process.argv.includes('--quote')){
  const prior=await client.printJobStatus(3012340),address=prior.shipping_address;
- if(!address||!/1680\s+Mission/i.test(address.street1)||address.postcode!=='94103')throw Error('Prior delivery address differs from the recorded Mox address; stop for confirmation.');
+ const confirmed=JSON.parse(readFileSync(dir+'/confirmed-delivery.json')).shipping_address;
+ if(!address||!confirmed||!sameDeliveryAddress(address,confirmed))throw Error('Prior delivery address differs from the privately confirmed address; stop for confirmation.');
  const quote=await client.costQuote(pages,address,{quantity:1,level:'MAIL'});
  save('lulu-quote',{pages,quantity:1,shipping:'MAIL',addressBasis:'Prior owner order 3012340; address confirmed by owner on September 7',quote:redact(quote),checkedAt:new Date().toISOString()});
  console.log('Quote saved for one copy, standard MAIL, using prior delivery details; no order created.');

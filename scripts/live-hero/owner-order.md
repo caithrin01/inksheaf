@@ -22,6 +22,10 @@ node scripts/live-hero/test-owner-order.mjs
 After explicit PDF-upload authorization, validate the current interior and all four owner
 covers and refresh the quote:
 
+The quote helper compares the full prior delivery details with the owner-confirmed
+`confirmed-delivery.json` in the private artifact directory. This local record contains
+`shipping_address`; keep it out of Git and do not copy delivery fields into source code.
+
 ```sh
 node scripts/live-hero/owner-lulu-preflight.mjs --validate --quote
 ```
