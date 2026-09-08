@@ -1,87 +1,131 @@
-// Publication verification (Codex audit P0-8, Caithrin's design 2026-09-02):
-//   POST /api/verify {signup_id}  -> sends a one-time link to <subdomain>@substack.com, the
-//     address the publication sends from (Substack forwards it to the owner); answers which
-//     address it went to. The subdomain comes from the archive's byline data, never from a title.
-//   GET  /api/verify?t=<token>    -> marks the reservation verified and starts the press.
-// Fallbacks (proof by About-page code, DNS record, or a person) record the same row with their
-// method; the press runs only when a verification row exists for the reservation.
-import { hmacHex, dispatchPress } from "../lib/press-dispatch.js";
-import { spend, LIMITS } from "../lib/quota.js";
-import { prepareOutboundEmail } from "../lib/runtime.js";
-import { recordVerifiedFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
+// A link opens a read-only confirmation page; an explicit POST starts the press.
+import { hmacHex } from '../lib/press-dispatch.js';
+import { spend, LIMITS } from '../lib/quota.js';
+import { prepareOutboundEmail, runtimeMode } from '../lib/runtime.js';
+import { parseHost, readLimitedText } from './preview.js';
+import { publicationFromArchive, publicationFromHomepage } from '../lib/publication-identity.js';
+import { confirmReservation, confirmationPage, verificationPage } from '../lib/verification.js';
 
 export async function onRequest({ request, env, waitUntil }) {
-  const u = new URL(request.url);
-  if (request.method === "GET") {
-    const t = String(u.searchParams.get("t") || ""); if (!/^[0-9a-f]{40}$/.test(t)) return page("That link is not valid.", "Open the link from the confirmation email again.", 403);
-    const row = await env.DB.prepare("SELECT token, email, signup_id, verified_at, expires_at FROM email_verifications WHERE token = ?").bind(t).first().catch(() => null);
-    if (!row) return page("That link is not valid.", "Ask for a new confirmation from the site.", 404);
-    if (row.expires_at < new Date().toISOString()) return page("That link has expired.", "Ask for a new confirmation from the site.", 410);
-    const newlyVerified = !row.verified_at;
-    if (newlyVerified) {
-      await env.DB.prepare("UPDATE email_verifications SET verified_at = datetime('now') WHERE token = ?").bind(t).run();
-      await env.DB.prepare("UPDATE signups SET email_verified_at = datetime('now') WHERE id = ?").bind(row.signup_id).run().catch(() => {});
-    }
-    const s = await env.DB.prepare("SELECT id, publication_url, email, plan_json, dispatch_status FROM signups WHERE id = ?").bind(row.signup_id).first().catch(() => null);
-    if (!s) return page("We could not find that reservation.", "Write to caithrin@caithrin.com.", 404);
-    if (s.dispatch_status === "dispatched" || s.dispatch_status === "done") return page("Already confirmed.", "Your proof is being made; it lands in your inbox in a few minutes.");
-    const d = await dispatchPress(env, { event: "press", signup_id: s.id, publication_url: s.publication_url, email: s.email, plan_json: s.plan_json });
-    await env.DB.prepare("UPDATE signups SET dispatch_status = ? WHERE id = ?").bind(d.ok ? "dispatched" : "queued", s.id).run().catch(() => {});
-    await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')`)
-      .bind(s.id, d.ok ? "building" : "queued", JSON.stringify({ message: d.ok ? "press started after verification" : "dispatch failed: " + (d.reason || d.status) })).run().catch(() => {});
-    if (newlyVerified) {
-      const tracked = await recordVerifiedFunnel(env, s.id);
-      if (tracked.alert) scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: "verified", press: d.ok ? "dispatched" : "queued" });
-    }
-    return page("Confirmed. Your proof is being made.", d.ok ? `It lands at ${s.email} in a few minutes: the first pages attached, the whole book linked, and a page to approve or change it.` : "A person starts the press by hand; the proof follows today.");
+  const url = new URL(request.url);
+  if (!['GET', 'POST'].includes(request.method)) return json({ ok: false, error: 'method not allowed' }, 405);
+  let body = {};
+  if (request.method === 'POST') {
+    try {
+      body = request.headers.get('content-type')?.includes('application/json')
+        ? await request.json() : Object.fromEntries(await request.formData());
+    } catch { return json({ ok: false, error: 'invalid request' }, 400); }
   }
-  if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
-  let b; try { b = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
-  const id = Number(b.signup_id); if (!id) return json({ ok: false, error: "signup_id" }, 400);
-  const s = await env.DB.prepare("SELECT id, publication_url, email, email_verified_at FROM signups WHERE id = ?").bind(id).first().catch(() => null);
-  if (!s) return json({ ok: false, error: "not found" }, 404);
-  const out = await sendVerification(env, s, u.origin);
-  return json(out, out.ok ? 200 : out.status || 422);
+  const token = request.method === 'GET' ? url.searchParams.get('t') : body.t;
+  if (request.method === 'GET' || token != null) {
+    if (!/^[0-9a-f]{40}$/.test(String(token || '')))
+      return verificationPage('That confirmation link is not valid.', 'Open the link from your latest confirmation email.', 403);
+    let row;
+    try { row = await env.DB.prepare('SELECT * FROM email_verifications WHERE token = ?').bind(token).first(); }
+    catch { return verificationPage('Confirmation is temporarily unavailable.', 'Your link has not been used. Please try again shortly.', 503); }
+    if (!row) return verificationPage('That confirmation link is not valid.', 'Request another confirmation from Inksheaf.', 404);
+    if (!validExpiry(row.expires_at)) return verificationPage('That confirmation link has expired.', 'Return to Inksheaf and request another confirmation for your edition.', 410);
+    const signup = await env.DB.prepare('SELECT * FROM signups WHERE id = ?').bind(row.signup_id).first();
+    if (!signup) return verificationPage('We could not find that reservation.', 'Write to caithrin@caithrin.com for help.', 404);
+    if (request.method === 'GET') return confirmationPage(signup, token);
+    const result = await confirmReservation(env, signup, { token, waitUntil });
+    return verificationPage(result.heading, result.message, result.status || 200);
+  }
+  const id = Number(body.signup_id);
+  if (!Number.isSafeInteger(id) || id < 1) return json({ ok: false, error: 'signup_id' }, 400);
+  const signup = await env.DB.prepare('SELECT * FROM signups WHERE id = ?').bind(id).first();
+  if (!signup) return json({ ok: false, error: 'not found' }, 404);
+  if (signup.email_verified_at) return json({ ok: true, verified: true, press: signup.dispatch_status || 'queued', sent: false });
+  const result = await sendVerification(env, signup, url.origin, { resend: true });
+  return json(result, result.ok ? 200 : result.status || 503);
 }
 
-/* send the confirmation to the publication's own address; used by signup and by the retry button */
-export async function sendVerification(env, s, origin) {
-  const id = s.id;
-  const host = s.publication_url.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
-  const q = await spend(env, `verify:${host}`, LIMITS.verify_host); if (!q.ok) return { ok: false, status: 429, error: "too many confirmations for this publication this hour; try later" };
-  const sub = await subdomainOf(host, env);
-  if (!sub) return { ok: false, status: 422, error: "no_subdomain", message: "We could not find this publication's Substack address; use the About-page code instead." };
-  const to = `${sub}@substack.com`;
-  const token = [...crypto.getRandomValues(new Uint8Array(20))].map(x => x.toString(16).padStart(2, "0")).join("");
-  await env.DB.prepare("INSERT INTO email_verifications (token, email, signup_id, expires_at) VALUES (?, ?, ?, datetime('now', '+2 days'))").bind(token, to, id).run();
-  const link = `${origin}/api/verify?t=${token}`;
-  let sent = false;
-  if (env.RESEND_API_KEY) {
-    let message;
-    try {
-      message = prepareOutboundEmail(env, { from: "Inksheaf <press@inksheaf.com>", to: [to], reply_to: "caithrin@caithrin.com", subject: `Confirm your Inksheaf print run for ${host.replace(/^www\./, "")}`,
-        text: `Someone (we hope you) asked Inksheaf to typeset ${host.replace(/^www\./, "")} into a printed book and reserved a proof for ${s.email}.\n\nIf that was you, confirm here and the proof is made:\n${link}\n\nIf it was not you, ignore this message; nothing is printed and nothing is sent to that address.\n\nThis went to ${to}, the address your publication sends from, because only the publication's owner receives it.\n\nInksheaf` });
-    } catch (e) {
-      return { ok: false, status: 503, error: String(e.message || e) };
-    }
-    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify(message) });
-    sent = r.ok;
-  }
-  return { ok: true, sent_to: to, sent, fallback: "about-code" };
+export async function verificationState(env, id) {
+  const row = await env.DB.prepare("SELECT email, send_status, sent_at FROM email_verifications WHERE signup_id = ? AND email != 'about-page' AND datetime(expires_at) > datetime('now') ORDER BY created_at DESC, rowid DESC LIMIT 1").bind(id).first();
+  return { sent: row?.send_status === 'accepted', sent_to: row?.email || null,
+    verification_status: row?.send_status || 'pending', fallback: 'about-code' };
 }
-/* the publication's Substack subdomain from the archive's byline data */
-async function subdomainOf(host, env) {
-  if (/\.substack\.com$/.test(host)) return host.replace(/^www\./, "").split(".")[0];
+
+// Ambiguous sends reuse the same token and provider idempotency key. An explicit
+// resend after acceptance makes a new message; replaying a reservation does not.
+export async function sendVerification(env, signup, origin, { resend = false } = {}) {
+  const host = parseHost(signup.publication_url || '');
+  if (!host) return { ok: false, sent: false, status: 422, error: 'unsupported publication address' };
+  const quota = await spend(env, `verify:${host}`, LIMITS.verify_host);
+  if (!quota.ok) return { ok: false, sent: false, status: 429, error: 'Too many confirmations for this publication this hour. Please try later.', fallback: 'about-code' };
+  let previous = await env.DB.prepare("SELECT * FROM email_verifications WHERE signup_id = ? AND email != 'about-page' AND datetime(expires_at) > datetime('now') ORDER BY created_at DESC, rowid DESC LIMIT 1").bind(signup.id).first();
+  if (previous?.send_status === 'accepted' && !resend)
+    return { ok: true, sent: true, sent_to: previous.email, verification_status: 'accepted', fallback: 'about-code' };
+  const age = previous ? Date.now() - utcTime(previous.created_at) : Infinity;
+  if (previous?.send_status === 'accepted' || age >= 23 * 3600_000) previous = null;
+  const subdomain = previous ? previous.email.split('@')[0] : await subdomainOf(host, env);
+  if (!subdomain) return { ok: false, sent: false, status: 422, error: 'We could not find your publication’s Substack email address. Use the About-page option below.', fallback: 'about-code' };
+  const to = `${subdomain}@substack.com`;
+  const token = previous?.token || randomToken();
+  if (!previous) await env.DB.prepare("INSERT INTO email_verifications (token, email, signup_id, expires_at) VALUES (?, ?, ?, datetime('now', '+2 days'))").bind(token, to, signup.id).run();
+  const link = `${origin}/api/verify?t=${token}`;
+  let message;
   try {
-    const a = await (await fetch(`https://${host}/api/v1/archive?sort=new&limit=3`, { headers: { accept: "application/json", "user-agent": "inksheaf-verify/1.0" } })).json();
-    for (const p of Array.isArray(a) ? a : []) for (const b of p.publishedBylines || []) for (const pu of b.publicationUsers || []) { const pub = pu.publication; if (pub && pub.subdomain && (pub.id === p.publication_id)) return String(pub.subdomain).toLowerCase(); }
-  } catch {}
+    if (!env.RESEND_API_KEY) throw new Error('Email unavailable');
+    if (previous?.message_json) {
+      if (previous.send_mode !== runtimeMode(env)) throw new Error('Email environment changed');
+      message = JSON.parse(previous.message_json);
+      const guarded = prepareOutboundEmail(env, message);
+      if (JSON.stringify(guarded.to) !== JSON.stringify(message.to)) throw new Error('Email destination changed');
+    } else message = prepareOutboundEmail(env, { from: 'Inksheaf <press@inksheaf.com>', to: [to], reply_to: 'caithrin@caithrin.com',
+      subject: `Confirm your Inksheaf print run for ${host.replace(/^www\./, '')}`,
+      text: `Someone requested a private PDF of ${host.replace(/^www\./, '')} for ${signup.email}.\n\nIf you own this publication and made that request, open this link and confirm:\n${link}\n\nIf you did not request this, ignore this email. Opening the link alone does not start a run. Confirming prepares a private PDF; it does not publish a listing or order a book.\n\nThis confirmation was sent to your publication's Substack address.\n\nInksheaf` });
+  } catch {
+    await env.DB.prepare("UPDATE email_verifications SET send_status = 'failed', send_error = 'email unavailable' WHERE token = ?").bind(token).run();
+    return { ok: false, sent: false, sent_to: to, status: 503, error: 'Email delivery is unavailable. Please try again shortly or use the About-page option.', fallback: 'about-code' };
+  }
+  const claim = await env.DB.prepare("UPDATE email_verifications SET send_status = 'sending', send_started_at = datetime('now'), send_error = NULL, message_json = COALESCE(message_json, ?), send_mode = COALESCE(send_mode, ?) WHERE token = ? AND send_status != 'accepted' AND (send_status != 'sending' OR send_started_at < datetime('now', '-60 seconds'))").bind(JSON.stringify(message), runtimeMode(env), token).run();
+  if (claim.meta?.changes !== 1) return { ok: true, sent: false, sent_to: to, verification_status: 'sending', fallback: 'about-code' };
+  try {
+    const response = await fetch('https://api.resend.com/emails', { method: 'POST', signal: AbortSignal.timeout(15_000),
+      headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json', 'idempotency-key': `verification/${token}` }, body: JSON.stringify(message) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.id) {
+      await env.DB.prepare("UPDATE email_verifications SET send_status = 'failed', send_error = ? WHERE token = ?").bind(`provider ${response.status}`, token).run();
+      return { ok: false, sent: false, sent_to: to, status: 503, error: 'We could not send your confirmation. Please retry or use the About-page option.', fallback: 'about-code' };
+    }
+    await env.DB.prepare("UPDATE email_verifications SET send_status = 'accepted', provider_id = ?, sent_at = datetime('now'), send_error = NULL WHERE token = ?").bind(data.id, token).run();
+    return { ok: true, sent: true, sent_to: to, verification_status: 'accepted', fallback: 'about-code' };
+  } catch {
+    await env.DB.prepare("UPDATE email_verifications SET send_status = 'uncertain', send_error = 'send outcome unknown' WHERE token = ?").bind(token).run();
+    return { ok: false, sent: false, sent_to: to, status: 503, error: 'We could not confirm that the email was sent. Check your inbox, or retry here.', fallback: 'about-code' };
+  }
+}
+
+async function subdomainOf(host, env) {
+  if (/^[a-z0-9][a-z0-9-]*\.substack\.com$/.test(host)) return host.split('.')[0];
+  const valid = pub => /^[a-z0-9][a-z0-9-]*$/.test(pub?.subdomain || '') ? pub.subdomain.toLowerCase() : null;
+  try {
+    const response = await fetch(`https://${host}/api/v1/archive?sort=new&limit=3`, { redirect: 'manual', signal: AbortSignal.timeout(5000), headers: { accept: 'application/json' } });
+    if (response.ok) {
+      const posts = JSON.parse(await readLimitedText(response));
+      const sub = valid(publicationFromArchive(Array.isArray(posts) ? posts : [], host));
+      if (sub) return sub;
+    }
+  } catch { /* Try the publication homepage next. */ }
+  try {
+    const response = await fetch(`https://${host}/`, { redirect: 'manual', signal: AbortSignal.timeout(4000) });
+    if (response.ok) {
+      const sub = valid(publicationFromHomepage(await readLimitedText(response), host));
+      if (sub) return sub;
+    }
+  } catch { /* Try the existing authenticated public archive relay. */ }
+  if (env.ARCHIVE_RELAY_TOKEN) try {
+    const sig = await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${host}:0`);
+    const response = await fetch(`https://caithrin--inksheaf-archive-relay-archive.modal.run?host=${encodeURIComponent(host)}&offset=0&sig=${sig}`, { signal: AbortSignal.timeout(5000) });
+    if (response.ok) {
+      const posts = JSON.parse(await readLimitedText(response));
+      return valid(publicationFromArchive(Array.isArray(posts) ? posts : [], host));
+    }
+  } catch { /* The visible ownership fallback remains available. */ }
   return null;
 }
-function page(h, p, status = 200) {
-  return new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Inksheaf</title>
-<style>body{font-family:"EB Garamond",Garamond,Georgia,serif;background:#f7f3e9;color:#211c15;max-width:36rem;margin:14vh auto;padding:0 1.4rem;line-height:1.6}h1{font-weight:500;font-size:1.9rem}p{color:#4a4238}</style>
-<h1>${h}</h1><p>${p}</p>`, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-}
-const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });
+const utcTime = value => Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(value || '') ? value : `${String(value || '').replace(' ', 'T')}Z`);
+const validExpiry = value => Number.isFinite(utcTime(value)) && utcTime(value) > Date.now();
+const randomToken = () => [...crypto.getRandomValues(new Uint8Array(20))].map(x => x.toString(16).padStart(2, '0')).join('');
+const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
