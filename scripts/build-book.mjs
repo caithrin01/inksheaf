@@ -7,6 +7,11 @@
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
+import { printCoverLogo } from "./lib/print-logo.mjs";
+import { printFonts } from "./lib/print-assets.mjs";
+import { interiorCss } from "../functions/lib/book-interior.js";
+import { publicationFromHomepage, publicationFromArchive, publicationLabel } from "../functions/lib/publication-identity.js";
+import { coverMarkup, coverStyle, designSelection, validDesign } from "../functions/lib/book-design.js";
 import { normalizeUrl, linkCode, SHORT_HOST } from "../functions/lib/links.js";
 import { transformComponents } from "./lib/components.mjs";
 import { ruleCut } from "../functions/lib/cuts.js";
@@ -23,6 +28,10 @@ const PRINT_INTERIOR = process.argv.includes("--print-interior");
 const MODE = (process.argv.includes("--images-print") || PRINT_INTERIOR) ? "print" : "proof";
 const NO_BRAND = process.argv.includes("--no-brand");
 const argOf = f => { const i = process.argv.indexOf(f); return i > -1 ? process.argv[i + 1] : null; };
+const SAVED_DESIGN = argOf("--design-file") ? JSON.parse(readFileSync(argOf("--design-file"), "utf8")) : null;
+const COVER_DESIGN = SAVED_DESIGN?.cover || argOf("--cover-design");
+if (COVER_DESIGN) designSelection(COVER_DESIGN);
+if (SAVED_DESIGN && !validDesign(SAVED_DESIGN)) throw new Error("Unsupported saved cover design");
 const IMG_MAX = Math.max(1.5, Math.min(5.5, Number(argOf("--img-max")) || 4.2)); /* inches; the fit loop (--defer) handles placement */
 const DEFER = String(argOf("--defer") || "").split(",").map(x => x.trim()).filter(Boolean);
 /* --include slug,slug: the writer's reversals of rule cuts and guest cuts, from the change page */
@@ -214,8 +223,14 @@ const B = {
   coverInk2: (brand?.cover_usable && (brand.cover_print_secondary || brand.cover_print)) || null,
   fontsUrl: brand?.fonts_css_url || null,
 };
+if (COVER_DESIGN) Object.assign(B, { bodyFont: 'Source Serif 4', headingFont: 'Source Serif 4', headingWeight: 560, accent: '#26251f' });
 B.coverRule = B.coverBg && contrastHex(B.accent, B.coverBg) >= 3 ? B.accent : (B.coverInk || "#a63a2b");
-if (brand?.publication_name && brand.publication_name.trim()) pubName = brand.publication_name.trim();
+if (!FIXTURE) {
+  pubName = publicationLabel(publicationFromHomepage(home,host,full)) || publicationLabel(publicationFromArchive(full,host));
+  if (!pubName) throw new Error("Could not confirm the publication name; refusing to print an author name as its masthead.");
+}
+const designLogo = COVER_DESIGN && !PRINT_INTERIOR ? await printCoverLogo(SAVED_DESIGN || designSelection(COVER_DESIGN),brand,host) : {};
+const designVersion = SAVED_DESIGN?.version || 2;
 let coverPlate = null;
 if (COVER_PHOTO && brand?.cover_photo_url) {
   try {
@@ -622,48 +637,7 @@ ${B.fontsUrl ? `<link href="${B.fontsUrl}" rel="stylesheet">` : ""}
 <style>
 :root{ --ink:#221d16; --rubric:${B.accent}; --faint:#6d675c; --rule:#d8d2c2;
   --headfont:"${B.headingFont}"; --headweight:${B.headingWeight}; }
-@page{ size: 6in 9in; margin: 0.72in 0.62in 0.78in 0.62in; }
-@page chapter{
-  margin: 0.72in 0.62in 0.78in 0.62in;
-  @bottom-center{ content: counter(page); font-family: "Source Serif 4", serif; font-size: 8.5pt; color: #6d675c; }
-  @top-left{ content: string(pubname); font-family: "Source Serif 4", serif; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: #6d675c; }
-  @top-right{ content: string(arttitle); font-family: "Source Serif 4", serif; font-size: 7.5pt; font-style: italic; color: #6d675c; }
-}
-@page cover{ margin: 0; }
-@page frontmatter{ margin: 0.72in 0.62in 0.78in 0.62in; }
-html{ font-size: 10.5pt }
-body{ font-family:"${B.bodyFont}", "Source Serif 4", Georgia, serif; color:var(--ink); line-height:1.5;
-  font-optical-sizing:auto; margin:0 }
-.pubsrc{ string-set: pubname content(text); height:0; overflow:hidden; visibility:hidden }
-p{ margin:0 0 0 0; text-indent:1.35em; text-align:justify; hyphens:none; orphans:2; widows:2 }
-.artbody > p:first-of-type{ text-indent:0 }
-
-.about p, .getmore p{ text-indent:0 }
-a{ color:inherit; text-decoration:none }
-/* an image must always fit under an opener head, or Paged.js pushes it whole to the next page
-   and leaves the page it left mostly white (blank-page detector, 2026-09-02); --img-max caps it */
-img{ max-width:100%; max-height:${IMG_MAX}in; width:auto; height:auto; display:block; margin:.9em auto }
-figure{ margin:1em 0; break-inside:avoid }
-h2, h3, h4{ break-after:avoid; page-break-after:avoid } figcaption{ font-size:8.5pt; color:var(--faint); text-align:center; margin-top:.35em }
-blockquote{ margin:.9em 1.4em; font-size:9.8pt; color:#3a352c }
-h1,h2,h3,h4{ line-height:1.15; font-weight:var(--headweight); font-family:var(--headfont), "Source Serif 4", serif }
-hr{ border:0; text-align:center; margin:1.2em 0 }
-hr::after{ content:"❦"; color:var(--rubric); font-size:10pt }
-ul,ol{ margin:.7em 0 .7em 1.5em; padding:0 }
-li{ margin:.2em 0; text-align:justify; hyphens:none }
-pre{ font-size:8pt; background:#f4efe4; padding:.6em; overflow:hidden; white-space:pre-wrap; word-break:break-word }
-code{ font-size:8.5pt }
-p.verse{ text-align:left; text-indent:0; hyphens:none }
-.longurl{ word-break:break-all; hyphens:none; font-size:9pt }
-.gifnote{ font-size:7.5pt; color:var(--faint); text-align:center; margin:-.5em 0 .9em }
-table{ width:100%; border-collapse:collapse; font-size:8pt; margin:.9em 0 }
-td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word; text-align:left }
-.imgmissing{ border:1px dashed var(--rubric); color:var(--faint); font-size:8.5pt; padding:1em; text-align:center; margin:.9em 0 }
-.tweet-print{ margin:.9em 1.2em; font-size:9.8pt } .tweet-print .tweet-by{ text-indent:0; font-size:8.5pt; color:var(--faint); margin-top:.2em }
-.latex-print{ text-align:center; text-indent:0; font-size:9.5pt }
-.embedcard{ border:1px solid var(--rule); border-left:3px solid var(--rubric); padding:.6em .8em;
-  font-size:8.5pt; color:var(--faint); margin:.9em 0; word-break:break-all }
-
+${interiorCss({ bodyFont: B.bodyFont, imgMax: IMG_MAX })}
 /* ---------- front matter ---------- */
 .cover{ page: cover; height:100%; position:relative;
   background:${B.coverBg || "#f6f1e6"}; color:${B.coverInk || "var(--ink)"};
@@ -703,16 +677,6 @@ td, th{ border:1px solid var(--rule); padding:.25em .4em; word-break:break-word;
 .tocpart{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--rubric); font-weight:600; margin:1.1em 0 .3em }
 .tocex{ color:var(--faint); font-size:9pt }
 /* ---------- articles ---------- */
-.article{ page: chapter; break-before:page }
-.arthead{ margin:0 0 1.1em; padding-top:.55in }
-.artnum{ font-size:30pt; color:var(--rubric); font-variant-numeric:oldstyle-nums; line-height:1 }
-.arttitle{ font-size:17pt; margin:.25em 0 0; string-set: arttitle content(text); font-family:var(--headfont), "Source Serif 4", serif; font-weight:var(--headweight) }
-.artsub{ font-size:10.5pt; color:var(--faint); font-style:italic; margin:.4em 0 0; text-indent:0; text-align:left }
-.artmeta{ font-size:8pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
-  margin-top:.7em; border-bottom:1px solid var(--rule); padding-bottom:.7em }
-.artbody p.opener{ text-indent:0 }
-.artbody p.opener::first-letter{ color:var(--rubric); font-size:3.1em; float:left;
-  line-height:.82; padding-right:.08em; font-weight:560 }
 .footnote-anchor, .fn{ color:var(--rubric); font-size:.72em; vertical-align:super }
 .footnote{ font-size:8.5pt; color:#3a352c }
 .footnote-content p{ text-indent:0; text-align:left }
@@ -740,13 +704,13 @@ a[data-link]::after{ content: attr(data-link); font-size:.62em; vertical-align:s
 .apc-art{ font-size:8.5pt; letter-spacing:.06em; text-transform:uppercase; color:var(--rubric) }
 .apc-body{ margin:.4em 0; font-size:9.5pt }
 .apc-by{ font-size:8.5pt; color:var(--faint) }
+${COVER_DESIGN ? printFonts(designVersion) + readFileSync(designVersion===1?"public/book/cover-v1.css":"public/book/cover.css", "utf-8") : ""}
 </style>
 </head>
 <body data-retrieval-failures="${report.skips.filter(k => /429|5\d\d|timeout|fetch|unreachable/i.test(k.reason)).length}">
 
-${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : `<div class="cover">
-  <div class="pubsrc">${esc(pubName)}</div>`}
-${PRINT_INTERIOR ? "" : `
+${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(pubName)}</div>` : COVER_DESIGN ? `<div class="cover" style="padding:0;background:transparent"><div class="pubsrc">${esc(pubName)}</div><div class="cover-face" data-design="${COVER_DESIGN}" style="width:6in;height:9in;${coverStyle(COVER_DESIGN, SAVED_DESIGN?.palette || {cover_bg:B.coverBg,cover_ink:B.coverInk},pubName,designVersion)}">${coverMarkup({publication:pubName,kind:volLabel,dates:range,foot:`${full.length} ${noun} · 6 × 9 · perfect bound`,...designLogo,version:designVersion})}</div></div>` : `<div class="cover">
+  <div class="pubsrc">${esc(pubName)}</div>
   <div class="kind">${kindLabel}</div>
   <h1>${esc(pubName)}</h1>
   <div class="rule"></div>

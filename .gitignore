@@ -34,6 +34,8 @@ proofs/pipe/**/*.pdf
 proofs/pipe/**/*.img
 proofs/pipe/**/*.html
 .playwright-cli/
+output/playwright/
+output/frontend-review/
 # Render masters stay local; storyboard prompts are the durable recipe and belong in git.
 assets/*
 !assets/storyboard/
@@ -53,3 +55,6 @@ proofs/*.typ
 proofs/*.pages.json
 proofs/fixtures/*.pdf
 proofs/fixtures/*.typ
+
+# Local print design verification artifacts
+output/pdf/

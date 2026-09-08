@@ -1,0 +1,73 @@
+{
+  "status": "completed",
+  "started": "2026-09-07T23:51:07.145Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "BEFORE: rejected dark square plate on four covers",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-logo-background/before/covers-1440.png",
+      "saved": "input-1.png",
+      "sha256": "9e6ff02e1eb011497e28a4a290cccadbc993a5232269a774df5b112a36ebd3cb"
+    },
+    {
+      "label": "AFTER DEFAULT: existing transparent author masters on all four cover colours",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-logo-background/transparent-covers-1440.png",
+      "saved": "input-2.png",
+      "sha256": "07ee21d874272d23f0bbb12df1de6f18d6b4d84e153c03d3350bd0d578fecfec"
+    },
+    {
+      "label": "FALLBACK DEMO: opaque original in full-width publication bands",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-logo-background/band-covers-1440.png",
+      "saved": "input-3.png",
+      "sha256": "a50a925b3da03f6fc10b5e689212c8a05cdea511dc870aa79d9fa763cfdde49a"
+    },
+    {
+      "label": "AFTER DEFAULT: phone viewport at 390 CSS pixels",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide-logo-background/transparent-covers-390.png",
+      "saved": "input-4.png",
+      "sha256": "d0408715529f8ee46afda585add62f8cee3c7b0b58b7d562680b1b4a9c3b5e84"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "474a7b2fecb90a9cea339848e096ceb9d60a646a270dfe8889f822b5121b7129",
+  "git_head": "080c0b674c36f09e06e5c1a13436ef8197456118",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 4000,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788825068-y4BzuuUaxyXWuvktIB0R",
+  "usage": {
+    "prompt_tokens": 5668,
+    "completion_tokens": 1221,
+    "total_tokens": 6889,
+    "cost": 0.058865,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.058865,
+      "upstream_inference_prompt_cost": 0.02834,
+      "upstream_inference_completions_cost": 0.030525
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 435,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-07T23:51:32.705Z"
+}

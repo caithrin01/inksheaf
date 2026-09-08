@@ -1,4 +1,6 @@
 ---
+import Logo from "../components/Logo.astro";
+import "../styles/workflow.css";
 // The mailing screen (plan-end-to-end-v1, phase 4): copies of the edition to readers'
 // addresses, priced by Lulu per address, at cost. Payment: Stripe when the deploy has keys,
 // otherwise an invoice by email settled by hand. Nothing is ordered from this page directly.
@@ -7,34 +9,20 @@
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mail copies · Inksheaf</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
-<style>
-:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--hair:rgba(33,28,21,.15);--faint:rgba(33,28,21,.65);--card:#f4efe2}
-@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--hair:rgba(233,223,200,.15);--faint:rgba(233,223,200,.6);--card:#1c1710}}
-*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.1rem}
-.sheet{max-width:46rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}h2{font-weight:500;font-size:1.25rem;margin-top:2rem}
-.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}.note{color:var(--faint);font-size:.92rem}
-.edition{margin:1.2rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);background:var(--card)}.edition b{font-weight:560}
-table{width:100%;border-collapse:collapse;margin-top:.8rem;font-size:.95rem}th{text-align:left;font-weight:500;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:.3rem .3rem;border-bottom:1px solid var(--rule)}
-td{padding:.25rem .3rem;border-bottom:1px solid var(--hair);vertical-align:top}input{width:100%;font:inherit;font-size:.95rem;padding:.35rem .4rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
-input.q{width:3.6rem;text-align:center}.tot{text-align:right;white-space:nowrap}.err{color:var(--red);font-size:.85rem}
-.row-actions button,.actions button{font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.74rem;padding:.6rem 1.1rem;background:transparent;color:var(--ink);border:1px solid var(--rule);cursor:pointer;margin-top:.9rem;margin-right:.5rem}
-.actions button.main{background:var(--ink);color:var(--paper);border-color:var(--ink)}.actions button.main:hover{background:var(--red);border-color:var(--red)}button:disabled{opacity:.5;cursor:not-allowed}
-.invoice{margin-top:1.6rem;padding:1rem 1.2rem;border:1px solid var(--rule);background:var(--card)}.invoice .line{display:flex;justify-content:space-between;padding:.2rem 0}.invoice .total{border-top:1px solid var(--rule);margin-top:.4rem;padding-top:.5rem;font-weight:560}
-.hidden{display:none}textarea{width:100%;min-height:6rem;font:inherit;font-size:.95rem;padding:.5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
-</style></head>
-<body><main class="sheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta name="robots" content="noindex" /></head>
+<body><main class="workflow-sheet"><a href="/" class="workflow-home" aria-label="Inksheaf home"><Logo small /></a>
 <p class="eyebrow">Inksheaf · mail copies to readers</p>
 <h1 id="h">Send copies of your edition</h1>
-<p id="lead" class="note">Loading your edition…</p>
+<p id="lead" class="note" role="status">Loading your edition…</p>
 <div class="edition" id="edition" hidden></div>
 
 <section id="work" hidden>
 <h2>Where they go</h2>
 <p class="note">One row per address, US only during the beta. Paste a list below instead if you have one: one address per line as <i>name, street, city, ST, ZIP, copies</i>.</p>
-<table id="tbl"><thead><tr><th>Name</th><th>Street</th><th>City</th><th>ST</th><th>ZIP</th><th>Copies</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+<div class="address-table" role="region" aria-label="Mailing addresses" tabindex="0"><table id="tbl"><thead><tr><th>Name</th><th>Street</th><th>City</th><th>ST</th><th>ZIP</th><th>Copies</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="row-actions"><button type="button" id="add">Add an address</button><button type="button" id="pasteBtn">Paste a list</button></div>
-<textarea id="paste" class="hidden" placeholder="Ada Lovelace, 12 Analytical St, Boston, MA, 02108, 2"></textarea>
+<textarea aria-label="Paste mailing addresses" id="paste" class="hidden" placeholder="Ada Lovelace, 12 Analytical St, Boston, MA, 02108, 2"></textarea>
 <h2>Shipping</h2>
 <label><input type="radio" name="level" value="MAIL" checked style="width:auto" /> Mail, the slowest and cheapest</label><br />
 <label><input type="radio" name="level" value="PRIORITY_MAIL" style="width:auto" /> Priority mail</label><br />
@@ -53,11 +41,11 @@ const money = (n) => '$' + Number(n).toFixed(2);
 let volumes = [], payment = 'invoice', lastQuote = null;
 function row(a = {}) {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input name="name" value="${esc(a.name)}" /></td><td><input name="street1" value="${esc(a.street1)}" /></td><td><input name="city" value="${esc(a.city)}" /></td><td><input name="state_code" maxlength="2" value="${esc(a.state_code)}" style="width:3.2rem" /></td><td><input name="postcode" value="${esc(a.postcode)}" style="width:5.6rem" /></td><td><input class="q" name="quantity" type="number" min="1" max="50" value="${a.quantity || 1}" /></td><td><button type="button" class="rm" aria-label="Remove this address" style="border:0;background:none;cursor:pointer;color:var(--faint)">×</button></td>`;
+  tr.innerHTML = `<td><input name="name" aria-label="Recipient name" value="${esc(a.name)}" /></td><td><input name="street1" aria-label="Street address" value="${esc(a.street1)}" /></td><td><input name="city" aria-label="City" value="${esc(a.city)}" /></td><td><input name="state_code" aria-label="State" maxlength="2" value="${esc(a.state_code)}" style="width:3.2rem" /></td><td><input name="postcode" aria-label="ZIP code" value="${esc(a.postcode)}" style="width:5.6rem" /></td><td><input class="q" name="quantity" aria-label="Copies" type="number" min="1" max="50" value="${a.quantity || 1}" /></td><td><button type="button" class="rm" aria-label="Remove this address" style="border:0;background:none;cursor:pointer;color:var(--faint)">×</button></td>`;
   tr.querySelector('.rm').addEventListener('click', () => tr.remove());
   $('#rows').appendChild(tr);
 }
-const esc = (s) => String(s ?? '').replace(/"/g, '&quot;');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function addresses() { return [...$('#rows').querySelectorAll('tr')].map(tr => Object.fromEntries([...tr.querySelectorAll('input')].map(i => [i.name, i.value.trim()]))).filter(a => a.name || a.street1); }
 $('#add').addEventListener('click', () => row());
 $('#pasteBtn').addEventListener('click', () => { $('#paste').classList.toggle('hidden'); $('#paste').focus(); });

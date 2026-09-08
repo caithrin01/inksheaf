@@ -1,0 +1,99 @@
+{
+  "duration_ms": 800,
+  "frames": 24,
+  "loops": 1,
+  "lanes": {
+    "desk": {
+      "size": [
+        1600,
+        900
+      ],
+      "corners": [
+        [
+          0.5599959492683411,
+          0.21682196855545044
+        ],
+        [
+          0.8000019788742065,
+          0.13604581356048584
+        ],
+        [
+          0.8800039887428284,
+          0.722420871257782
+        ],
+        [
+          0.6399979591369629,
+          0.8031970262527466
+        ]
+      ],
+      "files": {
+        "desk-closed.avif": {
+          "bytes": 29700,
+          "sha256": "e103b696c08119c84fc29e4cb2824a2ef93851c7f74b86c00379fe74031e443b"
+        },
+        "desk-closed.webp": {
+          "bytes": 96186,
+          "sha256": "d46d857a352cbaa0940559b22bdc60289ea26deec5d6f97d458974d42a2f6ca7"
+        },
+        "desk-ready.avif": {
+          "bytes": 19333,
+          "sha256": "3e91ae8cb2b9acd34164391dba41172005c9afea1bf0f3f39c87d8caeffb52ed"
+        },
+        "desk-ready.webp": {
+          "bytes": 64448,
+          "sha256": "3e2786735c459a18f3f647c68ce5a52afab0fc269dafea43292e4a5d5d39caf7"
+        },
+        "desk-opening.webp": {
+          "bytes": 554812,
+          "sha256": "27f1ee2ee5f322c189769f6b292c3200eb07d32e5001e40452404d061f3d61a8"
+        }
+      }
+    },
+    "portrait": {
+      "size": [
+        840,
+        1280
+      ],
+      "corners": [
+        [
+          0.2543318271636963,
+          0.18609893321990967
+        ],
+        [
+          0.766065239906311,
+          0.15259158611297607
+        ],
+        [
+          0.8456681966781616,
+          0.67381751537323
+        ],
+        [
+          0.33393481373786926,
+          0.707324892282486
+        ]
+      ],
+      "files": {
+        "portrait-closed.avif": {
+          "bytes": 48335,
+          "sha256": "30802bc44bf41ba16684a8c1afae6c4147beb917328e8b01827857584a9d85bf"
+        },
+        "portrait-closed.webp": {
+          "bytes": 142572,
+          "sha256": "83e9db8de78e0a6233100f1054d57db8cbde36cf15c6de28df036aa022739ad0"
+        },
+        "portrait-ready.avif": {
+          "bytes": 29815,
+          "sha256": "9fd67beaf1486dc3516d15a303d7bd222f9955917033da0e078075b6dc25b8b2"
+        },
+        "portrait-ready.webp": {
+          "bytes": 96994,
+          "sha256": "555a3b549ce76fd85543687673e6d292c3914505186b6b5512c15be5ec3d14d5"
+        },
+        "portrait-opening.webp": {
+          "bytes": 772242,
+          "sha256": "7dccf58e822d497eb503e0f3e503e3998a4a2ffe7b9313e36c9a72170280bb4b"
+        }
+      }
+    }
+  }
+}

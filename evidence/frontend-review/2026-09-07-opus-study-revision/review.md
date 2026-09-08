@@ -1,0 +1,21 @@
+## What visibly improved
+
+The overhead direction is working. Moving the invitation beside the book instead of onto a receding page removed the two worst problems of the earlier version: the type no longer fights a foreshortened surface, and the eye now reads headline → input → book in a clean L. The desk photo has been dimmed and warmed enough that the cream cover reads as the brightest object on the page, which is correct — the product should be the focal point. The brass lamp arc and the engraved sheaf are cropped at the edges rather than centre-staged, so the setting supports without competing.
+
+The four presets now read as genuinely different editorial decisions, not colour swatches. Midnight in particular is convincing as printed ink: the cream rule inset from the trim and spaced capitals are the kind of thing a real dark-cover paperback does. And the study is honest about its own status — the top strip, "Cover treatments are proposals for review", and the "final pagination comes with your proof" line under the book are all doing the right work. I'm reading the presets as unwired proposals, as stated, not as a shipping print feature.
+
+The repaired candidate (image 6) does paint its title. I can only confirm that this artifact shows a visible "caithrin"; the cross-browser and viewport claims are your test results, not something a screenshot establishes.
+
+## Three most important remaining faults
+
+**1. The book still reads as a flat UI rectangle, not a paperback.** This is the biggest gap. Top-down is the right choice, but a real 6×9 perfect-bound book photographed from above gives you cues this doesn't: a visible fore-edge stack of paper along the right and bottom, a slight cover curl or lift at the outer corner, and a shadow that varies with the lamp position. Here the shadow is a uniform tight halo on all four sides, which reads as a CSS box-shadow rather than a directional light from a lamp at upper-left. The Classic and Midnight covers have no spine cue at all; Field notes has an olive band and Masthead a red band at the head, but those read as printed design elements, not thickness. The 2:3 aspect also isn't 6×9 (which is 1:1.5 — actually the same, fine) but the *edge* is a hairline stroke, which is the tell. Give the object 2–4px of visible page block on two sides and an asymmetric shadow and most of this dissolves.
+
+**2. Contrast of secondary type over the photo needs measuring.** The axe pass is noted, but axe cannot evaluate text over a photographic gradient. "A PLACE FOR YOUR WRITING", the "6 × 9. Perfect bound" pair, and "Back to the working preview" all sit on mid-brown walnut with visible grain, and on mobile (image 4) the eyebrow sits directly over the brass highlight, where local contrast drops sharply. The strip caption under the presets on mobile is the thinnest instance. This needs per-pixel worst-case checks against the actual photo, not a component-level pass.
+
+**3. The Masthead preset doesn't deliver its own brief, and the logo is undersized throughout.** The description promises "a larger publication mark. The publication leads." In image 4 the mark is still a small dark square and the red rule is a thick block clamped to the head of the cover, not a rule under the title — it reads like a browser chrome bar, not a masthead. Across all four, the icosahedron mark is small and dark-on-light at a size where its interior linework will likely mush at 6×9 print. Since you can't recolour it, the fix is scale and placement, not treatment.
+
+## Which direction to refine
+
+**Classic.** It's the only one where the whole cover behaves as a composition: the mark, title, subtitle, rule and year all sit on one axis with real air. Midnight is the strongest *looking* but is the riskiest to print — large dark coverage on perfect-bound stock shows scuffing and spine cracking, and it's the direction most likely to disappoint against the on-screen render. Classic degrades gracefully across long and short publication names and gives the logo room to grow. Field notes is a reasonable second; Masthead should be either rebuilt to its brief or cut.
+
+Also: fix the large dead vertical band between the subtitle and the bottom rule on Classic and Field notes — currently roughly a third of the cover is empty and it looks unresolved rather than spare.

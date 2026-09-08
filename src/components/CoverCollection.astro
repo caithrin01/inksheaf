@@ -1,0 +1,16 @@
+---
+import {COVER_DESIGNS,coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
+import {coverLogo} from '../../functions/lib/cover-logo.js';
+import '../styles/collection.css';
+const example={host:'caithrin.com',publication:'caithrin',logo_url:'/book/example-caithrin-logo.png',theme:{cover_bg:'#1d1e1d',cover_ink:'#ffffff'},kind:'Collected essays',dates:'2025 — 2026',foot:'caithrin.com'};
+---
+<section class="cover-collection" id="cover-collection" aria-labelledby="collection-title">
+  <div class="collection-heading"><p class="section-kicker">Made to be kept</p><h2 id="collection-title">Your publication.<br />Your kind of book.</h2><p>Four ways to give your writing a place on the shelf. Your publication’s name. Your own logo. Every page yours to approve.</p></div>
+  <div class="cover-gallery">
+    {COVER_DESIGNS.map((design,i)=><figure class="cover-specimen">
+      <div class="physical-book" aria-hidden="true"><div class="cover-face" data-design={design.id} style={coverStyle(design.id,example.theme,example.publication)} set:html={coverMarkup({...example,...coverLogo(example,design.id)})} /></div>
+      <figcaption><h3>{design.name}<span>0{i+1}</span></h3><p>{design.description}</p></figcaption>
+    </figure>)}
+  </div>
+  <div class="collection-foot"><p>Cover options for the same caithrin edition.<br />6 × 9 inches. Matte paperback. Perfect bound.</p><button type="button" class="text-action" data-hero-try>See your publication in print <span aria-hidden="true">↗</span></button></div>
+</section>

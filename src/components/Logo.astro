@@ -1,0 +1,6 @@
+---
+const { small = false, inverse = false } = Astro.props;
+const stem=small?'wordmark-small':'wordmark';
+---
+<span class:list={['identity',{small,inverse}]}><img src={'/brand/'+stem+'.svg'} alt="inksheaf" width="8533" height="1671" /></span>
+<style>.identity{display:block;width:100%;line-height:0}.identity img{display:block;width:100%;height:auto}.inverse img{filter:invert(1)}@media(prefers-color-scheme:dark){.identity:not(.inverse) img{filter:invert(1)}}</style>

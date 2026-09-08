@@ -25,9 +25,10 @@ const ok = (name, cond, detail = "") => { n++; assert.ok(cond, name + (detail ? 
 ok("bw curve reproduces the $9.34 order", Math.abs(prices.pods.bw.base + prices.pods.bw.per_page * 294 - 9.34) < 0.01);
 ok("$9.34 on page", html.includes("$9.34"));
 ok("$16.58 on page", html.includes("$16.58"));
-ok("spec bw price matches curve at 200pp", html.includes("$" + (prices.pods.bw.base + prices.pods.bw.per_page * 200).toFixed(2)));
-ok("spec color price matches measured point", html.includes("$10.83"));
-ok("shipping base on page matches source", html.includes(prices.shipping_mail.toFixed(2)));
+const clientPrices=JSON.parse(html.match(/<script[^>]*id="print-prices"[^>]*>([\s\S]*?)<\/script>/)[1]);
+ok("preview bw curve matches measured source", clientPrices.bw.base===prices.pods.bw.base && clientPrices.bw.per_page===prices.pods.bw.per_page);
+ok("preview colour curve matches measured source", clientPrices.color.base===prices.pods.color.base && clientPrices.color.per_page===prices.pods.color.per_page);
+ok("preview shipping base matches measured source", clientPrices.shipping===prices.shipping_mail);
 /* the shipping fit is labeled for what it is: measured points exist for 1/2/4/8 */
 for (const k of ["1","2","4","8"]) ok("shipping point " + k + " measured", typeof prices.shipping_by_volumes[k] === "number");
 
@@ -36,16 +37,16 @@ for (const k of ["1","2","4","8"]) ok("shipping point " + k + " measured", typeo
    twelve-month read of the same site gives a smaller book (28 essays on 2026-09-01). */
 const manifest = JSON.parse(readFileSync(new URL("../proofs/pipe/caithrin/manifest.json", import.meta.url), "utf8"));
 const editionCopy = JSON.parse(readFileSync(new URL("../proofs/pipe/caithrin/copy.json", import.meta.url), "utf8"));
-ok("edition essay count matches the manifest", html.includes(`edition: ${manifest.articles} essays`));
-ok("edition page count matches the manifest", html.includes(`${manifest.pages} pages at 6×9`));
-ok("edition span on page matches the cover copy", editionCopy.dates === "January 2025 – August 2026" && /40 essays from January 2025\s+to August 2026/.test(html));
+ok("edition essay count matches the manifest", html.includes(`${manifest.articles} essays`) || html.includes(`${manifest.articles} pieces`));
+ok("edition page count matches the manifest", html.includes(`${manifest.pages} pages`) && /6 (?:×|&times;) 9/.test(html));
+ok("edition span on page matches the cover copy", editionCopy.dates === "January 2025 – August 2026" && /40 (?:essays|pieces) from January 2025\s+to August 2026/.test(html));
 
 /* policy consistency: the page's binding cap agrees with the engine's */
 const summarySrc = readFileSync(new URL("../functions/lib/preview-summary.js", import.meta.url), "utf8");
 ok("engine cap is 300", summarySrc.includes("> 300"));
-ok("page states the 300 cap", /300[- ]page/.test(html));
+ok("page states the 300 cap", /below 300 pages/.test(html));
 ok("pipeline hard limit is 800", readFileSync(new URL("../scripts/pipeline.mjs", import.meta.url), "utf8").includes("pages > 800"));
-ok("page states the 800 refusal (D5)", /refuse any past (the bindery&rsquo;s limit of |the bindery’s limit of )?800/.test(html));
+ok("page states the 800 refusal (D5)", /refuses volumes above 800 pages/.test(html));
 ok("builder warns between 300 and 800 (D5)", readFileSync(new URL("../scripts/build-book.mjs", import.meta.url), "utf8").includes("over the recommended 300pp"));
 
 /* capped reads and fitted shipping are labelled as estimates (audit gates 3 and 4) */
@@ -97,16 +98,17 @@ const cssPaths = [...html.matchAll(/href="(\/_astro\/[^"]+\.css)"/g)].map(m => m
 const css = sourceOnly
   ? cssPaths.map(p => readFileSync(new URL("../dist" + p, import.meta.url), "utf8")).join("\n")
   : (await Promise.all(cssPaths.map(p => fetch(base + p).then(r => r.text())))).join("\n");
-ok("brand: EB Garamond is the face", /EB Garamond/.test(css) && /family=EB\+Garamond/.test(html));
-ok("brand: no Cormorant Garamond (caithrin face)", !/Cormorant/i.test(css + html));
-ok("brand: no caithrin palette", !/#(16120e|f4efe6|7d6448)\b/i.test(css + html));
-ok("brand: no caithrin d20 mark", !/d20-(black|white|final|exact|tile)\.svg|dice-(bold|all)\.svg/.test(html + css + js));
-/* 2026-09-03: the post mockup left the page with the "In your newsletter" section (approved
-   direction, beta-redesign-plan-v2), so the orange is now allowed nowhere. */
-ok("brand: no Substack logo assets", !/substackcdn\.com|substack\.com\/img/i.test(html + css + js));
-/* CI runs this against production, which carried the mockup's .nm-btn rule until the hero release
-   of 2026-09-04 shipped; that one rule is stripped so the check reads the same before and after. */
-ok("brand: no Substack orange anywhere (post mockup retired 2026-09-03)", !/#ff6719\b/i.test((css + html + js).replace(/\.nm-btn\{[^}]*\}/g, "")));
+/* Owner-approved September 7 guide supersedes the retired Garamond/orange ban.
+   Orange belongs to the recognisable custom post button. Publication marks belong
+   to their books and the labelled example, not to Inksheaf's own identity. */
+ok("brand: approved Inter and Source Serif system", /Inter/.test(css) && /Source Serif 4/.test(css) && /href="\/fonts\/site.css"/.test(html));
+ok("brand: publication logo masters remain separate from Inksheaf wordmark", html.includes('/brand/wordmark.svg') && html.includes('/book/caithrin-mark-'));
+ok("brand: no Substack corporate logo assets", !/substack\.com\/img/i.test(html+css));
+const orangeRules=[...css.matchAll(/([^{}]+)\{([^{}]*#ff6719[^{}]*)\}/gi)];
+ok("brand: signature orange is confined to the custom post button", orangeRules.length>0 && orangeRules.every(m=>m[1].includes('substack-print-button')));
+ok("subscriber button leads to the existing Lulu edition", /class="substack-print-button"[^>]*href="https:\/\/www.lulu.com\/shop\/[^"]+product-m2v2e82.html"/.test(html));
+ok("beta payout copy does not promise an automated margin", html.includes('not an automated beta feature today') && !html.includes('Whatever you set'));
+ok("delivery timing is confirmed rather than promised by date", html.includes('does not order a book or guarantee a delivery date') && !html.includes('aiming for December'));
 
 /* reachable-state checks against the live API (the audit's core objection) */
 if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }

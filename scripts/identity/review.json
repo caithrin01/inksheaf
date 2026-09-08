@@ -1,0 +1,1 @@
+{"model":"anthropic/claude-opus-5","max_tokens":4000,"reasoning_effort":"low","brief":"review-brief.md","images":[{"file":"../../output/identity/concepts.png","label":"Three proposed Inksheaf identities at header and small/reversed sizes"}]}

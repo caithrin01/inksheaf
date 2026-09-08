@@ -1,4 +1,6 @@
 ---
+import Logo from "../components/Logo.astro";
+import "../styles/workflow.css";
 // "Change something", from the proof email (plan-end-to-end-v1, phase 2 and 5). The writer
 // leaves posts out, retitles a volume, switches to another set the editor offered, switches
 // the interior, adds a dedication; the plan is re-derived from the archive, checked against
@@ -8,26 +10,12 @@
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Change something · Inksheaf</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
-<style>
-:root{--paper:#f7f3e9;--ink:#211c15;--red:#8e2f1c;--rule:rgba(33,28,21,.5);--hair:rgba(33,28,21,.15);--faint:rgba(33,28,21,.65);--card:#f4efe2}
-@media (prefers-color-scheme: dark){:root{--paper:#141008;--ink:#e9dfc8;--red:#cd6c4c;--rule:rgba(233,223,200,.45);--hair:rgba(233,223,200,.15);--faint:rgba(233,223,200,.6);--card:#1c1710}}
-*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.6;font-size:1.1rem}
-.sheet{max-width:44rem;margin:0 auto;padding:3rem 1.4rem 5rem}h1{font-weight:500;font-size:2rem;line-height:1.15}h2{font-weight:500;font-size:1.2rem;margin:2rem 0 .5rem}
-.eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}.note{color:var(--faint);font-size:.92rem}
-.vol{margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--rule);background:var(--card)}.vol .head{display:flex;justify-content:space-between;gap:1rem;align-items:baseline}
-.vol .head b{font-weight:560}.vol input.title{width:100%;font:inherit;padding:.3rem .5rem;margin-top:.4rem;background:var(--paper);color:var(--ink);border:1px solid var(--hair)}
-.posts{margin-top:.5rem;font-size:.95rem}.posts label{display:flex;gap:.6rem;align-items:baseline;padding:.15rem 0;border-top:1px solid var(--hair)}.posts label span.d{color:var(--faint);font-size:.8rem;min-width:5.6rem}
-.posts label.out{color:var(--faint);text-decoration:line-through}
-.routes label,.interior label{display:block;padding:.2rem 0}textarea{width:100%;min-height:5rem;font:inherit;font-size:.95rem;padding:.5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)}
-button{font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;padding:.75rem 1.4rem;background:var(--ink);color:var(--paper);border:1px solid var(--ink);cursor:pointer;margin-top:1rem;margin-right:.6rem}
-button.ghost{background:transparent;color:var(--ink)}button:hover{background:var(--red);border-color:var(--red);color:var(--paper)}button:disabled{opacity:.5;cursor:not-allowed}
-.err{color:var(--red);min-height:1.4em;margin-top:.6rem}.sum{margin-top:1rem;font-size:.98rem}
-</style></head>
-<body><main class="sheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta name="robots" content="noindex" /></head>
+<body><main class="workflow-sheet"><a href="/" class="workflow-home" aria-label="Inksheaf home"><Logo small /></a>
 <p class="eyebrow">Inksheaf · your edition</p>
 <h1>Change something</h1>
-<p id="lead" class="note">Loading your plan…</p>
+<p id="lead" class="note" role="status">Loading your plan…</p>
 <section id="work" hidden>
   <h2>The set</h2>
   <div class="routes" id="routes"></div>
@@ -39,10 +27,10 @@ button.ghost{background:transparent;color:var(--ink)}button:hover{background:var
   <h2>Left out</h2>
   <p class="note" id="leftnote">Pieces the rules or the editor left out, each with the reason. Tick one to bring it back.</p>
   <div class="posts" id="left"></div>
-  <h2>ISBN</h2>
+  <h2><label for="isbn">ISBN</label></h2>
   <p class="note">Optional. Your own ISBN, ten or thirteen digits; it goes on the copyright page and as a barcode on the back cover. Leave it empty to print without one.</p>
   <input id="isbn" type="text" maxlength="20" inputmode="numeric" placeholder="978-…" style="width:100%;font:inherit;padding:.4rem .5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)" />
-  <h2>Dedication</h2>
+  <h2><label for="ded">Dedication</label></h2>
   <p class="note">One line, printed on its own page before the contents. Leave it empty for none.</p>
   <input id="ded" type="text" maxlength="200" style="width:100%;font:inherit;padding:.4rem .5rem;background:var(--card);color:var(--ink);border:1px solid var(--hair)" />
   <p class="sum" id="sum"></p>
@@ -51,7 +39,7 @@ button.ghost{background:transparent;color:var(--ink)}button:hover{background:var
   <div class="err" id="err" role="alert"></div>
   <form id="f" hidden>
     <h2>Tell us in your words</h2>
-    <textarea id="req" required placeholder="Move the March essays into the spring volume and call it ‘Spring’."></textarea>
+    <textarea aria-label="Requested changes" id="req" required placeholder="Move the March essays into the spring volume and call it ‘Spring’."></textarea>
     <button type="submit">Send the changes</button>
   </form>
   <p class="note" id="done" hidden></p>
@@ -68,7 +56,7 @@ function render() {
   if (routes && routes.length > 1) rs.innerHTML = routes.map(r => `<label><input type="radio" name="cadence" value="${r.cadence}" ${r.cadence === plan.cadence ? 'checked' : ''} /> ${NAME[r.cadence] || r.cadence} · ${r.volumes.length === 1 ? r.volumes[0].est_pages + ' pages' : r.volumes.length + ' volumes'} · ${money(r.price ? r.price[plan.interior] : 0)}${r.recommended ? ' · the editor’s pick' : ''}</label>`).join('');
   else rs.innerHTML = `<p class="note">${NAME[plan.cadence] || plan.cadence}. No other set was offered for this archive.</p>`;
   $('#vols').innerHTML = plan.volumes.map((v, i) => `<div class="vol" data-i="${i}"><div class="head"><b>${v.label}</b><span class="note">${v.posts ?? v.post_ids.length} posts · ${v.est_pages ?? '?'}pp</span></div>
-    <input class="title" name="title" data-label="${v.label}" value="${(v.title || '').replace(/"/g, '&quot;')}" placeholder="Volume title" />
+    <input class="title" aria-label="Volume title" name="title" data-label="${v.label}" value="${(v.title || '').replace(/"/g, '&quot;')}" placeholder="Volume title" />
     <div class="posts">${v.post_ids.map(pid => { const t = titles[pid] || {}; return `<label><input type="checkbox" name="keep" value="${pid}" checked /><span class="d">${t.date || ''}</span><span>${(t.title || 'Post ' + pid).replace(/</g, '&lt;')}</span></label>`; }).join('')}</div></div>`).join('');
   document.querySelector(`input[name=interior][value=${plan.interior === 'color' ? 'color' : 'bw'}]`).checked = true;
   $('#ded').value = plan.dedication || '';

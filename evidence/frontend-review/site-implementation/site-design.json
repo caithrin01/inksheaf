@@ -1,0 +1,82 @@
+[
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "scheme": "light",
+    "inputContrast": 17.331812210525495,
+    "placeholderContrast": 5.797807945771323,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "scheme": "dark",
+    "inputContrast": 12.625387490756008,
+    "placeholderContrast": 7.583646334256578,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "scheme": "light",
+    "inputContrast": 17.331812210525495,
+    "placeholderContrast": 5.797807945771323,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "scheme": "dark",
+    "inputContrast": 12.625387490756008,
+    "placeholderContrast": 7.583646334256578,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "scheme": "light",
+    "inputContrast": 17.331812210525495,
+    "placeholderContrast": 5.797807945771323,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "scheme": "dark",
+    "inputContrast": 12.625387490756008,
+    "placeholderContrast": 7.583646334256578,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "scheme": "light",
+    "inputContrast": 17.331812210525495,
+    "placeholderContrast": 5.797807945771323,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "scheme": "dark",
+    "inputContrast": 12.625387490756008,
+    "placeholderContrast": 7.583646334256578,
+    "readerFont": 18,
+    "axe": 0,
+    "pass": true
+  }
+]

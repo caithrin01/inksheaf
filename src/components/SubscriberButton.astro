@@ -1,0 +1,30 @@
+---
+const edition='https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html';
+---
+<section class="subscriber-story" id="for-your-readers" aria-labelledby="subscriber-title">
+  <div class="subscriber-copy">
+    <p class="section-kicker">For the people who read you</p>
+    <h2 id="subscriber-title">A print button<br />in your next post.</h2>
+    <p>Give subscribers a way to put your writing on their shelf. Once your edition is ready, add its link to a button in any Substack post.</p>
+    <p>Readers order from the printer. Each copy is printed and mailed to them.</p>
+    <a class="quiet-link" href="#tryurl">Make your edition <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="newsletter-example">
+    <p class="example-context">An example in a Substack post</p>
+    <article class="newsletter-paper" aria-label="Example announcement for the published caithrin edition">
+      <header><img src="/book/caithrin-mark-charcoal.svg" width="38" height="38" alt="" /><span>caithrin<span class="newsletter-meta">A note to readers</span></span></header>
+      <h3>For your bookshelf.</h3>
+      <p>Collected essays, in print. Forty pieces from January 2025 to August 2026, gathered into one paperback.</p>
+      <div class="newsletter-button-row"><a class="substack-print-button" href={edition} target="_blank" rel="noopener noreferrer">Get a print copy</a></div>
+      <p class="newsletter-signoff">294 pages. One place to return to.</p>
+    </article>
+    <p class="example-note">Sample announcement for the published caithrin edition. The button opens its real Lulu listing.</p>
+  </div>
+</section>
+<style>
+.subscriber-story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(50px,9vw,140px);align-items:center;padding:90px 0;border-bottom:1px solid var(--hair);background:var(--paper)}
+.section-kicker{font:500 11px/1.5 var(--sans);text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin:0 0 23px}.subscriber-copy h2{font:500 clamp(36px,4vw,58px)/1.06 var(--sans);letter-spacing:-.055em;margin:0 0 27px}.subscriber-copy>p:not(.section-kicker){font:400 16px/1.75 var(--sans);max-width:43ch;color:var(--muted)}.subscriber-copy>p+p{margin-top:17px}.quiet-link{display:inline-flex;align-items:center;gap:22px;margin-top:30px;font:500 15px/1.5 var(--sans);text-decoration:none;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:6px}
+.newsletter-example{max-width:510px;width:100%;justify-self:center}.example-context{font:500 11px/1.5 var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px}.newsletter-paper{background:#fffefd;color:#272725;padding:34px 37px 28px;border:1px solid #e2dfd7;box-shadow:0 12px 30px #00000008;transform:none}.newsletter-paper header{display:flex;align-items:center;gap:12px;font:600 15px/1.4 var(--sans);margin-bottom:28px}.newsletter-initial{display:grid;place-items:center;width:37px;height:37px;border:1px solid #d6d4d0;border-radius:50%;font:600 23px var(--serif)}.newsletter-meta{display:block;font:400 11px/1.5 var(--sans);color:#74736c;margin-top:2px}.newsletter-paper h3{font:600 31px/1.2 var(--serif);letter-spacing:-.035em;margin-bottom:17px}.newsletter-paper p{font:400 17px/1.6 var(--serif);color:#4a4843}.newsletter-button-row{text-align:center;margin:28px 0 23px}.substack-print-button{display:inline-block;background:#ff6719;color:#181a19;border:1px solid #ff6719;border-radius:8px;padding:12px 20px;font:600 16px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-decoration:none;min-height:48px;box-shadow:none}.substack-print-button:hover{background:#ff7b38}.substack-print-button:focus-visible{outline:2px solid #211d18;outline-offset:4px}.newsletter-paper .newsletter-signoff{border-top:1px solid #e6e4e0;padding-top:18px;font:400 13px/1.5 var(--serif);color:#65635d;text-align:center}.example-note{font:400 11px/1.6 var(--sans);color:var(--muted);margin-top:17px;max-width:48ch}
+@media(prefers-reduced-motion:no-preference){.substack-print-button{transition:background .15s,transform .15s}.substack-print-button:hover{transform:translateY(-1px)}}
+@media(max-width:800px){.subscriber-story{grid-template-columns:1fr;padding:55px 0;gap:38px}.subscriber-copy h2{font-size:35px}.subscriber-copy>p:not(.section-kicker){font-size:15px}.newsletter-paper{padding:28px 25px;transform:none}.newsletter-example{max-width:510px}.newsletter-paper h3{font-size:29px}}
+</style>

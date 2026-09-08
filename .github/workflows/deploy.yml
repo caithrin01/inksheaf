@@ -4,6 +4,8 @@ name: deploy
 # "production" environment must receive Caithrin's approval before its secrets become available.
 # Every release records the SHA, artifact digest, checks and Cloudflare deployment id.
 on:
+  pull_request:
+    paths-ignore: ["**.md"]
   workflow_dispatch:
     inputs:
       note: { description: "why this release", required: true }
@@ -27,9 +29,22 @@ jobs:
           sudo apt-get update -q > /dev/null && sudo apt-get install -y -q poppler-utils python3-pil > /dev/null
           python3 -m pip install --quiet pymupdf
       - run: npm run test:preview:unit
-      - run: node scripts/test-signup.mjs && node scripts/test-honesty.mjs
       - run: node scripts/test-typst-fixtures.mjs
       - run: npm run build
+      - name: Candidate copy and claim checks
+        run: node scripts/test-honesty.mjs --source-only
+      - name: Local browser acceptance
+        run: |
+          npx playwright install --with-deps chromium webkit
+          npm run test:launch:ui
+      - name: Browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-acceptance-${{ github.sha }}
+          path: output/playwright/launch
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Artifact digest
         id: digest
         run: |

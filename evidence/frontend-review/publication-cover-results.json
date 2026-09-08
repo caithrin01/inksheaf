@@ -1,0 +1,26 @@
+{
+  "simulated": true,
+  "logo": "synthetic fixture",
+  "rows": [
+    {
+      "name": "chromium-1280",
+      "painted_masthead_pixels": 2362,
+      "pass": true
+    },
+    {
+      "name": "chromium-390",
+      "painted_masthead_pixels": 2371,
+      "pass": true
+    },
+    {
+      "name": "webkit-1280",
+      "painted_masthead_pixels": 2373,
+      "pass": true
+    },
+    {
+      "name": "webkit-390",
+      "painted_masthead_pixels": 2376,
+      "pass": true
+    }
+  ]
+}

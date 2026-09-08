@@ -1,0 +1,44 @@
+---
+import Logo from './Logo.astro';
+import '../styles/opening.css';
+import {coverLogo} from '../../functions/lib/cover-logo.js';
+import { coverMarkup, coverStyle } from '../../functions/lib/book-design.js';
+const theme={cover_bg:'#1d1e1d',cover_ink:'#ffffff'};
+const example={host:'caithrin.com',logo_url:'/book/example-caithrin-logo.png',theme,publication:'caithrin',logo:'/book/example-caithrin-logo.png',kind:'Collected essays',dates:'2025 — 2026',foot:'caithrin.com'};
+---
+<div class="publisher-opening">
+  <header class="press-header">
+    <a class="press-brand" href="/" aria-label="Inksheaf home"><Logo inverse /></a>
+    <nav aria-label="Main"><a href="#for-your-readers">For your readers</a><a href="#cover-collection">The editions</a><a href="#faq">Questions</a></nav>
+  </header>
+  <section id="hero-story" class="press-hero" aria-label="Your Substack as a book">
+    <div class="press-invitation">
+      <p class="press-eyebrow">Your words. A place on the shelf.</p>
+      <h1>Your Substack.<br />In print.</h1>
+      <p class="press-intro">Your writing, gathered into a paperback.<br />Ready to share with the people who read you.</p>
+      <div class="publication-entry">
+        <label for="tryurl">Your publication URL</label>
+        <div class="publication-action">
+          <input type="url" id="tryurl" placeholder="you.substack.com" autocomplete="url" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="tryerr preview-promise" />
+          <button id="trybtn" type="button" aria-label="Preview my book">Preview my book <span aria-hidden="true">↗</span></button>
+        </div>
+        <p id="preview-promise">Free preview · Private beta · US delivery</p>
+        <div class="press-request-status"><p id="tryworking" role="status" aria-live="polite"></p><p id="tryerr" role="alert"></p><button id="tryhandoff" type="button" hidden>Send me a hand-built preview</button></div>
+      </div>
+      <noscript><style>.publication-entry,.beta,.feedback,.faq-return{display:none!important}</style><p><a href="mailto:caithrin@caithrin.com">Write to Caithrin for a preview.</a></p></noscript>
+    </div>
+    <figure class="press-specimen">
+      <div class="specimen-desk" aria-hidden="true">
+        <div class="physical-book hero-book hero-book-back"><div class="cover-face" data-design="field" style={coverStyle('field',theme,'caithrin')} set:html={coverMarkup({...example,...coverLogo(example,'field')})} /></div>
+        <div class="physical-book hero-book hero-book-front"><div class="cover-face" data-design="masthead" style={coverStyle('masthead',theme,'caithrin')} set:html={coverMarkup({...example,...coverLogo(example,'masthead')})} /></div>
+      </div>
+      <figcaption><span>caithrin · Collected essays</span><span>6 × 9 in. · Cover visualizations</span></figcaption>
+    </figure>
+  </section>
+</div>
+<script>
+for(const button of document.querySelectorAll('[data-hero-try]'))button.addEventListener('click',()=>{
+ const input=document.getElementById('tryurl') as HTMLInputElement;
+ input.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'center'});input.focus({preventScroll:true});
+});
+</script>

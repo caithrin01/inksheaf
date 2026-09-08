@@ -1,0 +1,11 @@
+{
+  "model":"anthropic/claude-opus-5","max_tokens":8000,"reasoning_effort":"low","brief":"integrated-brief.md",
+  "images":[
+    {"file":"../../output/playwright/integrated/chromium-1280-hero.png","label":"Actual candidate, initial desktop viewport, overhead desk and immediately usable form."},
+    {"file":"../../output/playwright/integrated/chromium-390-hero.png","label":"Actual candidate, initial mobile viewport, 390×844."},
+    {"file":"../../output/playwright/integrated/chromium-390-cover.png","label":"Real candidate with local caithrin fixture, mobile Masthead cover and choices."},
+    {"file":"../../output/playwright/integrated/chromium-1280-classic.png","label":"Same working candidate, Classic cover selected."},
+    {"file":"../../output/playwright/integrated/chromium-390-sample.png","label":"Same candidate, mobile typeset text excerpt, real prose. Reader controls and Enlarge above the page."},
+    {"file":"../../output/playwright/integrated/chromium-1280-midnight.png","label":"Same working candidate, Midnight cover selected."}
+  ]
+}

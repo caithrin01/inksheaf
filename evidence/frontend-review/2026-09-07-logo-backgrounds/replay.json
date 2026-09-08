@@ -1,0 +1,24 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 4000,
+  "reasoning_effort": "low",
+  "brief": "brief.md",
+  "images": [
+    {
+      "file": "input-1.png",
+      "label": "BEFORE: rejected dark square plate on four covers"
+    },
+    {
+      "file": "input-2.png",
+      "label": "AFTER DEFAULT: existing transparent author masters on all four cover colours"
+    },
+    {
+      "file": "input-3.png",
+      "label": "FALLBACK DEMO: opaque original in full-width publication bands"
+    },
+    {
+      "file": "input-4.png",
+      "label": "AFTER DEFAULT: phone viewport at 390 CSS pixels"
+    }
+  ]
+}

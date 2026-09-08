@@ -1,0 +1,42 @@
+/* Publication artwork belongs to the cover. These are existing owner masters;
+   background removal and recolouring are not performed by this prototype. */
+.cover-face .cv-logo{background:none;padding:0;outline:0}
+
+/* Opaque, flat-background fallback: continue the image's ground across the book,
+   combining its mark and metadata into one publication band. */
+.logo-band .cv-logo-band{
+  order:10;display:flex;align-items:center;gap:5cqw;flex:none;
+  width:calc(100% + 20cqw);min-height:31cqw;
+  margin:0 -10cqw -10cqw;padding:6cqw 10cqw;
+  background:#1d1e1d;color:#f2efe5;text-align:left;
+}
+.logo-band .cv-logo-band .cv-logo{
+  order:0;align-self:auto;width:19cqw;height:19cqw;margin:0;flex:none;
+}
+.cv-band-copy{min-width:0;font:500 3.7cqw/1.4 Inter,Arial,sans-serif;overflow-wrap:anywhere}
+.cv-band-copy>span{display:block}
+.cv-band-copy>span+span{font-size:2.7cqw;font-weight:400;margin-top:2cqw;color:#d6d4ca}
+.logo-band .cv-footwrap{display:none}
+.logo-band[data-design=classic] .edition-cover::before{bottom:36cqw}
+.logo-band[data-design=masthead] .cv-logo-band{position:relative}
+.logo-band[data-design=masthead] .cv-logo-band::before{content:'';position:absolute;top:0;left:10cqw;right:10cqw;border-top:1px solid #d6d4ca}
+/* Fold an opaque logo's ground into Field notes' existing lower block instead
+   of introducing a third colour stripe. This is an explicit fallback palette. */
+.logo-band[data-design=field] .cv-mast,
+.logo-band[data-design=field] .cv-dates{background:#1d1e1d}
+
+.logo-background-plan{
+  margin-top:44px;padding-top:32px;border-top:1px solid var(--hair);
+  display:grid;grid-template-columns:1fr 1.2fr;gap:28px 65px;align-items:start;
+}
+.logo-background-plan h3{font:500 27px/1.15 var(--sans);letter-spacing:-.04em;margin:15px 0}
+.logo-background-plan p:not(.micro-label){font:400 13px/1.75 var(--sans);color:var(--muted);max-width:65ch}
+.logo-source-swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.logo-swatch{display:grid;place-items:center;min-height:130px;background:#f2efe5}
+.logo-swatch.dark{background:#172c40}
+.logo-swatch img{display:block;width:80px;height:80px;object-fit:contain}
+.logo-source-swatches figcaption{font:400 11px/1.6 var(--sans);color:var(--muted);margin-top:12px}
+.logo-background-plan .logo-policy-note{grid-column:1/-1;max-width:100ch!important}
+.logo-policy-note b{color:var(--ink);font-weight:500}
+@media(max-width:900px){.logo-background-plan{grid-template-columns:1fr;gap:28px}.logo-source-swatches{max-width:620px}}
+@media(max-width:720px){.cover-controls>label[for=logo-treatment]{width:100%}.logo-source-swatches{gap:10px}.logo-swatch{min-height:108px}.logo-swatch img{width:68px;height:68px}.logo-source-swatches figcaption{font-size:10px}}

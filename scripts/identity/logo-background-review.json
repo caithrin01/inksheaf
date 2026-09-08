@@ -1,0 +1,12 @@
+{
+  "model":"anthropic/claude-opus-5",
+  "max_tokens":4000,
+  "reasoning_effort":"low",
+  "brief":"logo-background-review.md",
+  "images":[
+    {"file":"../../output/style-guide-logo-background/before/covers-1440.png","label":"BEFORE: rejected dark square plate on four covers"},
+    {"file":"../../output/style-guide-logo-background/transparent-covers-1440.png","label":"AFTER DEFAULT: existing transparent author masters on all four cover colours"},
+    {"file":"../../output/style-guide-logo-background/band-covers-1440.png","label":"FALLBACK DEMO: opaque original in full-width publication bands"},
+    {"file":"../../output/style-guide-logo-background/transparent-covers-390.png","label":"AFTER DEFAULT: phone viewport at 390 CSS pixels"}
+  ]
+}

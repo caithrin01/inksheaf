@@ -1,0 +1,82 @@
+{
+  "status": "failed",
+  "started": "2026-09-07T18:04:45.883Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Local 31d10a2 desktop hero, open/input state; oblique direction rejected by owner.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/launch/motion/ready-1280.png",
+      "saved": "input-1.png",
+      "sha256": "03f540b063cc33ab5ffb557efe23e7df5d6a8d15e14ce2a706b545808e2faf73"
+    },
+    {
+      "label": "Local 31d10a2 narrow mobile hero, open/input state; oblique direction rejected by owner.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/launch/motion/ready-390.png",
+      "saved": "input-2.png",
+      "sha256": "1163084fb753e4130ebf166d3c178e7a98ab3d77c65bb87b64f89d64597a26f6"
+    },
+    {
+      "label": "Subsequent angled correction draft, also rejected and parked; not the running candidate.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/grounded-draft/title-1280.png",
+      "saved": "input-3.png",
+      "sha256": "32ac798bc5b82b8e62adda818d3864784b5bc5bd638a79a1ffdfc04a89453bb9"
+    },
+    {
+      "label": "Current local publication preview, light cover, desktop; screenshot from 31d10a2 validation.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/motion-edition-webkit-final/edition-light-1280.png",
+      "saved": "input-4.png",
+      "sha256": "0237351dfa3fe5c7662e2f7529e4a3189adfa26ea5157822a1fff106f65dd153"
+    },
+    {
+      "label": "Current local mobile look-inside state; title list only, no actual essay page yet. Screenshot from 31d10a2 validation.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/output/playwright/motion-edition-webkit-final/contents-dark-390.png",
+      "saved": "input-5.png",
+      "sha256": "ba6908f5aa453bd606b6c6f2493f9841b3398421ad060bc6d5fba5018c642340"
+    },
+    {
+      "label": "New overhead image-model study, blank pages intentionally reserved for later live text. No UI or behavior implemented from this study yet.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-astra-2026-09-06/assets/motion/topdown-study-2026-09-07/open-desk.png",
+      "saved": "input-6.png",
+      "sha256": "937984658a22df15082da71e054a63b42639ab535a304c25260254a654c624a4"
+    }
+  ],
+  "git_head": "31d10a2c18e29331c16c23ec041c09f0a26c5cd6",
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 5000,
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788804287-qiigQsusLZyPdMiRATw9",
+  "usage": {
+    "prompt_tokens": 8327,
+    "completion_tokens": 5000,
+    "total_tokens": 13327,
+    "cost": 0.166635,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.166635,
+      "upstream_inference_prompt_cost": 0.041635,
+      "upstream_inference_completions_cost": 0.125
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 4580,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "error": "Incomplete review: finish_reason=length.",
+  "finished": "2026-09-07T18:06:18.069Z"
+}

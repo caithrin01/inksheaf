@@ -1,0 +1,68 @@
+/* Material accents: a warmer leaf, quiet paper grain, and a fine cut edge.
+   Local to reading/physical specimens. UI, identity and the Substack post stay crisp. */
+:root {
+  --stock: #f7f4ed;
+  --stock-edge: #dcd7cb;
+  --paper-grain: url('assets/paper-grain.svg');
+}
+
+.type-reading.paper-stock {
+  position: relative;
+  isolation: isolate;
+  background: var(--stock);
+  border: 0;
+  padding: 35px 46px 60px 51px !important;
+  box-shadow: 1px 1px 0 var(--stock-edge), 1px 2px 0 #fffdf7;
+}
+
+.paper-stock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper-grain) repeat;
+  pointer-events: none;
+}
+
+.paper-folio {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 400 12px/1.5 var(--serif);
+  color: var(--muted);
+}
+
+/* Grain belongs to the stock behind the lettering, not the wordmark or controls. */
+.edition-cover { isolation: isolate; }
+.edition-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper-grain) repeat;
+  pointer-events: none;
+}
+
+/* The real print-file spread remains untouched; its outside edge picks up the light. */
+.interior-spread img {
+  outline: 1px solid #d8d5cc;
+  box-shadow: 0 1px 0 #fffdf7, 0 2px 0 #d8d5cc, 0 5px 9px #181a1908;
+}
+
+.material-note { max-width: 87ch; }
+.material-note b { color: var(--ink); font-weight: 500; }
+
+@media (max-width: 720px) {
+  .type-reading.paper-stock { padding: 30px 26px 56px !important; }
+  .paper-folio { bottom: 17px; }
+}
+
+@media (prefers-contrast: more) {
+  .paper-stock::before, .edition-cover::after { display: none; }
+}
+
+@media print {
+  .paper-stock::before, .edition-cover::after { display: none; }
+}

@@ -10,6 +10,7 @@
 //          report status "listing" with the keys; the listing itself is phase 3.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { validDesign } from "../functions/lib/book-design.js";
 import { fit } from "./lib/fit.mjs";
 import { createHash } from "node:crypto";
 import { printCost } from "../functions/lib/editor-input.js";
@@ -34,6 +35,7 @@ const SECRET = process.env.ARCHIVE_RELAY_TOKEN || "";
 const host = URL_.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
 if (!ID || !host || !TO) { console.error("SIGNUP_ID, PUBLICATION_URL and WRITER_EMAIL are required"); process.exit(2); }
 let plan = null; try { plan = JSON.parse(process.env.PLAN_JSON || "null"); } catch { plan = null; }
+if (plan?.design && !validDesign(plan.design)) throw new Error("Unsupported reserved cover design");
 const slug = host.replace(/\W+/g, "-");
 const DIR = `proofs/press/${ID}`; mkdirSync(DIR, { recursive: true });
 const log = (s, m) => console.error(`[${s}] ${m}`);
@@ -96,6 +98,7 @@ function buildVolume(v, i, { proof }) {
   const base = `${slug}-${ID}-v${i + 1}`;
   const html = `proofs/${base}.html`, pdf = `${DIR}/${base}.pdf`;
   const args = ["scripts/build-book.mjs", host, "--out", html];
+  if (plan?.design) { args.push("--cover-design", plan.design.cover); const designPath = `${DIR}/design.json`; writeFileSync(designPath, JSON.stringify(plan.design)); args.push("--design-file", designPath); }
   if (!proof) args.push("--print-interior", "--images-print"); /* a proof keeps the smaller image path: the email link stays a quick download */
   if (interior === "bw") args.push("--interior-bw");
   if (v.post_ids && v.post_ids.length) { const f = `${DIR}/${base}.posts.json`; writeFileSync(f, JSON.stringify(v.post_ids)); args.push("--posts", f); }
@@ -254,6 +257,7 @@ Inksheaf`;
       const coverHtml = `${DIR}/${base}.cover.html`, coverPdf = `${DIR}/${base}.cover.pdf`;
       const cargs = ["scripts/cover-wrap.mjs", String(W), String(H), coverHtml, "--meta", metaPath];
       let planNow = null; try { planNow = JSON.parse(ver.plan_json || "null"); } catch {}
+      if (planNow?.design) { if (!validDesign(planNow.design)) throw new Error("Unsupported approved cover design"); const designPath = `${DIR}/approved-design.json`; writeFileSync(designPath, JSON.stringify(planNow.design)); cargs.push("--design-file", designPath); }
       const isbn = (Array.isArray(planNow?.isbns) ? planNow.isbns[i] : null) || (vvols.length === 1 ? planNow?.isbn : null);
       if (isbn) cargs.push("--isbn", String(isbn));
       if (existsSync(brandPath)) cargs.push("--brand", brandPath);

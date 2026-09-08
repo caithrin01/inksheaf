@@ -1,0 +1,8 @@
+PASS workflow chromium 1280 light
+PASS workflow chromium 1280 dark
+PASS workflow chromium 390 light
+PASS workflow chromium 390 dark
+PASS workflow webkit 1280 light
+PASS workflow webkit 1280 dark
+PASS workflow webkit 390 light
+PASS workflow webkit 390 dark

@@ -1,0 +1,85 @@
+{
+  "status": "completed",
+  "started": "2026-09-07T22:35:08.649Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Standalone style guide opening and new identity",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/opening-1440.png",
+      "saved": "input-1.png",
+      "sha256": "f154dfdeaa9bb79a1be468440471cbe7a5c86d0dc0f4d817deed3d0de1c31025"
+    },
+    {
+      "label": "Identity at working sizes, reverse and favicon",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/identity-1440.png",
+      "saved": "input-2.png",
+      "sha256": "19aa68f26713ceaee5cdd57f5e660326e3a054aaf8d9d1fe4cca43ad577828eb"
+    },
+    {
+      "label": "Four proposed covers of the same caithrin publication",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/covers-1440.png",
+      "saved": "input-3.png",
+      "sha256": "ec921c82f22a7303207e574c944d5861f618fc269d38c97bc0a7c7c765eecb05"
+    },
+    {
+      "label": "Physical 6×9 overhead visualization and specification",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/object-1440.png",
+      "saved": "input-4.png",
+      "sha256": "b551585a5023f6616701a9652425f78487f2e5344db8cda9fe2da820cc3158b2"
+    },
+    {
+      "label": "Core subscriber distribution story and orange Substack button",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/subscriber-1440.png",
+      "saved": "input-5.png",
+      "sha256": "91cf3ab738af70c8eea50493db44af3a9ddb5edf6ceeaafb2f806f407eea81dc"
+    },
+    {
+      "label": "Mobile cover collection",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-identity-2026-09-07/output/style-guide/covers-390.png",
+      "saved": "input-6.png",
+      "sha256": "a6f2526e21c1b233f5ce1467630d33f917a3fc0da60840174e898c041511be54"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "6521c054ba48113af96ac1dc613b91920cb64149305437a1a067ab5feb091c2f",
+  "git_head": "080c0b674c36f09e06e5c1a13436ef8197456118",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 6500,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788820509-NUzPf4LunHVdJJdafV9b",
+  "usage": {
+    "prompt_tokens": 12036,
+    "completion_tokens": 2676,
+    "total_tokens": 14712,
+    "cost": 0.12708,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.12708,
+      "upstream_inference_prompt_cost": 0.06018,
+      "upstream_inference_completions_cost": 0.0669
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1327,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-07T22:35:56.563Z"
+}

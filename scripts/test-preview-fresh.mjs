@@ -15,7 +15,7 @@ const bucket = () => Math.floor(Date.now() / 300000);
 const posts = Array.from({ length: 6 }, (_, i) => ({
   title: `Post ${i + 1}`, post_date: new Date(Date.now() - i * 86400e3).toISOString(),
   wordcount: 1200, canonical_url: `https://${HOST}/p/post-${i + 1}`, audience: "everyone",
-  publishedBylines: [{ name: "Unit Author", publicationUsers: [{ publication: { name: "Unit Pub" } }] }],
+  publishedBylines: [{ name: "Unit Author", publicationUsers: [{ publication: { name: "Unit Pub", subdomain: "fresh-test" } }] }],
 }));
 
 const log = [];
@@ -45,7 +45,7 @@ async function call(query, env) {
   return { status: r.status, body: await r.json() };
 }
 
-const cachedPayload = { summary_version: 7, marker: "from-cache" };
+const cachedPayload = { summary_version: 9, marker: "from-cache" };
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log(`ok   ${name}`); } else { fail++; console.log(`FAIL ${name}`); } };
 

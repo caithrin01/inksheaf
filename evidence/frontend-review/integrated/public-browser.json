@@ -1,0 +1,18 @@
+[
+  {
+    "host": "caithrin.com",
+    "publication": "caithrin",
+    "source": "https://www.caithrin.com/p/thank-you-all-for-signing-up-to-the",
+    "pages": "1 / 4",
+    "real_public_reads": true,
+    "production_writes": false
+  },
+  {
+    "host": "manifund.substack.com",
+    "publication": "The Fox Says",
+    "source": "https://manifund.substack.com/p/work-at-manifund-or-mox",
+    "pages": "1 / 5",
+    "real_public_reads": true,
+    "production_writes": false
+  }
+]

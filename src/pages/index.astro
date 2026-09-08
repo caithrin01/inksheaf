@@ -1,10 +1,16 @@
 ---
-// inksheaf — private beta page, v4 "colophon" (chosen from five design-direction demos 2026-08-30).
-// The page is a fine-press title page: framed sheet, centered column, EB Garamond, engraved restraint.
+// Inksheaf: rendered book story, publication-owned preview, and reservation funnel.
 // Copy rules: design-brief.md §Voice, launch-plan.md §Copy rules.
 // Demo numbers are REAL caithrin archive data (research.md §1a + live fetch 2026-08-27); renders labeled as renders.
+import '../styles/press.css';
 import prices from "../../functions/lib/print-prices.json";
-import ScrollHero from "../components/ScrollHero.astro";
+import Logo from "../components/Logo.astro";
+import SubscriberButton from "../components/SubscriberButton.astro";
+import DeskHero from "../components/DeskHero.astro";
+import PreviewBook from "../components/PreviewBook.astro";
+import CoverCollection from "../components/CoverCollection.astro";
+import InteriorProof from "../components/InteriorProof.astro";
+import WriterFAQs from "../components/WriterFAQs.astro";
 ---
 <html lang="en">
 <head>
@@ -15,311 +21,23 @@ import ScrollHero from "../components/ScrollHero.astro";
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <meta property="og:title" content="Inksheaf: your Substack, bound as a book" />
 <meta property="og:description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order at cost. Private beta, US delivery." />
-<meta property="og:image" content="https://inksheaf.com/og.png?v=20260904" />
+<meta property="og:image" content="https://inksheaf.com/og.png?v=20260907" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://inksheaf.com" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400..700&display=swap" rel="stylesheet" />
-<style is:global>
-:root{
-  --paper:#f7f3e9; --ink:#211c15; --red:#8e2f1c;
-  --rule:rgba(33,28,21,.5); --hair:rgba(33,28,21,.15); --faint:rgba(33,28,21,.65);
-  --card:#f4efe2; --press:0 1px 0 rgba(255,255,255,.4); --grain:.42;
-}
-@media (prefers-color-scheme: dark){
-  :root{ --paper:#141008; --ink:#e9dfc8; --red:#cd6c4c;
-    --rule:rgba(233,223,200,.45); --hair:rgba(233,223,200,.15); --faint:rgba(233,223,200,.6);
-    --card:#1c1710; --press:0 1px 0 rgba(0,0,0,.5); --grain:.12; }
-}
-*{box-sizing:border-box;margin:0}
-html{scroll-behavior:smooth}
-body{background:#0b0602;color:var(--ink);
-  font-family:"EB Garamond",Garamond,Georgia,serif;line-height:1.62;font-size:1.14rem;min-height:100vh}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:6;opacity:var(--grain);mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.50 0 0 0 0 0.42 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E")}
-@media (prefers-color-scheme: dark){ body::before{mix-blend-mode:screen} }
-@media (max-width:560px){
-  .folio-seg .fs-price{display:none}
-  .folio-seg .fs-dates{font-size:.5rem;letter-spacing:.08em} }
-.sheet{--paper:#0b0602;--ink:#eaddc2;--red:#cd6c4c;--rule:rgba(234,221,194,.45);
-  --hair:rgba(234,221,194,.15);--faint:#c9b58c;--card:#1c1710;--press:0 1px 0 rgba(0,0,0,.5);
-  max-width:none;margin:0;padding:1px 1.6rem 5rem;color:var(--ink);background:
-  radial-gradient(140% 90% at 50% 0%,rgba(228,180,106,.1),transparent 40%),
-  radial-gradient(150% 130% at 50% 30%,#2a1d10 0%,#150d06 60%,#0b0602 100%)}
-/* book paper never inverts: the preview's pages and spines stay ivory with dark ink on the walnut ground */
-.sheet .pv-page,.sheet .spine{--card:#f4efe2;--ink:#2a2118;--faint:#6b5a44;--rule:rgba(42,33,24,.4);--hair:rgba(42,33,24,.18);color:var(--ink)}
-a{color:var(--red);text-decoration-thickness:1px;text-underline-offset:3px}
-p+p{margin-top:1rem}
-.caps{letter-spacing:.3em;padding-left:.3em;text-transform:uppercase}
-.rule-orn{display:flex;align-items:center;gap:1.1rem;justify-content:center;margin:1.5rem auto;max-width:20rem}
-.rule-orn::before,.rule-orn::after{content:"";flex:1;border-top:1px solid var(--rule)}
-.rule-orn span{color:var(--red);font-size:1.05rem}
-.note{font-size:.85rem;color:var(--faint)}
-@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+<link rel="stylesheet" href="/fonts/site.css" />
 
-/* ---------- the pressroom: activity while the edition is set ---------- */
-.preview{display:none;max-width:46rem;margin:1.8rem auto 0;min-width:0}
-.preview.on{display:block}
-@media (prefers-reduced-motion: no-preference){
-  .preview.on{animation:pv .8s cubic-bezier(.2,.7,.2,1) both}
-  @keyframes pv{from{opacity:0;transform:translateY(16px) scale(.99)}to{opacity:1;transform:none}}
-}
-.preview.staging{display:block}
-.pv-stage{display:none;min-height:5.5rem;align-items:center;justify-content:center;
-  flex-direction:column;text-align:center;padding:2.4rem 1rem}
-.pv-stage.on{display:flex}
-.pv-stage .setkick{font-size:.68rem;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:1.2rem}
-.pv-stage .setline{font-size:2.1rem;font-weight:500;line-height:1.15;text-shadow:var(--press);
-  opacity:0;transform:translateY(8px);text-wrap:balance}
-.pv-stage .setline b{color:var(--red);font-weight:560}
-.pv-stage .setline.in{opacity:1;transform:none;transition:opacity .28s,transform .28s}
-.pv-stage .setline.out{opacity:0;transform:translateY(-6px);transition:opacity .22s,transform .22s}
-.pv-stage .setrule{width:0;border-bottom:2px solid var(--red);margin-top:1.2rem;transition:width .55s cubic-bezier(.2,.7,.2,1)}
-.pv-stage.on .setrule{width:3.4rem}
-.presslog{display:flex;justify-content:center;gap:1.8rem;flex-wrap:wrap;margin-top:1.5rem;
-  font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
-.presslog span{opacity:.2}
-.pv-stage.on .presslog span{animation:logpulse 3.2s infinite}
-.pv-stage.on .presslog span:nth-child(2){animation-delay:.8s}
-.pv-stage.on .presslog span:nth-child(3){animation-delay:1.6s}
-.pv-stage.on .presslog span:nth-child(4){animation-delay:2.4s}
-@keyframes logpulse{0%,55%,100%{opacity:.2}12%,38%{opacity:1;color:var(--ink)}}
-@media (prefers-reduced-motion: reduce){ .pv-stage{display:none !important} }
+<link rel="stylesheet" href="/book/cover.css" />
 
-/* ---------- the book: rests closed, opens to the contents ---------- */
-.bookwrap{margin:2.4rem auto 0;width:16rem;perspective:1600px;position:relative;animation:up 1s .8s both;scroll-margin-top:3.5rem}
-.bookwrap:focus-visible{outline:2px solid var(--red);outline-offset:6px}
-.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.bookobj{position:relative;width:100%;aspect-ratio:6/9;transform-style:preserve-3d;transition:transform .5s}
-.bookwrap:hover .bookobj,.bookwrap.open .bookobj{transform:translateY(-5px)}
-/* inside: the contents page, revealed when the cover swings */
-.pv-page{position:absolute;inset:0;background:var(--card);border:1px solid var(--hair);
-  padding:1.2rem 1.05rem .7rem;display:flex;flex-direction:column;font-size:.68rem;line-height:1.6;
-  box-shadow:0 2px 3px rgba(33,28,21,.12),14px 20px 36px -18px rgba(33,28,21,.45), inset 8px 0 12px -9px rgba(33,28,21,.35)}
-.pv-page .run{display:flex;justify-content:space-between;letter-spacing:.18em;text-transform:uppercase;
-  font-size:.5rem;color:var(--faint);border-bottom:1px solid var(--hair);padding-bottom:.45rem;margin-bottom:.6rem}
-.pv-page .fol{margin-top:auto;text-align:center;font-size:.5rem;color:var(--faint);padding-top:.4rem}
-.pv-page .toc-line{opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s}
-.preview.on .pv-page .toc-line{opacity:1;transform:none}
-.toc-line{display:flex;align-items:baseline;gap:.35rem;margin-top:.5rem}
-.toc-line .t{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%}
-.toc-line .dots{flex:1;border-bottom:1px dotted var(--rule);transform:translateY(-2px)}
-.toc-line .n{color:var(--faint)}
-/* cover: the classic ivory literary paperback, whatever the publication's web palette */
-.cover{position:absolute;inset:0;background:#f9f4e6;border:1px solid rgba(30,23,16,.35);
-  transform-origin:left center;transition:transform .85s cubic-bezier(.3,.75,.25,1);backface-visibility:hidden;
-  display:flex;flex-direction:column;align-items:center;text-align:center;padding:2.2rem 1.3rem 1.3rem;
-  box-shadow:0 2px 3px rgba(33,28,21,.16),14px 20px 38px -18px rgba(33,28,21,.5),inset 9px 0 12px -10px rgba(33,28,21,.4);z-index:2}
-.cover::before{content:"";position:absolute;inset:9px;border:1.5px solid #1e1710;pointer-events:none;opacity:.85}
-.cover::after{content:"";position:absolute;inset:14px;border:1px solid #a93b22;pointer-events:none;opacity:.9}
-.bookwrap:hover .cover,.bookwrap.open .cover{transform:rotateY(-84deg);box-shadow:0 2px 3px rgba(33,28,21,.16),30px 8px 40px -20px rgba(33,28,21,.4)}
-.cv-kind{font-size:.6rem;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;color:#a93b22;font-weight:600;margin-top:.9rem}
-.cv-mast{font-family:"EB Garamond",serif;font-size:1.5rem;font-weight:560;line-height:1.18;margin-top:.2rem;color:#1e1710;overflow-wrap:anywhere;max-width:100%}
-.cv-orn{color:#a93b22;margin:.9rem 0;font-size:.95rem}
-.cv-dates{font-size:.76rem;color:rgba(30,23,16,.62)}
-.cv-mid{flex:1}
-.cv-foot{width:100%;display:flex;justify-content:center;gap:.7rem;font-size:.6rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.62)}
-.cv-pages{letter-spacing:.06em;text-transform:none;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:rgba(30,23,16,.62)}
-.cv-footwrap{width:100%;display:grid;gap:.3rem;justify-items:center;position:relative;z-index:1;padding-top:.6rem}
-.spinetext{position:absolute;top:0;bottom:0;left:-1px;width:13px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3}
-.spinetext span{transform:rotate(90deg);white-space:nowrap;font-size:.48rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(30,23,16,.66)}
-.pageblock{position:absolute;top:4px;bottom:4px;right:-7px;width:7px;
-  background:repeating-linear-gradient(180deg,#fdfaf2 0 2px,#e7e0cf 2px 3px);
-  box-shadow:2px 3px 6px -2px rgba(33,28,21,.38);transition:width .9s ease-out .35s}
-/* the book is a physical object; it does not invert with the site theme */
-.bookhint{margin-top:1.6rem;text-align:center;font-size:.72rem;letter-spacing:.26em;padding-left:.26em;text-transform:uppercase;color:var(--faint)}
-.bookhint .tap{display:none}
-@media (hover:none){ .bookhint .hov{display:none} .bookhint .tap{display:inline} }
-.preview .bookwrap{opacity:0;transition:opacity .55s}
-.preview.on .bookwrap{opacity:1}
-.preview .bookwrap{animation:none}
-.preview.on .bookwrap{animation:up .7s both}
-
-/* ---------- the payoff ---------- */
-.pv-facts{display:none;margin-top:2.8rem;text-align:center}
-.preview.personalized .pv-facts{display:block}
-.pv-big{font-size:clamp(1.8rem,3.6vw,2.5rem);font-weight:500;line-height:1.15;text-wrap:balance;text-shadow:var(--press)}
-.pv-big b{color:var(--red);font-weight:560}
-.pv-sub{margin-top:.9rem;color:var(--faint);max-width:52ch;margin-inline:auto}
-.pv-price{margin-top:1.3rem;font-size:.98rem;color:var(--faint);opacity:0;transform:scale(.97);transition:opacity .4s 1.05s,transform .4s 1.05s}
-.preview.on .pv-price{opacity:1;transform:none}
-.pv-cta{margin-top:1.7rem;display:inline-block;padding:.95rem 2.6rem 1rem;background:var(--ink);color:var(--paper);
-  border:1px solid var(--ink);text-decoration:none;font-weight:500;font-size:.85rem;letter-spacing:.26em;padding-left:2.86rem;
-  text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .3s}
-.pv-cta:hover{background:var(--red);border-color:var(--red)}
-.pv-note{margin-top:1rem}
-
-/* ---------- at cost, stated plainly ---------- */
-.atcost{margin:5rem auto 0;text-align:center;max-width:38rem}
-.atcost .big{font-size:clamp(1.9rem,4vw,2.7rem);font-weight:500;line-height:1.2;text-shadow:var(--press)}
-.atcost .big b{color:var(--red);font-weight:560}
-.atcost p{margin-top:1.1rem;color:var(--faint);max-width:46ch;margin-inline:auto}
-.costline{display:flex;justify-content:center;gap:2.6rem;margin-top:1.8rem;flex-wrap:wrap}
-.costline div{text-align:center}
-.costline .n{font-size:1.9rem;font-weight:560;color:var(--red)}
-.costline .t{font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-top:.25rem}
-
-/* ---------- sections ---------- */
-.section{margin:5.4rem auto 0;max-width:40rem}
-.shead{text-align:center;font-size:.8rem;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;font-weight:600;margin-bottom:.4rem}
-.section .rule-orn{margin:1rem auto 1.8rem}
-.realspread{display:grid;gap:1.4rem;margin:1.2rem 0 .4rem}
-@media (min-width:641px){.realspread{grid-template-columns:1fr 1fr}}
-.faq .realspread img{border-color:rgba(42,33,24,.3);background:#fbf7ee}
-.faq .realspread figcaption{color:#6b5a44}
-.realspread figure{margin:0}
-.realspread img{width:100%;height:auto;display:block;border:1px solid var(--rule);padding:6px;background:var(--card)}
-.realspread figcaption{margin-top:.8rem;text-align:center;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
-.realspread figcaption b{color:var(--red);font-weight:600}
-
-/* ---------- questions, as leaves that open ---------- */
-.faq details{border-top:1px solid var(--hair)}
-.faq details:last-of-type{border-bottom:1px solid var(--hair)}
-.faq summary{cursor:pointer;list-style:none;padding:1.15rem .2rem;font-size:1.14rem;font-weight:540;
-  display:flex;align-items:baseline;gap:.6rem;transition:color .2s}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::before{content:"Q.";color:var(--red);font-weight:560;flex:0 0 auto}
-.faq summary::after{content:"+" / "";margin-left:auto;color:var(--faint);font-size:1.3rem;line-height:1;transition:transform .3s;flex:0 0 auto}
-.faq details[open] summary::after{transform:rotate(45deg);color:var(--red)}
-.faq summary:hover{color:var(--red)}
-.faq details p{padding:0 .2rem 1.2rem 1.75rem;color:var(--faint);margin:0}
-.faq{position:relative;margin-top:12vh;padding:clamp(2.2rem,5vw,4rem) clamp(1.6rem,5vw,4rem) 3.4rem;
-  color:#2a2118;background:linear-gradient(160deg,#f7eed9,#efe4cb);border-radius:2px;
-  box-shadow:0 40px 80px -30px rgba(0,0,0,.75),0 2px 0 rgba(255,255,255,.25) inset}
-.faq::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.26;mix-blend-mode:multiply;border-radius:2px;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='3'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)' opacity='.3'/></svg>")}
-.faq>*{position:relative;z-index:1}
-.faq .shead{color:#2a2118}.faq .rule-orn::before,.faq .rule-orn::after{border-color:rgba(42,33,24,.42)}
-.faq details{border-color:rgba(42,33,24,.17)}
-.faq details p{color:#4a3a26}
-.faq,.feedback{scroll-margin-top:5rem}
-.feedback{position:relative;max-width:40rem;margin:6vh auto 0;padding:clamp(1.8rem,4vw,3rem) clamp(1.6rem,5vw,3.4rem) 2.4rem;color:#2a2118;
-  background:linear-gradient(160deg,#f7eed9,#efe4cb);border-radius:2px;box-shadow:0 40px 80px -30px rgba(0,0,0,.75),0 2px 0 rgba(255,255,255,.25) inset}
-.feedback .shead{color:#2a2118}.feedback .rule-orn::before,.feedback .rule-orn::after{border-color:rgba(42,33,24,.42)}
-.fb-lede{text-align:center;color:#4a3a26;font-size:1.05rem;max-width:40ch;margin:0 auto 1.4rem}
-.fb-label{display:block;font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:#8e2f1c;margin:1rem 0 .4rem}
-.fb-opt{text-transform:none;letter-spacing:0;color:#6b5a44}
-.feedback textarea,.feedback input[type=email]{width:100%;font:inherit;font-size:1.05rem;color:#2a2118;background:rgba(255,252,245,.7);border:1px solid rgba(42,33,24,.28);border-radius:2px;padding:.65rem .8rem;line-height:1.5}
-.feedback textarea:focus-visible,.feedback input[type=email]:focus-visible{outline:2px solid #a8452c;outline-offset:2px}
-.fb-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
-.fb-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:1.1rem}
-.fb-send{font:600 .82rem/1.3 "EB Garamond",Garamond,serif;letter-spacing:.2em;text-transform:uppercase;color:#2a2118;background:rgba(244,234,212,.4);border:1.1px solid #2a2118;padding:.6rem 1.4rem;cursor:pointer}
-.fb-send:hover{background:#2a2118;color:#f4ead4}.fb-send:disabled{opacity:.55;cursor:wait}
-.fb-status{color:#4a3a26;font-style:italic}
-.faq-return{text-align:center;margin:5vh auto 0}
-.faq-return button{display:inline-flex;align-items:center;gap:.5rem;font:600 1.1rem/1 "EB Garamond",Garamond,serif;color:#f4ead4;
-  background:#a8452c;border:0;border-radius:2px;padding:.9rem 1.7rem;cursor:pointer;box-shadow:0 2px 0 rgba(50,16,8,.5),0 10px 22px -8px rgba(140,50,26,.6)}
-.faq-return .return-caret{display:inline-block;width:2px;height:1.05em;background:currentColor;animation:return-blink 1.1s step-end infinite}
-@keyframes return-blink{50%{opacity:0}}
-
-/* ---------- the composing desk ---------- */
-.pv-reason{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:1rem}
-.desk{margin-top:2rem;text-align:center}
-.desk-tabs{display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.3rem}
-.desk-tab{background:none;border:0;cursor:pointer;font-family:inherit;font-size:.76rem;
-  letter-spacing:.24em;padding:.2rem 0 .45rem;text-transform:uppercase;color:var(--faint);
-  border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
-.desk-tab .fl{color:var(--red);margin-right:.4rem}
-.desk-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
-.desk-tab:hover:not(:disabled){color:var(--ink)}
-.desk-tab:disabled{cursor:not-allowed;text-decoration:line-through;text-decoration-color:var(--rule);opacity:.55}
-.foliobar{display:flex;gap:4px;height:4.6rem;max-width:34rem;margin:0 auto;align-items:stretch}
-.folio-seg{background:var(--card);border:1px solid var(--rule);min-width:2.3rem;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
-  padding:.3rem .12rem;transition:flex-grow .55s cubic-bezier(.2,.7,.2,1);overflow:hidden;position:relative}
-.folio-seg::after{content:"";position:absolute;top:4px;bottom:4px;right:2px;width:3px;
-  background:repeating-linear-gradient(180deg,rgba(33,28,21,.18) 0 1px,transparent 1px 3px)}
-.folio-seg .fs-dates{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
-.folio-seg .fs-pages{font-size:.95rem;font-weight:560;color:var(--ink)}
-.folio-seg .fs-price{font-size:.62rem;color:var(--faint)}
-.desk-verdict{margin-top:.9rem;min-height:1.2em}
-/* ---------- the shelf: every volume a spine, width by page count ---------- */
-.plan-what{max-width:52ch;margin:0 auto 1.4rem;color:var(--faint)}
-.desk-tab .sub{display:block;font-size:.62rem;letter-spacing:.06em;text-transform:none;color:var(--faint);margin-top:.2rem}
-.route-why{max-width:52ch;margin:0 auto 1.2rem;font-style:italic}
-.shelf{display:flex;align-items:flex-end;justify-content:center;gap:10px;max-width:38rem;margin:0 auto;padding:0 .6rem;position:relative;height:auto}
-.shelf::after{content:"";position:absolute;left:0;right:0;bottom:2.55rem;height:0;border-top:3px solid var(--rule);box-shadow:0 3px 0 rgba(0,0,0,.08)}
-.shelf .folio-seg{display:flex;flex-direction:column;align-items:center;background:none;border:0;min-width:0;flex-grow:0!important;position:static;padding:0}
-.shelf .folio-seg::after{display:none}
-.spine{writing-mode:vertical-rl;transform:rotate(180deg);height:clamp(150px,24vw,196px);width:var(--w,40px);background:var(--card);border:1px solid var(--rule);border-radius:1px 3px 3px 1px;display:flex;align-items:center;justify-content:space-between;padding:.7rem .15rem;box-shadow:inset -2px 0 0 rgba(255,255,255,.45),inset 2px 0 0 rgba(0,0,0,.08),-2px 3px 0 rgba(0,0,0,.08);transition:transform .35s,box-shadow .35s;position:relative;z-index:1}
-.spine .fs-dates{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
-.spine .fs-vol{font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-.spine::before{content:"";position:absolute;left:.3rem;right:.3rem;top:.35rem;border-top:1px solid var(--hair)}
-.spine::after{content:"";position:absolute;left:.3rem;right:.3rem;bottom:.35rem;border-top:1px solid var(--hair)}
-.folio-seg:hover .spine{transform:rotate(180deg) translateX(3px)}
-.plaque{height:2.55rem;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-top:.5rem}
-.plaque .fs-pages{font-size:.9rem;font-weight:560;color:var(--ink);line-height:1.1}
-.plaque .fs-price{font-size:.62rem;color:var(--faint)}
-.plan-progress{margin-top:.8rem}
-.interior-why{margin-top:.5rem;max-width:52ch;margin-inline:auto}
-.plan-by{margin-top:.6rem;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase}
-@media (max-width:560px){
-  .shelf{flex-direction:column;align-items:stretch;gap:6px;padding:0}
-  .shelf::after{display:none}
-  .shelf .folio-seg{flex-direction:row;justify-content:space-between;align-items:center;border-bottom:1px solid var(--hair);padding:.35rem 0}
-  .spine{writing-mode:horizontal-tb;transform:none;height:auto;width:auto!important;flex:1;padding:.5rem .7rem;box-shadow:inset 0 -2px 0 rgba(0,0,0,.08)}
-  .spine::before,.spine::after{display:none}
-  .folio-seg:hover .spine{transform:none}
-  .plaque{height:auto;flex-direction:row;gap:.6rem;padding:0 0 0 .8rem;align-items:baseline}
-  .plaque .fs-price{display:inline}
-}
-.interior-row{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.3rem}
-.int-opt{background:transparent;border:1px solid var(--rule);cursor:pointer;font-family:inherit;
-  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:500;
-  padding:.75rem 1.3rem;color:var(--faint);transition:all .25s;text-align:center}
-.int-opt[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);outline:1px solid var(--ink);outline-offset:2px}
-.int-opt .fl{color:var(--red);margin-right:.4rem}
-.desk-tab:focus-visible,.int-opt:focus-visible,.tryrow button:focus-visible,button.main:focus-visible,.pv-cta:focus-visible,.snip-copy:focus-visible{outline:2px solid var(--red);outline-offset:3px}
-.int-opt:hover{color:var(--ink)}
-/* ---------- the reply card ---------- */
-.beta{margin:6rem auto 0;max-width:34rem;border:1px solid var(--rule);position:relative;
-  background:var(--card);padding:2.6rem 2.4rem 2.4rem}
-.beta::after{content:"";position:absolute;inset:5px;border:2px solid var(--rule);pointer-events:none}
-.beta .shead{margin-bottom:.3rem}
-.beta .rule-orn{margin:.9rem auto 1.4rem}
-.steps{text-align:center;font-size:.7rem;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);margin-bottom:1.4rem}
-.steps b{color:var(--red)}
-.beta form,.beta .done{position:relative;z-index:1}
-label{display:block;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;font-weight:600;margin:1.4rem 0 .2rem;text-align:center}
-input[type=url],input[type=text],input[type=email],input[type=number],select{
-  width:100%;text-align:center;padding:.45rem 0 .55rem;font:inherit;font-size:1.15rem;color:var(--ink);
-  background:transparent;border:0;border-bottom:1px solid var(--rule);border-radius:0;caret-color:var(--red)}
-input:focus,select:focus{outline:none;border-bottom-color:var(--red);border-bottom-width:2px}
-.prefilled{font-size:.92rem;color:var(--faint);margin-top:.4rem;text-align:center}
-button.main{margin:1.9rem auto 0;display:block;width:auto;min-width:60%;padding:.85rem 2.2rem .9rem;font-family:inherit;
-  font-size:.8rem;font-weight:500;letter-spacing:.26em;padding-left:2.46rem;text-transform:uppercase;
-  background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer;transition:all .3s}
-button.main:hover{background:var(--ink);color:var(--paper)}
-button.ghost{background:none;color:var(--faint);font-weight:400;font-size:.95rem;width:auto;padding:.5rem 0;margin:.6rem auto 0;display:block;border:0;cursor:pointer;font-family:inherit;letter-spacing:0;text-transform:none}
-.err{color:var(--red);font-size:.95rem;margin-top:.8rem;min-height:1.1em;text-align:center}
-.done{display:none;text-align:center}
-.done h3{font-size:1.6rem;font-weight:540;margin-bottom:.7rem}
-.hp{position:absolute;left:-6000px}
-
-/* ---------- colophon ---------- */
-footer{margin-top:6.5rem;text-align:center;font-size:.88rem;color:var(--faint);line-height:1.9}
-footer .rule-orn{margin-bottom:1.6rem}
-footer .markfoot{height:44px;width:auto;display:block;margin:0 auto;opacity:.8;color:var(--rule)}
-footer .legal{max-width:38rem;margin:1.1rem auto 0}
-footer .setline2{letter-spacing:.24em;text-transform:uppercase;font-size:.66rem;margin-top:1.3rem}
-footer a{color:inherit}
-.step1,.step2,.step3{display:none}
-@media (prefers-reduced-motion: reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .preview .bookwrap,.preview .pv-page,.preview .pv-price,.pv-page .toc-line{opacity:1;transform:none}
-}
-
-</style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <script is:inline type="application/json" id="print-prices" set:html={JSON.stringify({ measured: prices.measured, shipping: prices.shipping_mail, shipping_set: prices.shipping_by_volumes, bw: { base: prices.pods.bw.base, per_page: prices.pods.bw.per_page }, color: { base: prices.pods.color.base, per_page: prices.pods.color.per_page } })}></script>
-<ScrollHero />
+<DeskHero />
 <div class="sheet">
-  <main>
+  <main id="main">
 
     <section class="preview" id="preview" aria-label="Book preview">
       <p class="sr-only" id="pv-status" role="status" aria-live="polite"></p>
@@ -327,126 +45,45 @@ footer a{color:inherit}
         <div class="setkick">Setting your edition</div>
         <div class="setline" id="pv-setline">Reading your archive&hellip;</div>
         <div class="setrule"></div>
-        <div class="presslog"><span>collating essays</span><span>measuring words</span><span>casting off pages</span><span>setting the cover</span></div>
+
       </div>
 
-      <div class="bookwrap" id="bookwrap" tabindex="0" role="button" aria-label="Open the book to its contents page" aria-pressed="false">
-        <div class="bookobj" id="pvbook" aria-hidden="true">
-          <div class="pv-page" id="pv-page">
-            <div class="run"><span id="pv-runname">Your publication</span><span>Contents</span></div>
-            <div id="pv-toc">
-              <div class="toc-line"><span class="t">Your first piece</span><span class="dots"></span><span class="n">9</span></div>
-              <div class="toc-line"><span class="t">Another from the archive</span><span class="dots"></span><span class="n">17</span></div>
-              <div class="toc-line"><span class="t">The writing readers keep</span><span class="dots"></span><span class="n">31</span></div>
-            </div>
-            <div class="fol">&middot; iv &middot;</div>
-          </div>
-          <div class="cover">
-            <div class="cv-mast" id="pv-mast">Your publication</div>
-            <div class="cv-kind" id="pv-kind">Annual edition</div>
-            <div class="cv-orn">&#10087;</div>
-            <div class="cv-dates" id="pv-dates">The past twelve months</div>
-            <div class="cv-mid"></div>
-            <div class="cv-footwrap"><span class="cv-pages" id="pv-cvpages">6 × 9 &middot; perfect bound</span><span class="cv-foot">Inksheaf</span></div>
-          </div>
-          <div class="spinetext"><span id="pv-spine">Your publication</span></div>
-          <div class="pageblock" id="pv-block"></div>
-        </div>
-        <div class="bookhint"><span class="hov">Rest on the book &mdash; it opens to the contents</span><span class="tap">Tap the book &mdash; it opens to the contents</span></div>
-      </div>
+      <header class="edition-header">
+        <div><a class="edition-imprint" href="#hero-story" aria-label="Inksheaf home"><Logo small /></a><h2 class="book-edition-label" id="book-edition-label"></h2></div>
+        <button type="button" data-hero-try>Change publication <span aria-hidden="true">↗</span></button>
+      </header>
+      <PreviewBook />
 
       <div class="pv-facts">
         <div class="pv-reason" id="pv-reason"></div>
         <div class="pv-big" id="pv-big"></div>
         <p class="pv-sub" id="pv-sub"></p>
+        <div class="pv-price" id="pv-price"></div>
+        <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
+        <p class="pv-note note">Nothing prints until you approve your proof. Readers order from Lulu.</p>
         <div class="desk" id="desk" hidden>
           <p class="plan-what" id="plan-what"></p>
           <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="Ways to bind it"></div>
+          <div id="plan-details" role="tabpanel" aria-label="Selected binding">
           <p class="route-why" id="route-why"></p>
           <div class="shelf foliobar" id="foliobar" role="list" aria-label="The volumes"></div>
           <div class="desk-verdict note" id="desk-verdict"></div>
           <p class="plan-progress note" id="plan-progress"></p>
           <div class="interior-row" id="interior-row" aria-label="Interior printing"></div>
           <p class="interior-why note" id="interior-why"></p>
-          <div class="pv-price" id="pv-price"></div>
           <p class="plan-by note" id="plan-by"></p>
+          </div>
         </div>
-        <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
-        <p class="pv-note note">Lulu prints each copy when a reader orders it, takes their payment and ships it. Nothing prints until you&rsquo;ve approved the proof.</p>
+
       </div>
+      <section class="share-edition" id="snippet" hidden aria-labelledby="share-title">
+        <div><p class="section-kicker">Bring your readers along</p><h3 id="share-title">A link for your next post.</h3><p id="snip-note">Share a preview while your edition is being made. Once it is available, your print button can link straight to its order page.</p></div>
+        <div class="share-tools"><label for="snip-label">Button label</label><input id="snip-label" readonly value="Preview a print edition" /><label for="snip-url">Button link</label><div class="share-link"><input id="snip-url" readonly type="url" /><button id="snip-copy" type="button">Copy link</button></div><p class="share-instruction">In your Substack post, add a custom button. Use this label and link.</p><p id="snip-feedback" role="status" aria-live="polite"></p><code id="snip-code" hidden></code></div>
+      </section>
     </section>
 
-    <section class="section faq">
-      <h2 class="shead">Questions writers ask</h2>
-      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
-      <details open>
-        <summary>What does it cost me?</summary>
-        <p>Nothing. It&rsquo;s free during the beta. Readers pay the printer per copy: a 294-page book came to $16.58 on a real order, and thinner books cost less. On Lulu&rsquo;s print API a 200-page volume prints for $6.99 in black and white, $10.83 in colour; shipping starts at $5.69 in the mainland US.</p>
-      </details>
-      <details>
-        <summary>Is there a real one I can hold?</summary>
-        <p>Yes, mine. I typeset my own Substack first so the problems would be mine before they were yours. The caithrin.com edition: 40 essays from January 2025 to August 2026, 294 pages at 6×9, on sale at its $9.34 print cost, which is what I chose to list it at: <a href="https://www.lulu.com/shop/caithrin-rintoul/caithrin-collected-essays-20252026/paperback/product-m2v2e82.html">caithrin &mdash; Collected Essays 2025&ndash;2026</a>. Readers pay the printer directly. These are pages from its print file.</p>
-        <div class="realspread">
-          <figure>
-            <img src="/spread-toc-real.jpg" alt="Actual contents spread from the caithrin edition" loading="lazy" width="1800" height="1359" />
-            <figcaption><b>Plate I.</b> &nbsp;Contents spread</figcaption>
-          </figure>
-          <figure>
-            <img src="/spread-real.jpg" alt="Actual essay spread with running headers and article notes" loading="lazy" width="1800" height="1359" />
-            <figcaption><b>Plate II.</b> &nbsp;Essay spread: running headers, article notes</figcaption>
-          </figure>
-        </div>
-      </details>
-      <details>
-        <summary>What do I earn?</summary>
-        <p>Whatever you set. List at print cost or add a margin, and the margin is yours. Beta editions default to cost while we build payouts with the beta authors on real numbers; we won&rsquo;t promise a rate before we can pay it.</p>
-      </details>
-      <details>
-        <summary>Who owns the writing?</summary>
-        <p>You. Nothing prints until you approve the proof, and we confirm permissions and takedown terms with you in writing before an edition is listed.</p>
-      </details>
-      <details>
-        <summary>Is every book perfect bound?</summary>
-        <p>Yes, a 6×9 paperback every time. We recommend volumes under 300 pages and refuse any past 800; a longer archive becomes a quarterly set of thinner books. Hardcover later, if beta writers ask for it.</p>
-      </details>
-      <details>
-        <summary>How do paid posts get in without my password?</summary>
-        <p>You download the export Substack makes in your own dashboard (Settings &rarr; Exports) and send it to us. Any subscriber files inside it we delete unread; only the posts are kept.</p>
-      </details>
-      <details>
-        <summary>What happens to images, tweets and embeds?</summary>
-        <p>The renderer lists every missing image and swaps web-only embeds (tweets, videos) for a printed source note. We go through that list and the proof with you before printing.</p>
-      </details>
-      <details>
-        <summary>When do the first books exist?</summary>
-        <p>We&rsquo;re aiming for December printing, so books arrive around New Year. If the date moves, you hear it from us directly.</p>
-      </details>
-      <details>
-        <summary>Where can I read more?</summary>
-        <p>Write to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a>; every message gets an answer. I&rsquo;m writing up the build as it goes on <a href="https://www.caithrin.com">caithrin.com</a>.</p>
-      </details>
-    </section>
-
-    <div class="faq-return">
-      <button type="button" data-hero-try>Try it for my Stack <span class="return-caret" aria-hidden="true"></span></button>
-    </div>
-
-    <section class="section feedback" id="feedback" aria-label="Tell us what you think">
-      <h2 class="shead">Tell us what you think</h2>
-      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
-      <p class="fb-lede">This is a beta and every remark is read. What confused you, what you wanted, what you would change: a sentence is enough.</p>
-      <form id="fb-form" novalidate>
-        <label class="fb-label" for="fb-text">Your note</label>
-        <textarea id="fb-text" name="text" rows="4" maxlength="4000" required placeholder="The page turn is lovely, but I could not tell which edition I was reserving."></textarea>
-        <label class="fb-label" for="fb-email">Your email, if you want a reply <span class="fb-opt">(optional)</span></label>
-        <input id="fb-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" />
-        <input class="fb-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
-        <div class="fb-row"><button class="fb-send" id="fb-send" type="submit">Send the note</button><span class="fb-status" id="fb-status" role="status" aria-live="polite"></span></div>
-      </form>
-    </section>
-
-    <section class="beta" id="beta">
-      <h2 class="shead">Join the private beta</h2>
+    <section class="beta" id="beta" hidden>
+      <h2 class="shead">Make this edition yours.</h2>
       <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
       <div class="steps">Step <b id="stepnum">1</b> of 2</div>
       <noscript><p style="text-align:center">This form needs JavaScript. Without it, write to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a> and we will add you by hand.</p></noscript>
@@ -459,7 +96,7 @@ footer a{color:inherit}
         </div>
         <div class="step2">
           <div class="prefilled" id="carried"></div>
-          <label for="email">Where should we send the first proof pages?</label>
+          <label for="email">Your email for the proof</label>
           <input type="email" id="email" name="email" required />
           <input type="hidden" name="posts_per_year" id="ppy" />
           <input type="hidden" name="frequency" />
@@ -482,23 +119,54 @@ footer a{color:inherit}
         </div>
       </div>
     </section>
+
+    <SubscriberButton />
+    <CoverCollection />
+    <InteriorProof />
+    <WriterFAQs />
+
+    <div class="faq-return">
+      <button type="button" data-hero-try>Preview my publication <span class="return-caret" aria-hidden="true"></span></button>
+    </div>
+
+    <section class="section feedback" id="feedback" aria-label="Tell us what you think">
+      <h2 class="shead">Tell us what you think</h2>
+      <div class="rule-orn" aria-hidden="true"><span>&#10086;</span></div>
+      <p class="fb-lede">This is a beta and every remark is read. What confused you, what you wanted, what you would change: a sentence is enough.</p>
+      <noscript><p class="fb-lede">Send your note to <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a>.</p></noscript>
+      <form id="fb-form" novalidate>
+        <label class="fb-label" for="fb-text">Your note</label>
+        <textarea id="fb-text" name="text" rows="4" maxlength="4000" required placeholder="What worked, and what would you change?"></textarea>
+        <label class="fb-label" for="fb-email">Your email, if you want a reply <span class="fb-opt">(optional)</span></label>
+        <input id="fb-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" />
+        <input class="fb-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <div class="fb-row"><button class="fb-send" id="fb-send" type="submit">Send the note</button><span class="fb-status" id="fb-status" role="status" aria-live="polite"></span></div>
+      </form>
+    </section>
+
+
   </main>
 
-  <footer>
+  <footer class="publisher-footer">
     <div class="rule-orn" aria-hidden="true"><span>&#10087;</span></div>
-    <svg class="markfoot" viewBox="0 0 776 1102" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 71 968 L 101 1003 L 126 1011 L 159 1056 L 200 1043 L 247 1082 L 289 1055 L 338 1093 L 387 1056 L 437 1093 L 487 1055 L 528 1082 L 575 1043 L 616 1056 L 649 1011 L 673 1004 L 704 972 L 586 662 L 541 663 L 632 1007 L 610 1040 L 580 1025 L 503 662 L 491 666 L 563 1027 L 528 1064 L 493 1041 L 453 662 L 436 671 L 475 1043 L 441 1072 L 397 1042 L 397 662 L 377 662 L 375 1045 L 338 1075 L 299 1035 L 338 662 L 320 663 L 281 1041 L 246 1064 L 211 1027 L 283 663 L 265 669 L 192 1029 L 162 1038 L 139 1004 L 234 663 L 190 663 Z M 434 588 L 434 612 L 593 612 L 598 610 L 602 605 L 602 596 L 600 592 L 594 588 Z M 171 596 L 171 604 L 172 607 L 178 612 L 189 613 L 205 612 L 238 613 L 340 612 L 340 588 L 180 588 L 174 591 Z M 168 559 L 170 570 L 179 577 L 358 577 L 372 597 L 356 623 L 181 623 L 169 633 L 171 646 L 181 652 L 366 651 L 385 623 L 389 622 L 408 651 L 594 651 L 605 640 L 603 629 L 595 623 L 419 623 L 402 598 L 416 577 L 593 577 L 600 574 L 605 566 L 604 555 L 594 547 L 406 547 L 390 571 L 385 573 L 368 547 L 182 547 L 174 550 Z M 767 100 L 752 106 L 671 149 L 545 535 L 590 535 L 698 279 L 744 164 Z M 8 100 L 99 341 L 178 535 L 226 536 L 106 151 L 79 135 Z M 63 53 L 69 113 L 71 117 L 88 126 L 84 88 L 86 87 L 198 166 L 261 536 L 278 536 L 215 157 L 109 82 Z M 712 52 L 560 157 L 496 535 L 514 534 L 577 166 L 690 87 L 687 126 L 704 117 L 710 81 Z M 646 33 L 477 153 L 441 535 L 460 535 L 494 164 L 502 156 L 625 67 L 625 100 L 642 89 Z M 129 33 L 132 86 L 134 90 L 150 100 L 148 68 L 150 67 L 280 162 L 314 535 L 333 535 L 298 154 L 210 89 Z M 210 8 L 210 78 L 228 91 L 229 51 L 377 197 L 377 535 L 397 535 L 397 197 L 547 52 L 546 91 L 563 80 L 564 8 L 387 182 Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+    <a class="footer-identity" href="#hero-story" aria-label="Inksheaf home"><Logo inverse /></a>
     <p class="legal">Inksheaf prints editions of Substack publications with their owners&rsquo; permission. It is an
     independent product, for Substack writers, and is not affiliated with or endorsed by Substack Inc.
     US delivery during the beta. Built by <a href="https://about.caithrin.com">Caithrin</a> &middot; <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a></p>
-    <div class="setline2">Set in EB Garamond &middot; printed on demand by Lulu</div>
+    <div class="setline2">Set in Source Serif 4 &middot; printed on demand by Lulu</div>
   </footer>
 </div>
 
 <script>
+import {coverLogo} from '../../functions/lib/cover-logo.js';
+import {prepareLogo} from '../lib/prepare-logo';
+import { COVER_DESIGNS, designSelection, coverStyle, coverMarkup } from '../../functions/lib/book-design.js';
+let selectedDesign = 'masthead';
 const f = document.getElementById('f') as HTMLFormElement;
-const sid = sessionStorage.getItem('inksheaf_sid') || Math.random().toString(36).slice(2,10);
-sessionStorage.setItem('inksheaf_sid', sid);
+let sid = Math.random().toString(36).slice(2,10);
+try { sid = sessionStorage.getItem('inksheaf_sid') || sid; sessionStorage.setItem('inksheaf_sid', sid); } catch { /* Private storage restrictions must not stop a preview. */ }
 const seen = new Set();
+let aboutTimer: ReturnType<typeof setTimeout> | null = null;
 function beacon(ev: string, host = ''){
   const key = ev + ':' + host.toLowerCase();
   if (seen.has(key)) return; seen.add(key);
@@ -507,12 +175,18 @@ function beacon(ev: string, host = ''){
 }
 beacon('view');
 function show(n: number){
+  document.getElementById('beta')!.hidden=n===1;
+  if (aboutTimer) clearTimeout(aboutTimer);
+  f.style.display = 'block';
+  (document.querySelector('.steps') as HTMLElement).style.display = 'block';
+  document.getElementById('done')!.style.display = 'none';
+  document.getElementById('done-alt')!.style.display = 'none';
   for (const k of [1,2]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
   document.getElementById('stepnum')!.textContent = String(n);
   document.getElementById('err')!.textContent = '';
   if (n>1){
     beacon('step'+n);
-    const pub = previewData?.host || (f.elements.namedItem('publication_url') as HTMLInputElement)?.value || '';
+    const pub = (f.elements.namedItem('publication_url') as HTMLInputElement)?.value || previewData?.host || '';
     if (pub) beacon('reserve_start', pub);
   }
 }
@@ -525,55 +199,33 @@ const tryerr = document.getElementById('tryerr')!;
 const tryhandoff = document.getElementById('tryhandoff') as HTMLButtonElement;
 let previewData: any = null;
 
-/* ---------- typesetting interlude: facts fade through while the press runs ---------- */
+/* ---------- visible status for the actual archive request ---------- */
 const stage = document.getElementById('pv-stage')!;
-/* the title-page working line (#tryworking) plays the pressroom's beats where the visitor is looking; it clears with the stage */
-function stageOff(){ stage.classList.remove('on'); const w = document.getElementById('tryworking'); if (w) w.textContent = ''; }
-const setline = document.getElementById('pv-setline')!;
-let lastShownHost: string | null = null;
-const motionOK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-async function beat(html: string, hold = 620){
-  setline.classList.remove('in'); setline.classList.add('out');
-  await new Promise(r => setTimeout(r, 230));
-  setline.innerHTML = html;
-  const working = document.getElementById('tryworking'); if (working) working.innerHTML = html;
-  setline.classList.remove('out'); setline.classList.add('in');
-  await new Promise(r => setTimeout(r, 290 + hold));
-}
+function stageOff(){ stage.classList.remove('on'); document.getElementById('tryworking')!.textContent = ''; }
 function interludeStart(){
-  if (!motionOK) return false;
   const pv = document.getElementById('preview')!;
   pv.classList.remove('on'); pv.classList.add('staging');
-  setline.innerHTML = 'Reading your archive&hellip;';
-  const working = document.getElementById('tryworking'); if (working) working.innerHTML = 'Reading your archive&hellip;';
-  setline.classList.add('in');
+  const line = document.getElementById('pv-setline')!;
+  line.textContent = 'Reading your archive…'; line.classList.add('in');
+  document.getElementById('tryworking')!.textContent = 'Reading your archive…';
   stage.classList.add('on');
-  return true;
-}
-async function interludeFacts(d: any){
-  const mon = (iso: string) => new Date(iso + 'T00:00:00Z')
-    .toLocaleDateString('en-US', {month:'long', year:'numeric', timeZone:'UTC'});
-  const count = d.public_posts ?? d.posts;
-  const noun = d.noun || 'essay';
-  await beat('<b>' + count + '</b> ' + kindLabel(d, count) + '.');
-  await beat('<b>' + d.words.toLocaleString('en-US') + '</b> words.');
-  await beat(mon(d.from) + ' &ndash; ' + mon(d.to) + '.');
-  await beat('That is <b>' + d.est_pages + ' pages</b>: ' + (d.form || 'a book') + '.', 700);
-  const recDiv = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
-  if (recDiv && recDiv.volumes.length > 1)
-    await beat('Divided into <b>' + recDiv.volumes.length + '</b> ' + (d.unit || 'volume') + 's.', 780);
-  stageOff();
-  setline.classList.remove('in');
-  document.getElementById('preview')!.classList.remove('staging');
 }
 
 async function runPreview(){
+  if (trybtn.disabled) return;
   const raw = tryurl.value.trim();
-  if (!raw){ tryerr.textContent = 'Paste your publication URL first.'; return; }
+  if (!raw){ tryerr.textContent = 'Paste your publication URL first.';tryurl.setAttribute('aria-invalid','true');tryurl.focus(); return; }
+  tryurl.removeAttribute('aria-invalid');
+  editorAsk = null;
+  show(1);
+  document.getElementById('carried')!.textContent = '';
+  (f.elements.namedItem('publication_url') as HTMLInputElement).value = raw.startsWith('http') ? raw : 'https://' + raw;
+  for (const name of ['plan_json','cadence_pref','posts_per_year','frequency']) (f.elements.namedItem(name) as HTMLInputElement).value = '';
+  (document.getElementById('pv-cta') as HTMLButtonElement).disabled = true;
   tryerr.textContent = '';
   tryhandoff.hidden = true;
-  trybtn.disabled = true; trybtn.textContent = 'Typesetting…';
-  const interludeOn = !!tryurl.value && raw !== lastShownHost ? interludeStart() : false;
+  trybtn.disabled = true; trybtn.textContent = 'Reading…';
+  interludeStart();
   /* the server's relay budget is 40s; the page gives up at 45s and offers the hand-built route */
   const ctl = new AbortController();
   const abortTimer = setTimeout(() => ctl.abort(), 45000);
@@ -581,6 +233,7 @@ async function runPreview(){
     const r = await fetch('/api/preview?url=' + encodeURIComponent(raw), { signal: ctl.signal });
     const d = await r.json();
     if (!d.ok){
+      clearPreview();
       beacon('preview_fail', raw);
       (f.elements.namedItem('publication_url') as HTMLInputElement).value =
         raw.startsWith('http') ? raw : 'https://' + raw;
@@ -592,14 +245,14 @@ async function runPreview(){
       tryhandoff.hidden = false;
       return;
     }
+    await prepareLogo(d);
     previewData = d;
     beacon('preview_ok', d.host);
-    if (interludeOn && d.host !== lastShownHost) await interludeFacts(d);
-    else { stageOff(); document.getElementById('preview')!.classList.remove('staging'); }
-    lastShownHost = d.host;
+    stageOff(); document.getElementById('preview')!.classList.remove('staging');
     renderPreview(d);
     history.replaceState(null, '', '?pub=' + encodeURIComponent(d.host));
   } catch (e) {
+    clearPreview();
     beacon('preview_fail', raw);
     stageOff();
     document.getElementById('preview')!.classList.remove('staging');
@@ -611,8 +264,34 @@ async function runPreview(){
     tryhandoff.hidden = false;
   } finally {
     clearTimeout(abortTimer);
-    trybtn.disabled = false; trybtn.textContent = 'Show my book';
+    trybtn.disabled = false; trybtn.textContent = 'Preview my book';
+    (document.getElementById('pv-cta') as HTMLButtonElement).disabled = false;
   }
+}
+function clearPreview(){
+  document.dispatchEvent(new CustomEvent('publication-preview', {detail:null}));
+  previewData = null; plan = null; desk = null; editorAsk = null;
+  for (const name of ['plan_json','cadence_pref','posts_per_year','frequency'])
+    (f.elements.namedItem(name) as HTMLInputElement).value = '';
+  document.getElementById('pv-status')!.textContent = '';
+  document.getElementById('snippet')!.hidden=true;
+  for(const id of ['snip-url','snip-label'])(document.getElementById(id) as HTMLInputElement).value='';
+  document.getElementById('snip-feedback')!.textContent='';
+  const label=document.getElementById('book-edition-label')!;label.textContent='';delete label.dataset.coverLabel;
+  document.getElementById('pv-mast')!.textContent = 'Your publication';
+  paintPublicationLogo(null);
+  document.getElementById('pv-kind')!.textContent = 'Your collected edition';
+  document.getElementById('pv-dates')!.textContent = 'A preview of your writing';
+  document.getElementById('pv-cvpages')!.textContent = '6 × 9 · perfect bound';
+  document.getElementById('pv-spine')!.textContent = 'Your publication';
+  document.getElementById('pv-runname')!.textContent = 'Your publication';
+  document.getElementById('pv-toc')!.replaceChildren();
+  (document.querySelector('.cover') as HTMLElement).removeAttribute('style');
+  document.getElementById('book-text')!.textContent = '';
+  document.getElementById('book-text')!.hidden = true;
+  document.getElementById('bookwrap')!.classList.remove('open');
+  document.getElementById('bookwrap')!.setAttribute('aria-pressed', 'false');
+  document.getElementById('bookwrap')!.setAttribute('aria-label', 'Open the book to look inside');
 }
 /* One edition, one set of numbers (Codex, production journey 2026-09-04: the cover, the
    description, the announcement and the price disagreed because the rolling twelve-month read
@@ -620,22 +299,81 @@ async function runPreview(){
    route exists, that route is the edition everywhere; the rolling read is used only before or
    without one. `cadence` picks the route the visitor selected on the desk. */
 function editionView(d: any, cadence?: string | null){
-  const ed = d.editorial, P = ed && ed.plan, w = ed && ed.window, t = ed && ed.totals;
+  const ed = d.editorial, P = ed && ed.plan, w = ed && ed.window;
   const routes = (P && P.routes) || [];
   const route = routes.find((r: any) => cadence && r.cadence === cadence) || routes.find((r: any) => r.recommended) || routes[0];
   if (route && route.volumes && route.volumes.length && w){
     const pages = route.volumes.reduce((a: number, v: any) => a + (Number(v.est_pages) || 0), 0);
+    const posts = route.volumes.reduce((a: number, v: any) => a + (v.posts ?? v.post_ids?.length ?? 0), 0);
+    const words = route.volumes.every((v: any) => Number.isFinite(v.words))
+      ? route.volumes.reduce((a: number, v: any) => a + v.words, 0) : null;
     return { source: 'plan', route, cadence: route.cadence, span: w.span || (fmt(w.from) + ' – ' + fmt(w.to)), label: w.label || '', year: String(w.to || d.to).slice(0, 4),
-      posts: (t && t.posts) ?? (d.public_posts ?? d.posts), words: (t && t.words) ?? d.words, pages, volumes: route.volumes.length, capped: !!d.capped };
+      posts, words, pages, volumes: route.volumes.length, capped: !!d.capped };
   }
-  const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
-  return { source: 'rolling', route: null, cadence: null, span: fmt(d.from) + ' – ' + fmt(d.to), label: '', year: String(d.to).slice(0, 4),
-    posts: d.public_posts ?? d.posts, words: d.words, pages: d.est_pages, volumes: recD && recD.volumes.length > 1 ? recD.volumes.length : 1, capped: !!d.capped };
+  const key = cadence || (desk?.d.host === d.host ? desk.cadence : null) || d.recommended?.cadence;
+  const recD = d.divisions?.[key];
+  const volumes = recD?.feasible ? recD.volumes : [];
+  return { source: 'rolling', route: null, cadence: key, span: fmt(d.from) + ' – ' + fmt(d.to), label: '', year: String(d.to).slice(0, 4),
+    posts: volumes.length && volumes.every((v: any) => Number.isFinite(v.posts)) ? volumes.reduce((a: number,v: any) => a+v.posts,0) : d.public_posts ?? d.posts,
+    words: d.words, pages: volumes.length ? volumes.reduce((a: number,v: any) => a+v.est_pages,0) : d.est_pages,
+    volumes: volumes.length || 1, capped: !!d.capped };
+
+}
+function sentence(text: string){
+  const clean = String(text || '').trim().replace(/[.\s]+$/, '');
+  return clean ? clean + (/[!?…]$/.test(clean) ? '' : '.') : '';
+}
+function announceEdition(d: any, E = editionView(d), prefix = 'Your book preview is ready: '){
+  if (!document.getElementById('preview')!.classList.contains('personalized')) return;
+  const needsHandPlan = d.editorial?.plan && !d.editorial.plan.routes.length;
+  const text = needsHandPlan ? 'Your archive needs a hand-built plan. ' + E.posts + ' ' + kindLabel(d, E.posts) + ' read; request a proof to plan the volumes.' : prefix + E.posts + ' ' + kindLabel(d, E.posts) + ', ' +
+    E.volumes + ' ' + unitOf(d, E.volumes) + ', ' + (E.capped ? 'about ' : '') + E.pages + ' estimated pages, ' + E.span + '.';
+  const status = document.getElementById('pv-status')!;
+  if (status.textContent !== text) status.textContent = text;
+}
+function paintEditionCopy(d: any, E: any){
+  // Quantities describe the selected edition, including an editor's exclusions. Model
+  // prose may describe another route or the source archive, so it cannot supply these.
+  document.getElementById('pv-big')!.textContent = E.volumes === 1 ? 'Your writing, in one book.' : 'Your writing, in ' + E.volumes + ' ' + unitOf(d, E.volumes) + '.';
+  document.getElementById('pv-sub')!.textContent = E.posts + ' ' + kindLabel(d, E.posts) + ', ' +
+    (E.capped ? 'about ' : '') + E.pages + ' estimated pages. ' + E.span + '.' +
+    (d.capped ? ' Pages and prices are estimates until we read the rest.' : '');
+  const excluded = d.editorial?.plan?.excluded?.length || 0;
+  const notes = [excluded ? excluded + ' archive ' + (excluded === 1 ? 'post is' : 'posts are') + ' left out of this edition; review the selection in your proof.' : '',
+    d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export.' : ''];
+  document.getElementById('plan-what')!.textContent = notes.filter(Boolean).join(' ');
+}
+function paintPublicationLogo(d: any){
+  const logo = document.getElementById('pv-logo') as HTMLImageElement;
+  const next=coverLogo(d,selectedDesign).logo;
+  logo.hidden = true;
+  logo.onload = null; logo.onerror = null;
+  logo.removeAttribute('src');
+  if (!next) return;
+  logo.onload = () => { logo.hidden = false; };
+  logo.onerror = () => { logo.hidden = true;logo.closest('.cv-logo-band')?.setAttribute('hidden',''); };
+  // The masthead supplies the accessible publication name. The image adds its visual mark.
+  logo.src = next;
 }
 function paintCover(d: any, E: any){
+  const cover = document.querySelector('#pvbook .cover') as HTMLElement;
+  cover.dataset.design = selectedDesign;
+  cover.setAttribute('style', coverStyle(selectedDesign, d.theme, d.publication));
   const kindName = E.source === 'plan' ? (E.cadence === 'single' ? (d.young ? 'Everything so far' : 'Annual') : CAD_NAME[E.cadence]) : (d.cadence || 'Annual');
+  const details={publication:d.publication,kind:kindName+' · '+(E.label||E.year),dates:E.span,foot:''};
+  cover.innerHTML=coverMarkup({...details,...coverLogo(d,selectedDesign),ids:true});
+  for(const choice of document.querySelectorAll<HTMLElement>('[data-cover]')){
+    const design=choice.dataset.cover!;
+    const thumb=choice.querySelector<HTMLElement>('.cover-face')!;
+    thumb.setAttribute('style',coverStyle(design,d.theme,d.publication));
+    thumb.innerHTML=coverMarkup({...details,...coverLogo(d,design)});
+    const image=thumb.querySelector('img');image?.addEventListener('error',()=>{image.hidden=true;image.closest('.cv-logo-band')?.setAttribute('hidden','');});
+  }
   (document.getElementById('pv-kind') as HTMLElement).textContent = kindName + ' · ' + (E.label || E.year);
+  const editionLabel=document.getElementById('book-edition-label')!;editionLabel.dataset.coverLabel=d.publication+' · '+kindName+' '+(E.label||E.year);
+  if(!document.querySelector('.book-presentation.reading'))editionLabel.textContent=editionLabel.dataset.coverLabel;
   (document.getElementById('pv-mast') as HTMLElement).textContent = d.publication;
+  paintPublicationLogo(d);
   (document.getElementById('pv-dates') as HTMLElement).textContent = E.span;
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = E.volumes > 1
     ? 'Vol. I of ' + (ROMAN[E.volumes - 1] || E.volumes) + ' · ' + E.posts + ' ' + kindLabel(d, E.posts) + ' · est. ' + E.pages + ' pages in all'
@@ -645,27 +383,29 @@ function paintCover(d: any, E: any){
   block.style.width = Math.max(5, Math.min(14, Math.round(E.pages / Math.max(E.volumes, 1) / 22))) + 'px';
 }
 function renderPreview(d: any){
+  document.dispatchEvent(new CustomEvent('publication-preview', {detail:d}));
+  document.getElementById('pv-cta')!.textContent = 'Reserve this print run';
   const publicPosts = d.public_posts ?? d.posts;
   const E = editionView(d);
   paintCover(d, E);
   const over = d.est_pages > 300;
 
-  /* the cover keeps the classic ivory style for every publication; web palettes stay on the web */
-  /* their titles become the contents page */
+  /* Recent public titles form a sampler; the selected edition's final contents belong to the proof. */
   const toc = document.getElementById('pv-toc')!;
   (document.getElementById('pv-runname') as HTMLElement).textContent = d.publication;
-  const rows = (d.sample && d.sample.length ? d.sample.map((x: any) => x.t) : (d.titles || [])).slice(0, 6);
-  const step = Math.max(3, Math.round(E.pages / Math.max(E.posts, 1)));
-  let folio = 9;
-  toc.innerHTML = rows.map((t: string, i: number) => {
-    const line = '<div class="toc-line" style="transition-delay:' + (0.45 + i * 0.12) + 's">' +
-      '<span class="t"></span><span class="dots"></span><span class="n">' + folio + '</span></div>';
-    folio += step;
-    return line;
-  }).join('');
-  [...toc.querySelectorAll('.t')].forEach((el, i) => (el as HTMLElement).textContent = rows[i]);
-
-
+  const rows = (d.sample && d.sample.length ? d.sample.map((x: any) => x.t) : (d.titles || [])).slice(0, 5);
+  toc.replaceChildren();
+  for (const title of rows) {
+    const line = document.createElement('div'); line.className = 'toc-line';
+    const text = document.createElement('span'); text.className = 't'; text.textContent = title;
+    line.append(text); toc.append(line);
+  }
+  if (!rows.length) { const note = document.createElement('p'); note.className = 'toc-line'; note.textContent = 'Your contents will be set after we read the writing you share.'; toc.append(note); }
+  document.getElementById('book-text')!.textContent = 'Recent writing from ' + d.publication + ': ' + rows.join('; ') + '. Final contents are set in your proof.';
+  document.getElementById('bookwrap')!.classList.remove('open','peek');
+  document.getElementById('bookwrap')!.setAttribute('aria-pressed', 'false');
+  document.getElementById('bookwrap')!.setAttribute('aria-label', 'Open the book to look inside');
+  document.getElementById('book-text')!.hidden = true;
 
   /* staged assembly: cover lands, then the spine thickens to the edition's page count */
   const block = document.getElementById('pv-block') as HTMLElement;
@@ -673,18 +413,7 @@ function renderPreview(d: any){
   requestAnimationFrame(() => requestAnimationFrame(() => { block.style.width = spineW; }));
   const recD = d.divisions && d.recommended && d.divisions[d.recommended.cadence];
   const ED = d.editorial && d.editorial.plan;
-  if (ED && ED.sentences){
-    const golden = (ED.routes && (ED.routes.find((r: any) => r.recommended) || ED.routes[0])) || { volumes: [] };
-    const w = d.editorial.window || {};
-    const t = d.editorial.totals || {};
-    (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
-    const subHasCounts = new RegExp('\\b' + (t.posts || 0) + '\\b').test(ED.sentences.plan_sub || '');
-    (document.getElementById('pv-sub') as HTMLElement).textContent =
-      ED.sentences.plan_sub + ' ' + (subHasCounts ? '' : (t.posts || 0) + ' public ' + kindLabel(d, t.posts || 0) + ', ' + (t.words || 0).toLocaleString('en-US') + ' words, ' + (w.span || '') + '. ') +
-      (d.paid_posts ? d.paid_posts + ' paid ' + (d.paid_posts === 1 ? 'post is' : 'posts are') + ' counted separately and can enter through your export. ' : '') +
-      (d.capped ? 'This preview read your newest ' + publicPosts + ' ' + kindLabel(d, publicPosts) + '; the printed edition uses them all. Pages and prices below are estimates until we read the rest. ' : '') +
-      (golden.volumes.length > 1 ? 'That is ' + (d.capped ? 'about ' : '') + golden.volumes.length + ' ' + unitOf(d, golden.volumes.length) + ' of ' + Math.min(...golden.volumes.map((v: any) => v.est_pages)) + ' to ' + Math.max(...golden.volumes.map((v: any) => v.est_pages)) + ' pages.' : 'Typeset at 6×9 with contents, running headers and your own cover.');
-  } else
+  if (!ED)
   (document.getElementById('pv-big') as HTMLElement).innerHTML =
     recD && recD.volumes.length > 1
     ? ((d.young || d.capped) ? 'Your archive so far is ' : 'Your year is ') + (d.form || 'a set') + ': <b>' + (d.capped ? 'about ' : '') + recD.volumes.length + ' ' + (d.unit || 'volume') + 's</b>.'
@@ -731,13 +460,10 @@ async function askTheEditor(d: any){
       if (j.served !== 'pending' && j.editorial){
         if (editorAsk !== host || !previewData || previewData.host !== host) return;
         previewData.editorial = j.editorial;
-        if (j.editorial.plan && j.editorial.plan.routes && j.editorial.plan.routes.length){
+        if (j.editorial.plan && Array.isArray(j.editorial.plan.routes)){
           renderPlan(previewData);
-          const ED = j.editorial.plan;
-          (document.getElementById('pv-big') as HTMLElement).textContent = ED.sentences.plan_headline;
-          const E2 = editionView(previewData);
-          const status = document.getElementById('pv-status') as HTMLElement;
-          status.textContent = 'Our editor has planned your edition: ' + ED.sentences.plan_headline + ' ' + (E2.volumes > 1 ? E2.volumes + ' ' + unitOf(previewData, E2.volumes) + ', ' : '') + E2.pages + ' pages, ' + E2.span + '.';
+          refreshCapturedReservation();
+          announceEdition(previewData, editionView(previewData, plan.cadence), 'Our editor has planned your edition: ');
         }
         return;
       }
@@ -746,18 +472,13 @@ async function askTheEditor(d: any){
   }
   if (editorAsk === host) by.textContent = 'Planned by the calendar';
 }
-/* The reveal must land on the book: scroll it to the top of the viewport, move focus to it
-   so keyboard and screen-reader users arrive where sighted users are looking, and announce
-   the result once. Reduced-motion users get the same landing without the smooth scroll. */
+/* A successful request navigates once to the edition. The short reveal supplies the transition;
+   do not combine it with a long animated scroll through the preceding desk scene. */
 function revealBook(d: any){
   const bw = document.getElementById('bookwrap') as HTMLElement;
-  const status = document.getElementById('pv-status') as HTMLElement;
-  const E = editionView(d);
-  const pages = E.volumes > 1 ? E.volumes + ' ' + unitOf(d, E.volumes) + ', ' + E.pages + ' pages in all' : E.pages + ' pages';
-  status.textContent = 'Your book is ready: ' + (E.capped ? 'about ' : '') + pages + (E.source === 'plan' ? ', ' + E.span : '') + '.';
-  const smooth = matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  announceEdition(d, editionView(d, plan?.cadence));
   bw.focus({ preventScroll: true });
-  bw.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+  document.getElementById('preview')!.scrollIntoView({ behavior: 'instant', block: 'start' });
 }
 
 /* ---------- the composing desk: all the math done, defaults pre-set ---------- */
@@ -793,10 +514,20 @@ function renderPlan(d: any){
   el.hidden = false;
   desk = null;
   const golden = P.routes.find((r: any) => r.recommended) || P.routes[0];
-  plan = { d, ed, P, cadence: golden ? golden.cadence : null, interior: P.interior.recommended === 'color' ? 'color' : 'bw' };
+  const previous = plan?.d.host === d.host ? plan : null;
+  plan = { d, ed, P, cadence: previous && P.routes.some((r: any) => r.cadence === previous.cadence) ? previous.cadence : (golden ? golden.cadence : null),
+    interior: previous?.interior || (P.interior.recommended === 'color' ? 'color' : 'bw') };
   reason.textContent = 'What you write: ' + P.kind + (P.rhythm ? ' · ' + P.rhythm : '');
   (document.getElementById('plan-what') as HTMLElement).textContent = P.description;
   if (!golden){
+    paintCover(d, editionView(d));
+    document.getElementById('pv-kind')!.textContent = 'Hand-built edition';
+    document.getElementById('pv-cvpages')!.textContent = 'Binding to be planned';
+    document.getElementById('pv-big')!.textContent = 'This edition needs a hand plan.';
+    document.getElementById('pv-sub')!.textContent = 'Your archive does not divide into the available bindings. We will plan the volumes with you.';
+    document.getElementById('plan-what')!.textContent = '';
+    document.getElementById('pv-cta')!.textContent = 'Request a hand-built proof';
+    for (const id of ['plan-progress','interior-why','plan-by']) document.getElementById(id)!.textContent = '';
     document.getElementById('desk-tabs')!.innerHTML = '';
     document.getElementById('foliobar')!.innerHTML = '';
     document.getElementById('interior-row')!.innerHTML = '';
@@ -809,6 +540,7 @@ function renderPlan(d: any){
   drawPlan();
 }
 function drawPlan(){
+  const activeGroup = document.activeElement?.parentElement?.id;
   const { d, ed, P } = plan;
   const route = P.routes.find((r: any) => r.cadence === plan.cadence);
   const tabs = document.getElementById('desk-tabs')!;
@@ -819,7 +551,9 @@ function drawPlan(){
     if (!r && !inf) continue;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'desk-tab'; b.setAttribute('role','tab');
+    b.id = 'cadence-' + key; b.setAttribute('aria-controls', 'plan-details');
     b.setAttribute('aria-selected', String(plan.cadence === key));
+    b.tabIndex = plan.cadence === key ? 0 : -1;
     if (r && r.recommended){
       const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766'; fl.setAttribute('aria-hidden', 'true');
       b.appendChild(fl);
@@ -835,9 +569,13 @@ function drawPlan(){
     } else { b.disabled = true; b.title = inf.reason; }
     tabs.appendChild(b);
   }
-  (document.getElementById('route-why') as HTMLElement).textContent = (route.recommended ? 'The golden route. ' : '') + route.why;
+  const routePages = route.volumes.map((v: any) => v.est_pages);
+  const uneven = Math.max(...routePages) > Math.min(...routePages) * 1.25;
+  const why = uneven && /balanc|evenly|equal/i.test(route.why)
+    ? route.volumes.length + ' volumes, from ' + Math.min(...routePages) + ' to ' + Math.max(...routePages) + ' pages.' : sentence(route.why);
+  document.getElementById('route-why')!.textContent = (route.recommended ? 'Our recommendation. ' : '') + why;
   const bar = document.getElementById('foliobar')!;
-  bar.innerHTML = '';
+  bar.innerHTML = '';bar.hidden=route.volumes.length===1;
   route.volumes.forEach((v: any, i: number) => {
     const seg = document.createElement('div'); seg.className = 'folio-seg'; seg.setAttribute('role','listitem');
     const price = v.price[plan.interior];
@@ -856,12 +594,9 @@ function drawPlan(){
   });
   const n = route.volumes.length;
   const lo = Math.min(...route.volumes.map((v: any) => v.est_pages)), hi = Math.max(...route.volumes.map((v: any) => v.est_pages));
-  let vtext = (route.recommended ? 'Our recommendation: ' : 'Your pick: ') +
-    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + (d.capped ? 'about ' : '') + lo + ' pages.'
-     : (d.capped ? 'about ' : '') + n + ' ' + unitOf(d, n) + ' of ' + (d.capped ? 'about ' : '') + lo + ' to ' + hi + ' pages.');
-  if (n > 1) vtext += ' Each volume carries its own title page, contents and notes.';
-  for (const inf of P.infeasible) vtext += ' ' + CAD_NAME[inf.cadence] + ' is ruled out: ' + inf.reason + '.';
-  document.getElementById('desk-verdict')!.textContent = vtext;
+  let vtext = n>1?'Each volume carries its own title page, contents and notes.':'';
+  for (const inf of P.infeasible) vtext += ' ' + CAD_NAME[inf.cadence] + ' is ruled out: ' + sentence(inf.reason);
+  document.getElementById('desk-verdict')!.textContent = vtext.trim();
   const ip = ed.window && ed.window.in_progress;
   (document.getElementById('plan-progress') as HTMLElement).textContent = ip
     ? (ip.posts ? ip.label + ' is in progress: ' + ip.posts + ' ' + kindLabel(d, ip.posts) + ' so far. They join the next edition.'
@@ -885,20 +620,24 @@ function drawPlan(){
   const ship = shipFor(n);
   const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
   (document.getElementById('pv-price') as HTMLElement).textContent =
-    'At cost: ' + (d.capped ? 'about ' : '') + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' for the book') +
-    ', plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US, to one address. ' +
-    'Readers pay the same. Nothing is marked up in the beta.';
+    'Estimated printing: ' + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' per copy') +
+    '. Shipping: ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + ', mainland US, to one address. At cost during the beta.';
   (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : (ed.pending ? 'Planned by the calendar · our editor is reading your archive' : 'Planned by the calendar');
-  paintCover(d, editionView(d, plan.cadence));
-  const publicPosts = d.public_posts ?? d.posts;
-  (window as any).__chosenCadence = plan.cadence; /* the handoff prints the chosen route's counts */
+  const E = editionView(d, plan.cadence);
+  paintCover(d, E);
+  paintEditionCopy(d, E);
+  announceEdition(d, E);
   (document.getElementById('pv-cvpages') as HTMLElement).textContent = n > 1
     ? 'Vol. I of ' + n + ' · ' + route.volumes[0].label + ' · ' + route.volumes[0].est_pages + ' pages'
-    : (route.volumes[0].posts ?? (route.volumes[0].post_ids || []).length ?? publicPosts) + ' ' + kindLabel(d, route.volumes[0].posts ?? publicPosts) + ' · est. ' + route.volumes[0].est_pages + ' pages';
+    : E.posts + ' ' + kindLabel(d, E.posts) + ' · est. ' + E.pages + ' pages';
+  refreshCapturedReservation();
+  if (activeGroup === 'desk-tabs') (tabs.querySelector('[aria-selected="true"]') as HTMLElement)?.focus({preventScroll:true});
+  if (activeGroup === 'interior-row') (row.querySelector('[aria-pressed="true"]') as HTMLElement)?.focus({preventScroll:true});
 }
 function renderDesk(d: any){
   if (d.editorial && d.editorial.plan) return renderPlan(d);
   plan = null;
+  for (const id of ['plan-what','route-why','plan-progress','interior-why','plan-by']) document.getElementById(id)!.textContent = '';
   const el = document.getElementById('desk') as HTMLElement;
   const reason = document.getElementById('pv-reason') as HTMLElement;
   if (!d.divisions || !d.recommended){
@@ -935,6 +674,7 @@ function drawDesk(){
     const div = d.divisions[key];
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'desk-tab'; b.setAttribute('role','tab');
+    b.id = 'cadence-' + key; b.setAttribute('aria-controls', 'plan-details');
     b.setAttribute('aria-selected', String(desk.cadence === key));
     if (d.recommended.cadence === key){
       const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = '\u2766'; fl.setAttribute('aria-hidden', 'true');
@@ -947,7 +687,7 @@ function drawDesk(){
   }
   const div = d.divisions[desk.cadence];
   const bar = document.getElementById('foliobar')!;
-  bar.innerHTML = '';
+  bar.innerHTML = '';bar.hidden=div.volumes.length===1;
   for (const v of div.volumes){
     const seg = document.createElement('div'); seg.className = 'folio-seg';
     seg.setAttribute('role','listitem');
@@ -962,15 +702,10 @@ function drawDesk(){
   }
   const n = div.volumes.length;
   const verdict = document.getElementById('desk-verdict')!;
-  let vtext = (desk.cadence === d.recommended.cadence ? 'Our recommendation: ' : 'Your pick: ') +
-    (n === 1 ? 'one ' + (d.unit || 'volume') + ' of ' + (d.capped ? 'about ' : '') + div.volumes[0].est_pages + ' pages.'
-     : (d.capped ? 'about ' : '') + n + ' ' + unitOf(d, n) + ' of ' +
-       Math.min(...div.volumes.map((v: any) => v.est_pages)) + ' to ' +
-       Math.max(...div.volumes.map((v: any) => v.est_pages)) + ' pages.');
-  if (n > 1) vtext += ' Each volume carries its own front matter.';
+  let vtext=n>1?'Each volume carries its own front matter.':'';
   const ruled = ['single','quarterly','monthly'].find(k => !d.divisions[k].feasible);
   if (ruled) vtext += ' ' + CAD_LABEL[ruled] + ' is ruled out: ' + d.divisions[ruled].reason + '.';
-  verdict.textContent = vtext;
+  verdict.textContent = vtext.trim();
   const avg = div.volumes.reduce((s: number, v: any) => s + v.est_pages, 0) / n;
   const row = document.getElementById('interior-row')!;
   row.innerHTML = '';
@@ -989,7 +724,12 @@ function drawDesk(){
     'Readers pay print cost plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) +
     (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
     'Beta editions sell at cost; your margin comes at launch.';
+  const E = editionView(d, desk.cadence);
+  paintCover(d, E);
+  paintEditionCopy(d, E);
+  announceEdition(d, E);
   updateCoverFromDesk(d, div);
+  refreshCapturedReservation();
 }
 function updateCoverFromDesk(d: any, div: any){
   const n = div.volumes.length;
@@ -1004,12 +744,28 @@ function updateCoverFromDesk(d: any, div: any){
     ? 'Vol. I of ' + n + ' · ' + div.volumes[0].est_pages + ' pages'
     : publicPosts + (d.capped ? '+' : '') + ' ' + kindLabel(d, publicPosts) + ' · est. ' + div.volumes[0].est_pages + ' pages';
 }
+document.getElementById('desk-tabs')!.addEventListener('keydown', event => {
+  const keys = ['ArrowLeft','ArrowRight','Home','End'];
+  if (!keys.includes(event.key)) return;
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('#desk-tabs button:not(:disabled)')];
+  if (!tabs.length) return;
+  event.preventDefault();
+  const current = tabs.indexOf(event.target as HTMLButtonElement);
+  const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 :
+    (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[index].click();
+  (document.querySelector('#desk-tabs [aria-selected="true"]') as HTMLElement)?.focus({preventScroll:true});
+});
 function renderSnippet(d: any){
   const wrap = document.getElementById('snippet') as HTMLElement;
   if (!wrap) return;
   wrap.hidden = false;
-  (document.getElementById('snip-code') as HTMLElement).textContent =
-    '<a href="https://inksheaf.com/?pub=' + d.host + '">Preview a print edition of ' + d.publication + '</a>';
+  const url = 'https://inksheaf.com/?pub=' + encodeURIComponent(d.host);
+  const label = 'Preview a print edition of ' + d.publication;
+  (document.getElementById('snip-url') as HTMLInputElement).value = url;
+  (document.getElementById('snip-label') as HTMLInputElement).value = label;
+  document.getElementById('snip-feedback')!.textContent = '';
+  document.getElementById('snip-code')!.textContent = url;
 }
 document.getElementById('fb-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1030,9 +786,9 @@ document.getElementById('fb-form')?.addEventListener('submit', async (e) => {
 document.getElementById('snip-copy')?.addEventListener('click', async (e) => {
   const btn = e.currentTarget as HTMLButtonElement;
   try {
-    await navigator.clipboard.writeText(document.getElementById('snip-code')!.textContent || '');
-    btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy the code'; }, 1600);
-  } catch { btn.textContent = 'Select and copy above'; }
+    await navigator.clipboard.writeText((document.getElementById('snip-url') as HTMLInputElement).value);
+    document.getElementById('snip-feedback')!.textContent = 'Preview link copied.';
+  } catch { const input = document.getElementById('snip-url') as HTMLInputElement; input.focus(); input.select(); document.getElementById('snip-feedback')!.textContent = 'Link selected. Copy it from the field.'; }
 });
 function kindLabel(d: any, count: number){
   if (count === 1) return d.noun || 'piece';
@@ -1049,6 +805,7 @@ tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault
 }
 
 tryhandoff.addEventListener('click', ()=>{
+  clearPreview();
   const raw = tryurl.value.trim();
   if (raw) (f.elements.namedItem('publication_url') as HTMLInputElement).value =
     raw.startsWith('http') ? raw : 'https://' + raw;
@@ -1058,13 +815,13 @@ tryhandoff.addEventListener('click', ()=>{
   document.getElementById('beta')!.scrollIntoView({behavior:'smooth', block:'start'});
 });
 
-(document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
+function captureReservation(){
   const d = previewData;
   if (d && plan && plan.P){
     const route = plan.P.routes.find((r: any) => r.cadence === plan.cadence);
     (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = plan.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
-      plan_version: plan.ed.plan_version, planned_by: plan.ed.planned_by, cadence: plan.cadence || 'concierge', interior: plan.interior,
+      design: designSelection(selectedDesign, previewData?.theme,previewData?.logo_treatment), plan_version: plan.ed.plan_version, planned_by: plan.ed.planned_by, cadence: plan.cadence || 'concierge', interior: plan.interior,
       window: plan.ed.window ? { label: plan.ed.window.label, from: plan.ed.window.from, to: plan.ed.window.to } : null,
       kind: plan.P.kind, running_head: plan.P.running_head, dedication_post_id: plan.P.dedication_post_id,
       contributors: plan.P.contributors, excluded: plan.P.excluded,
@@ -1074,7 +831,7 @@ tryhandoff.addEventListener('click', ()=>{
     const div = desk.cadence && d.divisions[desk.cadence];
     (f.elements.namedItem('cadence_pref') as HTMLInputElement).value = desk.cadence || 'concierge';
     (f.elements.namedItem('plan_json') as HTMLInputElement).value = JSON.stringify({
-      cadence: desk.cadence || 'concierge', interior: desk.interior,
+      design: designSelection(selectedDesign, previewData?.theme,previewData?.logo_treatment), cadence: desk.cadence || 'concierge', interior: desk.interior,
       volumes: div && div.feasible ? div.volumes : [],
       needs_hand_plan: !(div && div.feasible) || undefined,
       form: d.form, unit: d.unit, prices_measured: PRICES.measured });
@@ -1085,13 +842,29 @@ tryhandoff.addEventListener('click', ()=>{
     (f.elements.namedItem('posts_per_year') as HTMLInputElement).value = String(publicPosts);
     (f.elements.namedItem('frequency') as HTMLInputElement).value =
       publicPosts >= 200 ? 'daily' : publicPosts >= 40 ? 'weekly' : publicPosts >= 10 ? 'monthly' : 'irregular';
-    const chosen = (d.editorial && d.editorial.plan && d.editorial.plan.routes || []).find((r: any) => r.cadence === (window as any).__chosenCadence) || null;
-    const chosenPages = chosen ? chosen.volumes.reduce((t: number, v: any) => t + (v.est_pages || 0), 0) : d.est_pages;
-    const chosenPosts = chosen ? chosen.volumes.reduce((t: number, v: any) => t + (v.posts ?? (v.post_ids || []).length), 0) : (d.public_posts ?? d.posts);
+    const selected = editionView(d, plan?.cadence || desk?.cadence);
+    const chosenPages = selected.pages, chosenPosts = selected.posts;
     document.getElementById('carried')!.textContent =
-      d.publication + ' · ' + chosenPosts + ' pieces in the chosen set · about ' + chosenPages + ' pages, estimated until the proof is typeset. Leave one email for the proof.';
-    show(2);
+      d.publication + ' · ' + COVER_DESIGNS.find(x => x.id === selectedDesign)!.name + ' cover · ' + chosenPosts + ' pieces in the chosen set · about ' + chosenPages + ' pages, estimated until the proof is typeset. Leave one email for the proof.';
   }
+}
+document.addEventListener('cover-design', (event: Event) => {
+  const next = (event as CustomEvent).detail;
+  if (!COVER_DESIGNS.some(d => d.id === next)) return;
+  selectedDesign = next;
+  if (previewData) paintCover(previewData, editionView(previewData, plan?.cadence || desk?.cadence));
+  refreshCapturedReservation();
+});
+function reservationMatchesPreview(){
+  if (!previewData) return false;
+  try { return new URL((f.elements.namedItem('publication_url') as HTMLInputElement).value).hostname.toLowerCase() === previewData.host.toLowerCase(); }
+  catch { return false; }
+}
+function refreshCapturedReservation(){
+  if (!reservationPending && f.style.display !== 'none' && (f.querySelector('.step2') as HTMLElement).style.display === 'block' && reservationMatchesPreview()) captureReservation();
+}
+(document.getElementById('pv-cta') as HTMLButtonElement).addEventListener('click', ()=>{
+  captureReservation(); show(2);
   document.getElementById('beta')!.scrollIntoView({behavior:'smooth'});
 });
 
@@ -1121,25 +894,58 @@ f.addEventListener('click', (e)=>{
   }
   show(+next);
 });
+let reservationPending = false;
 f.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  if (reservationPending) return;
   const email = (f.elements.namedItem('email') as HTMLInputElement).value.trim();
+  const err = document.getElementById('err')!;
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
-    document.getElementById('err')!.textContent = 'That email does not look right.';
+    err.textContent = 'That email does not look right.';
     return;
   }
+  if (reservationMatchesPreview()) captureReservation();
+  editorAsk = null;
+  if (previewData?.editorial?.planned_by === 'calendar') document.getElementById('plan-by')!.textContent = 'Planned by the calendar';
+  reservationPending = true;
+  const submit = f.querySelector('button[type="submit"]') as HTMLButtonElement;
+  submit.disabled = true; submit.textContent = 'Reserving…';
+  f.setAttribute('aria-busy', 'true'); err.textContent = '';
   const data = { ...Object.fromEntries(new FormData(f).entries()), session: sid };
-  const r = await fetch('/api/signup', {method:'POST',
-    headers:{'content-type':'application/json'}, body: JSON.stringify(data)});
-  if (r.ok){
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const r = await fetch('/api/signup', {method:'POST', signal:controller.signal,
+      headers:{'content-type':'application/json'}, body: JSON.stringify(data)});
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error('Reservation not confirmed');
     (f as HTMLElement).style.display='none';
     (document.querySelector('.steps') as HTMLElement).style.display='none';
-    document.getElementById('done')!.style.display='block';
-    try { const j = await r.clone().json(); if (j && j.press === 'verify' && j.sent_to) { document.getElementById('done-to')!.textContent = j.sent_to; aboutFallback(j.id, 10 * 60 * 1000); }
-      else if (j && j.press === 'verify') { document.getElementById('done-h')!.textContent = 'Reserved, and one more step.'; document.getElementById('done-verify')!.textContent = 'We could not find your publication\'s Substack address to send the confirmation to. Prove it by a code on your About page instead, below, or write to caithrin@caithrin.com.'; aboutFallback(j.id, 0); }
-      else if (j && j.press === 'test') { document.getElementById('done-h')!.textContent = 'Test reservation recorded.'; document.getElementById('done-verify')!.textContent = 'No confirmation is sent for a test address.'; } } catch {}
-  } else {
-    document.getElementById('err')!.textContent = 'Something failed on our side. Email caithrin@caithrin.com and we will add you by hand.';
+    const done = document.getElementById('done')!;
+    done.style.display='block';
+    document.getElementById('done-h')!.textContent = 'Your print run is reserved.';
+    document.getElementById('done-verify')!.textContent = 'We have your request. Use the confirmation link in your publication’s inbox if you have one, or write to caithrin@caithrin.com for help or changes.';
+    if (j.press === 'verify' && j.sent_to) {
+      document.getElementById('done-h')!.textContent = 'Your print run is reserved. One more step: confirm from your publication’s inbox.';
+      document.getElementById('done-verify')!.replaceChildren(document.createTextNode('We sent a confirmation link to '), Object.assign(document.createElement('b'), { id:'done-to', textContent:j.sent_to }), document.createTextNode('. Open it to confirm ownership and prepare your proof. Nothing prints until you approve it.'));
+      document.getElementById('done-to')!.textContent = j.sent_to;
+      aboutFallback(j.id, 10 * 60 * 1000);
+    } else if (j.press === 'verify') {
+      document.getElementById('done-h')!.textContent = 'Reserved, and one more step.';
+      document.getElementById('done-verify')!.textContent = 'We could not send your confirmation. Prove ownership with a code on your About page below, or write to caithrin@caithrin.com.';
+      aboutFallback(j.id, 0);
+    } else if (j.press === 'test') {
+      document.getElementById('done-h')!.textContent = 'Test reservation recorded.';
+      document.getElementById('done-verify')!.textContent = 'No confirmation is sent for a test address.';
+    }
+    done.setAttribute('tabindex', '-1'); done.focus();
+  } catch {
+    err.textContent = 'We could not confirm your reservation. Your details are still here; try again, or email caithrin@caithrin.com.';
+  } finally {
+    clearTimeout(timeout); reservationPending = false;
+    submit.disabled = false; submit.textContent = 'Request a spot';
+    f.removeAttribute('aria-busy');
+    if (f.style.display !== 'none' && previewData) askTheEditor(previewData);
   }
 });
 /* The About-page fallback (P0-8): after `delay` ms without the confirmation link, offer the code. */
@@ -1147,36 +953,27 @@ function aboutFallback(id: number, delay: number){
   if (!id) return;
   const alt = document.getElementById('done-alt')!, start = document.getElementById('alt-start')!, text = document.getElementById('alt-text')!;
   const code = document.getElementById('alt-code')!, check = document.getElementById('alt-check') as HTMLButtonElement, result = document.getElementById('alt-result')!;
-  setTimeout(() => { alt.style.display = 'block'; }, delay);
+  if (aboutTimer) clearTimeout(aboutTimer);
+  aboutTimer = setTimeout(() => { alt.style.display = 'block'; }, delay);
+  start.removeAttribute('disabled'); start.style.display = 'block';
+  text.style.display = 'none'; check.style.display = 'none'; check.disabled = false; result.textContent = '';
+  code.textContent = '';
   const post = (body: object) => fetch('/api/verify-about', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
-  start.addEventListener('click', async () => {
+  (start as HTMLButtonElement).onclick = async () => {
     start.setAttribute('disabled', ''); result.textContent = '';
     try { const j = await post({signup_id: id}); if (!j.ok) { result.textContent = j.error || 'That did not work. Write to caithrin@caithrin.com.'; start.removeAttribute('disabled'); return; }
       code.textContent = j.code; text.style.display = 'block'; check.style.display = 'inline-block'; start.style.display = 'none';
     } catch { result.textContent = 'That did not work. Write to caithrin@caithrin.com.'; start.removeAttribute('disabled'); }
-  });
-  check.addEventListener('click', async () => {
+  };
+  check.onclick = async () => {
     check.disabled = true; result.textContent = 'Checking your About page.';
     try { const j = await post({signup_id: id, check: true});
       if (j.ok && j.verified) { result.textContent = j.press === 'dispatched' ? 'Confirmed. The proof is being made; the email comes when it is ready.' : 'Confirmed. The press is queued; the email comes when the proof is ready.'; text.style.display = 'none'; check.style.display = 'none'; }
       else { result.textContent = j.message || j.error || 'Not there yet. Try again in a minute.'; check.disabled = false; }
     } catch { result.textContent = 'The check failed on our side. Try again in a minute.'; check.disabled = false; }
-  });
-}
-</script>
-<script>
-/* touch devices cannot hover: a tap opens the book */
-const bw = document.getElementById('bookwrap');
-if (bw){
-  const toggle = () => {
-    bw.classList.toggle('open');
-    bw.setAttribute('aria-pressed', String(bw.classList.contains('open')));
   };
-  if (matchMedia('(hover: none)').matches) bw.addEventListener('click', toggle);
-  bw.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
-  });
 }
 </script>
+
 </body>
 </html>
