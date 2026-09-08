@@ -260,7 +260,9 @@ async function fetchDirectArchive(host, offset) {
     });
     clearTimeout(timer);
     if (r.status >= 300 && r.status < 400) return { ok: false, redirect: r.headers.get("location") || "" };
-    if (!r.ok) return { ok: false, status: r.status, retryable: r.status === 429 || r.status >= 500 };
+    // A public archive can refuse one server's egress address with 403. That is
+    // not evidence of a mistyped publication; use the existing bounded relay.
+    if (!r.ok) return { ok: false, status: r.status, retryable: r.status === 403 || r.status === 429 || r.status >= 500 };
     const value = JSON.parse(await readLimitedText(r));
     return Array.isArray(value) ? { ok: true, page: value } : { ok: false, status: 502 };
   } catch { clearTimeout(timer); return { ok: false, retryable: true, status: 502, threw: true }; }
