@@ -1,0 +1,26 @@
+// All client calls below are fakes. These tests cannot upload or place a Lulu job.
+import assert from 'node:assert/strict';
+import {submitOwner, EXTERNAL_ID} from './owner-order.mjs';
+const names=['interior','cover-masthead','cover-classic','cover-field','cover-midnight'];
+const address={name:'Test Owner',street1:'1 Example Street',city:'Example',state_code:'CA',postcode:'00000',country_code:'US',phone_number:'0000000000'};
+const job={id:123,external_id:EXTERNAL_ID,line_items:[{title:'caithrin — Essays, July 2025–June 2026',quantity:1}],status:{name:'UNPAID'}};
+function setup(){
+  let state=null;const calls=[];
+  const snapshot={missing:[],pages:142,maxTotal:12.46,quotedAddress:address,files:{interior:{sha256:'test'}},validations:Object.fromEntries(names.map((n,i)=>[n,{key:n,validationId:i+1}]))};
+  const client={api:async p=>{calls.push(['search',p]);return{results:[],next:null}},validateInteriorStatus:async()=>({status:'VALIDATED'}),validateCoverStatus:async()=>({status:'NORMALIZED'}),printJobStatus:async()=>({shipping_address:address}),costQuote:async()=>({currency:'USD',total_cost_incl_tax:'12.46'}),createPrintJob:async args=>{calls.push(['create',args]);assert.equal(state.status,'SUBMITTING');assert.ok(state.attemptedAt);return job;}};
+  return{client,snapshot,calls,get state(){return state},set state(v){state=v},args:{client,snapshot,addressConfirmed:true,proofUrl:key=>'https://private.invalid/'+key,loadState:()=>state,saveState:v=>{state=structuredClone(v)}}};
+}
+let passed=0;
+async function test(name,run){await run();console.log('PASS',name);passed++;}
+await test('unconfirmed address prevents all network activity',async()=>{const s=setup();await assert.rejects(submitOwner({...s.args,addressConfirmed:false}),/not confirmed/);assert.equal(s.calls.length,0)});
+await test('missing validation prevents the charge',async()=>{const s=setup();s.snapshot.missing=['cover-field'];await assert.rejects(submitOwner(s.args),/validate/);assert.equal(s.calls.filter(c=>c[0]==='create').length,0)});
+await test('expired or failed live validation prevents the charge',async()=>{const s=setup();s.client.validateCoverStatus=async()=>({status:'ERROR'});await assert.rejects(submitOwner(s.args),/no longer successful/);assert.equal(s.calls.filter(c=>c[0]==='create').length,0)});
+await test('a changed address cannot pass on street/postcode alone',async()=>{const s=setup();s.client.printJobStatus=async()=>({shipping_address:{...address,street2:'Different unit'}});await assert.rejects(submitOwner(s.args),/delivery details differ/)});
+await test('equivalent quote/job address schemas match without losing the recipient',async()=>{const s=setup();s.snapshot.quotedAddress={...address,name:undefined,first_name:'Test',last_name:'Owner',state_code:undefined,state:'CA',country_code:undefined,country:'US'};assert.equal((await submitOwner(s.args)).jobId,123);const mismatch=setup();mismatch.snapshot.quotedAddress={...s.snapshot.quotedAddress,last_name:'SomeoneElse'};await assert.rejects(submitOwner(mismatch.args),/delivery details differ/)});
+await test('one-cent price increase prevents the charge',async()=>{const s=setup();s.client.costQuote=async()=>({currency:'USD',total_cost_incl_tax:'12.47'});await assert.rejects(submitOwner(s.args),/exceeds/)});
+await test('successful submission persists intent and creates exactly one copy',async()=>{const s=setup();const r=await submitOwner(s.args);assert.equal(r.jobId,123);assert.equal(s.state.jobId,123);const creates=s.calls.filter(c=>c[0]==='create');assert.equal(creates.length,1);assert.equal(creates[0][1].quantity,1);assert.equal(creates[0][1].level,'MAIL');assert.ok(!JSON.stringify(s.state).includes('private.invalid'))});
+await test('exact existing job on a later search page is reconciled without charging',async()=>{const s=setup();s.client.api=async p=>p.includes('page=1')?{results:[{...job,external_id:EXTERNAL_ID+'-unrelated'}],next:'yes'}:{results:[job],next:null};const r=await submitOwner(s.args);assert.equal(r.existing,true);assert.equal(s.calls.filter(c=>c[0]==='create').length,0)});
+await test('ambiguous submission never automatically retries even when search is empty',async()=>{const s=setup();s.client.createPrintJob=async()=>{s.calls.push(['create']);throw Error('Connection lost after request')};await assert.rejects(submitOwner(s.args),/outcome is unknown/);assert.equal(s.state.status,'SUBMISSION_OUTCOME_UNKNOWN');await assert.rejects(submitOwner(s.args),/Never retry/);assert.equal(s.calls.filter(c=>c[0]==='create').length,1)});
+await test('duplicate or mismatched existing jobs halt reconciliation',async()=>{const s=setup();s.client.api=async()=>({results:[job,job],next:null});await assert.rejects(submitOwner(s.args),/Multiple/);s.client.api=async()=>({results:[{...job,line_items:[{...job.line_items[0],quantity:2}]}],next:null});await assert.rejects(submitOwner(s.args),/differs/)});
+await test('state-save failure happens before the charge',async()=>{const s=setup();await assert.rejects(submitOwner({...s.args,saveState:()=>{throw Error('Disk full')}}),/Disk full/);assert.equal(s.calls.filter(c=>c[0]==='create').length,0)});
+console.log(`${passed} order safety checks passed; zero real API calls.`);
