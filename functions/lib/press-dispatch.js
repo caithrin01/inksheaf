@@ -9,6 +9,7 @@ export async function dispatchPress(env, payload) {
   try {
     const r = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
       method: "POST",
+      signal: AbortSignal.timeout(15000),
       headers: { authorization: `Bearer ${env.GITHUB_DISPATCH_TOKEN}`, accept: "application/vnd.github+json",
         "content-type": "application/json", "user-agent": "inksheaf-press/1.0" },
       body: JSON.stringify({ event_type: pressEventType(env, payload.event),

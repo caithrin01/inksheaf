@@ -1,7 +1,6 @@
 // POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
 import { validDesign } from "../lib/book-design.js";
-import { dispatchPress } from "../lib/press-dispatch.js";
-import { sendVerification } from "./verify.js";
+import { sendVerification, verificationState } from "./verify.js";
 import { funnelHost, funnelSession, recordFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
@@ -24,6 +23,8 @@ export async function onRequest({ request, env, waitUntil }) {
 
   const rawUrl = String(body.publication_url || "").trim();
   const email = String(body.email || "").trim().toLowerCase();
+  const reservationKey = body.reservation_key == null ? null : String(body.reservation_key);
+  if (reservationKey !== null && !/^[0-9a-f-]{36}$/.test(reservationKey)) return bad("invalid reservation key");
   if (rawUrl.length > 300) return bad("url too long");
   if (email.length > 200) return bad("email too long");
   let parsed;
@@ -46,30 +47,41 @@ export async function onRequest({ request, env, waitUntil }) {
   clean.publication_url = url;
   clean.email = email;
   clean.posts_per_year = Number.parseInt(clean.posts_per_year, 10) || null;
+  const requestHash = reservationKey ? [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([url, email, clean.plan_json || null]))))].map(n => n.toString(16).padStart(2, "0")).join("") : null;
 
-  // Exact resubmission of the same publication by the same email: acknowledge, store once.
-  const dupe = await env.DB.prepare(
-    "SELECT id FROM signups WHERE email = ? AND publication_url = ? LIMIT 1"
-  ).bind(email, url).first();
-  if (dupe) return ok();
+  // Retrying an intent resumes it; a deliberate new edition gets a new key. Older
+  // clients retain their existing reservation rather than changing its saved plan.
+  const dupe = reservationKey
+    ? await env.DB.prepare("SELECT * FROM signups WHERE reservation_key = ?").bind(reservationKey).first()
+    : await env.DB.prepare("SELECT * FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1").bind(email, url).first();
+  const resume = async row => {
+    if (row.email !== email || row.publication_url !== url || (reservationKey && row.reservation_payload_hash !== requestHash))
+      return bad("reservation details changed; start a new request", 409);
+    if (/\+journeytest@caithrin\.com$/i.test(email)) return reply({ ok: true, id: row.id, press: "test" });
+    if (row.email_verified_at) return reply({ ok: true, id: row.id, existing: true, verified: true, press: row.dispatch_status || "queued" });
+    return reply({ ok: true, id: row.id, existing: true, press: "verify", ...await verificationState(env, row.id) });
+  };
+  if (dupe) return resume(dupe);
 
-  await env.DB.prepare(
+  const inserted = await env.DB.prepare(
     `INSERT INTO signups (publication_url,name,role,email,archive_type,frequency,
        posts_per_year,cadence_pref,us_subscribers,expected_orders,founding_count,
-       price_range,interview_ok,concern,plan_json,raw_json)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+       price_range,interview_ok,concern,plan_json,raw_json,reservation_key,reservation_payload_hash)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(reservation_key) DO NOTHING`
   ).bind(
     clean.publication_url, clean.name, clean.role, clean.email, clean.archive_type,
     clean.frequency, clean.posts_per_year, clean.cadence_pref, clean.us_subscribers,
     clean.expected_orders, clean.founding_count, clean.price_range, clean.interview_ok,
-    clean.concern, String(clean.plan_json || "").slice(0, 24000) || null, JSON.stringify(clean)
+    clean.concern, String(clean.plan_json || "").slice(0, 24000) || null, JSON.stringify(clean), reservationKey, requestHash
   ).run();
-  const row = await env.DB.prepare("SELECT id FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1")
-    .bind(email, url).first().catch(() => null);
+  const row = reservationKey
+    ? await env.DB.prepare("SELECT * FROM signups WHERE reservation_key = ?").bind(reservationKey).first()
+    : await env.DB.prepare("SELECT * FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1").bind(email, url).first();
   /* No press run without verification (Codex audit P0-8): the confirmation goes to the
-     publication's own Substack address; the press starts when its link is opened. Journey test
+     publication's own Substack address; the press starts after explicit confirmation. Journey test
      reservations (+journeytest@) neither send nor dispatch. */
-  if (!row?.id) return ok();
+  if (!row?.id) return bad("We could not confirm the saved reservation. Please retry.", 503);
+  if (inserted?.meta?.changes === 0) return resume(row);
   const session = funnelSession(body.session) || funnelSession(`signup${row.id}`);
   const host = funnelHost(url);
   const tracked = await recordFunnel(env, { session, host, event: "signup", signup_id: row.id });
@@ -79,9 +91,10 @@ export async function onRequest({ request, env, waitUntil }) {
   await env.DB.prepare("UPDATE signups SET dispatch_status = 'awaiting-verification' WHERE id = ?").bind(row.id).run().catch(() => {});
   const v = await sendVerification(env, { id: row.id, publication_url: url, email }, new URL(request.url).origin);
   await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, 'awaiting-verification', ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = 'awaiting-verification', detail = excluded.detail, updated_at = datetime('now')`)
-    .bind(row.id, JSON.stringify({ message: v.ok ? `confirmation sent to ${v.sent_to}` : `confirmation not sent: ${v.error}` })).run().catch(() => {});
-  return new Response(JSON.stringify({ ok: true, id: row.id, press: "verify", sent_to: v.ok ? v.sent_to : null, sent: !!v.sent, fallback: v.ok ? v.fallback : "about-code", error: v.ok ? null : v.error }), { headers: { "content-type": "application/json" } });
+    .bind(row.id, JSON.stringify({ message: v.sent ? `confirmation accepted for ${v.sent_to}` : "confirmation not sent; retry or ownership fallback available" })).run().catch(() => {});
+  return reply({ ...v, ok: true, id: row.id, press: "verify" });
 }
+const reply = body => new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const ok  = () => new Response(JSON.stringify({ ok: true }),
   { headers: { "content-type": "application/json" } });
 const bad = (m, status = 400) => new Response(JSON.stringify({ ok: false, error: m }),
