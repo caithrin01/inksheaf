@@ -23,6 +23,7 @@ app = modal.App("inksheaf-archive-relay")
 # retries, and without this the retry started over. Results are keyed by host for 10 min.
 results = modal.Dict.from_name("inksheaf-relay-results", create_if_missing=True)
 RESULT_TTL = 600
+RESULT_SCHEMA = 2  # include the publication's original logo in slim identity metadata
 PAGE_BATCH = 4          # concurrent archive pages per batch (GCP egress; measured clean)
 BATCH_PAUSE = 0.25
 image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi")
@@ -71,9 +72,10 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
 
     if mode == "all":
         hit = None
+        result_key = f"v{RESULT_SCHEMA}|{host}|{since}"
         if not cold:   # cold=1 (signed callers only) forces a fresh read, for the reliability sample
             try:
-                hit = results.get(host + "|" + since)
+                hit = results.get(result_key)
             except Exception:
                 hit = None
         if hit and _t.time() - hit["at"] < RESULT_TTL:
@@ -102,7 +104,7 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
         if len(body) > MAX_BYTES * 4:
             raise HTTPException(status_code=502, detail="response too large")
         try:
-            results[host + "|" + since] = {"at": _t.time(), "body": body, "complete": complete}
+            results[result_key] = {"at": _t.time(), "body": body, "complete": complete}
         except Exception:
             pass
         return Response(content=body, media_type="application/json",
@@ -168,7 +170,7 @@ def slim(p):
     def pub_slim(u):
         pub = (u.get("publication") or {}) if isinstance(u, dict) else {}
         return {"publication": {k: pub.get(k) for k in
-                ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop")}}
+                ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop", "logo_url")}}
     body = str(p.get("body_html") or "")
     import re as _re
     return {

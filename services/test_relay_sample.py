@@ -91,5 +91,12 @@ class SampleTests(unittest.TestCase):
             read.assert_not_called()
             self.assertEqual(json.loads(relay.sample(HOST, SLUG, PID, sign()).content)['id'], PID)
             read.assert_called_once()
+    def test_archive_keeps_only_publication_logo_identity(self):
+        pub=dict(id=5,name='Example',subdomain='example',logo_url='https://substackcdn.com/original.png',private_metadata='omit')
+        post=relay.slim({'publishedBylines':[{'publicationUsers':[{'publication':pub}]}]})
+        saved=post['publishedBylines'][0]['publicationUsers'][0]['publication']
+        self.assertEqual(saved['logo_url'],pub['logo_url'])
+        self.assertNotIn('private_metadata',saved)
+        self.assertEqual(relay.RESULT_SCHEMA,2)
 
 if __name__ == '__main__': unittest.main()

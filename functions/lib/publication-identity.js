@@ -1,5 +1,5 @@
 // Publication identity is not an author's display name or their first other newsletter.
-export const PREVIEW_SCHEMA_VERSION = 9;
+export const PREVIEW_SCHEMA_VERSION = 10;
 const cleanHost = host => String(host || '').toLowerCase().replace(/^www\./, '');
 const cleanName = name => typeof name === 'string' ? name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 120) : '';
 
