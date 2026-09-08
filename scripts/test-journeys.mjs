@@ -22,9 +22,12 @@ async function journey(name,options,fn){
 }
 async function preview(page,host='caithrin.com',navigate=true){
  if(navigate)await page.goto(base+'/');
- await page.locator('#tryurl').fill(host);await page.locator('#trybtn').click();
+ await page.locator('#tryurl').fill(host);
+ const reply=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/preview',{timeout:60000});
+ await page.locator('#trybtn').click();
+ const payload=await reply.then(r=>r.json()).catch(()=>({}));
  await page.waitForFunction(()=>!document.querySelector('#trybtn').disabled,null,{timeout:60000});
- assert.equal(await page.locator('#preview').evaluate(e=>e.classList.contains('personalized')),true,await page.locator('#tryerr').textContent());
+ assert.equal(await page.locator('#preview').evaluate(e=>e.classList.contains('personalized')),true,JSON.stringify({message:await page.locator('#tryerr').textContent(),error:payload.error,upstream:payload.upstream,attempts:payload.attempts}));
  await page.waitForFunction(()=>/ready|planned|hand-built/.test(document.querySelector('#pv-status').textContent));
 }
 async function editionAgrees(page){
