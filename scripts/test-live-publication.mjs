@@ -13,7 +13,7 @@ const titles=[actual.publication,'The Collected Thoughts of Someone Who Has Quit
  'تأملات طويلة في التكنولوجيا والثقافة والحياة اليومية والمستقبل الذي نصنعه معاً',
  'Letters 🌿 from the World 🌍 of Ideas — and Everything Between ✨','Don’t Worry About the Vase & Other “Small” Things', '<img src=x onerror=alert(1)> & Writing'];
 const logo='/book/caithrin-mark-charcoal.svg';
-const treatments=[{name:'absent',logo:''},{name:'transparent',logo},{name:'opaque',logo,logoTreatment:'band',logoBackground:'#1d1e1d',logoInk:'#f2efe5'}];
+const treatments=[{name:'absent',logo:''},{name:'transparent',logo},{name:'original',logo,logoTreatment:'original'},{name:'opaque',logo,logoTreatment:'band',logoBackground:'#1d1e1d',logoInk:'#f2efe5'}];
 const results=[],failures=[];let fitCount=0;
 function check(ok,msg){if(!ok)failures.push(msg)}
 for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
@@ -40,10 +40,10 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(await input.evaluate(e=>e===document.activeElement),true,'caret stays in input');
   assert.equal(await page.locator('.press-specimen img[src]').count(),0,'actual publication has no logo; do not invent one');
   await page.screenshot({path:`${out}/${engine}-vase-${width}.png`});
-  // Three logo situations, including the no-logo identity actually returned by thezvi.
+  // Four logo situations, including original artwork and the real no-logo identity.
   for(let t=0;t<titles.length;t++)for(const treatment of treatments){
    const host=`fixture${t}${treatment.name}.substack.com`;await input.fill(host);
-   await page.evaluate(({raw,publication,title,logo,treatment})=>document.dispatchEvent(new CustomEvent('hero-publication-preview',{detail:{raw,publication:{...publication,host:raw,publication:title,logo_url:logo||null,logo_treatment:treatment==='opaque'?{treatment:'band',background:'#1d1e1d'}:{treatment:'transparent'}}}})),{raw:host,publication:actual,title:titles[t],logo:treatment.logo,treatment:treatment.name});
+   await page.evaluate(({raw,publication,title,logo,treatment})=>document.dispatchEvent(new CustomEvent('hero-publication-preview',{detail:{raw,publication:{...publication,host:raw,publication:title,logo_url:logo||null,logo_treatment:treatment==='opaque'?{treatment:'band',background:'#1d1e1d'}:{treatment:treatment==='original'?'original':'transparent'}}}})),{raw:host,publication:actual,title:titles[t],logo:treatment.logo,treatment:treatment.name});
    // The same cover primitives used by hero, preview and printed covers. Measure all four
    // with actual browser font metrics; no clipping/ellipsis can hide a passing title.
    const markup=['masthead','classic','field','midnight'].map(design=>`<div class="cover-face" data-design="${design}" style="${coverStyle(design,actual.theme,titles[t])};width:${width<768?Math.round(width*.64):280}px">${coverMarkup({publication:titles[t],...treatment})}</div>`).join('');

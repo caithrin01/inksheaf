@@ -21,7 +21,7 @@ export function coverLogo(publication,cover='masthead'){
     return {logo:`/book/caithrin-mark-${light?'charcoal':'gold'}.svg`,logoTreatment:'transparent'};
   }
   const ground=logo_treatment?.background;
-  return {logo:logo_url,logoTreatment:logo_treatment?.treatment==='band'&&/^#[0-9a-f]{6}$/i.test(ground)?'band':'transparent',
+  return {logo:logo_url,logoTreatment:logo_treatment?.treatment==='band'&&/^#[0-9a-f]{6}$/i.test(ground)?'band':logo_treatment?.treatment==='original'?'original':'transparent',
     ...(ground && /^#[0-9a-f]{6}$/i.test(ground)?{logoBackground:ground,logoInk:contrastingInk(ground)}:{})};
 }
 

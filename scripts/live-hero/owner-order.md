@@ -5,10 +5,11 @@ Masthead cover, 6×9 black-and-white perfect-bound matte, standard MAIL shipping
 at $12.46 including shipping, fulfillment and tax. Private artifacts remain under ignored
 `output/private-acceptance/owner-order/`.
 
-The user has requested the copy. Three explicit questions remain pending: confirm the
-prior Mox delivery address; authorize uploading the owner's five PDFs to the existing private
-Modal proof store for Lulu; authorize the separate six-image OpenRouter critique. Automatic
-approval review rejected the two exports. These scripts do not replace those approvals.
+The user confirmed the prior Mox delivery address and approved the five owner PDF exports
+and six-image OpenRouter critique on September 7. Total new spending must remain below $50.
+The one-copy job has been submitted; current order state is in the ignored private artifacts.
+Do not create another job when repeating checks. The earlier export rejections are resolved
+by that explicit confirmation; the separate Modal service deployment remains unapproved.
 No third-party proof uploads, author messages, public listings or additional copies are authorized.
 
 Local inspection (no network or payment):

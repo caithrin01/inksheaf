@@ -47,9 +47,9 @@ export function coverMarkup({ publication='Your publication', kind='Collected ed
   if(version===1)return legacy.coverMarkup({publication,kind,dates,foot,logo,ids});
   const id=name=>ids?` id="pv-${name}"`:'';
   const safeLogo=/^(?:\/book\/|assets\/)[a-z0-9._-]+\.(?:png|jpe?g|webp|svg)$/i.test(logo)||/^https:\/\//.test(logo)||/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(logo)?logo:'';
-  return `<div class="edition-cover ${safeLogo && logoTreatment==='band' ? 'logo-band' : ''}" style="--logo-ground:${/^#[0-9a-f]{6}$/i.test(logoBackground)?logoBackground:'#1d1e1d'};--logo-ink:${/^#[0-9a-f]{6}$/i.test(logoInk)?logoInk:'#f2efe5'}">
+  return `<div class="edition-cover ${safeLogo && logoTreatment==='band' ? 'logo-band' : safeLogo && logoTreatment==='original' ? 'logo-original' : ''}" style="--logo-ground:${/^#[0-9a-f]{6}$/i.test(logoBackground)?logoBackground:'#1d1e1d'};--logo-ink:${/^#[0-9a-f]{6}$/i.test(logoInk)?logoInk:'#f2efe5'}">
     <div class="cv-kind"${id('kind')}>${escapeHtml(kind)}</div>
-    ${safeLogo && logoTreatment==='band' ? `<div class="cv-logo-band"><img class="cv-logo"${id('logo')} alt="" src="${escapeHtml(safeLogo)}" width="72" height="72"><span class="cv-band-copy">${String(publication).length<=45?`<span>${escapeHtml(publication)}</span>`:''}<span class="cv-band-foot"${id('cvpages')}>${escapeHtml(foot)}</span></span></div>` : `<img class="cv-logo"${id('logo')} alt="" ${safeLogo?`src="${escapeHtml(safeLogo)}"`:'hidden'} width="72" height="72" referrerpolicy="no-referrer">`}
+    ${safeLogo && logoTreatment==='band' ? `<div class="cv-logo-band"><img class="cv-logo"${id('logo')} alt="" src="${escapeHtml(safeLogo)}" width="72" height="72"><span class="cv-band-copy"><span class="cv-band-foot"${id('cvpages')}>${escapeHtml(foot)}</span></span></div>` : `<img class="cv-logo"${id('logo')} alt="" ${safeLogo?`src="${escapeHtml(safeLogo)}"`:'hidden'} width="72" height="72" referrerpolicy="no-referrer">`}
     <div class="cv-mast" dir="auto"${id('mast')}>${escapeHtml(publication)}</div>
     <div class="cv-orn" aria-hidden="true"></div>
     <div class="cv-dates"${id('dates')}>${escapeHtml(dates)}</div>

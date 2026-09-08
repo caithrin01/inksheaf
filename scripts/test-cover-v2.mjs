@@ -29,10 +29,14 @@ test('flat opaque logo background survives a reservation and changes footer cont
  assert.equal(result.logoTreatment,'band');assert.equal(result.logoInk,'#181a19');
  const html=coverMarkup({...result,publication:'Example',foot:'22 essays',ids:true});
  assert.equal((html.match(/id="pv-cvpages"/g)||[]).length,1);assert.match(html,/--logo-ground:#fafafa/);
+ assert.equal((html.match(/>Example</g)||[]).length,1,'publication title is not repeated in our logo-band caption');
 });
 test('transparent and complex edges preserve original artwork',()=>{
  const pixels=new Uint8ClampedArray(32*32*4);assert.deepEqual(classifyLogoPixels(pixels,32,32),{treatment:'transparent'});
  pixels.set([0,0,0,255],0);assert.deepEqual(classifyLogoPixels(pixels,32,32),{treatment:'original'});
+ const photo=coverLogo({host:'example.substack.com',logo_url:'https://substackcdn.com/photo.png',logo_treatment:{treatment:'original'}});
+ assert.equal(photo.logoTreatment,'original');
+ assert.match(coverMarkup(photo),/edition-cover logo-original/);
 });
 test('invalid logo settings and unsafe markup cannot enter the cover',()=>{
  assert.equal(validDesign({version:2,cover:'classic',logo:{treatment:'band',background:'red; background:url(bad)'}}),false);

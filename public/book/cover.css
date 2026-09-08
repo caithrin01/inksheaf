@@ -26,20 +26,19 @@
    combining its mark and metadata into one publication band. */
 .logo-band .cv-logo-band{
   order:10;display:flex;align-items:center;gap:5cqw;flex:none;
-  width:calc(100% + 20cqw);min-height:31cqw;
-  margin:0 -10cqw -10cqw;padding:6cqw 10cqw;
+  width:calc(100% + 20cqw);min-height:28cqw;
+  margin:0 -10cqw -10cqw;padding:3cqw 10cqw;
   background:var(--logo-ground);color:var(--logo-ink);text-align:left;
 }
 .logo-band .cv-logo-band .cv-logo{
-  order:0;align-self:auto;width:19cqw;height:19cqw;margin:0;flex:none;
+  order:0;align-self:auto;width:22cqw;height:22cqw;margin:0;flex:none;
 }
 .cv-band-copy{min-width:0;font:500 3.7cqw/1.4 Inter,Arial,sans-serif;overflow-wrap:anywhere}
 .cv-band-copy>span{display:block}
 .cv-band-copy>span+span{font-size:2.7cqw;font-weight:400;margin-top:2cqw;color:var(--logo-ink)}
 .logo-band .cv-footwrap{display:none}
-[data-design=classic] .logo-band::before{bottom:36cqw}
+[data-design=classic] .logo-band::before{bottom:33cqw}
 [data-design=masthead] .logo-band .cv-logo-band{position:relative}
-[data-design=masthead] .logo-band .cv-logo-band::before{content:'';position:absolute;top:0;left:10cqw;right:10cqw;border-top:1px solid var(--logo-ink)}
 /* Fold an opaque logo's ground into Field notes' existing lower block instead
    of introducing a third colour stripe. This is an explicit fallback palette. */
 [data-design=field] .logo-band .cv-mast,
@@ -53,3 +52,10 @@
 [data-design=field] .logo-band .cv-mast,[data-design=field] .logo-band .cv-dates{box-shadow:0 1px 0 var(--logo-ground)}
 
 .cv-band-copy .cv-band-foot{font-size:2.7cqw;font-weight:400}.cv-band-copy .cv-band-foot:first-child{margin-top:0}
+
+/* Complex-edge and photographic artwork stays intact, with a larger, framed place
+   beside the title. Transparent marks and the approved owner masters retain their layout. */
+[data-design=field] .logo-original .cv-mid,
+[data-design=midnight] .logo-original .cv-mid{order:1;min-height:4cqw}
+[data-design=field] .logo-original .cv-logo,
+[data-design=midnight] .logo-original .cv-logo{order:2;width:30cqw;height:30cqw;margin:0 0 8cqw;outline:1px solid var(--cover-accent);outline-offset:1.5cqw}

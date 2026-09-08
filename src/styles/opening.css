@@ -38,3 +38,4 @@
 .press-specimen figcaption{align-items:flex-start;gap:12px}
 .press-specimen [data-publication-caption]{min-width:0;overflow-wrap:anywhere}
 .press-specimen figcaption>span:last-child{flex-shrink:0}
+@media(max-width:720px){.press-specimen figcaption{display:block}.press-specimen figcaption span{max-width:none}.press-specimen figcaption>span+span{margin-top:3px}}
