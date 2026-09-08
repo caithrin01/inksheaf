@@ -31,6 +31,12 @@ const RULES = {
   Youtube2ToDOM: n => { const d = data(n); return d.videoId ? htmlEl(`<div class="embedcard">Video: youtu.be/${esc(d.videoId)}</div>`) : null; },
   LatexBlockToDOM: n => { const d = data(n); return d.persistentExpression ? htmlEl(`<p class="latex-print"><code>${esc(d.persistentExpression)}</code></p>`) : null; },
   HighlightedCodeBlockToDOM: undefined,
+  PreformattedTextBlockToDOM: n => {
+    const pre = find(n, k => isEl(k) && k.name === 'pre');
+    // The hidden label is editor chrome. This text block is distinct from the
+    // highlighted-code block; preserve its lineation without printing the editor hint.
+    return pre ? htmlEl(`<pre class="preformatted-text">${esc(textOf(pre))}</pre>`) : null;
+  },
   Image2ToDOM: undefined,
   FootnoteAnchorToDOM: undefined,
   FootnoteToDOM: undefined,

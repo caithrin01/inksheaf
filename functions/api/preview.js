@@ -339,10 +339,14 @@ export async function resolvePublicationIdentity(posts, host) {
   finally { clearTimeout(timer); }
   const archive = publicationFromArchive(posts, host);
   const pub = homepage || archive;
+  return identityFromPublication(pub, host, homepage ? "publication_homepage" : archive ? "matched_archive" : "unresolved");
+}
+
+export function identityFromPublication(pub, host, source = "matched_archive") {
   const publicationName = publicationLabel(pub);
   const logo = publicationLogo(pub, host);
   const identity = { publicationName, logo_url: logo, publication_id: pub?.id ?? null,
-    identity_source: homepage ? "publication_homepage" : archive ? "matched_archive" : "unresolved", theme: null };
+    identity_source: source, theme: null };
   const bg = parseColor(pub?.theme?.cover_bg_color || pub?.theme?.web_bg_color || pub?.theme_var_cover_bg_color || pub?.theme?.background_pop_color || pub?.theme_var_background_pop);
   if (!bg) return identity;
   const light = [255, 255, 255], dark = [34, 29, 22];
@@ -353,7 +357,7 @@ export async function resolvePublicationIdentity(posts, host) {
   return identity;
 }
 
-async function readLimitedText(resp, cap = MAX_BYTES) {
+export async function readLimitedText(resp, cap = MAX_BYTES) {
   const declared = Number(resp.headers.get("content-length") || 0);
   if (declared > cap) throw new Error("response too large");
   if (!resp.body?.getReader) throw new Error("streaming body unavailable");

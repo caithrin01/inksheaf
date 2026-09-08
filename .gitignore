@@ -58,3 +58,9 @@ proofs/fixtures/*.typ
 
 # Local print design verification artifacts
 output/pdf/
+output/private-acceptance/
+output/live-hero/
+node_modules
+
+# Generated renderer fixtures; their source is the test scripts.
+proofs/fixtures/

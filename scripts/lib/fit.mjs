@@ -5,14 +5,17 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-export function fit({ args, html, pdf, log = () => {}, passes = 6 }) {
+export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {} }) {
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
-  const defer = new Set(); let extra = []; const fitFigs = {};
+  const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []);
+  let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText};
   for (let pass = 1; pass <= passes; pass++) {
     const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
-    const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...extra];
+    const textArg = Object.keys(fitText).length ? ['--fit-text', Object.entries(fitText).map(([n,v])=>`${n}=${v}`).join(',')] : [];
+    const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
+      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try {
@@ -21,9 +24,26 @@ export function fit({ args, html, pdf, log = () => {}, passes = 6 }) {
          that is one more pass, and a figure is fitted once, so the loop cannot oscillate */
       let pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); } catch {}
       /* a figure may be fitted again only to a smaller height: the sequence is monotone, so it ends */
-      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => f.closer && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
-      if (tails.length && pass < passes) { for (const f of tails) fitFigs[f.id] = f.height; log(`pass ${pass}: clean; fitting essay tails ${tails.map(f => `${f.id} to ${f.height}in`).join(", ")}`); continue; }
-      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, out: out.trim() };
+      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => (f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
+      if (tails.length && pass < passes) { for (const f of tails) fitFigs[f.id] = f.height; log(`pass ${pass}: clean; fitting figures ${tails.map(f => `${f.id} to ${f.height}in`).join(", ")}`); continue; }
+      // Bring a very sparse ending back by adjusting leading, never font size, within
+      // 0.12em (1.26pt). A finite, monotone sequence avoids oscillating pagination.
+      // Article boundaries remain; any tail that cannot fit stays flagged for visual review.
+      const sparse = pj.engine === 'typst' ? (pj.articles || []).filter(a=>a.end>a.start &&
+        pj.pages[a.end-1]?.ink_rows < .25 && (fitText[a.n] || .66) > .54) : [];
+      if (sparse.length && pass < passes) {
+        for (const a of sparse) fitText[a.n] = Math.max(.54, +((fitText[a.n] || .66) - .04).toFixed(2));
+        log(`pass ${pass}: fitting sparse text endings ${sparse.map(a=>`${a.n} at ${fitText[a.n]}em`).join(', ')}`);
+        continue;
+      }
+      // A short reference list still stranded after bounded fitting joins the shared
+      // end section. The article opening gives its printed page; content is never cut.
+      const stranded = pj.engine === 'typst' ? (pj.articles || []).filter(a=>!backLinks.has(a.n) && a.end>a.start &&
+        pj.pages[a.end-1]?.ink_rows < .25 && pj.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1)) : [];
+      if (stranded.length && pass < passes) {
+        stranded.forEach(a=>backLinks.add(a.n));log(`pass ${pass}: collecting overflow link notes for articles ${stranded.map(a=>a.n).join(', ')}`);continue;
+      }
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], out: out.trim() };
     }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}

@@ -20,6 +20,7 @@ export function validLogoTreatment(value){
 }
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 export function coverColors(cover, theme = {}, version = DESIGN_VERSION) {
+  theme = theme || {};
   if(version===1)return legacy.coverColors(cover,theme);
   const fixed = { classic: ['#f2efe5','#262724','#262724'], field: ['#dce4c4','#243e32','#243e32'], midnight: ['#172c40','#f1f0e4','#c8d4d7'] };
   if (fixed[cover]) return fixed[cover];
@@ -34,18 +35,21 @@ export function coverStyle(cover, theme, title = '', version = DESIGN_VERSION) {
   if(version===1)return legacy.coverStyle(cover,theme,title);
   const [bg,ink,accent]=coverColors(cover,theme);
   const longest=Math.max(1,...String(title).split(/\s+/).map(w=>w.length));
-  const wide=(String(title).match(/[\u2e80-\u9fff\uf900-\ufaff]/g)||[]).length;
+  const wide=(String(title).match(/[MW@\u2e80-\u9fff\uf900-\ufaff]/g)||[]).length;
   const density=String(title).length+wide;
-  const size=Math.min(density>160?5.5:density>110?6.2:16,Math.max(7,140/longest),String(title).length>80?7:String(title).length>55?9:String(title).length>30?11:16);
-  return `--cover-paper:${bg};--cover-ink:${ink};--cover-accent:${accent};--title-size:${size}cqw;--classic-title-gap:${density>110?22:37}cqw;--display-size:${String(title).length>30?size:size*1.18}cqw`;
+  const size=Math.min(density>160?(cover==='field'?4.5:5.5):density>110?6.2:16,Math.max(7,140/longest),String(title).length>80?7:String(title).length>55?9:String(title).length>30?11:String(title).length>20?14:16);
+  // The heavy masthead needs room for whole normal words: a bounding-box fit alone
+  // accepted "SemiAnalysi / s" and "Knowledg / e" because anywhere-wrap hid overflow.
+  const display=Math.min(String(title).length>20?size:size*1.18,longest>=9&&longest<=24?120/longest:Infinity);
+  return `--cover-paper:${bg};--cover-ink:${ink};--cover-accent:${accent};--title-size:${size}cqw;--classic-title-gap:${String(title).length>20?22:37}cqw;--display-size:${display}cqw`;
 }
 export function coverMarkup({ publication='Your publication', kind='Collected edition', dates='Your writing, gathered.', foot='6 × 9 · perfect bound', logo='', logoTreatment='transparent', logoBackground='#1d1e1d', logoInk='#f2efe5', version=DESIGN_VERSION, ids=false }={}) {
   if(version===1)return legacy.coverMarkup({publication,kind,dates,foot,logo,ids});
   const id=name=>ids?` id="pv-${name}"`:'';
   const safeLogo=/^(?:\/book\/|assets\/)[a-z0-9._-]+\.(?:png|jpe?g|webp|svg)$/i.test(logo)||/^https:\/\//.test(logo)||/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(logo)?logo:'';
-  return `<div class="edition-cover ${safeLogo && logoTreatment==='band' ? 'logo-band' : ''}" style="--logo-ground:${/^#[0-9a-f]{6}$/i.test(logoBackground)?logoBackground:'#1d1e1d'};--logo-ink:${/^#[0-9a-f]{6}$/i.test(logoInk)?logoInk:'#f2efe5'}">
+  return `<div class="edition-cover ${safeLogo && logoTreatment==='band' ? 'logo-band' : safeLogo && logoTreatment==='original' ? 'logo-original' : ''}" style="--logo-ground:${/^#[0-9a-f]{6}$/i.test(logoBackground)?logoBackground:'#1d1e1d'};--logo-ink:${/^#[0-9a-f]{6}$/i.test(logoInk)?logoInk:'#f2efe5'}">
     <div class="cv-kind"${id('kind')}>${escapeHtml(kind)}</div>
-    ${safeLogo && logoTreatment==='band' ? `<div class="cv-logo-band"><img class="cv-logo"${id('logo')} alt="" src="${escapeHtml(safeLogo)}" width="72" height="72"><span class="cv-band-copy">${String(publication).length<=45?`<span>${escapeHtml(publication)}</span>`:''}<span class="cv-band-foot"${id('cvpages')}>${escapeHtml(foot)}</span></span></div>` : `<img class="cv-logo"${id('logo')} alt="" ${safeLogo?`src="${escapeHtml(safeLogo)}"`:'hidden'} width="72" height="72" referrerpolicy="no-referrer">`}
+    ${safeLogo && logoTreatment==='band' ? `<div class="cv-logo-band"><img class="cv-logo"${id('logo')} alt="" src="${escapeHtml(safeLogo)}" width="72" height="72"><span class="cv-band-copy"><span class="cv-band-foot"${id('cvpages')}>${escapeHtml(foot)}</span></span></div>` : `<img class="cv-logo"${id('logo')} alt="" ${safeLogo?`src="${escapeHtml(safeLogo)}"`:'hidden'} width="72" height="72" referrerpolicy="no-referrer">`}
     <div class="cv-mast" dir="auto"${id('mast')}>${escapeHtml(publication)}</div>
     <div class="cv-orn" aria-hidden="true"></div>
     <div class="cv-dates"${id('dates')}>${escapeHtml(dates)}</div>

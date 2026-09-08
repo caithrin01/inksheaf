@@ -5,11 +5,13 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { onRequest as publicPreview } from '../functions/api/preview.js';
 import { onRequest as publicSample } from '../functions/api/sample.js';
+import { onRequest as publicPublication } from '../functions/api/publication.js';
 import { reviewMemoryDb } from './lib/review-memory-db.mjs';
 import { calendar, editorial } from './fixtures/preview-editor-exclusion.mjs';
 const sample=JSON.parse(await readFile('scripts/fixtures/public-sample-caithrin.json','utf8'));
 const identity=JSON.parse(await readFile('scripts/fixtures/publication-caithrin.json','utf8'));
 const liveReads=process.env.INKSHEAF_REVIEW_PUBLIC_READS==='1', DB=reviewMemoryDb();
+const relayToken=liveReads && process.env.INKSHEAF_REVIEW_RELAY==='1' ? process.env.ARCHIVE_RELAY_TOKEN || (await readFile(process.env.HOME+'/.secrets/inksheaf-relay-token','utf8')).trim() : undefined;
 const root=resolve('dist'), port=Number(process.env.INKSHEAF_REVIEW_PORT||8807);
 await stat(resolve(root,'index.html'));
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml',
@@ -35,8 +37,8 @@ const server=createServer(async(req,res)=>{
   const json=body=>{res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(body));};
   if(url.pathname.startsWith('/api/')){
     req.resume();
-    if(liveReads && ['/api/preview','/api/sample'].includes(url.pathname)){
-      try{const handler=url.pathname==='/api/preview'?publicPreview:publicSample;const response=await handler({request:new Request(url.href,{method:req.method}),env:{DB}});res.writeHead(response.status,{'content-type':'application/json','cache-control':'no-store'});return res.end(await response.text());}
+    if(liveReads && ['/api/preview','/api/sample','/api/publication'].includes(url.pathname)){
+      try{const handler={'/api/preview':publicPreview,'/api/sample':publicSample,'/api/publication':publicPublication}[url.pathname];const response=await handler({request:new Request(url.href,{method:req.method}),env:{DB,ARCHIVE_RELAY_TOKEN:relayToken}});res.writeHead(response.status,{'content-type':'application/json','cache-control':'no-store'});return res.end(await response.text());}
       catch(error){res.writeHead(502,{'content-type':'application/json'});return res.end(JSON.stringify({ok:false,message:'The public archive did not answer. Please try again.'}));}
     }
     if(url.pathname==='/api/preview'){
@@ -44,6 +46,7 @@ const server=createServer(async(req,res)=>{
       return json(/^(https?:\/\/)?caithrin\.com\/?$/i.test(input)?{...calendar,logo_url:identity.logo_url,theme:identity.theme}:
         {ok:false,message:'This local review uses the caithrin.com fixture. Enter caithrin.com to try it.'});
     }
+    if(url.pathname==='/api/publication')return json({...identity,ok:true,host:'caithrin.com',publication:'caithrin'});
     if(url.pathname==='/api/sample')return json(sample);
     if(url.pathname==='/api/plan'){
       if(liveReads)return json({ok:false,message:'No external editor is connected to local review.'});

@@ -1,0 +1,14 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 7000,
+  "reasoning_effort": "low",
+  "brief": "visual-review.md",
+  "images": [
+    {"file": "../../output/private-acceptance/cover-sheet-technology.png", "label": "Private print studies: three technology publications, all four cover designs and original logos."},
+    {"file": "../../output/private-acceptance/cover-sheet-food.png", "label": "Private print studies: three food publications, all four designs. How I Cook has no bindable public edition; its row tests only artwork and title layout."},
+    {"file": "../../output/private-acceptance/cover-sheet-literature.png", "label": "Private print studies: three literature publications, all four designs. Inspect the flat green Word & Song logo background particularly carefully."},
+    {"file": "../../output/private-acceptance/cover-sheet-culture.png", "label": "Private print studies: three culture publications, all four designs and original logos."},
+    {"file": "../../output/playwright/live-publication-final/chromium-vase-1440.png", "label": "Local homepage, Chromium 1440px. Verified Vase identity supplied by the test fixture; this publication has no logo."},
+    {"file": "../../output/playwright/live-publication-final/webkit-vase-390.png", "label": "Local homepage, WebKit 390px. The same verified long publication name and no-logo case."}
+  ]
+}

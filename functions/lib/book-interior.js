@@ -30,6 +30,7 @@ hr::after{ content:"❦"; color:var(--rubric); font-size:10pt }
 ul,ol{ margin:.7em 0 .7em 1.5em; padding:0 }
 li{ margin:.2em 0; text-align:justify; hyphens:none }
 pre{ font-size:8pt; background:#f4efe4; padding:.6em; overflow:hidden; white-space:pre-wrap; word-break:break-word }
+pre.preformatted-text{font:inherit;line-height:1.5;background:none;padding:0;text-align:left;hyphens:none;overflow:visible}
 code{ font-size:8.5pt }
 p.verse{ text-align:left; text-indent:0; hyphens:none }
 .longurl{ word-break:break-all; hyphens:none; font-size:9pt }

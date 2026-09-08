@@ -48,6 +48,8 @@ addEventListener('message',async event=>{
      for(const attr of [...el.attributes])el.removeAttribute(attr.name);
    }
    document.getElementById('reading')!.replaceChildren(content.cloneNode(true));
+   status.textContent='';status.hidden=true;
+   parent.postMessage({type:'sample-text',channel},location.origin);
    content.querySelector('.artbody p')?.classList.add('opener');
    const css=fonts+`\n:root{--ink:#221d16;--rubric:#26251f;--faint:#6d675c;--rule:#d8d2c2;--headfont:'Source Serif 4';--headweight:560}\n`+interiorCss();
    const fontStyle=document.createElement('style');fontStyle.textContent=fonts;document.head.append(fontStyle);await Promise.all([document.fonts.load('14px \"Source Serif 4\"'),document.fonts.load('560 23px \"Source Serif 4\"'),document.fonts.load('italic 14px \"Source Serif 4\"')]);
@@ -57,7 +59,7 @@ addEventListener('message',async event=>{
    // This is a fixed print page. Scaling or hiding the reader must never repaginate it.
    for(const page of previewer.chunker.pages)page.removeListeners();
    pages=[...output.querySelectorAll<HTMLElement>('.pagedjs_page')];
-   rendering=false;output.classList.add('ready');status.hidden=true;fit();show(0);
+   rendering=false;output.classList.add('ready');status.textContent='';status.hidden=true;fit();show(0);
  }catch(error){rendering=false;console.error('Sample pagination failed',error);status.textContent='The sample could not be typeset. Your complete proof is still available after reservation.';parent.postMessage({type:'sample-failed',channel},location.origin);}
 });
 addEventListener('keydown',event=>{

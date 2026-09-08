@@ -125,8 +125,11 @@ addEventListener('message',event=>{
    }
  }
  if(event.data?.type==='sample-ready'){frameReady=true;sendSample();}
+ if(event.data?.type==='sample-text'){
+   status.textContent='';status.hidden=true;updateReaderView();
+ }
  if(event.data?.type==='sample-pages'){
-   status.hidden=true;controls.hidden=!presentation.classList.contains('reading');
+   status.textContent='';status.hidden=true;controls.hidden=!presentation.classList.contains('reading');
    pageIndex=event.data.index;pageCount=event.data.count;updateReaderView();
    previous.disabled=event.data.index===0;next.disabled=event.data.index===event.data.count-1;
  }

@@ -33,6 +33,7 @@ try{
   await run('scripts/test-launch-states.mjs',[base,'output/playwright/launch/states']);
   await run('scripts/test-site-design.mjs',[base]);
   await run('scripts/test-site-workflows.mjs',[base]);
+  await run('scripts/test-live-publication.mjs',[base,'output/playwright/launch/live-publication']);
 
 }catch(error){console.error(error.message);process.exitCode=1;}
 finally{server.close();}

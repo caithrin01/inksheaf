@@ -1,261 +1,50 @@
 #!/usr/bin/env node
-// Human-gate journey battery (beta-launch-readiness Track A/B core).
-// Runs real browser journeys with a pageerror listener on every page; a silent console
-// exception fails the row even when the screen looks right.
-// Usage: NODE_PATH=<playwright dir> node scripts/test-journeys.mjs [chromium|webkit] [base]
-import { strict as assert } from "node:assert";
-
-const engineName = process.argv[2] || "chromium";
-const base = (process.argv[3] || "https://inksheaf.com").replace(/\/$/, "");
-const pw = await import("playwright");
-const engine = pw[engineName];
-const browser = await engine.launch();
-let failures = 0;
-
-async function journey(name, opts, fn) {
-  const ctx = await browser.newContext({
-    viewport: opts.mobile ? { width: 390, height: 844 } : { width: 1440, height: 950 },
-    colorScheme: opts.dark ? "dark" : "light",
-    hasTouch: !!opts.mobile,
-    javaScriptEnabled: !opts.noJs,
-  });
-  const page = await ctx.newPage();
-  const errors = [];
-  page.on("pageerror", e => errors.push(String(e).slice(0, 140)));
-  try {
-    await fn(page);
-    assert.equal(errors.length, 0, "pageerrors: " + errors.join(" | "));
-    console.log(`PASS ${name}`);
-  } catch (e) {
-    failures++;
-    console.log(`FAIL ${name} :: ${String(e.message).slice(0, 160)}`);
-  } finally { await ctx.close(); }
+// Current product journeys with real public GETs. Works on a local candidate,
+// a deployment URL or production. No email, reservation or feedback is sent.
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import * as pw from 'playwright';
+const engineName=process.argv[2]||'chromium',base=(process.argv[3]||'https://inksheaf.com').replace(/\/$/,'');
+const out=process.env.INKSHEAF_JOURNEY_OUT||`output/playwright/launch/real-journeys-${engineName}`;await mkdir(out,{recursive:true});
+const browser=await pw[engineName].launch(),results=[];
+async function journey(name,options,fn){
+ const context=await browser.newContext({viewport:options.mobile?{width:390,height:844}:{width:1440,height:1000},hasTouch:!!options.mobile,colorScheme:options.mobile?'dark':'light',javaScriptEnabled:!options.noJs,reducedMotion:'reduce',serviceWorkers:'block'});
+ const page=await context.newPage(),errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
+ await context.route('**/api/**',route=>{
+  const req=route.request();if(['GET','HEAD'].includes(req.method()))return route.continue();
+  const path=new URL(req.url()).pathname;writes.push(path);
+  // The handoff payload is tested, but never sent to the live service.
+  if(path==='/api/event'||path==='/api/signup')return route.fulfill({json:{ok:true,press:'test'}});
+  return route.abort();
+ });
+ try{await fn(page,writes);assert.deepEqual(errors,[],'browser exceptions');assert.ok(writes.every(p=>['/api/event','/api/signup'].includes(p)),'unexpected mutation');await page.screenshot({path:`${out}/${name}.png`});results.push({name,pass:true,interceptedWrites:writes});console.log('PASS',name)}
+ catch(e){results.push({name,pass:false,error:e.message,interceptedWrites:writes});await page.screenshot({path:`${out}/${name}-failed.png`}).catch(()=>{});console.log('FAIL',name,e.message)}finally{await context.close()}
 }
-
-const preview = async (page, url) => {
-  await page.goto(base + "/");
-  await page.fill("#tryurl", url);
-  await page.click("#trybtn");
-  await page.waitForFunction(() =>
-    document.getElementById("preview").classList.contains("personalized") ||
-    document.getElementById("tryerr").textContent.length > 3, null, { timeout: 150000 });
-  await page.waitForTimeout(900);
-};
-
-await journey("A1 caithrin reveal lands with desk pre-set", {}, async page => {
-  await preview(page, "caithrin.com");
-  assert.ok(await page.evaluate(() => document.getElementById("preview").classList.contains("personalized")));
-  const tabs = await page.evaluate(() => [...document.querySelectorAll(".desk-tab")].map(b => b.getAttribute("aria-selected")));
-  assert.ok(tabs.includes("true"), "a cadence is pre-selected");
-  const pressed = await page.evaluate(() => [...document.querySelectorAll(".int-opt")].map(b => [b.textContent, b.getAttribute("aria-pressed")]));
-  assert.ok(pressed.find(([t, p]) => /Black/.test(t) && p === "true"), "bw is the default interior: " + JSON.stringify(pressed));
-});
-
-await journey("A2 book opens by hover, keyboard, and tap", {}, async page => {
-  await preview(page, "caithrin.com");
-  await page.waitForTimeout(1200); /* reveal animations and font swaps shift layout */
-  await page.evaluate(() => document.getElementById("bookwrap").scrollIntoView({ block: "center" }));
-  await page.waitForTimeout(400);
-  const box = await page.locator("#bookwrap").boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.waitForTimeout(1000);
-  const hoverDeg = await page.evaluate(() => getComputedStyle(document.querySelector(".cover")).transform);
-  assert.ok(hoverDeg && hoverDeg !== "none", "cover transforms on hover");
-  await page.mouse.move(5, 5); await page.waitForTimeout(950);
-  await page.evaluate(() => document.getElementById("bookwrap").focus());
-  await page.keyboard.press("Enter"); await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.getElementById("bookwrap").getAttribute("aria-pressed")), "true", "keyboard opens");
-  await page.keyboard.press(" "); await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.getElementById("bookwrap").getAttribute("aria-pressed")), "false", "keyboard closes");
-});
-
-await journey("A3 cadence and interior switching stays truthful", {}, async page => {
-  await preview(page, "heathercoxrichardson.substack.com");
-  /* Accessible names, not textContent: the selected tab carries an aria-hidden fleuron. */
-  const enabled = await page.evaluate(() => [...document.querySelectorAll(".desk-tab:not(:disabled)")]
-    .map(b => [...b.childNodes].filter(n => !(n.nodeType === 1 && n.getAttribute("aria-hidden") === "true")).map(n => n.textContent).join("").trim()));
-  for (const label of enabled) {
-    await page.getByRole("tab", { name: label, exact: true }).click();
-    await page.waitForTimeout(650);
-    const segs = await page.evaluate(() => [...document.querySelectorAll(".folio-seg")].length);
-    const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
-    assert.ok(segs >= 1, label + ": segments render");
-    assert.ok(/\d+ (pages|issues|volumes)|one (issue|volume)/.test(verdict), label + ": verdict has numbers: " + verdict.slice(0, 60));
-  }
-  const before = await page.evaluate(() => document.getElementById("pv-price").textContent);
-  await page.evaluate(() => [...document.querySelectorAll(".int-opt")].find(b => /Colour/.test(b.textContent)).click());
-  await page.waitForTimeout(500);
-  const priceTexts = await page.evaluate(() => [...document.querySelectorAll(".folio-seg .fs-price")].map(x => x.textContent));
-  assert.ok(priceTexts.length >= 1, "per-volume prices shown");
-});
-
-await journey("A4+A5 handoff carries the plan; dedupe holds", {}, async page => {
-  await preview(page, "caithrin.com");
-  const q = await page.getByRole("tab", { name: "Quarterly" });
-  if (await q.isEnabled()) { await q.click(); await page.waitForTimeout(400); }
-  await page.click("#pv-cta"); await page.waitForTimeout(500);
-  const carried = await page.evaluate(() => document.getElementById("carried").textContent);
-  assert.ok(/Caithrin/i.test(carried), "carried names the publication");
-  const plan = JSON.parse(await page.evaluate(() => document.getElementById("plan_json").value));
-  assert.ok(plan.cadence && Array.isArray(plan.volumes), "plan parses");
-  await page.fill("#email", "caithrin+journeytest@caithrin.com");
-  await page.getByRole("button", { name: "Request a spot" }).click();
-  await page.waitForFunction(() => document.getElementById("done").style.display === "block", null, { timeout: 20000 });
-});
-
-await journey("A6 second publication fully replaces the first", {}, async page => {
-  await preview(page, "caithrin.com");
-  await preview(page, "heathercoxrichardson.substack.com");
-  const mast = await page.evaluate(() => document.getElementById("pv-mast").textContent);
-  const sub = await page.evaluate(() => document.getElementById("pv-sub").textContent);
-  assert.ok(/Letters from an American/i.test(mast), "cover is HCR: " + mast);
-  assert.ok(!/caithrin/i.test(sub), "no stale caithrin in payoff");
-  /* Audit gate 3: a capped read may not read as final; a full read may not hedge as if capped.
-     Since 2026-09-01 the relay reads HCR's whole window, so the API decides which it is. */
-  const api = await (await page.request.get(base + "/api/preview?url=heathercoxrichardson.substack.com")).json();
-  assert.ok(!/covers the full year/.test(sub), "old full-year claim gone");
-  const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
-  const price = await page.evaluate(() => document.getElementById("pv-price").textContent);
-  if (api.capped) {
-    assert.ok(/estimates until we read the rest/.test(sub), "capped sentence present: " + sub.slice(-120));
-    assert.ok(/about \d+ (volumes|issues)|of about \d+ pages/.test(verdict), "verdict hedged when capped: " + verdict.slice(0, 80));
-    assert.ok(/plus about \$\d+ shipping/.test(price), "shipping is 'about' when capped or unmeasured: " + price.slice(0, 80));
-  } else {
-    assert.ok(!/estimates until we read the rest/.test(sub), "no capped sentence on a full read: " + sub.slice(-120));
-    assert.ok(/\d+ (volumes|issues) of \d+ to \d+ pages|one (issue|volume) of \d+ pages/.test(verdict), "verdict exact on a full read: " + verdict.slice(0, 80));
-    const n = (verdict.match(/(\d+) (volumes|issues)/) || [])[1];
-    const measured = ["1", "2", "4", "8"].includes(String(n || 1));
-    assert.ok(measured ? /plus \$\d+\.\d\d shipping/.test(price) : /plus about \$\d+ shipping/.test(price), "shipping exact only at measured set sizes: " + price.slice(0, 80));
-  }
-});
-
-await journey("A6b uncapped single volume quotes measured shipping exactly", {}, async page => {
-  await preview(page, "caithrin.com");
-  const sub = await page.evaluate(() => document.getElementById("pv-sub").textContent);
-  assert.ok(!/estimates until we read the rest/.test(sub), "no capped sentence on a full read");
-  const price = await page.evaluate(() => document.getElementById("pv-price").textContent);
-  assert.ok(/plus \$5\.69 shipping, mainland US/.test(price), "measured 1-volume shipping exact: " + price.slice(0, 80));
-});
-
-await journey("A7 failure after success clears the desk, keeps the book", {}, async page => {
-  await preview(page, "caithrin.com");
-  await preview(page, "nytimes.com");
-  assert.ok(!(await page.evaluate(() => document.getElementById("preview").classList.contains("personalized"))), "personalized cleared");
-  const bookVisible = await page.evaluate(() => document.getElementById("bookwrap").offsetHeight > 0);
-  assert.ok(bookVisible, "specimen book still visible");
-  const err = await page.evaluate(() => document.getElementById("tryerr").textContent);
-  assert.ok(/Substack/i.test(err), "honest message: " + err.slice(0, 60));
-});
-
-await journey("A8 concierge state handoff (ACX)", {}, async page => {
-  await preview(page, "astralcodexten.com");
-  /* ACX is the largest archive in the gate. Either the plan binds it (every volume under the
-     cap, the plan carried into the reservation) or it is honestly handed to a person. */
-  const verdict = await page.evaluate(() => document.getElementById("desk-verdict").textContent);
-  await page.click("#pv-cta"); await page.waitForTimeout(500);
-  const plan = JSON.parse(await page.evaluate(() => document.getElementById("plan_json").value));
-  if (/by hand/.test(verdict)) {
-    assert.equal(plan.cadence, "concierge");
-    assert.equal(plan.needs_hand_plan, true);
-  } else {
-    assert.ok(plan.cadence && plan.cadence !== "concierge" && Array.isArray(plan.volumes) && plan.volumes.length >= 1, "plan carried: " + JSON.stringify(plan).slice(0, 80));
-    assert.ok(plan.volumes.every(v => v.est_pages <= 300 && v.label), "every volume binds under the cap with a label");
-    assert.ok(plan.volumes.every(v => Array.isArray(v.post_ids) && v.post_ids.length), "every volume names its posts");
-  }
-});
-
-await journey("A9 deep link reproduces a preview", {}, async page => {
-  await page.goto(base + "/?pub=caithrin.com");
-  await page.waitForFunction(() => document.getElementById("preview").classList.contains("personalized"), null, { timeout: 150000 });
-});
-
-await journey("A10 double-clicks and refresh mid-flight", {}, async page => {
-  await page.goto(base + "/");
-  await page.fill("#tryurl", "caithrin.com");
-  await page.click("#trybtn"); await page.click("#trybtn").catch(() => {});
-  await page.waitForTimeout(600);
-  await page.reload();
-  await preview(page, "caithrin.com");
-  await page.click("#pv-cta"); await page.waitForTimeout(400);
-  await page.fill("#email", "caithrin+journeytest@caithrin.com");
-  const btn = page.getByRole("button", { name: "Request a spot" });
-  await btn.click(); await btn.click().catch(() => {});
-  await page.waitForFunction(() => document.getElementById("done").style.display === "block", null, { timeout: 20000 });
-});
-
-/* the reveal lands on the book (audit gate 6): focus moves to it, the status line announces
-   the result, and the book sits at the top of the viewport on both desktop and mobile */
-const assertLanding = async (page, viewportH) => {
-  await page.waitForTimeout(1500); /* smooth scroll and the 0.7s rise both settle */
-  const r = await page.evaluate(() => {
-    const b = document.getElementById("bookwrap").getBoundingClientRect();
-    const big = document.getElementById("pv-big").getBoundingClientRect();
-    return { active: document.activeElement && document.activeElement.id, status: document.getElementById("pv-status").textContent,
-      bookTop: Math.round(b.top), bookBottom: Math.round(b.bottom), bigTop: Math.round(big.top) };
-  });
-  assert.equal(r.active, "bookwrap", "focus moved to the book");
-  /* 2026-09-04: the announcement names one edition: "164 pages, Jul 2025 – Jun 2026" or "2 volumes, 164 pages in all, Jul 2025 – Jun 2026" */
-  assert.match(r.status, /^Your book is ready: (about )?\d+ (pages|volumes|issues)(, \d+ pages in all)?(, [A-Z][a-z]{2} \d{4} – [A-Z][a-z]{2} \d{4})?\.$/, "status announced: " + r.status);
-  assert.ok(r.bookTop >= 0 && r.bookTop <= 120, "book top near the top of the viewport: " + r.bookTop);
-  assert.ok(r.bookBottom <= viewportH, "whole book inside the viewport: bottom " + r.bookBottom);
-  assert.ok(r.bigTop < viewportH, "the one-line fact is inside the first viewport: " + r.bigTop);
-};
-
-await journey("A11 reveal lands on the book (desktop)", {}, async page => {
-  await preview(page, "caithrin.com");
-  await assertLanding(page, 950);
-});
-
-/* A12 (the automated half): what a screen reader is given. The reveal moves focus to the
-   book and the status region announces it; ornaments, the tab fleuron and the FAQ plus
-   sign are decoration and must not be read (2026-09-01: "❦One volume", "❦" x8, "? +"). */
-await journey("A12 screen-reader tree: focus, announcement, no decoration read", {}, async page => {
-  await preview(page, "caithrin.com");
-  const r = await page.evaluate(() => ({
-    active: document.activeElement && document.activeElement.id,
-    status: [...document.querySelectorAll("[aria-live]")].map(e => e.textContent.trim()).join(" | "),
-  }));
-  assert.equal(r.active, "bookwrap", "focus moved to the book, got #" + r.active);
-  assert.ok(/Your book is ready: \d+ pages/.test(r.status), "status announces the book: " + r.status);
-  const tree = await page.locator("body").ariaSnapshot();
-  assert.ok(!/[❦❧]/.test(tree), "ornament glyphs in the accessibility tree");
-  assert.ok(!/\? \+/.test(tree), "FAQ plus sign read as part of the question");
-  for (const name of ["One volume", "Quarterly", "Monthly"])
-    assert.ok(tree.includes(`tab "${name}"`), `tab named exactly "${name}"`);
-  assert.ok(tree.includes('textbox "Your publication’s URL"'), "URL field has its label");
-  assert.ok(tree.includes('button "Reserve this print run"'), "reserve button named");
-});
-
-await journey("A1m mobile dark: reveal + desk in first viewports", { mobile: true, dark: true }, async page => {
-  await preview(page, "caithrin.com");
-  assert.ok(await page.evaluate(() => document.getElementById("preview").classList.contains("personalized")));
-  await assertLanding(page, 844);
-  const tap = await page.evaluate(() => document.querySelector(".bookhint .tap") && getComputedStyle(document.querySelector(".bookhint .tap")).display !== "none");
-  await page.tap("#bookwrap"); await page.waitForTimeout(400);
-  assert.equal(await page.evaluate(() => document.getElementById("bookwrap").getAttribute("aria-pressed")), "true", "tap opens on touch");
-});
-
-/* A13: with scripts off the page still reads and the form's noscript fallback offers a
-   working mailto; the specimen book is server-rendered so it is present too */
-await journey("A13 no-JS fallback with a working mailto", { noJs: true }, async page => {
-  await page.goto(base + "/");
-  const r = await page.evaluate(() => {
-    /* the hero carries a <noscript><style> of its own (2026-09-03), so find the fallback by its mailto */
-    const ns = [...document.querySelectorAll("noscript")].find(n => n.textContent.includes('This form needs JavaScript')) || null;
-    const mail = !!document.querySelector('noscript a[href="mailto:caithrin@caithrin.com"]');
-    const spaced = /write to caithrin@caithrin\.com and we will/.test(ns ? ns.textContent : "");
-    const book = document.getElementById("bookwrap");
-    const visible = el => !!el && el.getBoundingClientRect().height > 0;
-    const title = document.querySelector("h1");
-    return { mail, spaced, book: visible(book), title: visible(title), noscriptShown: visible(ns) };
-  });
-  assert.ok(r.spaced, "fallback sentence keeps its spaces (Astro's compressor once ate the one before the address)");
-  assert.ok(r.title, "headline renders without scripts");
-  assert.ok(r.book, "specimen book renders without scripts");
-  assert.ok(r.mail, "noscript fallback carries the mailto");
-  assert.ok(r.noscriptShown, "noscript fallback is displayed");
-});
-
-await browser.close();
-console.log(failures ? `JOURNEY GATE FAILED: ${failures} rows` : "JOURNEY GATE: all rows passed");
-process.exit(failures ? 1 : 0);
+async function preview(page,host='caithrin.com',navigate=true){
+ if(navigate)await page.goto(base+'/');
+ await page.locator('#tryurl').fill(host);await page.locator('#trybtn').click();
+ await page.waitForFunction(()=>!document.querySelector('#trybtn').disabled,null,{timeout:60000});
+ assert.equal(await page.locator('#preview').evaluate(e=>e.classList.contains('personalized')),true,await page.locator('#tryerr').textContent());
+ await page.waitForFunction(()=>/ready|planned|hand-built/.test(document.querySelector('#pv-status').textContent));
+}
+async function editionAgrees(page){
+ const state=await page.evaluate(()=>Object.fromEntries(['pv-mast','pv-sub','pv-status','pv-dates','pv-cvpages','pv-price'].map(id=>[id,document.getElementById(id).textContent])));
+ assert.equal(state['pv-mast'],'caithrin');
+ const pages=state['pv-sub'].match(/(\d+) estimated pages/),posts=state['pv-sub'].match(/^(\d+) essays/);
+ assert.ok(pages&&posts,'edition quantities present');assert.ok(state['pv-status'].includes(pages[1]+' estimated pages'),'announced pages agree');assert.ok(state['pv-status'].includes(posts[1]+' essays'),'announced posts agree');assert.ok(state['pv-sub'].includes(state['pv-dates']),'cover span agrees');
+ assert.match(state['pv-price'],/Estimated printing:.*\$\d/);assert.match(state['pv-price'],/Shipping:.*\$\d/);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflow');
+}
+await journey('opening',{},async page=>{await page.goto(base+'/');const r=await page.locator('#tryurl').boundingBox();assert.ok(r.y+r.height<1000,'entry visible on load');assert.ok(await page.locator('.hero-book-front .cv-mast').isVisible());assert.equal(await page.locator('.press-specimen .cover-face').count(),2)});
+for(const mobile of [false,true])await journey(mobile?'mobile-edition':'desktop-edition',{mobile},async page=>{await preview(page);await editionAgrees(page);assert.equal(await page.evaluate(()=>document.activeElement.id),'bookwrap');const y=await page.locator('#preview').evaluate(e=>e.getBoundingClientRect().top);assert.ok(y>=-1&&y<100,'preview reveal lands once');assert.ok(await page.locator('.desk-tab[aria-selected=true]').count());});
+await journey('cover-designs',{},async page=>{await preview(page);for(const design of ['masthead','classic','field','midnight']){await page.locator(`[data-cover=${design}]`).click();assert.equal(await page.locator(`[data-cover=${design}]`).getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#pv-mast').textContent(),'caithrin');const fit=await page.locator('#pvbook .edition-cover').evaluate(el=>{const b=el.getBoundingClientRect();return [...el.children].filter(e=>getComputedStyle(e).display!=='none').every(e=>{const r=e.getBoundingClientRect();return r.top>=b.top-1&&r.bottom<=b.bottom+1})});assert.ok(fit,design+' content fits')}});
+await journey('sample-keyboard-and-status',{},async page=>{await preview(page);await page.locator('#bookwrap').focus();await page.keyboard.press('Enter');await page.locator('#sample-frame').waitFor({state:'visible',timeout:20000});const frame=page.frames().find(f=>f.url().includes('/reader/'));assert.ok(frame,'reader frame loads');await frame.locator('#reading .artbody p').first().waitFor({timeout:20000});await page.waitForFunction(()=>document.querySelector('#sample-status').textContent==='',null,{timeout:3000});assert.equal(await frame.locator('#status').textContent(),'','reader loading message clears when text is visible');await page.locator('#view-cover').click();assert.equal(await page.locator('#view-cover').getAttribute('aria-pressed'),'true')});
+await journey('cadence-consistency',{},async page=>{await preview(page);const tabs=await page.locator('.desk-tab:not(:disabled)').count();for(let i=0;i<tabs;i++){await page.locator('.desk-tab:not(:disabled)').nth(i).click();await editionAgrees(page)}const disabled=page.locator('.desk-tab:disabled');if(await disabled.count())assert.match(await page.locator('#desk-verdict').textContent(),/ruled out|minimum|no posts|too|thin|under|past/i)});
+await journey('handoff-payload-no-email',{},async(page,writes)=>{await preview(page);await page.locator('#pv-cta').click();const plan=JSON.parse(await page.locator('#plan_json').inputValue());assert.ok(plan.cadence&&plan.volumes?.length);assert.match(await page.locator('#carried').textContent(),/caithrin/i);assert.equal(writes.filter(p=>p==='/api/signup').length,0)});
+await journey('replace-publication',{},async page=>{await preview(page);await preview(page,'manifund.substack.com',false);assert.equal(await page.locator('#pv-mast').textContent(),'The Fox Says');assert.doesNotMatch(await page.locator('#pv-sub').textContent(),/caithrin/i)});
+await journey('failure-clears-preview',{},async page=>{await preview(page);await page.locator('#tryurl').fill('javascript:alert(1)');await page.locator('#trybtn').click();await page.waitForFunction(()=>!document.querySelector('#trybtn').disabled);assert.equal(await page.locator('#preview').evaluate(e=>e.classList.contains('personalized')),false);assert.match(await page.locator('#tryerr').textContent(),/publication URL/i);assert.ok(await page.locator('.hero-book-front').isVisible());assert.equal(await page.locator('#plan_json').inputValue(),'')});
+await journey('deep-link',{},async page=>{await page.goto(base+'/?pub=caithrin.com');await page.waitForFunction(()=>document.querySelector('#preview').classList.contains('personalized'),null,{timeout:60000});await editionAgrees(page)});
+await journey('accessible-names',{},async page=>{await preview(page);const tree=await page.locator('body').ariaSnapshot();assert.doesNotMatch(tree,/[❦❧]/);assert.ok(await page.getByRole('textbox',{name:'Your publication URL',exact:true}).count());assert.ok(tree.includes('button "Reserve this print run"'));assert.match(await page.locator('#pv-status').textContent(),/\d+ essays.*\d+ estimated pages/)});
+await journey('no-javascript',{noJs:true},async page=>{await page.goto(base+'/');assert.ok(await page.locator('h1').isVisible());assert.ok(await page.locator('.hero-book-front').isVisible());assert.ok(await page.locator('noscript a[href="mailto:caithrin@caithrin.com"]').first().isVisible());assert.equal(await page.locator('#tryurl').isVisible(),false)});
+await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({base,engine:engineName,mode:'Real public reads; all mutations intercepted',results},null,2)+'\n');
+console.log(`JOURNEY GATE: ${results.filter(r=>r.pass).length}/${results.length} passed`);process.exitCode=results.some(r=>!r.pass)?1:0;
