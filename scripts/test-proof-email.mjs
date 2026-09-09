@@ -28,15 +28,16 @@ async function send(c, overrides = {}) {
 }
 let passed = 0;
 async function test(name, run) { const c = setup(); try { await run(c); passed++; console.log('PASS', name); } finally { c.db.close(); globalThis.fetch = originalFetch; } }
-await test('initial delivery and replay preserve complete multi-volume links and verified recipient', async c => {
+await test('initial delivery and replay preserve complete multi-volume links and saved recipient', async c => {
   assert.equal((await send(c, { to: 'attacker@example.com' })).status, 200);
   const sent = JSON.parse(c.calls[0].options.body); assert.deepEqual(sent.to, ['owner@example.com']); assert.equal(sent.text, message.text);
   assert.equal((await send(c, { text: 'regenerated links should not replace the original' })).status, 200);
   assert.equal(c.calls.length, 1); assert.equal(c.db.prepare('SELECT count(*) n FROM edition_versions').get().n, 1);
 });
-await test('unconfirmed ownership blocks creator delivery', async c => {
+await test('private PDF delivery requires no ownership click', async c => {
   c.db.exec('UPDATE signups SET email_verified_at=NULL');
-  assert.equal((await send(c)).status, 409); assert.equal(c.calls.length, 0);
+  assert.equal((await send(c)).status, 200); assert.equal(c.calls.length, 1);
+  assert.equal(c.db.prepare('SELECT email_verified_at FROM signups').get().email_verified_at, null);
 });
 await test('another edition cannot be accessed with this signature', async c => {
   assert.equal((await send(c, { version_id: 2 })).status, 403); assert.equal(c.calls.length, 0);

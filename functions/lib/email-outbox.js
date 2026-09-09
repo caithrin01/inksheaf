@@ -67,7 +67,7 @@ export async function sendQueuedEmail(env, id, { now = Date.now(), fetcher = fet
   }
   if (!env.RESEND_API_KEY) return { ...emailResult(row), error: 'Email delivery is unavailable' };
   const proofGuard = requireCurrentProof ? ` AND EXISTS (SELECT 1 FROM edition_versions v JOIN signups s ON s.id = v.signup_id
-    WHERE v.id = email_outbox.version_id AND v.status = 'proofed' AND s.email_verified_at IS NOT NULL
+    WHERE v.id = email_outbox.version_id AND v.status = 'proofed'
     AND s.email = email_outbox.intended_to AND s.plan_json = v.plan_json
     AND v.id = (SELECT MAX(newer.id) FROM edition_versions newer WHERE newer.signup_id = v.signup_id))` : '';
   const claim = await env.DB.prepare(`UPDATE email_outbox SET send_status = 'sending', lease_started_ms = ?,

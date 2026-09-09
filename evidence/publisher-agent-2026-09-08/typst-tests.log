@@ -1,0 +1,37 @@
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<partstart>).map(it => it.value)' --in proofs/fixtures/publisher-structure.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<folio>).map(it => it.value)' --in proofs/fixtures/publisher-structure.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<partstart>).map(it => it.value)' --in proofs/fixtures/middle-part-verso.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<artstart>).map(it => it.value)' --in proofs/fixtures/middle-part-verso.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parend>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parstart>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parend>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parstart>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+35 pass, 0 fail

@@ -9,13 +9,13 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
-  const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []);
+  const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
   let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText};
   for (let pass = 1; pass <= passes; pass++) {
     const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
     const textArg = Object.keys(fitText).length ? ['--fit-text', Object.entries(fitText).map(([n,v])=>`${n}=${v}`).join(',')] : [];
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
-      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...extra];
+      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try {
@@ -43,7 +43,7 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
       if (stranded.length && pass < passes) {
         stranded.forEach(a=>backLinks.add(a.n));log(`pass ${pass}: collecting overflow link notes for articles ${stranded.map(a=>a.n).join(', ')}`);continue;
       }
-      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], out: out.trim() };
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, out: out.trim() };
     }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}

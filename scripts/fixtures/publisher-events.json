@@ -1,0 +1,211 @@
+[
+  {
+    "kind": "identity",
+    "publication": "The Workshop — synthetic publisher fixture",
+    "contributors": [
+      "Alex Example"
+    ],
+    "sequence": 1,
+    "elapsed_ms": 3
+  },
+  {
+    "kind": "reading",
+    "decisions": [
+      {
+        "post_id": "101",
+        "kind": "essay",
+        "decision": "keep",
+        "reason": "Analyzes the impact of extended library hours on accessibility and attendance patterns.",
+        "evidence_line": 1,
+        "evidence": "The town library used to close at six. Extending its hours changed who could use it: shift workers arrived after dinner, teenagers met to study, and parents could bring children after work. The useful",
+        "title": "The reading room",
+        "date": "2026-01-02",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "28d9b63ed47b98558dfc821a1c7490e6027096ab90e314fd85bcbe7335c94263"
+      },
+      {
+        "post_id": "102",
+        "kind": "housekeeping",
+        "decision": "set_aside",
+        "reason": "Administrative post regarding subscriber milestones and publication schedule.",
+        "evidence_line": 1,
+        "evidence": "We reached one thousand subscribers today. Thank you for reading and sharing the newsletter! There is no essay this week. I will be back next Tuesday. Please consider upgrading to a paid subscription ",
+        "title": "Thank you for 1,000 subscribers",
+        "date": "2026-01-04",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "dfca584545a73d91d631daf5a81504dfe78f3c2a48ea2e871b347c659fd99100"
+      },
+      {
+        "post_id": "103",
+        "kind": "poem",
+        "decision": "keep",
+        "reason": "A short poem depicting a winter evening scene.",
+        "evidence_line": 1,
+        "evidence": "The window holds the evening still.",
+        "title": "Winter window",
+        "date": "2026-01-07",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "b7a2e1af2cf1c3736549119bed7fc0c0dc9a5ab44b61b385ca9bae157025b6dd"
+      },
+      {
+        "post_id": "104",
+        "kind": "essay",
+        "decision": "keep",
+        "reason": "Examines the conflict between standard transit timetables and the needs of night-shift workers.",
+        "evidence_line": 1,
+        "evidence": "A city has two timetables. The visible one is set by offices and schools. The second belongs to the people who clean trains, stock shops and care for patients while the first city sleeps. We design pu",
+        "title": "Thanks to the night shift",
+        "date": "2026-01-10",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "a7a914e9fa91a5500e92202bc8f7d05f1a3d70c9af8d3113039752eadcf3506d"
+      },
+      {
+        "post_id": "105",
+        "kind": "interview",
+        "decision": "keep",
+        "reason": "Features a discussion with a bookbinder regarding repair techniques and material longevity.",
+        "evidence_line": 2,
+        "evidence": "Alex: What do you notice when an old book arrives for repair?",
+        "title": "A conversation with a bookbinder",
+        "date": "2026-02-03",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "664ee01282a57a751e82658c07db294f62da3fe17cdccd2a5b2173e6d686ef60"
+      },
+      {
+        "post_id": "106",
+        "kind": "housekeeping",
+        "decision": "set_aside",
+        "reason": "Updates regarding the publication's posting schedule and administrative preferences.",
+        "evidence_line": 1,
+        "evidence": "A quick administrative update: the newsletter will now arrive on Thursday instead of Tuesday. Nothing else is changing. Existing paid subscriptions continue as before. Update your email preferences us",
+        "title": "A change to the posting schedule",
+        "date": "2026-02-06",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "6a252e8e84a3ff300cbbd14aadf1e0bdf43e1d54aa94496ce9f4c10e5fd7ee89"
+      }
+    ],
+    "read": 6,
+    "total": 8,
+    "sequence": 2,
+    "elapsed_ms": 2978
+  },
+  {
+    "kind": "reading",
+    "decisions": [
+      {
+        "post_id": "107",
+        "kind": "recipe",
+        "decision": "keep",
+        "reason": "The text provides measurements and instructions for baking bread.",
+        "evidence_line": 1,
+        "evidence": "Ingredients",
+        "title": "A loaf for a quiet afternoon",
+        "date": "2026-02-08",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "0843a7930bcc9c2b5da2f8204fef4c899b81e8e9903047dc11fc384f5b528ce0"
+      },
+      {
+        "post_id": "108",
+        "kind": "essay",
+        "decision": "keep",
+        "reason": "The text discusses social norms regarding public seating and accessibility at a cafe.",
+        "evidence_line": 1,
+        "evidence": "At the café, the seat by the door is always empty until the regular with a walking stick arrives. Nobody reserves it. People simply notice who needs the shortest route. Accessibility sometimes begins ",
+        "title": "The seat by the door",
+        "date": "2026-02-10",
+        "authors": [
+          "Alex Example"
+        ],
+        "body_hash": "e13a117371a59329dfbd22643043c628f341e3a8b2d3c30c7615a289a67a07f8"
+      }
+    ],
+    "read": 8,
+    "total": 8,
+    "sequence": 3,
+    "elapsed_ms": 4381
+  },
+  {
+    "kind": "contents",
+    "description": "A small collection of essays, a poem, an interview, and a recipe on everyday attentiveness—libraries, night work, doorways, and bread.",
+    "sections": [
+      {
+        "title": "Everyday Attention",
+        "post_ids": [
+          "101",
+          "103",
+          "104",
+          "105",
+          "107",
+          "108"
+        ],
+        "reason": "Kept in chronological order as one collection since the pieces share a consistent focus on ordinary life and quiet observation.",
+        "posts": [
+          {
+            "id": "101",
+            "title": "The reading room",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-01-02"
+          },
+          {
+            "id": "103",
+            "title": "Winter window",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-01-07"
+          },
+          {
+            "id": "104",
+            "title": "Thanks to the night shift",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-01-10"
+          },
+          {
+            "id": "105",
+            "title": "A conversation with a bookbinder",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-02-03"
+          },
+          {
+            "id": "107",
+            "title": "A loaf for a quiet afternoon",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-02-08"
+          },
+          {
+            "id": "108",
+            "title": "The seat by the door",
+            "authors": [
+              "Alex Example"
+            ],
+            "date": "2026-02-10"
+          }
+        ]
+      }
+    ],
+    "sequence": 4,
+    "elapsed_ms": 7847
+  }
+]

@@ -4,6 +4,7 @@
 // 2. Link-note torture: fifteen long titles and hosts with a QR cell; must compile, and the
 //    rendered rows must not overlap (each row's text box is checked by page text order).
 import { emitTypst } from "./lib/typst-emit.mjs";
+import {readingOrderFindings} from './lib/publisher-layout.mjs';
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
@@ -82,4 +83,53 @@ const exampleFixture=wrap('<p>'+ 'The preceding discussion explains how to impro
 r=compile(emitTypst(exampleFixture,{baseDir:'proofs/fixtures',pubName:'Fixture'}),'whole-comparison');
 ok(r.ok,'before/after comparison fixture compiles');
 if(r.ok){const pages=text(r.pdf).split('\f');ok(pages.some(p=>p.includes('BeforeExampleMarker')&&p.includes('AfterExampleMarker')),'short before/after comparison stays on the same page');}
+/* 9. Publisher sections carry physical-page metadata; end matter sheds the article head. */
+const sectional=wrap('<p>CompleteSourceMarker.</p>')
+  .replace('<section class="article"','<section class="part"><div class="partkind">Part one</div><div class="parttitle">SeasonMarker</div></section><section class="article"')
+  .replace('</body>','<div class="fm about"><h3>About</h3><p>EditionNoteMarker.</p></div></body>');
+r=compile(emitTypst(sectional,{baseDir:'proofs/fixtures',pubName:'Fixture',host:'example.com'}),'publisher-structure');
+ok(r.ok,'publisher structure compiles: '+(r.err||''));
+if(r.ok){
+  const t=text(r.pdf),parts=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/publisher-structure.typ','<partstart>','--field','value'],{encoding:'utf8'}));
+  ok(parts.length===1&&parts[0].title==='SeasonMarker'&&t.split('\f')[parts[0].page-1].includes('SeasonMarker'),'section metadata identifies the actual divider leaf');
+  const folios=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/publisher-structure.typ','<folio>','--field','value'],{encoding:'utf8'}));
+  ok(folios.some(f=>f.folio===1&&f.page>1),'physical leaf numbers and printed folios are recorded separately');
+  const note=t.split('\f').find(p=>p.includes('EditionNoteMarker'));
+  ok(note&&!note.includes('Boundaries'),'edition note cannot inherit the last article running head');
+  ok(t.includes('These pieces first appeared')&&!t.includes('These essays first appeared'),'copyright copy does not misclassify a mixed edition');
+}
+/* 10. Blank versos introduced after a middle section do not inherit running furniture. */
+const middlePart=wrap('<p>First section ends here.</p>').replace('</body>','<section class="part"><div class="partkind">Part two</div><div class="parttitle">MiddleSectionMarker</div></section><section class="article"><header class="arthead"><h2 class="arttitle">SecondArticleMarker</h2></header><div class="artbody"><p>Second section begins here.</p></div></section></body>');
+r=compile(emitTypst(middlePart,{baseDir:'proofs/fixtures',pubName:'Fixture',host:'example.com'}),'middle-part-verso');
+ok(r.ok,'middle section divider compiles: '+(r.err||''));
+if(r.ok){
+  const query=label=>JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/middle-part-verso.typ',label,'--field','value'],{encoding:'utf8'}));
+  const divider=query('<partstart>')[0],next=query('<artstart>')[1],pages=text(r.pdf).split('\f');
+  const gaps=pages.slice(divider.page,next.page-1);
+  ok(gaps.length>0&&gaps.every(p=>!p.trim()),'blank section verso contains neither prior article head nor folio');
+}
+/* 11. A publisher-selected image retains its source position without changing its size. */
+execFileSync('python3',['-c',"from PIL import Image; Image.new('RGB',(90,140),(160,160,160)).save('proofs/fixtures/publisher-portrait.png')"]);
+const figureFixture=wrap('<p>BeforeImageMarker. '+ 'A complete paragraph before the photograph. '.repeat(16)+'</p><figure><img data-fig="portrait-one" src="publisher-portrait.png" alt="portrait"/></figure><p>AfterImageMarker. '+ 'A complete paragraph after the photograph. '.repeat(16)+'</p><figure><img data-fig="portrait-two" src="publisher-portrait.png" alt="portrait"/></figure>');
+const floating=compile(emitTypst(figureFixture,{baseDir:'proofs/fixtures'}),'publisher-float');
+const fixed=compile(emitTypst(figureFixture,{baseDir:'proofs/fixtures',inFlow:['portrait-one']}),'publisher-inflow');
+ok(floating.ok&&fixed.ok,'publisher figure-placement variants both compile');
+if(floating.ok&&fixed.ok){
+  const query=name=>JSON.parse(execFileSync('typst',['query','--font-path','fonts',`proofs/fixtures/${name}.typ`,'<fig>','--field','value'],{encoding:'utf8'}));
+  const before=query('publisher-float'),after=query('publisher-inflow');
+  ok(before[0].floating===true&&after[0].floating===false&&before[0].h===after[0].h&&before[0].source===after[0].source,'in-flow repair retains original figure bytes and measured size');
+  const t=text(fixed.pdf);ok(t.includes('BeforeImageMarker')&&t.includes('AfterImageMarker'),'figure placement preserves both source paragraphs');
+  const measured=name=>{
+    const query=label=>JSON.parse(execFileSync('typst',['query','--font-path','fonts',`proofs/fixtures/${name}.typ`,label,'--field','value'],{encoding:'utf8'}));
+    const ends=query('<parend>');
+    return readingOrderFindings({figures:query('<fig>'),paragraphs:query('<parstart>').map(start=>({id:start.id,start,end:ends.find(e=>e.id===start.id)}))});
+  };
+  ok(measured('publisher-float').length===1&&measured('publisher-inflow').length===0,'actual paragraph geometry detects the float interruption and clears the repaired PDF');
+}
+/* 12. A short collected reference shares the edition note instead of wasting a leaf. */
+const shortCollection=wrap('<p>BodyOnlyMarker.</p>').replace('</section>','<section class="linknote"><h2 class="linknote-h">Links</h2><ul><li><span class="lk">a</span><span class="lk-text">SourceReferenceMarker</span><span class="lk-url">example.com/source</span></li></ul></section></section>')
+  .replace('</body>','<div class="fm about"><h3>About</h3><p>EditionNoteMarker explains the source and setting.</p></div></body>');
+r=compile(emitTypst(shortCollection,{baseDir:'proofs/fixtures',backLinks:[1]}),'shared-end-matter');
+ok(r.ok,'shared references and edition note compile');
+if(r.ok)ok(text(r.pdf).split('\f').some(p=>p.includes('SourceReferenceMarker')&&p.includes('EditionNoteMarker')),'short reference and edition note occupy one leaf with all content preserved');
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

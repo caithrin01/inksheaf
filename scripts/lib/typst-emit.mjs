@@ -62,12 +62,12 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], host = "" } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "" } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -156,13 +156,13 @@ export function emitTypst(html, opts = {}) {
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
     const id = attr(imgEl, "data-fig") || src;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
-    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, page: here().page(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
+    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!fitH && !isLast && !inFlow.includes(id))}, page: here().page(), y: here().position().y.pt(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if (isLast && figTotal > 0) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* the last figure stays in flow, before the notes */
+    if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
   }
@@ -222,11 +222,18 @@ export function emitTypst(html, opts = {}) {
     switch (n.name) {
       case "p": {
         const imgs = findAll(n, k => isEl(k) && k.name === "img");
-        const t = kids(n).map(k => inline(k)).join("").trim();
+        let t = kids(n).map(k => inline(k)).join("").trim();
         let s = "";
         for (const im of imgs) s += figureOf(im, "");
         const exampleLead = textOf(n).trim().length <= 160 && /(?:^\s*Before:|\b(?:Before|After):\s*$)/i.test(textOf(n));
-        if (t) s += (exampleLead ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${kids(n).map(k => inline(k)).join("")}])\n\n` : t + "\n\n");
+        const meaningful=kids(n).filter(k=>k.type!=='text'||k.data.trim());
+        const boldHeading=meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
+        if(t){
+          const id=++paragraphN;
+          const point=label=>`#context [#metadata((id: ${id}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          t=point('parstart')+t+point('parend');
+          s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
+        }
         return s;
       }
       case "h1": case "h2": return `== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
@@ -341,7 +348,7 @@ export function emitTypst(html, opts = {}) {
   /* the copyright page, verso of the title page: the rights line first, provenance, imprint, then the setting */
   const rights = (colophon.match(/©[^·]*$/) || [""])[0].trim();
   const setting = colophon.replace(/·?\s*©[^·]*$/, "").replace(/\s*·\s*Proof edition\s*/, " · ").replace(/^\s*·\s*|\s*·\s*$/g, "").trim();
-  const copyrightPage = `#set par(first-line-indent: 0em, justify: false, spacing: 0.9em)\n#set text(size: 8.5pt, fill: rgb("#3a352c"))\n#align(bottom)[${rights ? esc(rights) + "\n\n" : ""}These ${esc(kindLine ? "pieces" : "essays")} first appeared at ${esc(host)}${tp.s ? ", " + esc(tp.s) : ""}, and are printed in the order they first appeared.\n\nPrinted and bound by Inksheaf, an independent service for Substack writers, not affiliated with Substack Inc. inksheaf.com\n\n${esc(setting)}${/Proof edition/.test(colophon) ? "\n\nProof edition." : ""}]\n`;
+  const copyrightPage = `#set par(first-line-indent: 0em, justify: false, spacing: 0.9em)\n#set text(size: 8.5pt, fill: rgb("#3a352c"))\n#align(bottom)[${rights ? esc(rights) + "\n\n" : ""}These pieces first appeared at ${esc(host)}${tp.s ? ", " + esc(tp.s) : ""}.\n\nPrinted and bound by Inksheaf, an independent service for Substack writers, not affiliated with Substack Inc. inksheaf.com\n\n${esc(setting)}${/Proof edition/.test(colophon) ? "\n\nProof edition." : ""}]\n`;
   const getmore = fm.getmore ? kids(fm.getmore).filter(k => isEl(k)).map(k => k.name === "h3" ? "" : has(k, "qr") ? (() => {
       const imgs = findAll(k, x => isEl(x) && x.name === "img"); const labels = textOf(k).replace(/\s+/g, " ").trim().split(/\s+/);
       return `#v(0.5in)\n#grid(columns: (1fr, 1fr), gutter: 12pt, ${imgs.map((im, i) => { const src = localImage(attr(im, "src"));
@@ -361,17 +368,22 @@ export function emitTypst(html, opts = {}) {
 #let inbody = state("inbody", false)
 #let rubric = rgb("${RUBRIC}")
 #let faint = rgb("${FAINT}")
+#let part-verso() = {
+  let pg = here().page()
+  let parts = query(<partstart>).filter(p => p.value.page < pg)
+  parts.len() > 0 and not query(<artstart>).any(a => a.value.page > parts.last().value.page and a.value.page <= pg)
+}
 /* running heads: none on a page where an essay opens (the chapter-opener convention), the
    publication on left pages, the essay that is current at the top of the page on right pages,
    found by querying the level-1 headings rather than a state set mid-page */
 #set page(width: 6in, height: 9in, margin: (inside: 0.85in, outside: 0.62in, top: 0.78in, bottom: 0.78in),
-  header: context { if inbody.get() {
+  header: context { if inbody.get() and not part-verso() {
     let pg = here().page(); let hs = query(heading.where(level: 1))
     if not hs.any(h => h.location().page() == pg) {
       let before = hs.filter(h => h.location().page() < pg)
       set text(size: 7.5pt, tracking: 0.14em, fill: faint)
       if calc.even(counter(page).get().first()) [#smallcaps[${esc(pubName.toLowerCase())}]] else if before.len() > 0 [#h(1fr) #emph(text(tracking: 0em, size: 8pt)[#before.last().body])] } } },
-  footer: context { if inbody.get() [ #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
+  footer: context { if inbody.get() and not part-verso() [ #metadata((page: here().page(), folio: counter(page).get().first())) <folio> #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
 #set text(font: ("Source Serif 4", "Noto Serif SC", "Noto Emoji"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
 #set par(justify: true, leading: 0.66em, first-line-indent: 1.35em, spacing: 0.66em)
 #set heading(numbering: none, outlined: false)
@@ -401,7 +413,7 @@ export function emitTypst(html, opts = {}) {
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
-#let partpage(kind, title) = page(header: none, footer: none)[ #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
+#let partpage(kind, title) = page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
 #let fmpage(body) = page(header: none, footer: none, body)
 `;
 
@@ -422,6 +434,8 @@ export function emitTypst(html, opts = {}) {
     if (s.part) { const k = textOf(find(s.part, x => has(x, "partkind")) || {}).trim(), t = textOf(find(s.part, x => has(x, "parttitle")) || {}).trim(); out.push(`#partpage(${str(k)}, ${str(t)})\n`); }
     else out.push(article(s.article, ai++));
   }
+  // End matter has its own headings; it must not inherit the last article's running head.
+  out.push("#set page(header: none)\n");
   if (backNotes.length) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[NOTES]\n#v(0.8em)\n#set par(first-line-indent: 0em, justify: false)\n`);
     for (const b of backNotes) out.push(`#text(size: 9.5pt, weight: 600)[${esc(b.title)}]\n${b.blk}`);
@@ -434,7 +448,9 @@ export function emitTypst(html, opts = {}) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[FROM THE COMMENTS]\n#v(0.8em)\n`);
     out.push(kids(fm.appendix).filter(k => isEl(k) && k.name !== "h3").map(block).join(""));
   }
-  if (aboutBody) out.push(`#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false, spacing: 1em)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[A NOTE ON THIS EDITION]\n#v(0.8em)\n${aboutBody}\n`);
+  // References and the edition note can share end matter. A single collected link
+  // must not force a nearly empty leaf followed by another short note page.
+  if (aboutBody) out.push(`${collectedLinks.length&&!fm.appendix?'#v(0.45in)':'#pagebreak(weak: true)'}\n#set par(first-line-indent: 0em, justify: false, spacing: 1em)\n#block(sticky: true)[#text(size: 9pt, tracking: 0.26em, fill: rubric)[A NOTE ON THIS EDITION]]\n#v(0.8em)\n${aboutBody}\n`);
   if (fm.getmore) out.push(`#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[GET MORE]\n#v(0.8em)\n${getmore}`);
   return out.join("\n");
 }

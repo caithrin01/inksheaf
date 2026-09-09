@@ -7,16 +7,14 @@ import { onRequest } from "../functions/api/signup.js";
 function mockDB(log) {
   return { prepare(sql) { return { bind(...args) {
     return { first: async () => {
+      if(sql.startsWith("INSERT INTO quota_hits"))return {n:1};
       if (!sql.startsWith("SELECT * FROM signups")) return null;
       const row = log.find(x => x.sql.includes("INSERT INTO signups"));
       return row ? { id: 1, publication_url: row.args[0], email: row.args[3], plan_json: row.args[14] } : null;
     }, run: async () => { log.push({ sql, args }); return { meta: { changes: 1 } }; } };
   }, first: async () => ({ n: 0 }), run: async () => { log.push({ sql, args: [] }); } }; } };
 }
-const req = (body) => ({ method: "POST",
-  url: "https://inksheaf.com/api/signup",
-  headers: { get: (h) => (h === "content-length" ? String(JSON.stringify(body).length) : null) },
-  json: async () => body });
+const req = body => new Request('https://inksheaf.com/api/signup', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
 
 const log = [];
 const plan = JSON.stringify({ cadence: "quarterly", interior: "color",

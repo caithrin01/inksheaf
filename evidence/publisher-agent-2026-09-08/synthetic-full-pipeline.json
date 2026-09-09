@@ -1,0 +1,225 @@
+{
+  "status": "completed",
+  "host": "workshop.substack.com",
+  "started": "2026-09-09T00:27:31.391Z",
+  "included": [
+    {
+      "id": 101,
+      "slug": "reading-room"
+    },
+    {
+      "id": 103,
+      "slug": "winter-poem"
+    },
+    {
+      "id": 104,
+      "slug": "thanks-to-the-night-shift"
+    },
+    {
+      "id": 105,
+      "slug": "interview"
+    },
+    {
+      "id": 107,
+      "slug": "bread"
+    },
+    {
+      "id": 108,
+      "slug": "small-observation"
+    }
+  ],
+  "layout": {
+    "decisions": [
+      {
+        "page": 1,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title leaf with publisher fixture name; no filler needed for a front-matter title page."
+      },
+      {
+        "page": 2,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso is a structural pause, not a content page."
+      },
+      {
+        "page": 3,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title/masthead page with issue and author name; front matter needs no density filler."
+      },
+      {
+        "page": 5,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Dedicated contents page listing pieces; its purpose is navigation, not density."
+      },
+      {
+        "page": 6,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso is a structural pause, not a content page."
+      },
+      {
+        "page": 7,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete essay ends on its own page; trailing space is intentional separation before next piece."
+      },
+      {
+        "page": 8,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete short poem ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 9,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete essay ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 10,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete interview ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 11,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete recipe ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 12,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete dispatch ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 13,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Edition note explaining scope and omissions; its job is informational, not density."
+      },
+      {
+        "page": 14,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter page with links and imprint information; no filler needed for this purpose."
+      }
+    ],
+    "total_render_passes": 1
+  },
+  "review": {
+    "pages": 14,
+    "sheets": 4,
+    "pass1": {
+      "model": "google/gemini-3.1-flash-lite",
+      "calls": 4,
+      "flagged": 0,
+      "errors": 0
+    },
+    "pass2": {
+      "model": "anthropic/claude-sonnet-5",
+      "calls": 0,
+      "confirmed": 0,
+      "dismissed": 0,
+      "errors": 0
+    },
+    "findings": [],
+    "dismissed": [],
+    "errors": [],
+    "usage": {
+      "prompt_tokens": 8654,
+      "completion_tokens": 32
+    },
+    "skipped": null,
+    "ms": 6947,
+    "layout_exceptions": [
+      {
+        "page": 1,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title leaf with publisher fixture name; no filler needed for a front-matter title page."
+      },
+      {
+        "page": 2,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso is a structural pause, not a content page."
+      },
+      {
+        "page": 3,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title/masthead page with issue and author name; front matter needs no density filler."
+      },
+      {
+        "page": 5,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Dedicated contents page listing pieces; its purpose is navigation, not density."
+      },
+      {
+        "page": 6,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso is a structural pause, not a content page."
+      },
+      {
+        "page": 7,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete essay ends on its own page; trailing space is intentional separation before next piece."
+      },
+      {
+        "page": 8,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete short poem ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 9,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete essay ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 10,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete interview ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 11,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete recipe ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 12,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Complete dispatch ends on its own page; trailing space is intentional separation."
+      },
+      {
+        "page": 13,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Edition note explaining scope and omissions; its job is informational, not density."
+      },
+      {
+        "page": 14,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter page with links and imprint information; no filler needed for this purpose."
+      }
+    ],
+    "resolved": []
+  },
+  "pdf": "local synthetic fixture PDF; not uploaded",
+  "finished": "2026-09-09T00:28:33.634Z",
+  "model_cost_usd": 0.13887175000000002,
+  "reserved_or_spent_usd": 0.13887175000000002
+}

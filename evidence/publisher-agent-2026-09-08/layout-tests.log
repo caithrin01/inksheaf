@@ -1,0 +1,14 @@
+PASS only measured finite figure and leading adjustments are offered
+PASS repairs cannot name another page or invent a destructive operation
+PASS every measured page needs a decision even when the renderer exempted it
+PASS a blank-page justification cannot dismiss an overflow defect
+PASS applying a repair changes only bounded typesetter settings
+PASS a complete short poem may retain intentional space with an explicit reason
+PASS front matter never inherits a nonexistent article design purpose
+PASS section dividers have a measured identity without exempting adjacent article tails
+PASS the visual review gets front-matter verso and actual printed-folio context
+PASS large layouts retain exact page coverage in bounded model requests
+PASS large top and internal gaps cannot disappear behind a small trailing gap
+PASS reading-order repairs only move measured nearby floats back to their source position
+PASS measured paragraph boundaries catch interruptions that vision misses
+13 bounded publisher layout checks passed

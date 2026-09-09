@@ -4,13 +4,13 @@
 // Pass 1: every page, four to a contact sheet, a cheap document-vision model answers a fixed
 // checklist with page numbers. Pass 2: each flagged page alone, at higher resolution, a stronger
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
-// never throws on a model failure, so a proof is never held up by the reviewer being down.
+// records model failures. The publisher orchestrator holds delivery until review is complete.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 
 export const CHECKS = {
-  1: "Blank space: more than a third of the text block empty on a page that is not an essay's last page.",
+  1: "Blank space: more than 30% of the body-layout area unused without a clear design reason. Include sparse essay endings. A short poem, deliberate section opening or necessary end matter may justify space; identify the reason instead of exempting every last page.",
   2: "Orphans and widows: a heading alone at the foot; a single line of a paragraph alone at the top or foot.",
   3: "Figures: an image separated from its caption; an image cropped or overflowing the text block; an image too small to read; a placeholder box, 'could not be retrieved' or broken-image notice where a picture should be.",
   4: "Overflow: a table, code block, URL or wide word running past the right margin or off the page.",
@@ -27,6 +27,8 @@ const checklist = () => Object.entries(CHECKS).map(([n, t]) => `${n}. ${t}`).joi
 /* pdftoppm: every page as PNG, longest side `scale` px. Returns the page files in order. */
 export function rasterise(pdf, dir, { scale = 900, first, last } = {}) {
   mkdirSync(dir, { recursive: true });
+  // A repaired or resumed PDF may be shorter; old rasters must not become phantom pages.
+  for (const name of readdirSync(dir)) if (/^p-\d+\.png$/.test(name)) unlinkSync(join(dir,name));
   const args = ["-png", "-scale-to", String(scale)];
   if (first) args.push("-f", String(first));
   if (last) args.push("-l", String(last));
@@ -38,11 +40,11 @@ export const pageOf = f => num(basename(f));
 
 /* 2 x 2 contact sheets, each tile labelled with its page number in the corner (Pillow, present in
    the press workflow and the unit-gate image). Returns [{file, pages:[n,...]}]. */
-export function contactSheets(pages, dir) {
+export function contactSheets(pages, dir, {format="jpeg"}={}) {
   mkdirSync(dir, { recursive: true });
   const groups = [];
   for (let i = 0; i < pages.length; i += 4) groups.push(pages.slice(i, i + 4));
-  const spec = groups.map((g, i) => ({ out: join(dir, `sheet-${String(i + 1).padStart(3, "0")}.jpg`), tiles: g.map(f => ({ file: f, page: pageOf(f) })) }));
+  const spec = groups.map((g, i) => ({ out: join(dir, `sheet-${String(i + 1).padStart(3, "0")}.${format==="png"?"png":"jpg"}`), tiles: g.map(f => ({ file: f, page: pageOf(f) })) }));
   const py = `
 import json,sys
 from PIL import Image, ImageDraw
@@ -57,11 +59,25 @@ for s in spec:
         sheet.paste(im,(x,y))
         label="page %d"%t["page"]
         d.rectangle([x,y,x+90,y+22],fill=(200,30,30)); d.text((x+6,y+5),label,fill=(255,255,255))
-    sheet.save(s["out"],"JPEG",quality=82)
+    sheet.save(s["out"],"PNG" if s["out"].endswith(".png") else "JPEG",quality=82)
 print(len(spec))
 `;
   execFileSync("python3", ["-c", py], { input: JSON.stringify(spec), stdio: ["pipe", "ignore", "pipe"] });
   return spec.map(s => ({ file: s.out, pages: s.tiles.map(t => t.page) }));
+}
+
+// Print-preservation checks compare the flagged PDF page with its actual source figures.
+// These bounded, local PNG conversions introduce no generated or repaired source content.
+function sourceComparisons(figures,dir){
+  mkdirSync(dir,{recursive:true});
+  const spec=figures.map((f,i)=>({source:f.source,out:join(dir,`source-${i+1}.png`)}));
+  execFileSync('python3',['-c',`
+import json,sys
+from PIL import Image
+for s in json.load(sys.stdin):
+    im=Image.open(s['source']).convert('RGB');im.thumbnail((1800,1800));im.save(s['out'],'PNG')
+`],{input:JSON.stringify(spec),stdio:['pipe','ignore','pipe']});
+  return spec.map(s=>s.out);
 }
 
 /* the model call: OpenRouter chat completions with image parts; returns text or throws */
@@ -89,25 +105,31 @@ export function parseJson(text) {
   try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
 }
 
-const pass1Prompt = pages => `You are checking typeset book pages for production defects. This contact sheet holds ${pages.length} pages of a 6 by 9 inch book, in reading order: top-left is page ${pages[0]}, top-right page ${pages[1] ?? "-"}, bottom-left page ${pages[2] ?? "-"}, bottom-right page ${pages[3] ?? "-"}. Each tile carries its page number in a red label.
+const pass1Prompt = (pages,context) => `You are checking typeset book pages for production defects. This contact sheet holds ${pages.length} pages of a 6 by 9 inch book, in reading order: top-left is page ${pages[0]}, top-right page ${pages[1] ?? "-"}, bottom-left page ${pages[2] ?? "-"}, bottom-right page ${pages[3] ?? "-"}. Each tile carries its PHYSICAL PDF page number in a red label. Those labels are review references, NOT the printed folios. A book often starts folio 1 after its unnumbered front matter. Never call that normal offset a numbering defect.
+
+Renderer page map: ${JSON.stringify(context)}. When folio_map_available is true, expected_printed_folio names the intended visible folio; null means this structural leaf has no printed folio. Use the supplied position to distinguish front-matter versos from blanks interrupting an article.
 
 Look for only these defects:
 ${checklist()}
 
-Chapter openers, section closers, title pages, contents pages, part-title pages, dedication and epigraph pages, and the short notes and links pages at the back are allowed to be mostly empty; do not report check 1 for them. A completely blank page is normal when it is the back of a half-title, title, dedication or epigraph page, the page before a part or chapter opener, or the last page of the book; report a blank page (check 7) only when it sits between pages of running body text. Body text set in a book face with a running head and a folio is normal; report only what is wrong.
+Printed source cards for videos and attachments, including their readable URLs, are intentional web-to-print treatments, not raw markup. A screenshot may deliberately illustrate faulty AI output; source-image spelling is not a missing-font defect. Judge space by its actual purpose. A complete short piece, title, contents, part-title, dedication or necessary end matter may justify space; identify that purpose. Do not exempt every chapter opener or closer: a stranded ending or unexplained gap inside running text still needs review. A blank verso in front matter or at a section boundary can be intentional; a blank page interrupting running text is a defect. Structural whitespace never excuses another defect such as overflow, a missing image or a wrong running head.
 
 Answer with a JSON array and nothing else. Each element: {"page": <number>, "check": <1-8>, "note": "<one sentence>", "confidence": <0 to 1>}. An empty array [] when nothing is wrong.`;
 
-const pass2Prompt = f => `This is page ${f.page} of a typeset 6 by 9 inch book, shown alone at full size. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
 
-Look at the page carefully and decide whether that defect is really present. Chapter openers, closers, title and contents pages may legitimately be mostly empty, and a blank page is normal as the back of front matter, before an opener, or at the very end. Describe what is actually on this page in your note. A placeholder box or "could not be retrieved" text where an image should be is a real defect.
+${neighbours.length ? 'Additional images show neighbouring pages: '+neighbours.map((p,i)=>'image '+(i+2)+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
 
-If this page is the last page of an essay, a chapter or part opener, a dedication, epigraph, contents or title page, or a notes, links or "get more" page at the back, empty space on it is normal: answer confirmed false.
+${sources.length ? 'The first image is the printed page. Additional images are the actual source figures used on this page, in order: '+sources.map((s,i)=>'image '+(i+2)+' = '+s.id).join('; ')+'. Compare against those sources. Preserve deliberately cropped photos or screenshots of bad text: source content must not be reconstructed or rewritten. Loss introduced by the print layout, or essential detail made unreadable in print, is still a defect.' : 'No separate source-image comparison is available; do not assume source-image spelling was introduced by typesetting.'}
 
-Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "note": "<what you see>"}.`;
+Look at the page carefully and decide whether the SPECIFIC flagged defect is present. The first reader's note must match its assigned check; do not confirm a different defect under that code. Plain readable URLs in labelled video/attachment cards are valid source notes, not raw markup. Screenshots illustrating an essay about faulty AI output may intentionally show broken text; that is different from a font/encoding failure introduced into the typeset prose. Describe what you see. For check 1, a complete short piece or dedicated front/end matter can justify space; a stranded article tail is not automatically exempt. For every other check, the page's structural purpose does not excuse the defect. A placeholder or "could not be retrieved" text in place of an image is a defect. Do not dismiss image, overflow, glyph or running-head defects merely because the page is an opener or closer.
+
+Classify origin as rendered_layout, source_content or uncertain. source_content means the finding is entirely explained by faithfully preserved source material, with no additional print loss. An intentionally broken screenshot or original photo crop can qualify. Essential detail made unreadable by print scaling is rendered_layout. When intent/readability cannot be established, use uncertain.
+
+Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"}.`;
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
@@ -116,41 +138,50 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   try { pages = rasterise(pdf, join(dir, "pages")); } catch (e) { out.errors.push(`rasterise: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.pages = pages.length;
   let sheets;
-  try { sheets = contactSheets(pages, join(dir, "sheets")); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
+  try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.sheets = sheets.length;
   const flagged = [];
   for (const s of sheets) {
+    if(stopOnError&&out.errors.length)break;
     try {
-      const r = await ask({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages), maxTokens: 800 });
+      const r = await ask({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
       out.pass1.calls++; addUsage(out, r.usage);
       const arr = parseJson(r.text);
       if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); continue; }
       for (const f of arr) {
         const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
-        if (!s.pages.includes(page) || !CHECKS[check] || !(conf >= minConfidence)) continue;
+        if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') {
+          out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: invalid page/check finding`); continue;
+        }
+        if (conf < minConfidence) continue;
         flagged.push({ page, check, note: String(f.note || "").slice(0, 200), confidence: Math.round(conf * 100) / 100 });
       }
     } catch (e) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: ${String(e.message).slice(0, 120)}`); }
     log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${flagged.length} flagged so far`);
   }
-  /* one pass-2 call per flagged page, the strongest flag first when a page carries several */
+  /* Confirm each distinct defect. Dismissing whitespace must not discard overflow on the same page. */
   const byPage = new Map();
-  for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(f.page)) byPage.set(f.page, f);
+  for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
   for (const f of byPage.values()) {
+    if(stopOnError&&out.errors.length)break;
     let single;
     /* one directory per page: pdftoppm names by page number and a shared directory once handed
        pass 2 the first page rasterised for every flag (found on the first real run, 2026-09-04) */
     try { single = rasterise(pdf, join(dir, "single", String(f.page)), { scale: 1800, first: f.page, last: f.page }).find(x => pageOf(x) === f.page); if (!single) throw new Error("no raster"); } catch (e) { out.errors.push(`page ${f.page}: raster ${String(e.message).slice(0, 80)}`); continue; }
     try {
-      const r = await ask({ model: pass2Model, images: [single], text: pass2Prompt(f), maxTokens: 400 });
+      const originals=[3,6].includes(f.check)?sourceFigures.filter(s=>s.page===f.page&&s.source).slice(0,3):[];
+      const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
+      const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):[];
+      const adjacent=neighbours.map(p=>rasterise(pdf,join(dir,'adjacent',String(p)),{scale:1800,first:p,last:p})[0]);
+      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours), maxTokens: 400 });
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
-      /* a truncated or chatty answer still usually carries the verdict */
-      if (!j || typeof j.confirmed !== "boolean") { const m = String(r.text || "").match(/"confirmed"\s*:\s*(true|false)/i); if (m) j = { confirmed: m[1].toLowerCase() === "true", note: (String(r.text).match(/"note"\s*:\s*"([^"]{0,200})/) || [])[1] || f.note }; }
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); continue; }
-      const rec = { page: f.page, check: f.check, note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence };
-      if (j.confirmed) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
+      const sourcePreserved=j.origin==='source_content'&&comparisons.length>0&&[3,6].includes(f.check);
+      const rec = { page: f.page, check: f.check, note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
+        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours };
+      if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   }
   out.findings.sort((a, b) => a.page - b.page);
@@ -165,9 +196,10 @@ export function writerLine(r) {
   if (!r || r.skipped) return "";
   if (r.errors.length && !r.pass1.calls) return "";
   const n = r.findings.length;
-  if (!n) return `A reader model went through all ${r.pages} pages before this was sent and flagged nothing; your own read is still the one that counts.`;
+  if (r.errors.length) return `The page review is incomplete (${r.errors.length} check${r.errors.length===1?'':'s'} could not finish). ${n?`${n} page${n===1?'':'s'} also need a closer look.`:'The PDF is available for your own read.'}`;
+  if (!n) return `A reader model checked all ${r.pages} pages and flagged nothing; your own read is still the one that counts.`;
   const list = r.findings.slice(0, 6).map(f => `p. ${f.page} (${shortCheck(f.check)})`).join(", ");
-  return `A reader model went through all ${r.pages} pages before this was sent and flagged ${n} page${n === 1 ? "" : "s"} worth a look: ${list}${n > 6 ? ", and more in the full list we keep" : ""}. If you agree, ask for a change below and we fix it before it prints.`;
+  return `A reader model checked all ${r.pages} pages and flagged ${n} page${n === 1 ? "" : "s"} worth a look: ${list}${n > 6 ? ", and more in the full list we keep" : ""}. If you agree, ask for a change below and we fix it before it prints.`;
 }
 export function operatorBlock(r) {
   if (!r) return "page review: not run";

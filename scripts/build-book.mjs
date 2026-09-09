@@ -50,6 +50,8 @@ const POSTS_FILE = argOf("--posts");
 // --dedication "text": one line on its own page before the contents (the change page)
 const DEDICATION = (argOf("--dedication") || "").trim().slice(0, 300);
 const ONLY = POSTS_FILE ? JSON.parse(readFileSync(POSTS_FILE, "utf-8")).map(String) : null;
+const PUBLISHER_DIR = argOf('--publisher-dir');
+const PUBLISHER_REPLAY = argOf('--publisher-result');
 const COMMENTS_N = argOf("--comments-appendix") ? +argOf("--comments-appendix") : 0;
 const BRAND_FILE = process.argv.includes("--brand-file")
   ? process.argv[process.argv.indexOf("--brand-file") + 1] : null;
@@ -262,6 +264,36 @@ report.guestCuts = [];
 if (!process.argv.includes("--include-guests")) {
   for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
 }
+/* media-only pieces (video/audio interviews with no prose) never print as empty chapters */
+report.mediaOnly = 0;
+for (let i = full.length - 1; i >= 0; i--) {
+  const words = String(full[i].body_html || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
+  if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
+}
+
+let publisherResult = null;
+if (PUBLISHER_DIR || PUBLISHER_REPLAY) {
+  // Missing bodies cannot be silently treated as an editorial exclusion.
+  if (report.skips.length || report.planSelection?.missing?.length) throw Error('Selected source text is missing; cannot finish the publisher edition');
+  const { prepareSources,validateStructure,validateReading } = await import('./lib/publisher-agent.mjs');
+  const sources = prepareSources(full);
+  if (PUBLISHER_REPLAY) {
+    publisherResult=JSON.parse(readFileSync(PUBLISHER_REPLAY,'utf8'));
+    if(sources.some(p=>publisherResult.source_hashes[p.id]!==p.body_hash))throw Error('Publisher replay does not match the source bodies');
+    validateReading({decisions:publisherResult.decisions.filter(d=>sources.find(p=>p.id===d.post_id)?.text)},sources.filter(p=>p.text));
+  } else {
+    const {publisherSession}=await import('./lib/publisher-session.mjs');
+    const publisher=await publisherSession({directory:PUBLISHER_DIR});
+    const overrides=Object.fromEntries(full.filter(p=>INCLUDE.has(p.slug)).map(p=>[String(p.id??p.slug),'keep']));
+    publisherResult=await publisher.read({posts:full,publication:pubName,identity:{host,logo_url:brand?.logo_url||'',logo_treatment:SAVED_DESIGN?.logo,theme:{cover_bg:B.coverBg,cover_ink:B.coverInk}},overrides,volume:argOf('--publisher-volume')||'1'});
+  }
+  const included = sources.filter(p=>publisherResult.decisions.find(d=>d.post_id===p.id)?.decision!=='set_aside');
+  const structure=validateStructure(publisherResult.structure,included);
+  const byId=new Map(full.map(p=>[String(p.id??p.slug),p]));
+  report.publisher={...publisherResult,decisions:publisherResult.decisions.map(d=>({...d,slug:byId.get(d.post_id)?.slug}))};
+  full.splice(0,full.length,...structure.sections.flatMap(section=>section.post_ids.map(id=>byId.get(id))));
+}
 for (const p2 of full) for (const b of bylinesOf(p2)) byCount[b.name] = (byCount[b.name] || 0) + 1;
 const authors = Object.entries(byCount).sort((a, b) => b[1] - a[1]).map(([n]) => n);
 const multi = authors.length > 1;
@@ -284,6 +316,13 @@ const KIND_KEYWORDS = { recipe: "recipes", poem: "poems", poetry: "poems", lette
 function detectKind() {
   const flagIdx = process.argv.indexOf("--noun");
   if (flagIdx > -1) { const n = process.argv[flagIdx + 1]; return NOUNS[n] ? n : "pieces"; }
+  if (publisherResult) {
+    const names={essay:'essays',poem:'poems',recipe:'recipes',story:'stories',review:'reviews',dispatch:'dispatches'};
+    const kept=publisherResult.decisions.filter(d=>d.decision!=='set_aside');
+    const counts={};for(const d of kept)counts[d.kind]=(counts[d.kind]||0)+1;
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    return top&&top[1]>=kept.length*.8?(names[top[0]]||'pieces'):'pieces';
+  }
   const dateFrac = full.filter(p2 => DATE_TITLE.test((p2.title || "").trim())).length / Math.max(1, full.length);
   if (dateFrac > 0.5) return "letters";
   const votes = {};
@@ -299,13 +338,6 @@ const noun = kind, nounOne = NOUNS[kind] || "piece";
 const capNoun = noun.charAt(0).toUpperCase() + noun.slice(1);
 report.kind = kind;
 
-/* media-only pieces (video/audio interviews with no prose) never print as empty chapters */
-report.mediaOnly = 0;
-for (let i = full.length - 1; i >= 0; i--) {
-  const words = String(full[i].body_html || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
-  const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
-  if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
-}
 report.included = full.length;
 if (!report.included) {
   mkdirSync(OUT.split("/").slice(0, -1).join("/") || ".", { recursive: true });
@@ -328,7 +360,12 @@ for (const p2 of full) {
 const distinctSections = [...new Set(full.map(p2 => p2.section_name).filter(Boolean))];
 const sectionCoverage = full.filter(p2 => p2.section_name).length / Math.max(1, full.length);
 let partOf = null, partTitles = [], inlineSections = false;
-if (kind === "letters") {
+if (publisherResult?.structure.sections.length > 1) {
+  const sections=new Map(publisherResult.structure.sections.flatMap(s=>s.post_ids.map(id=>[id,s.title])));
+  partOf=p=>sections.get(String(p.id??p.slug));
+} else if (publisherResult) {
+  // A single chronological collection needs no extra divider leaf.
+} else if (kind === "letters") {
   partOf = p2 => new Date(Date.parse(p2.post_date)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 } else if (distinctSections.length >= 2 && sectionCoverage >= 0.6) {
   const runs = full.filter((p2, i) => !i || (p2.section_name || 'General') !== (full[i-1].section_name || 'General'));
@@ -751,13 +788,14 @@ ${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(p
     const every = eligible > 0 && eligible === full.length && cuts === 0;
     return `<p>This volume collects ${every ? "every public" : `${full.length} of the ${eligible || full.length + cuts} public`} ${every ? noun : noun} published at ${host.replace(/^www\./, "")} from
   ${range}${author.toLowerCase() !== pubName.toLowerCase() ? `, written by ${esc(multi ? authorLine.replace(/^Essays by /, "") : author)}` : ""}: ${full.length} ${noun},
-  ${totalWords.toLocaleString("en-US")} words, in the order they first appeared.${cuts ? ` ${cuts === 1 ? "One piece is" : cuts + " pieces are"} not included${(report.editorExcluded || 0) ? ", " + ((report.editorExcluded === 1) ? "one" : report.editorExcluded) + " by the editor's choice" : ""}.` : ""}</p>`; })()}
+  ${totalWords.toLocaleString("en-US")} words, ${publisherResult?.structure.sections.length > 1 ? "arranged in sections, chronologically within each" : "in the order they first appeared"}.${cuts ? ` ${cuts === 1 ? "One piece is" : cuts + " pieces are"} not included${(report.editorExcluded || 0) ? ", " + ((report.editorExcluded === 1) ? "one" : report.editorExcluded) + " by the editor's choice" : ""}.` : ""}</p>`; })()}
   ${report.retrievalFailures ? `<p>${report.retrievalFailures} ${report.retrievalFailures === 1 ? nounOne : noun} could not be
   retrieved while this proof was built and will appear in the production edition.</p>` : ""}
   ${report.mediaOnly ? `<p>${report.mediaOnly} ${report.mediaOnly === 1 ? "piece is a video or audio conversation and lives" : "pieces are video or audio conversations and live"} in the online edition.</p>` : ""}
   ${report.omittedPaid ? `<p>${report.omittedPaid} paid ${report.omittedPaid === 1 ? nounOne + " is" : noun + " are"} not
   included in this public-archive proof; the production edition adds them through the author's own export.</p>` : ""}
   ${report.ruleCuts.length ? `<p>${report.ruleCuts.length === 1 ? "One piece was" : report.ruleCuts.length + " pieces were"} left out by rule: ${(() => { const by = {}; for (const c of report.ruleCuts) by[c.reason] = (by[c.reason] || 0) + 1; return Object.entries(by).map(([r, n]) => n > 1 ? `${n} ${r.replace(/^an? /, "")}s` : r).join(", "); })()}.</p>` : ""}
+  ${report.publisher?.excluded_ids.length ? `<p>Set aside from this edition: ${report.publisher.decisions.filter(d=>d.decision==='set_aside').map(d=>`“${esc(d.title)}” (${esc(d.reason)})`).join('; ')}.</p>` : ""}
   ${report.guestCuts.length ? `<p>${report.guestCuts.length === 1 ? "One guest post is" : report.guestCuts.length + " guest posts are"} not included, because a guest owns their piece: ${report.guestCuts.map(g => `“${esc(g.title)}” by ${esc(g.by)}`).join("; ")}.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Linked words carry a
   small letter. ${DIRECT_LINKS ? 'Source names' : 'Short addresses'} and a code opening the original essay appear after the essay${argOf('--back-links') ? ' or in the Links section; the article heading gives the page when references are collected there' : ''}.
@@ -787,11 +825,9 @@ ${commentPicks.length ? `<div class="fm appendix">
 
 <div class="getmore">
   <h3>Get more</h3>
-  <p><b>Read on.</b> New essays appear first at ${host.replace(/^www\./, "")}. A free subscription
-  delivers each new piece by email, and the paid archive lives there too.</p>
-  <p><b>Order copies.</b> If the author has set up a page for this book at Lulu, the short link and
-  code below lead to it; Lulu prints each copy on demand at cost and ships it. If not, this copy was
-  printed for the author.</p>
+  <p><b>Read on.</b> Find the publication and its subscription options at ${host.replace(/^www\./, "")}.</p>
+  <p><b>Printed copies.</b> When the author offers this edition in print, their publication will
+  carry the purchase link. Lulu confirms the price and shipping at checkout.</p>
   ${homeLinks.length ? `<div class="morelinks"><b>More from ${esc(pubName)}.</b> ${homeLinks.map(l =>
     `${esc(l.title || l.url)} (${esc(String(l.url || "").replace(/^https?:\/\//, "").split("?")[0].replace(/\/$/, "").slice(0, 60))})`).join(" · ")}</div>` : ""}
   <div class="qr">
@@ -867,10 +903,12 @@ if (ENGINE === "typst") {
   const fitText = Object.fromEntries(String(argOf('--fit-text') || '').split(',').filter(Boolean).map(x=>x.split('='))
     .filter(([n, v])=>/^\d+$/.test(n)&&Number(v)>=.54&&Number(v)<=.66).map(([n,v])=>[n,Number(v)]));
   const backLinks = String(argOf('--back-links') || '').split(',').map(Number).filter(n=>Number.isInteger(n)&&n>0);
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, host: host.replace(/^www\./, "") });
+  const inFlow = String(argOf('--in-flow') || '').split(',').filter(Boolean);
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, inFlow, host: host.replace(/^www\./, "") });
   if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
   if (Object.keys(fitText).length) report.fitText = fitText;
   if (backLinks.length) report.backLinkArticles = backLinks;
+  if (inFlow.length) report.inFlowFigures = inFlow;
   writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
   report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article"; report.printInterior = PRINT_INTERIOR;
 } else report.engine = "paged";

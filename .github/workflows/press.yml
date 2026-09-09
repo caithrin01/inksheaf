@@ -20,6 +20,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Select code compatible with the deployed site
+        id: deployed-press
+        env:
+          PRESS_PROTOCOL_REQUIRED: ${{ github.event.client_payload.press_protocol }}
+        run: node scripts/press-release.mjs select
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.deployed-press.outputs.sha }}
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Typst renderer tools (typst binary, poppler for the blank measure, Pillow)
@@ -52,7 +60,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPERATOR_EMAIL: caithrin@caithrin.com
           SITE_BASE: https://inksheaf.com
-        run: node scripts/press.mjs
+          PRESS_CODE_SHA: ${{ steps.deployed-press.outputs.sha }}
+        run: GITHUB_SHA="$PRESS_CODE_SHA" node scripts/press.mjs
       - name: Record failure (Codex audit P0-7)
         if: failure()
         env:

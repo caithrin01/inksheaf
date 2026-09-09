@@ -28,7 +28,7 @@ ok("parseJson gives null on nothing", parseJson("no idea") === null);
 const calls = [];
 const ask = async ({ model, images, text }) => {
   calls.push({ model, images: images.length, image: images[0], text: text.slice(0, 40) });
-  if (/contact sheet/.test(text)) return { text: text.includes("page 1,") ? '[{"page":3,"check":1,"note":"mostly empty","confidence":0.8},{"page":5,"check":3,"note":"maybe","confidence":0.2},{"page":9,"check":7,"note":"outside","confidence":0.9}]' : "[]", usage: { prompt_tokens: 700, completion_tokens: 40 } };
+  if (/contact sheet/.test(text)) return { text: text.includes("page 1,") ? '[{"page":3,"check":1,"note":"mostly empty","confidence":0.8},{"page":4,"check":3,"note":"maybe","confidence":0.2},{"page":9,"check":7,"note":"outside","confidence":0.9}]' : "[]", usage: { prompt_tokens: 700, completion_tokens: 40 } };
   return { text: '{"confirmed": true, "note": "two thirds of the page is empty and it is not a closer"}', usage: { prompt_tokens: 900, completion_tokens: 20 } };
 };
 const r = await reviewPdf(pdf, { outDir: join(dir, "run"), ask, pass1Model: "stub-1", pass2Model: "stub-2", key: "stub" });
@@ -39,11 +39,13 @@ ok("pass 2 was shown the flagged page itself (regression: shared raster dir hand
 ok("confirmed finding reported with page, check and both notes", r.findings.length === 1 && r.findings[0].page === 3 && r.findings[0].check === 1 && r.findings[0].pass1 === "mostly empty");
 ok("usage summed", r.usage.prompt_tokens === 2300 && r.usage.completion_tokens === 100);
 ok("review.json written", existsSync(join(r.dir, "review.json")));
-ok("writer line names the page and the check", /all 6 pages/.test(writerLine(r)) && /p\. 3 \(blank space\)/.test(writerLine(r)));
+ok("writer line reports incomplete review", /incomplete/.test(writerLine(r)) && !/flagged nothing/.test(writerLine(r)));
 ok("operator block carries counts and the finding", /pass1 stub-1 flagged 1/.test(operatorBlock(r)) && /p\.3 check 1/.test(operatorBlock(r)));
 
+ok("an invented page is recorded as incomplete review, never a clean pass",r.pass1.errors===1 && r.errors.length===1);
+
 /* pass 2 dismisses: nothing reported, the dismissal kept */
-const r2 = await reviewPdf(pdf, { outDir: join(dir, "run2"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: '[{"page":2,"check":6,"note":"boxes","confidence":0.9}]' } : { text: '{"confirmed": false, "note": "clean Times, no boxes"}' }, key: "stub" });
+const r2 = await reviewPdf(pdf, { outDir: join(dir, "run2"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: text.includes("page 1,") ? '[{"page":2,"check":6,"note":"boxes","confidence":0.9}]' : "[]" } : { text: '{"confirmed": false, "note": "clean Times, no boxes"}' }, key: "stub" });
 ok("a dismissed flag is not a finding", r2.findings.length === 0 && r2.dismissed.length === 1 && r2.pass2.dismissed === 1);
 ok("writer line says nothing flagged", /flagged nothing/.test(writerLine(r2)));
 
@@ -56,9 +58,9 @@ ok("no writer line when nothing was read", writerLine(r3) === "");
 const r4 = await reviewPdf(pdf, { outDir: join(dir, "run4"), ask: async () => ({ text: "I cannot see the image." }), key: "stub" });
 ok("unparseable answers are errors, not findings", r4.findings.length === 0 && r4.pass1.errors === 2);
 
-/* a truncated pass-2 answer still yields its verdict */
+/* A truncated pass-2 answer cannot clear delivery. */
 const r6 = await reviewPdf(pdf, { outDir: join(dir, "run6"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: '[{"page":2,"check":3,"note":"box","confidence":0.9}]' } : { text: '{"confirmed": true, "note": "a dashed placeholder box where the photo should' }, key: "stub" });
-ok("truncated pass-2 JSON still counts as confirmed", r6.findings.length === 1 && r6.pass2.errors === 0 && /dashed placeholder/.test(r6.findings[0].note));
+ok("truncated pass-2 JSON leaves review incomplete", r6.findings.length === 0 && r6.pass2.errors === 1 && r6.errors.length>0);
 
 /* no key: skipped, nothing rasterised */
 const r5 = await reviewPdf(pdf, { outDir: join(dir, "run5"), key: "" });
@@ -66,4 +68,25 @@ ok("no key skips the review with a reason", r5.skipped === "no OPENROUTER_API_KE
 ok("operator block says skipped", /skipped/.test(operatorBlock(r5)) && writerLine(r5) === "");
 
 ok("eight checks in the list", Object.keys(CHECKS).length === 8);
+const multi = await reviewPdf(pdf,{outDir:join(dir,'multi'),key:'stub',ask:async({text})=>/contact sheet/.test(text)?{text:text.includes('page 1,')?'[{"page":3,"check":1,"confidence":0.9,"note":"space"},{"page":3,"check":4,"confidence":0.8,"note":"clipped URL"}]':'[]'}:{text:JSON.stringify({confirmed:text.includes('check 4:'),note:'Specific defect checked.'})}});
+ok('dismissing whitespace cannot hide overflow on the same page',multi.pass2.calls===2&&multi.findings.length===1&&multi.findings[0].check===4);
+const shorter=await PDFDocument.create();shorter.addPage([432,648]);const shortPdf=join(dir,'short.pdf');writeFileSync(shortPdf,await shorter.save());
+ok('rerasterising a shorter repaired PDF removes obsolete pages',rasterise(shortPdf,join(dir,'pages')).length===1);
+let compared=false;
+const sourceRun=await reviewPdf(pdf,{outDir:join(dir,'source-check'),key:'stub',pageContext:[{page:3,expected_printed_folio:1,folio_map_available:true,position:'article opening'}],sourceFigures:[{page:3,id:'original-figure',source:pages[0]}],ask:async({text,images})=>{
+  if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":3,"confidence":0.9,"note":"cropped image"}]':'[]'};
+  compared=images.length===2&&images[0].includes('/single/3/')&&images[1].endsWith('/source/3/source-1.png')&&text.includes('original-figure')&&text.includes('"expected_printed_folio":1');
+  return{text:'{"confirmed":true,"origin":"source_content","note":"The printed image preserves the original source crop."}'};
+}});
+ok('figure confirmation sees the actual source image and physical/printed page map',compared&&sourceRun.dismissed.length===1&&sourceRun.dismissed[0].source_preserved&&sourceRun.errors.length===0);
+let failedRequests=0;
+const stopped=await reviewPdf(pdf,{outDir:join(dir,'outage'),key:'stub',stopOnError:true,ask:async()=>{failedRequests++;throw Error('fetch failed');}});
+ok('publisher outage stops the review before attempting later pages',failedRequests===1&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
+let adjacent=false;
+const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stub',ask:async({text,images})=>{
+  if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":2,"confidence":0.9,"note":"word continues on the next page"}]':'[]'};
+  adjacent=images.length===3&&text.includes('image 2 = physical page 2')&&text.includes('image 3 = physical page 4')&&text.includes('Two or more continuation lines');
+  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page."}'};
+}});
+ok('a pagination finding is confirmed against both actual neighbouring pages',adjacent&&continuation.dismissed.length===1&&continuation.errors.length===0);
 console.log(`page-review: ${n} pass, 0 fail`);

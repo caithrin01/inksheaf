@@ -1,0 +1,154 @@
+[
+  {
+    "id": 101,
+    "slug": "reading-room",
+    "title": "The reading room",
+    "post_date": "2026-01-02",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>The town library used to close at six. Extending its hours changed who could use it: shift workers arrived after dinner, teenagers met to study, and parents could bring children after work. The useful measure was not the number of library cards. It was whether the room was open when people needed it.</p><p>The budget committee counted staff hours as a cost without counting these new uses. I interviewed the evening librarian and compared the visitor records before and after the change. Evening attendance rose while daytime attendance barely moved. These were additional readers, not the same people coming later.</p>",
+    "wordcount": 100,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 102,
+    "slug": "thank-you",
+    "title": "Thank you for 1,000 subscribers",
+    "post_date": "2026-01-04",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>We reached one thousand subscribers today. Thank you for reading and sharing the newsletter! There is no essay this week. I will be back next Tuesday. Please consider upgrading to a paid subscription to support the publication.</p>",
+    "wordcount": 37,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 103,
+    "slug": "winter-poem",
+    "title": "Winter window",
+    "post_date": "2026-01-07",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>The window holds the evening still.<br>A branch writes slowly on the glass.<br>I leave the kettle on the sill<br>and let the last light pass.</p>",
+    "wordcount": 26,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 104,
+    "slug": "thanks-to-the-night-shift",
+    "title": "Thanks to the night shift",
+    "post_date": "2026-01-10",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>A city has two timetables. The visible one is set by offices and schools. The second belongs to the people who clean trains, stock shops and care for patients while the first city sleeps. We design public transport around the first timetable and then ask why the second city needs cars.</p><p>Consider the hospital cleaner who finishes at three in the morning. The last bus left an hour earlier; the first arrives two hours later. A cheaper fare cannot solve that problem. What matters is a route that runs when the shift ends. Extending one bus route is a modest public investment with a direct effect on the cost of holding a job.</p><p>Thanks to the readers who shared their shift schedules for this essay. Your accounts helped identify the gap.</p>",
+    "wordcount": 131,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 105,
+    "slug": "interview",
+    "title": "A conversation with a bookbinder",
+    "post_date": "2026-02-03",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<h2>What makes a binding last?</h2><p><strong>Alex:</strong> What do you notice when an old book arrives for repair?</p><p><strong>Robin:</strong> I open it where it wants to open. The paper remembers where it was read. A repair has to respect how the book moves; making the spine rigid can transfer the strain to the pages.</p><p><strong>Alex:</strong> Does that change the materials you choose?</p><p><strong>Robin:</strong> Yes. Stronger glue is not always the answer. Flexibility matters, and the grain of the paper matters. I test the materials together before I start.</p>",
+    "wordcount": 87,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 106,
+    "slug": "subscriber-update",
+    "title": "A change to the posting schedule",
+    "post_date": "2026-02-06",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>A quick administrative update: the newsletter will now arrive on Thursday instead of Tuesday. Nothing else is changing. Existing paid subscriptions continue as before. Update your email preferences using the link below if you no longer want these updates.</p>",
+    "wordcount": 39,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 107,
+    "slug": "bread",
+    "title": "A loaf for a quiet afternoon",
+    "post_date": "2026-02-08",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<h2>Ingredients</h2><ul><li>500 g strong white flour</li><li>350 g water</li><li>10 g salt</li><li>3 g instant yeast</li></ul><h2>Method</h2><p>Mix the flour, water and yeast. Rest for twenty minutes, then add the salt and knead until smooth. Cover and leave until the dough has doubled. Shape gently and let it rise again. Bake in a preheated covered pot at 230\u00b0C for twenty minutes; remove the lid and bake until the crust is deep brown. Cool before cutting.</p>",
+    "wordcount": 75,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  },
+  {
+    "id": 108,
+    "slug": "small-observation",
+    "title": "The seat by the door",
+    "post_date": "2026-02-10",
+    "publishedBylines": [
+      {
+        "name": "Alex Example"
+      }
+    ],
+    "body_html": "<p>At the caf\u00e9, the seat by the door is always empty until the regular with a walking stick arrives. Nobody reserves it. People simply notice who needs the shortest route. Accessibility sometimes begins with a decision that never becomes a sign.</p>",
+    "wordcount": 41,
+    "publication_id": 999999,
+    "publication": {
+      "id": 999999,
+      "subdomain": "workshop",
+      "name": "The Workshop \u2014 synthetic publisher fixture"
+    }
+  }
+]

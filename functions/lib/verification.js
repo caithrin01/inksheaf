@@ -1,29 +1,15 @@
-import { dispatchPress } from './press-dispatch.js';
+import { startPrivatePdf } from './private-pdf.js';
 import { recordVerifiedFunnel, scheduleFunnelAlert } from './funnel.js';
 
 export async function confirmReservation(env, signup, { token, waitUntil } = {}) {
   if (token) await env.DB.prepare("UPDATE email_verifications SET verified_at = COALESCE(verified_at, datetime('now')) WHERE token = ?").bind(token).run();
   await env.DB.prepare("UPDATE signups SET email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?").bind(signup.id).run();
-  // Only one caller owns dispatch. Unknown provider outcomes require reconciliation.
-  const claim = await env.DB.prepare("UPDATE signups SET dispatch_status = 'dispatching' WHERE id = ? AND (dispatch_status IS NULL OR dispatch_status IN ('awaiting-verification', 'queued', 'verification-failed'))").bind(signup.id).run();
-  if (claim.meta?.changes !== 1) {
-    const current = await env.DB.prepare('SELECT dispatch_status FROM signups WHERE id = ?').bind(signup.id).first();
-    const checking = ['dispatching', 'dispatch-uncertain'].includes(current?.dispatch_status);
-    return { ok: true, verified: true, press: current?.dispatch_status,
-      heading: checking ? 'Your publication is confirmed.' : 'Already confirmed.',
-      message: checking ? 'We are checking the start of your PDF run. There is no need to confirm again.' : 'Your request is recorded. We will email the PDF when it is ready.' };
-  }
-  const result = await dispatchPress(env, { event: 'press', signup_id: signup.id,
-    publication_url: signup.publication_url, email: signup.email, plan_json: signup.plan_json });
-  const state = result.ok ? 'dispatched' : (result.status || result.reason === 'no dispatch token') ? 'queued' : 'dispatch-uncertain';
-  await env.DB.prepare('UPDATE signups SET dispatch_status = ? WHERE id = ?').bind(state, signup.id).run();
-  await env.DB.prepare("INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')")
-    .bind(signup.id, result.ok ? 'building' : 'queued', JSON.stringify({ message: result.ok ? 'press started after verification' : state === 'dispatch-uncertain' ? 'dispatch outcome needs reconciliation' : 'press dispatch is queued' })).run();
+  const { press: state } = await startPrivatePdf(env, signup);
   const tracked = await recordVerifiedFunnel(env, signup.id);
   if (tracked.alert) scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: 'verified', press: state });
   return { ok: true, verified: true, press: state,
-    heading: result.ok ? 'Confirmed. Your PDF is being prepared.' : 'Confirmed. Your PDF is queued.',
-    message: result.ok ? `We will email the complete PDF to ${signup.email} when it is ready. Nothing has been published or ordered.` : 'Your ownership is confirmed. We could not confirm the start of the PDF run yet; your request is saved for follow-up.' };
+    heading: state === 'dispatched' ? 'Confirmed. Your PDF is being prepared.' : 'Confirmed. Your PDF is queued.',
+    message: state === 'dispatched' ? `We will email the complete PDF to ${signup.email} when it is ready. Nothing has been published or ordered.` : 'Your ownership is confirmed. We could not confirm the start of the PDF run yet; your request is saved for follow-up.' };
 }
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

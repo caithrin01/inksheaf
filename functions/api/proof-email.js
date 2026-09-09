@@ -16,7 +16,6 @@ export async function onRequest({ request, env }) {
     const version = await env.DB.prepare(`SELECT v.id, v.signup_id, v.status, v.plan_json AS version_plan, s.plan_json AS current_plan, s.email, s.email_verified_at
       FROM edition_versions v JOIN signups s ON s.id = v.signup_id WHERE v.id = ?`).bind(id).first();
     if (!version) return json({ ok: false, error: 'edition not found' }, 404);
-    if (!version.email_verified_at) return json({ ok: false, error: 'publication ownership is not confirmed' }, 409);
     const key = `proof-ready/${id}/initial`;
     let row = await findEmailOperation(env, key);
     if (row && (row.version_id !== id || row.intended_to !== version.email)) return json({ ok: false, error: 'saved delivery requires review' }, 409);

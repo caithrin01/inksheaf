@@ -65,3 +65,8 @@ node_modules
 
 # Generated renderer fixtures; their source is the test scripts.
 proofs/fixtures/
+
+# Private publisher source, model journals and rehearsal print artifacts.
+output/publisher-agent/
+proofs/publisher/
+proofs/publisher-fixture.report.json
