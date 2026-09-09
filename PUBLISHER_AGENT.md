@@ -40,6 +40,32 @@ vault's `publisher-agent-design-2026-09-08.md`.
   PDFs cannot retain obsolete page rasters. A mixture of repairs and holds uses available bounded
   repairs first, then rechecks every page; persistent findings still block delivery.
 
+## Creator corrections during production
+
+Before the first completed version exists, each publisher exclusion offers **Put this back in
+the book** in the private workspace. The choice is saved immediately, survives a reload, and
+updates the included count. The old contents remain unavailable until their corrected version
+arrives. Expanded pieces stay open across the worker restart. The creator’s “Kept by you”
+status retains the original model reason and source quote for inspection.
+
+Migration **0012** stores selection revisions separately from the inference journal. Only an
+actual exclusion from this edition may be restored; earlier reading events remain valid while
+a restart replays its identity and contents. Concurrent/repeated restores merge without duplicate
+revisions. The worker checks saved choices between editorial/review calls and rebuilds from its
+existing reading cache and budget. At most four selection attempts run in one worker; continued
+changes are saved for recovery rather than resetting its $2 cap.
+
+A SQLite constraint at version insertion prevents a stale selection from becoming a completed
+PDF. Progress from that stale selection cannot replace the current workspace. If completion
+wins the race, the saved PDF remains available and the late correction uses **Adjust this
+edition**. This adds no verification click, extra author email or duplicate press dispatch.
+A stopped/failed worker still needs recovery: saving a correction alone does not launch a new
+worker. Automatic recovery of that state remains part of the launch work.
+
+The production press now preserves `inFlow` repairs between builds and installs the same
+PyMuPDF whitespace dependency already used by acceptance checks. These changes are candidate
+code; no press job or production migration was run as part of this checkpoint.
+
 ## Budget and persistence
 
 `OPENROUTER_API_KEY` stays on the server. Strict JSON schema, provider privacy constraints and
@@ -70,6 +96,7 @@ to an upfront generation charge.
 ```sh
 node scripts/test-publisher-agent.mjs
 node scripts/test-publisher-workspace.mjs
+node scripts/test-publisher-restore.mjs
 node scripts/test-publisher-layout.mjs
 node scripts/test-publish-volume.mjs
 node scripts/test-page-review.mjs
@@ -79,12 +106,16 @@ node scripts/test-honesty.mjs --source-only
 python3 validate.py
 ```
 
-The full unit suite passed on September 9 before the final boundary-blank fixture and review-context changes. Affected tests were then rerun: required renderer **69**, Typst **42**,
-page review **31**, bounded layout **15**, orchestration **8**, publisher **24**, and workspace **8**
-all passed. Release compatibility remains **4**. Evidence logs distinguish those checkpoints.
-The last complete Chromium/WebKit acceptance was GitHub run **34381401607** on `95fc6b9`,
-including 2,112 cover-fit checks. These new PDF changes need their own CI run; that earlier green
-run is not acceptance of the newer candidate. No browser/profile changes are part of this PR.
+The full local unit suite now passes with **11 restoration checks**, including actual SQLite
+version races and the real publisher session reusing its reading cache and ledger. Other affected
+checks pass: workspace **8**, publisher **24**, version **7**; required renderer **69**, Typst **42**,
+page review **31**, bounded layout **15**, orchestration **8**, and release compatibility **4**.
+Build, source honesty **48**, and vault validator **13** pass. The final Chromium/WebKit phone and desktop restoration checks and refreshed captures also
+pass after the critique fixes, including the preserved original explanation and source quote.
+
+GitHub acceptance **34389625351** passed on the previous `2f62191` candidate, including the full
+browser suite and 2,112 cover-fit checks. Restoration changes above that commit still need their
+own CI run. No browser/profile changes are part of this PR.
 
 Actual paid rehearsal evidence is separate from tests with controlled model responses:
 - The synthetic eight-source run completed with six retained pieces and 14 PDF pages. It predates
@@ -125,7 +156,7 @@ PDFs, model journals and browser masters remain in ignored output directories.
 
 ## Release and remaining work
 
-Apply migrations 0010 (outbox) and 0011 (publisher state/events) through the protected GitHub
+Apply migrations 0010 (outbox), 0011 (publisher state/events), and 0012 (creator selection) through the protected GitHub
 release path. No direct Cloudflare deployment. Each built artifact includes `inksheaf-press.json`
 with its exact commit. Press jobs check out that deployed commit, so merging newer code alone
 cannot start using callbacks that are not live. Before the first manifest release, only legacy
@@ -137,7 +168,7 @@ Before release, finish real annual PDF acceptance and review the final candidate
 already existing owner reservation 15 to prove ordinary production dispatch, actual inbox delivery,
 complete private PDF access and the operator copy. Do not repeat signup or order 22370559.
 
-Still open: creator link renewal/retention, early set-aside restoration before a PDF exists,
+Still open: creator link renewal/retention, automatic recovery of stopped workers,
 rendered-page browsing while production runs, actual owner-export acceptance, durable revision
 recovery, provider delivery webhooks, final wrap-cover assembly/acceptance, and the two Lulu
 routes. Personal copies use an Inksheaf-hosted listing. Subscriber sales use the creator's own

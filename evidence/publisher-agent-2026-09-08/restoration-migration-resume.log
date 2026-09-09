@@ -1,0 +1,14 @@
+skip    0001_base.sql
+skip    0002_press_mailings.sql
+skip    0003_links.sql
+skip    0004_versions_payments.sql
+skip    0005_mailings_version.sql
+skip    0006_signups_verified.sql
+skip    0007_feedback.sql
+skip    0008_funnel_sessions.sql
+skip    0009_reservation_recovery.sql
+skip    0010_email_outbox.sql
+skip    0011_publisher.sql
+   have  edition_versions.selection_revision
+applied 0012_publisher_selection.sql
+tables: allowlist edition_versions email_outbox email_verifications events feedback funnel_sessions links mailings press preview_cache print_commands publisher_events publisher_selections publisher_state quota_hits schema_migrations signups stripe_events

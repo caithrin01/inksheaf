@@ -1,0 +1,15 @@
+PASS restoration requires its own edition capability and an actual excluded source
+PASS restores merge atomically, repeated clicks are idempotent, and the journal stays intact
+PASS old-selection progress cannot replace the corrected edition on screen
+PASS a restart identity cannot hide another piece the creator was just inspecting
+PASS a stale complete PDF cannot create a version or overwrite the saved plan
+PASS the actual insert constraint catches a correction at the final version boundary
+PASS when completion wins, a late restore offers the existing adjustment route
+PASS selection changes restart the build and only commit the latest result
+PASS a last-moment commit rejection also resumes the current selection
+PASS real failures do not loop and repeated changes have a finite recovery bound
+[publisher] identity
+[publisher] reading 2/2
+[publisher] contents
+PASS the real session applies saved restores using cached reading and the same budget
+11 publisher restoration checks passed

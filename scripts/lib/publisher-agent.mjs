@@ -204,7 +204,8 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
     for (const source of batch) {
       const d = reading.decisions.find(x => x.post_id === source.id) || { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' };
       const override = overrides[source.id];
-      const decision = { ...d, ...(override ? { decision: override, reason: override === 'keep' ? 'Kept by you.' : 'Left out by you.', author_override: true } : {}),
+      const decision = { ...d, ...(override ? { decision: override, reason: override === 'keep' ? 'Kept by you.' : 'Left out by you.', author_override: true,
+        original_decision:d.decision,original_reason:d.reason } : {}),
         title: source.title, date: source.date, authors: source.authors, body_hash: source.body_hash };
       decisions.push(decision);
     }

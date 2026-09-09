@@ -7,7 +7,7 @@ const q = (sql) => { const r = JSON.parse(execFileSync("npx", ["wrangler", "d1",
 rmSync(".wrangler/state", { recursive: true, force: true });
 execFileSync("node", ["scripts/migrate.mjs", "--local"], { stdio: "ignore" });
 const tables = q("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").map(r => r.name);
-for (const t of ["publisher_events", "publisher_state", "email_outbox", "signups", "events", "preview_cache", "press", "mailings", "links", "edition_versions", "stripe_events", "print_commands", "email_verifications", "allowlist", "quota_hits", "funnel_sessions", "schema_migrations"]) ok(tables.includes(t), "table " + t);
+for (const t of ["publisher_selections", "publisher_events", "publisher_state", "email_outbox", "signups", "events", "preview_cache", "press", "mailings", "links", "edition_versions", "stripe_events", "print_commands", "email_verifications", "allowlist", "quota_hits", "funnel_sessions", "schema_migrations"]) ok(tables.includes(t), "table " + t);
 /* the transaction, as rows */
 q("INSERT INTO signups (publication_url, email, raw_json, plan_json) VALUES ('https://www.example.com', 'w@example.com', '{}', '{\"cadence\":\"single\"}')");
 q("UPDATE signups SET email_verified_at = datetime('now'), dispatch_status = 'dispatched' WHERE id = 1");

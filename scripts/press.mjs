@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { validDesign } from "../functions/lib/book-design.js";
 import {publishVolume} from "./lib/publish-volume.mjs";
 import { publisherSession } from "./lib/publisher-session.mjs";
+import {currentPublisherSelection,withPublisherSelection} from "./lib/publisher-selection.mjs";
 import { fit } from "./lib/fit.mjs";
 import { createHash } from "node:crypto";
 import { printCost } from "../functions/lib/editor-input.js";
@@ -117,7 +118,7 @@ function buildVolume(v, i, { proof, initial = {}, passes = 4 }) {
   const fitted = fit({ args, html, initial, passes, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   for (const line of String(fitted.out || "").split("\n").filter(l => /^(BLANK|TAIL|OK )/.test(l))) log("render", `${v.label}: ${line}`); /* the measure lines belong in the run log */
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
-  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks };
+  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow };
   if (!args.includes("--direct-links")) registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
@@ -130,34 +131,46 @@ if (EVENT === "press") {
      exact bytes that will print; approval names the version and its digest. */
   await status("building");
   const emit = async event => (await publisherSession({directory:`${DIR}/publisher`})).emit(event);
-  const vols = [];
-  const postOrder = [], bodyHashes = {};
-  for (let i = 0; i < volumes.length; i++) {
-    const v = volumes[i];
-    const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
-      session:()=>publisherSession({directory:`${DIR}/publisher`}),emit,volume:String(i+1),
-      reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});
-    const pages=await b.pages;
-    const key=proofKey(`${slug}-${ID}`,`interior-v${i+1}`,b.pdf);
-    await uploadProof(b.pdf,key);
-    const sha=createHash('sha256').update(readFileSync(b.pdf)).digest('hex');
-    for (const o of (b.report.postOrder || [])) postOrder.push(o);
-    Object.assign(bodyHashes, b.report.bodyHashes || {});
-    vols.push({ label: v.label, title: v.title || null, subtitle: v.subtitle || null, pages, key, sha256: sha, included: b.report.included, pubName: b.report.pubName || host, kind: plan?.kind || "essays", postOrder: b.report.postOrder || [],
-      leftOut: [...(b.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({slug:d.slug,title:d.title,reason:d.reason,kind:"publisher"})), ...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })), ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))],
-      pdf: b.pdf, report: b.report, review: b.review });
-    log("press", `${v.label}: ${pages} pages, ${key}, sha256 ${sha.slice(0, 12)}`);
-  }
-  plan = {...(plan||{}),volumes:volumes.map((v,i)=>({...v,post_ids:vols[i].postOrder.map(p=>p.id),posts:vols[i].included})),
-    publisher:{version:2,excluded:vols.flatMap((v,i)=>(v.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({...d,volume:i+1})))}};
-  const totalPages = vols.reduce((n, x) => n + x.pages, 0);
-  const rendererSha = process.env.GITHUB_SHA || (() => { try { return sh("git", ["rev-parse", "HEAD"]).trim(); } catch { return "local"; } })();
-  const vr = await fetch(`${SITE}/api/version`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
-    signup_id: ID, sig: hmac(`version:${ID}`), plan_json: plan || {}, post_ids: postOrder, body_hashes: bodyHashes, renderer_sha: rendererSha, print_mode: interior,
-    volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
-    proof_key: vols[0].key, proof_sha256: vols[0].sha256, pages: totalPages, run_id: process.env.GITHUB_RUN_ID || "" }) });
-  const vj = await vr.json().catch(() => ({}));
-  if (!vr.ok || !vj.ok) throw new Error(`version not recorded: ${vr.status} ${JSON.stringify(vj).slice(0, 160)}`);
+  const {vols,totalPages,rendererSha,finalPlan,vj}=await withPublisherSelection({
+    load:()=>currentPublisherSelection(),
+    onChange:async()=>log('publisher','Picking up the creator’s saved correction.'),
+    build:async selection=>{
+      process.env.PUBLISHER_SELECTION_REVISION=String(selection.revision);
+      const vols = [];
+      const postOrder = [], bodyHashes = {};
+      for (let i = 0; i < volumes.length; i++) {
+        const v = volumes[i];
+        const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
+          session:()=>publisherSession({directory:`${DIR}/publisher`}),emit,volume:String(i+1),
+          reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});
+        const pages=await b.pages;
+        const key=proofKey(`${slug}-${ID}`,`interior-v${i+1}`,b.pdf);
+        const sha=createHash('sha256').update(readFileSync(b.pdf)).digest('hex');
+        for (const o of (b.report.postOrder || [])) postOrder.push(o);
+        Object.assign(bodyHashes, b.report.bodyHashes || {});
+        vols.push({ label: v.label, title: v.title || null, subtitle: v.subtitle || null, pages, key, sha256: sha, included: b.report.included, pubName: b.report.pubName || host, kind: plan?.kind || "essays", postOrder: b.report.postOrder || [],
+          leftOut: [...(b.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({slug:d.slug,title:d.title,reason:d.reason,kind:"publisher"})), ...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })), ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))],
+          pdf: b.pdf, report: b.report, review: b.review });
+        log("press", `${v.label}: ${pages} pages, ${key}, sha256 ${sha.slice(0, 12)}`);
+      }
+      return {vols,postOrder,bodyHashes};
+    },
+    commit:async({vols,postOrder,bodyHashes},selection)=>{
+      for(const v of vols)await uploadProof(v.pdf,v.key);
+      const finalPlan = {...(plan||{}),volumes:volumes.map((v,i)=>({...v,post_ids:vols[i].postOrder.map(p=>p.id),posts:vols[i].included})),
+        publisher:{version:2,selection_revision:selection.revision,excluded:vols.flatMap((v,i)=>(v.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({...d,volume:i+1})))}};
+      const totalPages = vols.reduce((n, x) => n + x.pages, 0);
+      const rendererSha = process.env.GITHUB_SHA || (() => { try { return sh("git", ["rev-parse", "HEAD"]).trim(); } catch { return "local"; } })();
+      const vr = await fetch(`${SITE}/api/version`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+        signup_id: ID, sig: hmac(`version:${ID}`), plan_json: finalPlan, selection_revision:selection.revision, post_ids: postOrder, body_hashes: bodyHashes, renderer_sha: rendererSha, print_mode: interior,
+        volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
+        proof_key: vols[0].key, proof_sha256: vols[0].sha256, pages: totalPages, run_id: process.env.GITHUB_RUN_ID || "" }) });
+      const vj = await vr.json().catch(() => ({}));
+      if (!vr.ok || !vj.ok) throw new Error(`version not recorded: ${vr.status} ${JSON.stringify(vj).slice(0, 160)}`);
+      return {vols,totalPages,rendererSha,finalPlan,vj};
+    }
+  });
+  plan=finalPlan;
   const versionId = vj.version_id, nonce = vj.nonce;
   const proofUrl = signedProofUrl(vols[0].key, 7 * 24 * 3600);
   await emit({kind:"ready",files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
