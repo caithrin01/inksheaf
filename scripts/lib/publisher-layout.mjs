@@ -33,7 +33,8 @@ export function pageContext(measurement,report) {
       // on openers and structural leaves. Capitalisation is a styling choice.
       running_head_map_available:headMap,
       expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
-      article_title:title,publication:report.pubName||null};
+      article_title:title,publication:report.pubName||null,
+      ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
   });
 }
 export function layoutBatches(input,size=12){

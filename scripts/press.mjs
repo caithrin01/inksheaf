@@ -10,6 +10,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { validDesign } from "../functions/lib/book-design.js";
+import {publishPreview} from './lib/publisher-preview.mjs';
 import {publishVolume} from "./lib/publish-volume.mjs";
 import { publisherSession } from "./lib/publisher-session.mjs";
 import {currentPublisherSelection,withPublisherSelection} from "./lib/publisher-selection.mjs";
@@ -142,6 +143,7 @@ if (EVENT === "press") {
         const v = volumes[i];
         const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
           session:()=>publisherSession({directory:`${DIR}/publisher`}),emit,volume:String(i+1),
+          onRendered:({book,round,volume})=>publishPreview({book,round,volume,emit,upload:uploadProof,url:k=>signedProofUrl(k,7*24*3600),key:file=>proofKey(`${slug}-${ID}`,'preview',file),log:m=>log('preview',m)}),
           reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});
         const pages=await b.pages;
         const key=proofKey(`${slug}-${ID}`,`interior-v${i+1}`,b.pdf);

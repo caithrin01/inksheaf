@@ -1,0 +1,70 @@
+[
+  {
+    "engine": "chromium",
+    "width": 1280,
+    "pass": true,
+    "pdf_sha256": "34d0adbc46cdf1389f5844d08dc4fc66d7d22d3b2ecddca4be63ff74a5254794",
+    "states": [
+      "unavailable",
+      "load failure and retry",
+      "actual print pixels",
+      "page turn by keyboard",
+      "read as text",
+      "restored choice retires draft",
+      "revised pages",
+      "reload"
+    ],
+    "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "pass": true,
+    "pdf_sha256": "34d0adbc46cdf1389f5844d08dc4fc66d7d22d3b2ecddca4be63ff74a5254794",
+    "states": [
+      "unavailable",
+      "load failure and retry",
+      "actual print pixels",
+      "page turn by keyboard",
+      "read as text",
+      "restored choice retires draft",
+      "revised pages",
+      "reload"
+    ],
+    "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+  },
+  {
+    "engine": "webkit",
+    "width": 1280,
+    "pass": true,
+    "pdf_sha256": "34d0adbc46cdf1389f5844d08dc4fc66d7d22d3b2ecddca4be63ff74a5254794",
+    "states": [
+      "unavailable",
+      "load failure and retry",
+      "actual print pixels",
+      "page turn by keyboard",
+      "read as text",
+      "restored choice retires draft",
+      "revised pages",
+      "reload"
+    ],
+    "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "pass": true,
+    "pdf_sha256": "34d0adbc46cdf1389f5844d08dc4fc66d7d22d3b2ecddca4be63ff74a5254794",
+    "states": [
+      "unavailable",
+      "load failure and retry",
+      "actual print pixels",
+      "page turn by keyboard",
+      "read as text",
+      "restored choice retires draft",
+      "revised pages",
+      "reload"
+    ],
+    "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+  }
+]

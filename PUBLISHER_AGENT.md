@@ -66,6 +66,74 @@ The production press now preserves `inFlow` repairs between builds and installs 
 PyMuPDF whitespace dependency already used by acceptance checks. These changes are candidate
 code; no press job or production migration was run as part of this checkpoint.
 
+## Read the pages while the publisher works
+
+The candidate now extracts up to six unchanged leaves from each actual typeset PDF, including
+contents, opening writing and available illustrated pages. A **Pages** view opens into the writing.
+It presents the printed leaf or readable text, with actual printed folios separated from preview
+positions. Recognized prose reflows; poems, recipes and unclassified writing preserve line breaks.
+The selected cover remains visible. On a phone it tightens while reading, and the existing email
+and private return controls move below the reader. Layout explanations are reachable from revised
+pages. The interface distinguishes these early drafts from the later complete PDF.
+
+`publish-volume.mjs` calls the optional preview hook after typesetting and after each changed
+layout, before visual review. Production uploads only a small private excerpt at this stage. A
+preview extraction/upload failure leaves complete-book checks running. A stale-selection or
+journal failure still reaches the orchestrator. Local rehearsals have no upload hook by default.
+No proof upload was performed during this implementation.
+
+Signed publisher events bind each snapshot to its selection, worker run, volume and exact PDF
+hash. The creator API supplies a same-origin URL and withholds the upstream capability. The read
+endpoint verifies the edition capability, current run/revision/latest snapshot, fixed upstream,
+expiry, byte limit and digest. It rechecks current selection/run/pages after fetching. Retired
+previews cannot be reopened. Private/no-store/noindex headers accompany the response. This uses
+the existing PDF store API; no new Modal endpoint or service deployment is required.
+
+PDF.js **6.3.289** loads only when reading begins, with a local worker, character maps, fonts and
+image decoders. No CDN receives a private URL. One document/worker/render is active at a time;
+selection changes cancel and clear old content. Dependency audit also led to the existing
+Astro/Sharp/js-yaml patch updates: **7.2.8 / 0.35.4 / 4.3.2**. Current npm audit is clean. Node's
+minimum is 22.13. Final validation and evidence are recorded alongside this checkpoint.
+
+Thirteen private-preview checks pass, including real extraction, actual SQLite, wrong-edition
+access, stale-run/selection races during fetch, malformed/oversized/changed bytes, and print-text
+preservation. A local extraction of the held 152-page owner PDF produced five leaves; all five
+exactly match the corresponding source-page text. That is extraction evidence, not annual
+acceptance. Chromium/WebKit phone/desktop checks use a real three-leaf synthetic Typst PDF with
+intercepted APIs. The actual $0.08611 Opus critique and its disposition are separate artifacts.
+The full local unit suite passed before the subsequent brand steering; affected watermark,
+Typst, layout and orchestration checks pass afterward. Required renderer 69 passes. Final
+full browser acceptance passes, including 2,112 cover-fit checks. After the final critique,
+focused reader checks pass again; 12 light/dark Chromium/WebKit combinations verify masthead
+clearance at 320/390/1280 widths and gradient removal for increased contrast, forced colours
+and print. The required renderer gate passes again after the final watermark adjustment.
+
+Preview renewal/retention still needs the broader private-file continuity work. A draft excerpt
+is not an accessible tagged full-book reader: text extraction retains running heads/folios and
+unclassified layouts' line breaks. The printed-page view preserves the actual original layout.
+
+## Brand prominence — September 9 owner steering
+
+The owner asked for a more prominent accepted logo, opening/closing-page watermarks and a
+very subtle gradient. The working placement is printed opening/closing matter, with the
+gradient on screen panels. The workspace mark is now 288px on desktop and responds to phone
+width (166–180px); the homepage and workflow marks are enlarged within their current layouts.
+The homepage edition title is promoted so the creator remains the subject of the workspace.
+
+The watermark preserves the exact SVG paths in #EDEEEB at 3.6in wide, with 1.05in bottom
+clearance. Typst places it only on the
+opening half-title and closing matter, above the folio. Metadata identifies those leaves to
+the reviewer and private preview selector. No new page or source-text change is needed. A
+real nine-page PDF comparison changes only the first/last rasters; every word, page count and
+body-page raster matches. Six watermark checks and the existing 42 Typst checks pass. This
+is a synthetic specimen, not the annual book's acceptance or physical proof approval.
+
+The screen panel gradient is restrained to a few channel values, with corresponding dark
+and increased-contrast handling. It does not tint the real PDF canvas. The latest owner
+request extends the earlier back-cover-imprint-only identity rule; publication cover/spine
+artwork is still the creator's. The final brand critique and browser captures are recorded
+separately. Current code remains a draft candidate.
+
 ## Budget and persistence
 
 `OPENROUTER_API_KEY` stays on the server. Strict JSON schema, provider privacy constraints and
@@ -114,8 +182,8 @@ Build, source honesty **48**, and vault validator **13** pass. The final Chromiu
 pass after the critique fixes, including the preserved original explanation and source quote.
 
 GitHub acceptance **34389625351** passed on the previous `2f62191` candidate, including the full
-browser suite and 2,112 cover-fit checks. Restoration changes above that commit still need their
-own CI run. No browser/profile changes are part of this PR.
+browser suite and 2,112 cover-fit checks. Restoration acceptance **34393762938** passed on `8fc50c1`. The newer page-reader changes
+still need their own CI run. No browser/profile changes are part of this PR.
 
 Actual paid rehearsal evidence is separate from tests with controlled model responses:
 - The synthetic eight-source run completed with six retained pieces and 14 PDF pages. It predates
@@ -137,7 +205,7 @@ Actual paid rehearsal evidence is separate from tests with controlled model resp
   Small chart/map/feed labels and source-position repairs remain unresolved. **The annual book
   remains held**; no full real-model acceptance is claimed for the newer corrections.
   The cumulative annual ledger is $0.78252025 known / $1.20392225 including unknown reservations.
-- Two actual Opus frontend critiques completed ($0.11341 and $0.11007). They are design evidence,
+- Five actual Opus frontend critiques completed ($0.11341, $0.11007, $0.08192, $0.08611 and $0.08749). They are design evidence,
   not browser verification or approval. See the saved decisions on their recommendations.
 
 To make explicit paid model calls against synthetic text, using the actual complete local path:
@@ -169,7 +237,7 @@ already existing owner reservation 15 to prove ordinary production dispatch, act
 complete private PDF access and the operator copy. Do not repeat signup or order 22370559.
 
 Still open: creator link renewal/retention, automatic recovery of stopped workers,
-rendered-page browsing while production runs, actual owner-export acceptance, durable revision
+actual owner-export acceptance, durable revision
 recovery, provider delivery webhooks, final wrap-cover assembly/acceptance, and the two Lulu
 routes. Personal copies use an Inksheaf-hosted listing. Subscriber sales use the creator's own
 Lulu account, optional markup and a verified purchase link for the native orange Substack button.

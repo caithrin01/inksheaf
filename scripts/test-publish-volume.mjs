@@ -12,7 +12,7 @@ async function test(name,fn){await fn();console.log('PASS',name);passed++;}
 async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false}={}){
   const dir=mkdtempSync(join(tmpdir(),'publisher-volume-')),pdf=join(dir,'book.pdf');
   const doc=await PDFDocument.create();doc.addPage([432,648]);doc.addPage([432,648]);if(mixedHold)doc.addPage([432,648]);writeFileSync(pdf,await doc.save());
-  let builds=0;const events=[],settings=[];
+  let builds=0;const events=[],settings=[],previews=[];
   const build=async({initial,passes})=>{
     builds++;settings.push({initial,passes});
     const repaired=Boolean(initial)&&!alwaysRepair;
@@ -26,14 +26,14 @@ async function scenario({alwaysRepair=false,changeSource=false,visionFails=false
     const result={decisions:input.pages.map(p=>{const held=hold||(mixedHold&&p.page===3);return{page:p.page,decision:held?'needs_review':'repair',candidate_id:held?null:input.candidates.find(c=>c.page===p.page)?.id,reason:held?'A content defect needs investigation.':'Bring the stranded ending back using measured leading.'};})};
     return validateLayout(result,input);
   }};
-  const run=()=>publishVolume({build,session:async()=>publisher,emit,volume:'1',reviewDirectory:join(dir,'review')});
-  return{run,events,settings,get builds(){return builds;}};
+  const run=()=>publishVolume({build,session:async()=>publisher,emit,volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
+  return{run,events,settings,previews,get builds(){return builds;}};
 }
 await test('a validated repair reaches the builder and the changed PDF is reviewed again',async()=>{
   const s=await scenario(),book=await s.run();
   assert.equal(s.builds,2);assert.equal(s.settings[0].passes,4);assert.equal(s.settings[1].passes,3);
   assert.equal(s.settings[1].initial.fitText[1],.62);assert.equal(book.report.layoutAgent.total_render_passes,2);
-  assert.equal(s.events.filter(e=>e.kind==='typesetting').length,2);assert.equal(s.events.at(-1).kind,'review');
+  assert.deepEqual(s.previews,[{round:0,volume:'1',source:'original'},{round:1,volume:'1',source:'original'}]);assert.equal(s.events.filter(e=>e.kind==='typesetting').length,2);assert.equal(s.events.at(-1).kind,'review');
 });
 await test('source mutation during a repair holds the complete edition',async()=>{
   const s=await scenario({changeSource:true});await assert.rejects(s.run,/Source text changed/);assert(!s.events.some(e=>e.kind==='review'));

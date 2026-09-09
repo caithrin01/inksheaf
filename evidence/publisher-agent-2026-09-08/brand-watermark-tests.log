@@ -1,0 +1,10 @@
+PASS all original text and page counts are unchanged
+PASS only opening and closing matter acquire the vector mark
+PASS the mark clears text, folios and trim in the compiled specimen
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<publisher-page>).map(it => it.value)' --in output/brand-prominence/marked.typ` instead
+
+PASS actual watermark leaves are identified for page review
+PASS the reviewer receives the deliberate watermark context only on marked leaves
+PASS the watermark retains the accepted logo paths exactly
+6 publisher watermark checks passed

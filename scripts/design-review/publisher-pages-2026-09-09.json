@@ -1,0 +1,10 @@
+{
+  "model":"anthropic/claude-opus-5",
+  "max_tokens":3000,
+  "brief":"publisher-pages-2026-09-09.md",
+  "images":[
+    {"file":"../../output/playwright/launch/publisher-pages/chromium-1280-print.png","label":"Desktop, printed page: actual synthetic Typst leaf inside the private reader."},
+    {"file":"../../output/playwright/launch/publisher-pages/webkit-390-print.png","label":"Phone, printed page: real PDF canvas; portrait source is synthetic."},
+    {"file":"../../output/playwright/launch/publisher-pages/webkit-390-text.png","label":"Phone, text view: the same PDF writing reflowed into paragraphs."}
+  ]
+}

@@ -5,12 +5,14 @@ import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings} from '.
 import {reviewPdf,writerLine} from './page-review.mjs';
 
 // The same complete local pipeline is used by the press and by private rehearsals.
-// Publication/upload/email happen only after this function returns a checked PDF.
-export async function publishVolume({build,session,emit,volume,reviewDirectory,log=()=>{}}){
+// Complete-file publication/email happen only after a checked PDF returns.
+// An optional private draft excerpt may appear while that review continues.
+export async function publishVolume({build,session,emit,volume,reviewDirectory,log=()=>{},onRendered=async()=>{}}){
   let book=await build({passes:4}),totalPasses=book.report.fit.pass,review,layout;
   const sourceHashes=JSON.stringify(book.report.bodyHashes);
   for(let round=0;round<=2;round++){
     await emit({kind:'typesetting',volume,included:book.report.included,message:round?'The adjusted pages have been typeset again.':'Your writing and images have been set on the page.'});
+    await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
     review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],outDir:`${reviewDirectory}-${round}`,log});

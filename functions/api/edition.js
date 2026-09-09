@@ -18,7 +18,7 @@ export async function onRequest({request,env}) {
     let plan;try{plan=JSON.parse(row.plan_json||'null');}catch{}
     return json({ok:true,id,publication_url:row.publication_url,email:row.email,design:plan?.design||null,status:press?.status||row.dispatch_status||'queued',run_id:latest?.run_id||null,
       selection,restore_sig:version?null:await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-restore:${id}`),
-      events:events.map(e=>({...JSON.parse(e.payload),sequence:e.sequence,created_at:e.created_at})),email_status:email?.delivery_status||email?.status||null, retry_email_sig:email?await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-email:${id}`):null,
+      events:events.map(e=>{const event=JSON.parse(e.payload);if(event.kind==='pages'){delete event.file_url;event.url='/api/edition-pages?'+new URLSearchParams({id:String(id),sig:u.searchParams.get('sig'),run:latest.run_id,sequence:String(e.sequence)});}return {...event,sequence:e.sequence,created_at:e.created_at};}),email_status:email?.delivery_status||email?.status||null, retry_email_sig:email?await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-email:${id}`):null,
       change_url:version?`/change?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`change:${id}`)}`:null});
   }catch{return json({ok:false,error:'Your book is saved. We could not refresh its progress just now.'},503);}
 }

@@ -1,0 +1,24 @@
+<div id="pages-panel" hidden>
+  <h2>Your writing, on the page.</h2>
+  <p class="pages-intro">A first look at your typeset book.</p>
+  <div class="page-controls">
+    <label id="draft-volume-label" hidden>Volume <select id="draft-volume"></select></label>
+    <div role="group" aria-label="Page reading view"><button id="draft-print" aria-pressed="true">Printed page</button><button id="draft-text" aria-pressed="false">Read as text</button></div>
+  </div>
+  <div id="draft-surface" class="draft-surface" aria-busy="false">
+    <div id="draft-paper" class="draft-paper"></div>
+    <article id="draft-prose" class="draft-prose" aria-label="Text from this typeset page" tabindex="0" hidden></article>
+  </div>
+  <div class="page-turner" role="group" aria-label="Browse the available pages">
+    <button id="draft-prev" aria-label="Previous preview page" disabled>← <span>Previous</span></button>
+    <p id="draft-position"></p>
+    <button id="draft-next" aria-label="Next preview page" disabled><span>Next</span> →</button>
+  </div>
+  <p id="draft-status" class="draft-status" role="status" aria-live="polite"></p>
+  <button id="draft-changes" class="return-link" hidden>See the layout adjustments</button>
+  <button id="draft-retry" class="return-link" hidden>Try these pages again</button>
+</div>
+<style>
+.pages-intro{font:400 15px/1.65 var(--serif);color:var(--muted);max-width:48ch}.page-controls{margin:22px 0 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.page-controls [role=group]{display:flex;gap:6px}.page-controls button,#draft-retry,#draft-changes{border:0;background:none;color:var(--muted);font:500 12px/1.5 var(--sans);min-height:44px;padding:10px 12px}.page-controls button[aria-pressed=true]{background:var(--stage);color:var(--ink)}.page-controls label{font:400 12px/1.5 var(--sans);color:var(--muted)}.page-controls select{min-height:44px;color:var(--ink);background:var(--paper);border:1px solid var(--hair);padding:5px;max-width:160px}.draft-surface{padding:20px;background:var(--stage);background-image:var(--stage-wash);min-height:280px}.draft-paper{box-shadow:0 1px 2px #171a1824,3px 6px 14px #171a180d;line-height:0;background:white;aspect-ratio:2/3}.draft-paper :global(canvas){display:block;width:100%;height:auto}.draft-prose{font:400 18px/1.8 var(--serif);color:var(--ink);padding:24px;background:var(--paper);overflow-wrap:anywhere}.draft-prose :global(p){white-space:pre-line}.draft-prose :global(p+p){margin-top:1em}.page-turner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.page-turner button{font:500 12px/1.5 var(--sans);color:var(--ink);background:none;border:0;min-height:48px;padding:10px 0}.page-turner button:disabled{color:var(--muted);cursor:default;opacity:.65}.page-turner p :global(span){display:block}.page-turner p :global(.printed-label){font-weight:500;color:var(--ink)}.page-turner p{font:400 11px/1.5 var(--sans);color:var(--muted);text-align:center}.draft-status{font:400 13px/1.7 var(--sans);color:var(--muted);min-height:22px;margin-top:8px}#draft-retry,#draft-changes{text-decoration:underline;padding-left:0}
+@media(max-width:640px){.draft-surface{padding:12px}.draft-prose{padding:16px;font-size:18px}.page-controls{margin-top:18px}.page-turner{gap:8px}}
+</style>

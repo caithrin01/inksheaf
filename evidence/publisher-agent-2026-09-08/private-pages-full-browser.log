@@ -1,0 +1,59 @@
+PASS chromium 1280
+PASS chromium 390
+PASS webkit 1280
+PASS webkit 390
+EDITION JOURNEY: delayed editor, every cadence, contents, reservation and axe clean in four configurations
+PASS chromium-1280: name, painted masthead, logo loading/reset/failure
+PASS chromium-390: name, painted masthead, logo loading/reset/failure
+PASS webkit-1280: name, painted masthead, logo loading/reset/failure
+PASS webkit-390: name, painted masthead, logo loading/reset/failure
+PASS title-320x568
+PASS title-768x1024
+PASS title-844x390
+PASS title-1024x768
+PASS title-2560x1440
+PASS no JavaScript offers a visible contact
+PASS restricted storage and shared publication link
+PASS normal motion reveals the book without a fixed data replay
+PASS new archive read hides the previous book choices
+PASS late editor cannot revive a failed publication
+PASS long masthead and low-contrast publication palette
+PASS hand-plan result has a truthful action and reservation
+PASS older preview responses follow the selected division
+PASS editor may replace a binding with a hand plan
+PASS a saved free request never introduces a verification step
+PASS deduplicated reservation does not claim a new email was sent
+LAUNCH STATES: 16 journeys passed
+PASS chromium 1440 light
+PASS chromium 1440 dark
+PASS chromium 390 light
+PASS chromium 390 dark
+PASS webkit 1440 light
+PASS webkit 1440 dark
+PASS webkit 390 light
+PASS webkit 390 dark
+PASS workflow chromium 1280 light
+PASS workflow chromium 1280 dark
+PASS workflow chromium 390 light
+PASS workflow chromium 390 dark
+PASS workflow webkit 1280 light
+PASS workflow webkit 1280 dark
+PASS workflow webkit 390 light
+PASS workflow webkit 390 dark
+PASS publisher browser chromium 1280
+PASS publisher browser chromium 390
+PASS publisher browser webkit 1280
+PASS publisher browser webkit 390
+PASS private page reader chromium 1280
+PASS private page reader chromium 390
+PASS private page reader webkit 1280
+PASS private page reader webkit 390
+PASS interactions chromium 320
+PASS interactions chromium 390
+PASS interactions chromium 768
+PASS interactions chromium 1440
+PASS interactions webkit 320
+PASS interactions webkit 390
+PASS interactions webkit 768
+PASS interactions webkit 1440
+2112 cover-fit checks; 0 failures

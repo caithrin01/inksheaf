@@ -11,6 +11,7 @@ import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
 import { dirname, resolve } from "node:path";
 
+const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
 const RUBRIC = "#7d6448", FAINT = "#6b6457", RULE = "#b9b19d", INK = "#1e1710";
 const isEl = n => n && n.type === "tag";
 const cls = n => (isEl(n) && n.attribs && n.attribs.class) ? n.attribs.class.split(/\s+/) : [];
@@ -62,7 +63,7 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "" } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
@@ -371,6 +372,12 @@ export function emitTypst(html, opts = {}) {
 #let inbody = state("inbody", false)
 #let rubric = rgb("${RUBRIC}")
 #let faint = rgb("${FAINT}")
+#let publisher-mark() = {
+  let pg = here().page()
+  if query(<publisher-page>).any(m => m.location().page() == pg) {
+    align(bottom + center, pad(bottom: 1.05in, image(bytes(${str(PUBLISHER_MARK)}), format: "svg", width: 3.6in, alt: none)))
+  }
+}
 #let part-verso() = {
   let pg = here().page()
   let ends = query(<artend>)
@@ -381,6 +388,7 @@ export function emitTypst(html, opts = {}) {
    publication on left pages, the essay that is current at the top of the page on right pages,
    found by querying the level-1 headings rather than a state set mid-page */
 #set page(width: 6in, height: 9in, margin: (inside: 0.85in, outside: 0.62in, top: 0.78in, bottom: 0.78in),
+  ${publisherWatermarks?"background: context publisher-mark(),":""}
   header: context { if inbody.get() and not part-verso() {
     let pg = here().page(); let hs = query(heading.where(level: 1))
     if not hs.any(h => h.location().page() == pg) {
@@ -430,7 +438,7 @@ export function emitTypst(html, opts = {}) {
      About (recto), dedication (recto), contents (recto); the body opens on a recto. In a proof the
      cover page comes first and the counter starts again after it, so left and right stay true. */
   if (coverPage) out.push(coverPage);
-  out.push(`#pagebreak(to: "odd", weak: true)\n#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
+  out.push(`#pagebreak(to: "odd", weak: true)\n${publisherWatermarks?'#context [#metadata((kind: "opening", page: here().page())) <publisher-page>]\n':""}#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
   out.push(`#pagebreak(to: "odd")\n#v(2.5in) #align(center)[#text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt)[${esc(tp.t || pubName)}] #v(0.35em) #text(size: 10pt, fill: faint)[${esc(tp.s)}] ${tp.a ? `#v(0.9in) #text(size: 10.5pt)[${esc(tp.a)}]` : ""}]\n`);
   out.push(`#pagebreak()\n${copyrightPage}`);
   if (fm.dedication) out.push(`#pagebreak(to: "odd")\n#v(3in) #align(center, emph[${esc(textOf(fm.dedication).trim())}])\n`);
@@ -459,5 +467,6 @@ export function emitTypst(html, opts = {}) {
   // must not force a nearly empty leaf followed by another short note page.
   if (aboutBody) out.push(`${collectedLinks.length&&!fm.appendix?'#v(0.45in)':'#pagebreak(weak: true)'}\n#set par(first-line-indent: 0em, justify: false, spacing: 1em)\n#block(sticky: true)[#text(size: 9pt, tracking: 0.26em, fill: rubric)[A NOTE ON THIS EDITION]]\n#v(0.8em)\n${aboutBody}\n`);
   if (fm.getmore) out.push(`#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[GET MORE]\n#v(0.8em)\n${getmore}`);
+  if (publisherWatermarks && (aboutBody || fm.getmore)) out.push('#context [#metadata((kind: "closing", page: here().page())) <publisher-page>]');
   return out.join("\n");
 }

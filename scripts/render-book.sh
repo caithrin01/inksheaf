@@ -35,6 +35,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   PAGES=$(node -e 'const {PDFDocument}=require("pdf-lib");PDFDocument.load(require("fs").readFileSync(process.argv[1])).then(d=>console.log(d.getPageCount()))' "$PDF")
   MAP=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artstart>" --field value 2>/dev/null); ENDS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artend>" --field value 2>/dev/null)
   PARTS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<partstart>" --field value 2>/dev/null)
+  MARKS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<publisher-page>" --field value 2>/dev/null)
   FOLIOS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<folio>" --field value 2>/dev/null)
   SKIP=$(node -e '
     const s=JSON.parse(process.argv[1]||"[]"), e=JSON.parse(process.argv[2]||"[]"), n=+process.argv[3];
@@ -68,7 +69,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     d.linkStarts=JSON.parse(process.argv[5]||"[]");
     d.parts=JSON.parse(process.argv[6]||"[]");
     d.folios=JSON.parse(process.argv[7]||"[]");
-    d.figures=figs;
+    d.figures=figs;d.publisher_marks=JSON.parse(process.argv[10]||"[]");
     const ps=JSON.parse(process.argv[8]||"[]"),pe=JSON.parse(process.argv[9]||"[]");
     d.paragraphs=ps.map(s=>({id:s.id,start:s,end:pe.find(e=>e.id===s.id)}));
     const spacing=JSON.parse(fs.readFileSync(f.replace(/\.pages\.json$/,".whitespace.json"),"utf8"));
@@ -112,7 +113,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
       const height=Math.round(Math.max(2,fig.h/72-needed)*100)/100;
       if(height<fig.h/72-.1)d.fit.push({page:fig.page,id:fig.id,height,closer:true});}
     if (d.tail.length) console.log("TAIL " + d.tail.map(t=>`p${t.page} ${t.id} ${t.figH}in ${t.newH>=1.4?"-> "+t.newH+"in":"kept"}`).join("; "));
-    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS" "$ENDS" "$MAP" "$LINKS" "$PARTS" "$FOLIOS" "$PAR_STARTS" "$PAR_ENDS"
+    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS" "$ENDS" "$MAP" "$LINKS" "$PARTS" "$FOLIOS" "$PAR_STARTS" "$PAR_ENDS" "$MARKS"
   # tails are recorded for the fit loop, never a failure here: only the blank gate fails a render
   if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 1; fi
   SIZE=$(wc -c < "$PDF" | tr -d ' ')

@@ -1,0 +1,34 @@
+{
+  "source_pages": 152,
+  "preview_pages": 5,
+  "checks": [
+    {
+      "physical_page": 5,
+      "label": "Contents",
+      "text_matches": true
+    },
+    {
+      "physical_page": 9,
+      "label": "Page 1",
+      "text_matches": true
+    },
+    {
+      "physical_page": 10,
+      "label": "Page 2",
+      "text_matches": true
+    },
+    {
+      "physical_page": 13,
+      "label": "Page 5",
+      "text_matches": true
+    },
+    {
+      "physical_page": 15,
+      "label": "Page 7",
+      "text_matches": true
+    }
+  ],
+  "sha256": "b15d2923cca00fe86a69916eeda054d870dda271a8253ecbb03e24e7f56cd373",
+  "source_sha256": "9a0113f4ec5379d2d8f3b360f630cc78936c111c8b401eb4f2c405739b6116db",
+  "scope": "Local extraction only from the held owner annual PDF. No upload, email, new URL or acceptance claim."
+}

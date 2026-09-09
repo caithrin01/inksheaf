@@ -1,0 +1,67 @@
+{
+  "status": "completed",
+  "started": "2026-09-09T19:30:59.875Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Desktop, printed page: actual synthetic Typst leaf inside the private reader.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher-pages/chromium-1280-print.png",
+      "saved": "input-1.png",
+      "sha256": "0653c903adf127f73c8c2fc225e9f1936054cc04f3a9201528035bbad77937ee"
+    },
+    {
+      "label": "Phone, printed page: real PDF canvas; portrait source is synthetic.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher-pages/webkit-390-print.png",
+      "saved": "input-2.png",
+      "sha256": "9cccb0e746c2a33a56c6cdeadd95d69fa548272de10c995fbb775da8888af809"
+    },
+    {
+      "label": "Phone, text view: the same PDF writing reflowed into paragraphs.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher-pages/webkit-390-text.png",
+      "saved": "input-3.png",
+      "sha256": "7648da1e9648b7107ce65f296900b513a90697f4010d74fca72f9832b13bca45"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "5fa7e16750b570f7104ae3d26cc90e4635df6fce7be5ef0b06c381e92b6ecae6",
+  "git_head": "8fc50c11e1dc3898b823f2c68a5d8560f2198875",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 3000,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788982260-ZOJT9HOmeQyH8X9xpnmX",
+  "usage": {
+    "prompt_tokens": 5712,
+    "completion_tokens": 2302,
+    "total_tokens": 8014,
+    "cost": 0.08611,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.08611,
+      "upstream_inference_prompt_cost": 0.02856,
+      "upstream_inference_completions_cost": 0.05755
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 414,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-09T19:31:39.520Z"
+}
