@@ -22,6 +22,13 @@ test('the visual review gets front-matter verso and actual printed-folio context
   const p=pageContext({pages:[{page:6,blank:1},{page:7,blank:.5}],articles:[{n:1,start:7,end:7}],folios:[{page:7,folio:1}]},{postOrder:[{title:'Opening'}]});
   assert.equal(p[0].position,'blank front-matter verso');assert.equal(p[0].expected_printed_folio,null);assert.equal(p[1].expected_printed_folio,1);assert.equal(p[1].page,7);
 });
+test('running-head context follows the publication/essay alternation and suppresses openers',()=>{
+  const m={engine:'typst',pages:[{page:7},{page:8},{page:9},{page:10}],articles:[{n:1,start:7,end:9}],folios:[{page:7,folio:1},{page:8,folio:2},{page:9,folio:3},{page:10,folio:4}]};
+  const p=pageContext(m,{pubName:'The Fox Says',postOrder:[{title:'A real essay'}]});
+  assert(p.every(x=>x.running_head_map_available));
+  assert.deepEqual(p.map(x=>x.expected_running_head),[null,'The Fox Says','A real essay',null]);
+  assert.equal(pageContext({...m,engine:'legacy'},{})[0].running_head_map_available,false);
+});
 test('large layouts retain exact page coverage in bounded model requests',()=>{
   const pages=Array.from({length:29},(_,i)=>({page:i+1})),b=layoutBatches({pages,candidates:[{id:'last',page:29}],pdf_hash:'same'});
   assert.deepEqual(b.map(x=>x.pages.length),[12,12,5]);assert.deepEqual(b.flatMap(x=>x.pages),pages);assert.equal(b[0].candidates.length,0);assert.equal(b[2].candidates[0].id,'last');assert(b.every(x=>x.pdf_hash==='same'));
@@ -29,6 +36,11 @@ test('large layouts retain exact page coverage in bounded model requests',()=>{
 test('large top and internal gaps cannot disappear behind a small trailing gap',()=>{
   const i=layoutInput({measurement:{pages:[{page:1,blank:.02,ink_top:.8},{page:2,blank:.05,ink_top:0,hole:.5}],articles:[]},report:{},fit:{},review:{findings:[]}});
   assert.equal(i.pages.length,2);assert.equal(i.pages[0].unused_body_fraction_lower_bound,.8200000000000001);assert.equal(i.pages[1].internal_gap_fraction,.5);
+});
+test('several smaller gaps over 30 percent together require a layout verdict',()=>{
+  const i=layoutInput({measurement:{pages:[{page:1,blank:.15,ink_top:.02,hole:.1,unused:.34}],articles:[],whitespace_metric:'Combined measured intervals'},report:{},fit:{},review:{findings:[]}});
+  assert.equal(i.pages.length,1);assert.equal(i.pages[0].measured_unused_body_fraction,.34);assert.equal(i.pages[0].whitespace_metric,'Combined measured intervals');
+  assert.throws(()=>validateLayout({decisions:[]},i),/omitted/);
 });
 test('reading-order repairs only move measured nearby floats back to their source position',()=>{
   const i=layoutInput({measurement:{pages:[{page:1,blank:.1},{page:2,blank:.1},{page:3,blank:.1}],articles:[{n:1,start:1,end:3}],figures:[{id:'near',page:2,floating:true},{id:'far',page:3,floating:true},{id:'fixed',page:1,floating:false}]},report:{},fit:{},review:{findings:[{page:1,check:8}]}});

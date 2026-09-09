@@ -23,10 +23,17 @@ export function pageContext(measurement,report) {
   const first=Math.min(...articles.map(a=>a.start)),last=Math.max(...articles.map(a=>a.end));
   return (measurement.pages||[]).map(p=>{
     const article=articles.find(a=>p.page>=a.start&&p.page<=a.end);
-    return {page:p.page,position:p.page===measurement.pages.length&&p.blank===1&&report.printInterior?'blank binding verso to complete an even leaf count':parts.has(p.page)?'section divider: '+parts.get(p.page):parts.has(p.page-1)&&!article&&p.blank===1?'blank verso after a section divider':p.page<first?(p.blank===1?'blank front-matter verso':'front matter'):p.page>last?'end matter':article&&article.start===article.end?'complete short piece':article?.start===p.page?'article opening':article?.end===p.page?'article ending':'body',
-      expected_printed_folio:measurement.folios?.find(f=>f.page===p.page)?.folio??null,
+    const title=article?report.publisher?.decisions.find(d=>String(d.post_id)===String(report.postOrder?.[article.n-1]?.id))?.title||report.postOrder?.[article.n-1]?.title:null;
+    const folio=measurement.folios?.find(f=>f.page===p.page)?.folio??null;
+    const headMap=measurement.engine==='typst'&&Array.isArray(measurement.folios);
+    return {page:p.page,position:p.page===measurement.pages.length&&p.blank===1&&report.printInterior?'blank binding verso to complete an even leaf count':parts.has(p.page)?'section divider: '+parts.get(p.page):parts.has(p.page-1)&&!article&&p.blank===1?'blank verso after a section divider':parts.has(p.page+1)&&!article&&p.blank===1?'blank verso before a section divider':p.page<first?(p.blank===1?'blank front-matter verso':'front matter'):p.page>last?'end matter':article&&article.start===article.end?'complete short piece':article?.start===p.page?'article opening':article?.end===p.page?'article ending':'body',
+      expected_printed_folio:folio,
       folio_map_available:Array.isArray(measurement.folios),
-      article_title:article?report.publisher?.decisions.find(d=>String(d.post_id)===String(report.postOrder?.[article.n-1]?.id))?.title||report.postOrder?.[article.n-1]?.title:null,publication:report.pubName||null};
+      // Matches this renderer's alternating publication/essay heads, suppressed
+      // on openers and structural leaves. Capitalisation is a styling choice.
+      running_head_map_available:headMap,
+      expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
+      article_title:title,publication:report.pubName||null};
   });
 }
 export function layoutBatches(input,size=12){
@@ -40,7 +47,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
   const context=new Map(pageContext(measurement,report).map(p=>[p.page,p]));
   // `blank` measures the trailing gap only. Top-aligned empty areas (e.g. a
   // copyright leaf) and large internal gaps also need a recorded design reason.
-  const unused=p=>Math.min(1,Math.max((p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+  const unused=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
   const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
   for(const f of review.findings||[])concerns.add(f.page);
   for(const page of concerns){
@@ -66,7 +73,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
   return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{
     const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
-    return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
+    return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,

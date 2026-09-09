@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { Parser } from 'htmlparser2';
 import { z } from 'zod';
+import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
 
 export const PUBLISHER_VERSION = 2;
 export const PUBLISHER_MODELS = {
@@ -89,7 +90,7 @@ export function validateStructure(result, sources) {
 // above current Claude patch counts and Gemini tile counts. Oversize images are
 // rejected before a request; actual usage is reconciled and checked below.
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
-  journal = { calls: [], spent: 0 }, persist = async () => {}, budget = 2 } = {}) {
+  journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
   let busy = false;
@@ -113,7 +114,7 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
       const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-      if (journal.calls.length >= 96 || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
+      if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
       call = { id: crypto.randomUUID(), model: model.id, role, reserved, status: 'reserved', started: new Date().toISOString() };
       journal.calls.push(call); await persist(journal);
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];

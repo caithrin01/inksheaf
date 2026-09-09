@@ -109,6 +109,8 @@ const pass1Prompt = (pages,context) => `You are checking typeset book pages for 
 
 Renderer page map: ${JSON.stringify(context)}. When folio_map_available is true, expected_printed_folio names the intended visible folio; null means this structural leaf has no printed folio. Use the supplied position to distinguish front-matter versos from blanks interrupting an article.
 
+When running_head_map_available is true, compare the head with expected_running_head (case-insensitive); null means no head. This design alternates the publication on left pages and the current essay on right pages. Those different labels are intentional.
+
 Look for only these defects:
 ${checklist()}
 
@@ -118,9 +120,13 @@ Answer with a JSON array and nothing else. Each element: {"page": <number>, "che
 
 const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
 
+When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
+
 ${neighbours.length ? 'Additional images show neighbouring pages: '+neighbours.map((p,i)=>'image '+(i+2)+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
 
 ${sources.length ? 'The first image is the printed page. Additional images are the actual source figures used on this page, in order: '+sources.map((s,i)=>'image '+(i+2)+' = '+s.id).join('; ')+'. Compare against those sources. Preserve deliberately cropped photos or screenshots of bad text: source content must not be reconstructed or rewritten. Loss introduced by the print layout, or essential detail made unreadable in print, is still a defect.' : 'No separate source-image comparison is available; do not assume source-image spelling was introduced by typesetting.'}
+
+${f.check===6&&sources.length?'For this glyph check, first locate the flagged lettering in each separate source image. If the same lettering is already visible there, it is part of the original bitmap: return confirmed:false and origin:source_content. Scaling a bitmap cannot introduce a character-encoding substitution. Confirm rendered_layout only for a change introduced in print, such as broken typeset prose; uncertainty remains uncertain.':''}
 
 Look at the page carefully and decide whether the SPECIFIC flagged defect is present. The first reader's note must match its assigned check; do not confirm a different defect under that code. Plain readable URLs in labelled video/attachment cards are valid source notes, not raw markup. Screenshots illustrating an essay about faulty AI output may intentionally show broken text; that is different from a font/encoding failure introduced into the typeset prose. Describe what you see. For check 1, a complete short piece or dedicated front/end matter can justify space; a stranded article tail is not automatically exempt. For every other check, the page's structural purpose does not excuse the defect. A placeholder or "could not be retrieved" text in place of an image is a defect. Do not dismiss image, overflow, glyph or running-head defects merely because the page is an opener or closer.
 

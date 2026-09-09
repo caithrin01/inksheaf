@@ -89,4 +89,18 @@ const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stu
   return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page."}'};
 }});
 ok('a pagination finding is confirmed against both actual neighbouring pages',adjacent&&continuation.dismissed.length===1&&continuation.errors.length===0);
+let glyphComparison=false;
+const glyphSource=await reviewPdf(pdf,{outDir:join(dir,'glyph-source'),key:'stub',sourceFigures:[{page:3,id:'faulty-slide',source:pages[0]}],ask:async({text,images})=>{
+  if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":6,"confidence":1,"note":"broken lettering in slide screenshot"}]':'[]'};
+  glyphComparison=images.length===2&&text.includes('image 2 = faulty-slide')&&text.includes('locate the flagged lettering')&&text.includes('Scaling a bitmap cannot introduce');
+  return{text:'{"confirmed":false,"origin":"source_content","note":"The same broken lettering appears in the original screenshot."}'};
+}});
+ok('glyph review explicitly compares lettering inside the original screenshot',glyphComparison&&glyphSource.findings.length===0&&glyphSource.dismissed[0].source_preserved);
+let checkedHeads=false;
+const headReview=await reviewPdf(pdf,{outDir:join(dir,'heads'),key:'stub',pageContext:[{page:2,running_head_map_available:true,expected_running_head:'The Fox Says'}],ask:async({text})=>{
+  if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":2,"check":5,"confidence":1,"note":"publication rather than essay head"}]':'[]'};
+  checkedHeads=text.includes('"expected_running_head":"The Fox Says"')&&text.includes('do not demand the essay title');
+  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The head matches the intended publication label."}'};
+}});
+ok('running-head confirmation receives the intended alternating label',checkedHeads&&headReview.findings.length===0&&headReview.errors.length===0);
 console.log(`page-review: ${n} pass, 0 fail`);

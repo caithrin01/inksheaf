@@ -30,6 +30,12 @@ await test('new run replaces prior progress rather than mixing editions',async()
 async function save(revision,value){return state({request:req('/api/publisher-state',{signup_id:1,revision,state:value,sig:await sig(`publisher-state:1:${revision}:${JSON.stringify(value)}`)}),env});}
 await test('inference reservations survive reload and stale writers cannot reset spend',async()=>{const value={journal:{calls:[{id:'1',status:'reserved',reserved:.2}],spent:0},cache:[]};assert.equal((await save(0,value)).status,200);assert.equal((await save(0,value)).status,409);const r=await state({request:req('/api/publisher-state?id=1&sig='+await sig('publisher-state:1')),env});assert.equal((await r.json()).state.journal.calls[0].reserved,.2);assert.equal((await save(1,value)).status,200);});
 await test('a creator capability cannot read the private model journal',async()=>{assert.equal((await state({request:req('/api/publisher-state?id=1&sig='+await sig('edition:1')),env})).status,403);const r=await(await snapshot()).json();assert(!('journal' in r));assert(!JSON.stringify(r).includes('reserved'));});
+await test('the complete annual-review ledger is durable but excess calls cannot be saved',async()=>{
+  const value={journal:{calls:Array.from({length:256},(_,i)=>({id:String(i),cost:.001})),spent:.256},cache:[]};
+  assert.equal((await save(2,value)).status,200);
+  value.journal.calls.push({id:'overflow',reserved:.1});assert.equal((await save(3,value)).status,400);
+  const r=await state({request:req('/api/publisher-state?id=1&sig='+await sig('publisher-state:1')),env});assert.equal((await r.json()).state.journal.calls.length,256);
+});
 await test('a ready workspace reads actual outbox columns and retries only its saved message',async()=>{
   db.exec("INSERT INTO edition_versions (id,signup_id,plan_json,post_ids,body_hashes,renderer_sha,print_mode,volumes,status) VALUES (1,1,'{}','[]','{}','fixture','bw','[]','proofed')");
   env.INKSHEAF_ENV='production';env.RESEND_API_KEY='fixture';

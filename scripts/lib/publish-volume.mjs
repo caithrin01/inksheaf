@@ -20,8 +20,12 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,l
     const input=layoutInput({measurement,report:book.report,fit:book.report.fit,review,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
     layout=await publisher.layout(input);
     await publisher.emit({kind:'layout',volume,pages:review.pages,passes:totalPasses,decisions:layout.decisions,message:layout.decisions.some(d=>d.decision==='repair')?'A few pages need a tighter setting. Their writing stays intact.':'Unused page space has been checked against the shape of each piece.'});
-    if(layout.decisions.some(d=>d.decision==='needs_review'))throw Error('The layout needs a closer look before the complete PDF is ready.');
-    if(!layout.decisions.some(d=>d.decision==='repair'))break;
+    // Apply available repairs before holding other findings: repagination can
+    // resolve a neighbouring defect. Nothing clears until the new PDF is reviewed.
+    if(!layout.decisions.some(d=>d.decision==='repair')){
+      if(layout.decisions.some(d=>d.decision==='needs_review'))throw Error('The layout needs a closer look before the complete PDF is ready.');
+      break;
+    }
     if(round===2||totalPasses>=6)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
     const initial=applyLayoutRepairs(book.report.fit,layout,input);
     // A source-position repair can expose a new figure gap. Let the deterministic

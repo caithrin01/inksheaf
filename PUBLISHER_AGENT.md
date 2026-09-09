@@ -28,13 +28,17 @@ vault's `publisher-agent-design-2026-09-08.md`.
   must remain identical during repair. A content/overflow finding cannot be excused as space.
 - Renderer context distinguishes physical PDF leaves, printed folios, blank front-matter versos,
   complete single-page pieces, article tails and section dividers. Every whitespace exception
-  has its own recorded reason. Chapter endings are not blanket exemptions.
+  has its own recorded reason. Section dividers and their opening essays start on rectos; blank boundary versos carry no running head or folio. Chapter endings are not blanket exemptions.
+- The geometry audit sums unused vertical intervals on every page, bridging normal leading. Several smaller gaps cannot evade the 30% check. The renderer also retains its raster gap measurements for fitting.
 - Compiled paragraph/figure positions catch floats interrupting a paragraph even when vision
   misses them. These measured findings hold delivery and can select a source-position repair.
 - Review failures, truncated answers, invalid coverage, exhausted budgets or unresolved defects
   hold the completed delivery. Each distinct visual defect receives confirmation, including
   multiple defects on one page. Pagination findings receive both neighbouring pages; image/glyph
-  findings receive actual source figures. Repaired PDFs cannot retain obsolete page rasters.
+  findings receive actual source figures. The reviewer checks alternating publication/essay heads
+  against the intended label and compares screenshot lettering with its source bitmap. Repaired
+  PDFs cannot retain obsolete page rasters. A mixture of repairs and holds uses available bounded
+  repairs first, then rechecks every page; persistent findings still block delivery.
 
 ## Budget and persistence
 
@@ -46,14 +50,14 @@ A persisted ledger reserves the conservative request ceiling **before** each pai
 UTF-8 text byte bound, schema/framing allowance, full output ceiling and a bounded PNG allowance.
 Actual usage reconciles it. An unknown charge retains its reservation. One transient retry is
 allowed and charged to the same ledger. A failed review stops after that retry rather than
-  accumulating unknown-charge reservations on later pages. Semantic/schema correction is also bounded.
+accumulating unknown-charge reservations on later pages. Semantic/schema correction is also bounded.
 
-One edition shares a $2 inference cap and 96-call ceiling across all volumes and retries. Calls
+One edition shares a $2 inference cap and 256-call ceiling across all volumes and retries. Calls
 are serial. Each volume attempt shares six render passes across initial fitting and at most two
 model repair rounds; unused passes can fit figure gaps exposed by a repair. The inference cap
 persists across attempts. The existing URL-preview planner has its separate pre-existing quota.
 A D1 revision compare-and-swap prevents two workers from independently resetting the budget.
-Source/model results and actual progress survive worker restarts. Private journal content is
+The former 96-call ceiling could not fit three scans of a 150-page book (114 sheet calls alone). The shared 256-call limit allows that review while the $2 cap, previous reservations and repair limits remain unchanged. Source/model results and actual progress survive worker restarts. Private journal content is
 not exposed through the creator API or public Actions artifacts.
 
 PDF creation costs the creator $0. The owner's pricing decision is a **$2 gross retail addition
@@ -75,11 +79,12 @@ node scripts/test-honesty.mjs --source-only
 python3 validate.py
 ```
 
-The current full unit suite and `npm run test:launch:ui` pass in Chromium/WebKit, including
-2,112 cover-fit checks. Required `node scripts/test-renderer.mjs`: **69 passed**. Typst:
-**35 passed**; page review: **29**; bounded layout: **13**; orchestration: **6**; release
-compatibility: **4**. Build, source honesty and vault validator also pass. The earlier automatic
-approval usage-limit rejection was resolved through a new scoped approval; the runner is available.
+The full unit suite passed on September 9 before the final boundary-blank fixture and review-context changes. Affected tests were then rerun: required renderer **69**, Typst **42**,
+page review **31**, bounded layout **15**, orchestration **8**, publisher **24**, and workspace **8**
+all passed. Release compatibility remains **4**. Evidence logs distinguish those checkpoints.
+The last complete Chromium/WebKit acceptance was GitHub run **34381401607** on `95fc6b9`,
+including 2,112 cover-fit checks. These new PDF changes need their own CI run; that earlier green
+run is not acceptance of the newer candidate. No browser/profile changes are part of this PR.
 
 Actual paid rehearsal evidence is separate from tests with controlled model responses:
 - The synthetic eight-source run completed with six retained pieces and 14 PDF pages. It predates
@@ -90,11 +95,17 @@ Actual paid rehearsal evidence is separate from tests with controlled model resp
   The publisher applies source-position repairs and a short reference shares the edition note.
   Cumulative development spend is $0.293589 ($0.496861 including unknown-charge reservations).
   This targeted fixture is not annual-book, print-minimum, inbox or Lulu acceptance.
-- The latest full annual trial retained 22 of 23 sources (36,001 words), rendered 150 pages and
-  stopped at an invalid layout decision. A content finding cannot be dismissed as intentional
-  space. Neighbour evidence and a source-position figure repair were added afterward. **The
-  annual book remains held**; genuine stranded references/reading-order issues still need an
-  accepted repair and recheck, alongside dismissal of unsupported model alarms.
+- The September 9 annual trial retained 22 of 23 sources (36,001 words) and rendered **152 pages**.
+  All source hashes match. All physical leaves and printed folios have matching parity; the first
+  essay starts on physical page 9 / folio 1. Every page has a complete whitespace measurement;
+  **29 pages exceed 30%** and still require accepted reasons or repairs. The paid scan confirmed
+  six visual findings; geometry independently found 20 floating-image paragraph interruptions.
+  A layout decision tried to excuse the screenshot glyph finding as whitespace and validation
+  held the book. Inspection of the original screenshot establishes that those broken letters
+  were already present; the publication head is also intentional. Review-context fixes followed.
+  Small chart/map/feed labels and source-position repairs remain unresolved. **The annual book
+  remains held**; no full real-model acceptance is claimed for the newer corrections.
+  The cumulative annual ledger is $0.78252025 known / $1.20392225 including unknown reservations.
 - Two actual Opus frontend critiques completed ($0.11341 and $0.11007). They are design evidence,
   not browser verification or approval. See the saved decisions on their recommendations.
 

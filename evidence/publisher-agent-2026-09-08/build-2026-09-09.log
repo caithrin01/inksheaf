@@ -1,0 +1,27 @@
+
+> inksheaf@0.0.1 build
+> astro build && node scripts/press-release.mjs write
+
+11:31:02 [types] Generated 42ms
+11:31:02 [build] output: "static"
+11:31:02 [build] mode: "static"
+11:31:02 [build] directory: /Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/dist/
+11:31:02 [build] Collecting build info...
+11:31:02 [build] ✓ Completed in 74ms.
+11:31:02 [build] Building static entrypoints...
+11:31:02 [vite] ✓ built in 239ms
+11:31:02 [vite] ✓ built in 165ms
+11:31:02 [build] Rearranging server assets...
+
+ generating static routes
+11:31:02   ├─ /404.html (+7ms)
+11:31:02   ├─ /change/index.html (+2ms)
+11:31:02   ├─ /edition/index.html (+3ms)
+11:31:02   ├─ /mail/index.html (+1ms)
+11:31:02   ├─ /reader/index.html (+1ms)
+11:31:02   ├─ /index.html (+3ms)
+11:31:02 ✓ Completed in 27ms.
+
+11:31:02 [build] ✓ Completed in 453ms.
+11:31:02 [build] 6 page(s) built in 553ms
+11:31:02 [build] Complete!

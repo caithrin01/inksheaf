@@ -42,11 +42,18 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     for(let p=1;p<first;p++) skip.add(p); for(let p=last+1;p<=n;p++) skip.add(p);
     for(const x of e) skip.add(x.page);            /* closers */
     for(const x of s) skip.add(x.page);            /* openers: chapter number, title and subtitle sit low by design, so a short article ends its opener airy (this is typography, not a dropped image; mid-article figure gaps are not openers and stay caught) */
-    for(const x of JSON.parse(process.argv[4]||"[]")) skip.add(x.page); /* measured section-divider leaves */
+    for(const x of JSON.parse(process.argv[4]||"[]")) {
+      skip.add(x.page); /* measured section-divider leaves */
+      const prev=x.page-1;
+      if(prev>=1&&!s.some(a=>a.page<=prev&&(e.find(b=>b.n===a.n)?.page??a.page)>=prev))skip.add(prev); /* blank verso before a recto divider */
+    }
     for(const x of s){ const prev=x.page-1; if(prev>=1 && !e.some(y=>y.page===prev) && !s.some(y=>y.page===prev)) skip.add(prev); } /* part pages before an opener */
     console.log([...skip].sort((a,b)=>a-b).join(","));' "$MAP" "$ENDS" "$PAGES" "$PARTS")
   BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
   echo "$BL"
+  # Account for all unused vertical intervals, not only the largest/trailing gap.
+  # This records every page, including structural leaves and article endings.
+  python3 "$HERE/scripts/pdf-whitespace-audit.py" "$PDF" --out "${PDF%.pdf}.whitespace.json" >/dev/null || { echo "RENDER FAILED (whitespace measurement)"; exit 1; }
   # for each short page, the first figure on the next page and the height that was left: the fit
   # loop rebuilds with --fit-figs so that figure sits in flow at that height (engine: typst)
   FIGS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
@@ -64,6 +71,10 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     d.figures=figs;
     const ps=JSON.parse(process.argv[8]||"[]"),pe=JSON.parse(process.argv[9]||"[]");
     d.paragraphs=ps.map(s=>({id:s.id,start:s,end:pe.find(e=>e.id===s.id)}));
+    const spacing=JSON.parse(fs.readFileSync(f.replace(/\.pages\.json$/,".whitespace.json"),"utf8"));
+    if(spacing.pages.length!==d.pages.length)throw Error("Whitespace measurement omitted pages");
+    d.whitespace_metric=spacing.metric;
+    for(const p of d.pages){const s=spacing.pages.find(s=>s.page===p.page);if(!s||!Number.isFinite(s.unused))throw Error("Whitespace measurement missing");p.unused=s.unused;}
     /* short body pages: the figure that fell onto the next page is scaled to the space left, less
        1.2in for figure spacing and a subheading that may stick to it */
     for (const b of d.bad) { const nx=figs.find(x=>x.page===b.page+1); if (!nx) continue;

@@ -21,6 +21,17 @@ mkdirSync(out,{recursive:true});const html=out+'/book.html',pdf=resolve(out+'/bo
 const session=()=>publisherSession({directory,env}),events=[];
 const emit=async e=>{events.push(e);writeFileSync(out+'/events.json',JSON.stringify(events,null,2));await(await session()).emit(e);};
 const result={status:'running',fixture,host,started:new Date().toISOString()};
+const saveResult=()=>{
+  const saved=existsSync(directory+'/state.json')?JSON.parse(readFileSync(directory+'/state.json','utf8')):null;
+  result.model_cost_usd=saved?.journal?.spent||0;
+  result.reserved_or_spent_usd=saved?.journal?.calls.reduce((s,c)=>s+(c.cost??c.reserved),0)||0;
+  writeFileSync(out+'/result.json',JSON.stringify(result,null,2));
+};
+saveResult();
+for(const [signal,code] of [['SIGINT',130],['SIGTERM',143]])process.once(signal,()=>{
+  result.status='interrupted';result.error='Stopped by operator; incomplete provider calls retain their spend reservations.';result.finished=new Date().toISOString();
+  saveResult();process.exit(code);
+});
 try{
   const book=await publishVolume({build:({passes,initial})=>{
     const args=['scripts/build-book.mjs',host,'--fixture',fixture,'--out',html,...(brand?['--brand-file',brand]:['--no-brand']),'--cover-design','classic','--print-interior','--direct-links','--publisher-dir',directory,'--publisher-volume','1'];
@@ -30,4 +41,4 @@ try{
   },session,emit,volume:'1',reviewDirectory:out+'/review',log:console.error});
   result.status='completed';result.included=book.report.postOrder;result.layout=book.report.layoutAgent;result.review=book.review;result.pdf=pdf;
 }catch(error){result.status='held';result.error=String(error.message).replaceAll(key,'[redacted]');process.exitCode=1;}
-finally{result.finished=new Date().toISOString();const saved=existsSync(directory+'/state.json')?JSON.parse(readFileSync(directory+'/state.json','utf8')):null;result.model_cost_usd=saved?.journal?.spent||0;result.reserved_or_spent_usd=saved?.journal?.calls.reduce((s,c)=>s+(c.cost??c.reserved),0)||0;writeFileSync(out+'/result.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));}
+finally{result.finished=new Date().toISOString();saveResult();console.log(JSON.stringify(result));}

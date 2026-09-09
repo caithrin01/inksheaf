@@ -1,5 +1,6 @@
 import { hmacHex } from '../lib/press-dispatch.js';
 import { readLimitedText } from './preview.js';
+import { PUBLISHER_MAX_CALLS } from '../lib/publisher-policy.js';
 const json=(value,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store'}});
 export async function onRequest({request,env}) {
   if (!['GET','POST'].includes(request.method)) return json({ok:false},405);
@@ -15,7 +16,7 @@ export async function onRequest({request,env}) {
       const row=await env.DB.prepare('SELECT revision,payload FROM publisher_state WHERE signup_id=?').bind(id).first();
       return json({ok:true,revision:row?.revision||0,state:row?JSON.parse(row.payload):null});
     }
-    if(!Number.isSafeInteger(b.revision)||b.revision<0||!b.state || !Array.isArray(b.state.journal?.calls) || b.state.journal.calls.length>96 || !Array.isArray(b.state.cache))return json({ok:false},400);
+    if(!Number.isSafeInteger(b.revision)||b.revision<0||!b.state || !Array.isArray(b.state.journal?.calls) || b.state.journal.calls.length>PUBLISHER_MAX_CALLS || !Array.isArray(b.state.cache))return json({ok:false},400);
     const changed=await env.DB.prepare("INSERT INTO publisher_state (signup_id,revision,payload) SELECT ?,1,? WHERE ?=0 ON CONFLICT(signup_id) DO UPDATE SET revision=revision+1,payload=excluded.payload,updated_at=datetime('now') WHERE revision=?")
       .bind(id,payload,b.revision,b.revision).run();
     // Existing rows at nonzero revisions need UPDATE: SELECT above intentionally only creates revision zero.

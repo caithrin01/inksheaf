@@ -94,6 +94,7 @@ if(r.ok){
   ok(parts.length===1&&parts[0].title==='SeasonMarker'&&t.split('\f')[parts[0].page-1].includes('SeasonMarker'),'section metadata identifies the actual divider leaf');
   const folios=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/publisher-structure.typ','<folio>','--field','value'],{encoding:'utf8'}));
   ok(folios.some(f=>f.folio===1&&f.page>1),'physical leaf numbers and printed folios are recorded separately');
+  ok(folios.every(f=>f.page%2===f.folio%2)&&folios.some(f=>f.folio===1&&f.page%2===1),'body folios align with physical recto and verso after a first section divider');
   const note=t.split('\f').find(p=>p.includes('EditionNoteMarker'));
   ok(note&&!note.includes('Boundaries'),'edition note cannot inherit the last article running head');
   ok(t.includes('These pieces first appeared')&&!t.includes('These essays first appeared'),'copyright copy does not misclassify a mixed edition');
@@ -107,6 +108,13 @@ if(r.ok){
   const divider=query('<partstart>')[0],next=query('<artstart>')[1],pages=text(r.pdf).split('\f');
   const gaps=pages.slice(divider.page,next.page-1);
   ok(gaps.length>0&&gaps.every(p=>!p.trim()),'blank section verso contains neither prior article head nor folio');
+  ok(divider.page%2===1&&next.page%2===1,'middle section divider and its first essay both open on rectos');
+  try {
+    execFileSync('bash',['scripts/render-book.sh','proofs/fixtures/middle-part-verso.html','proofs/fixtures/middle-part-verso.pdf'],{env:{...process.env,BOOK_ENGINE:'typst'},stdio:'pipe'});
+    const measured=JSON.parse(readFileSync('proofs/fixtures/middle-part-verso.pages.json','utf8'));
+    ok([divider.page-1,divider.page+1].every(n=>measured.pages[n-1].blank===1&&measured.pages[n-1].exempt),'renderer recognizes both intentional section-boundary versos');
+    ok(measured.pages.every(p=>Number.isFinite(p.unused)),'every compiled leaf has a complete interval-based whitespace measurement');
+  } catch(e) { ok(false,'section boundary full renderer gate: '+String(e.stdout||e.message).slice(-500)); }
 }
 /* 11. A publisher-selected image retains its source position without changing its size. */
 execFileSync('python3',['-c',"from PIL import Image; Image.new('RGB',(90,140),(160,160,160)).save('proofs/fixtures/publisher-portrait.png')"]);
@@ -132,4 +140,13 @@ const shortCollection=wrap('<p>BodyOnlyMarker.</p>').replace('</section>','<sect
 r=compile(emitTypst(shortCollection,{baseDir:'proofs/fixtures',backLinks:[1]}),'shared-end-matter');
 ok(r.ok,'shared references and edition note compile');
 if(r.ok)ok(text(r.pdf).split('\f').some(p=>p.includes('SourceReferenceMarker')&&p.includes('EditionNoteMarker')),'short reference and edition note occupy one leaf with all content preserved');
+/* 13. Substack's trailing editor breaks cannot escape paragraph measurement code. */
+const trailingBreaks=wrap('<p class="verse"><strong>BadMarker:</strong><br></p><p>FirstLineMarker<br>SecondLineMarker<br><br></p><p>LiteralBackslashMarker \\</p>');
+r=compile(emitTypst(trailingBreaks,{baseDir:'proofs/fixtures'}),'trailing-editor-breaks');
+ok(r.ok,'trailing editor breaks and literal backslash compile: '+(r.err||''));
+if(r.ok){
+  const t=text(r.pdf);ok(['BadMarker:','FirstLineMarker','SecondLineMarker','LiteralBackslashMarker'].every(m=>t.includes(m))&&!/context|metadata|here\(\)/.test(t),'paragraph boundaries retain source lines without leaking measurement code');
+  const ends=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/trailing-editor-breaks.typ','<parend>','--field','value'],{encoding:'utf8'}));
+  ok(ends.length===3&&ends.every(p=>Number.isFinite(p.y)&&p.page>0),'each paragraph retains its compiled end position');
+}
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);
