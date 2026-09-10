@@ -10,6 +10,19 @@ import {reviewPdf,writerLine} from './page-review.mjs';
 export async function publishVolume({build,session,emit,volume,reviewDirectory,log=()=>{},onRendered=async()=>{}}){
   let book=await build({passes:4}),totalPasses=book.report.fit.pass,review,layout;
   const sourceHashes=JSON.stringify(book.report.bodyHashes);
+  // Restore known paragraph boundaries before spending vision calls rediscovering
+  // the same deterministic interruption. This is one bounded batch, not a loop.
+  const firstMeasurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
+  const interruptions=readingOrderFindings(firstMeasurement);
+  if(interruptions.length){
+    if(totalPasses>=6)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+    const initial={...book.report.fit,inFlow:[...new Set([...(book.report.fit.inFlow||[]),...interruptions.map(f=>f.figure_id)])]};
+    const available=6-totalPasses,passes=Math.min(2,Math.max(1,available-1));
+    await emit({kind:'typesetting',volume,message:'Keeping photographs between the paragraphs that surround them in your original writing.'});
+    book=await build({initial,passes});totalPasses+=book.report.fit.pass;
+    if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
+    await emit({kind:'layout',volume,passes:totalPasses,decisions:interruptions.map(f=>({page:f.page,decision:'repair',candidate_id:`inflow:${f.figure_id}:${f.page}`,reason:'Kept this image between its original source paragraphs.'})),message:'Images have been placed back between their original paragraphs. The new pages will be checked.'});
+  }
   for(let round=0;round<=2;round++){
     await emit({kind:'typesetting',volume,included:book.report.included,message:round?'The adjusted pages have been typeset again.':'Your writing and images have been set on the page.'});
     await onRendered({book,round,volume});
@@ -32,7 +45,8 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,l
     const initial=applyLayoutRepairs(book.report.fit,layout,input);
     // A source-position repair can expose a new figure gap. Let the deterministic
     // fitter use otherwise-unused passes, while reserving a final repair round.
-    const passes=Math.min(3,6-totalPasses-(round===0?1:0));
+    const available=6-totalPasses;
+    const passes=Math.min(3,Math.max(1,available-(round===0&&available>1?1:0)));
     book=await build({initial,passes});totalPasses+=book.report.fit.pass;
     if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
   }

@@ -1,0 +1,22 @@
+{
+  "pages": 3,
+  "findings": [],
+  "errors": [],
+  "pass1": {
+    "model": "google/gemini-3.1-flash-lite",
+    "calls": 1,
+    "flagged": 0,
+    "errors": 0
+  },
+  "pass2": {
+    "model": "anthropic/claude-sonnet-5",
+    "calls": 0,
+    "confirmed": 0,
+    "dismissed": 0,
+    "errors": 0
+  },
+  "usage": {
+    "prompt_tokens": 2365,
+    "completion_tokens": 9
+  }
+}

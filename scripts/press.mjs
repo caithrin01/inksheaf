@@ -119,7 +119,7 @@ function buildVolume(v, i, { proof, initial = {}, passes = 4 }) {
   const fitted = fit({ args, html, initial, passes, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   for (const line of String(fitted.out || "").split("\n").filter(l => /^(BLANK|TAIL|OK )/.test(l))) log("render", `${v.label}: ${line}`); /* the measure lines belong in the run log */
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
-  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow };
+  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow, readingFigures:fitted.readingFigures };
   if (!args.includes("--direct-links")) registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);

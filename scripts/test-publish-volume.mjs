@@ -9,18 +9,18 @@ import {publishVolume} from './lib/publish-volume.mjs';
 import {validateLayout} from './lib/publisher-layout.mjs';
 let passed=0;
 async function test(name,fn){await fn();console.log('PASS',name);passed++;}
-async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false}={}){
+async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false,initialPasses=1,keepSpace=false}={}){
   const dir=mkdtempSync(join(tmpdir(),'publisher-volume-')),pdf=join(dir,'book.pdf');
   const doc=await PDFDocument.create();doc.addPage([432,648]);doc.addPage([432,648]);if(mixedHold)doc.addPage([432,648]);writeFileSync(pdf,await doc.save());
   let builds=0;const events=[],settings=[],previews=[];
   const build=async({initial,passes})=>{
     builds++;settings.push({initial,passes});
-    const repaired=Boolean(initial)&&!alwaysRepair;
+    const repaired=Boolean(initial)&&!alwaysRepair&&(!keepSpace||initial.fitText?.[1]<leading);
     const measurement={pages:[{page:1,blank:.1},{page:2,blank:repaired ? .1 : .7}],articles:[{n:1,start:1,end:2}],fit:[]};
     if(mixedHold)measurement.pages.push({page:3,blank:repaired&&!persistentHold?.1:.7});
-    if(interrupted&&!repaired){measurement.figures=[{id:'portrait',page:1,y:200,floating:true}];measurement.paragraphs=[{id:1,start:{page:1,y:100},end:{page:2,y:100}}];}
+    if(interrupted&&!initial?.inFlow?.includes('portrait')){measurement.figures=[{id:'portrait',page:1,y:200,floating:true}];measurement.paragraphs=[{id:1,start:{page:1,y:100},end:{page:2,y:100}}];}
     writeFileSync(pdf.replace('.pdf','.pages.json'),JSON.stringify(measurement));
-    return{pdf,report:{included:1,bodyHashes:{source:changeSource&&builds>1?'changed':'original'},postOrder:[{id:1}],publisher:{decisions:[]},fit:{pass:1,fitText:{1:leading},...initial}}};
+    return{pdf,report:{included:1,bodyHashes:{source:changeSource&&builds>1?'changed':'original'},postOrder:[{id:1}],publisher:{decisions:[]},fit:{...initial,pass:builds===1?initialPasses:1,fitText:initial?.fitText||{1:leading}}}};
   };
   const emit=async e=>events.push(e),publisher={emit,vision:async()=>{if(visionFails)throw Error('provider unavailable');return{text:'[]'};},layout:async input=>{
     const result={decisions:input.pages.map(p=>{const held=hold||(mixedHold&&p.page===3);return{page:p.page,decision:held?'needs_review':'repair',candidate_id:held?null:input.candidates.find(c=>c.page===p.page)?.id,reason:held?'A content defect needs investigation.':'Bring the stranded ending back using measured leading.'};})};
@@ -59,5 +59,14 @@ await test('a model scan with no findings cannot clear a measured paragraph inte
   const s=await scenario({interrupted:true}),book=await s.run();
   assert.equal(s.builds,2);assert.deepEqual(s.settings[1].initial.inFlow,['portrait']);
   assert.deepEqual(book.review.measured_findings,[]);
+});
+await test('measured reading-order repair runs before vision and still preserves the final render pass',async()=>{
+  const s=await scenario({interrupted:true,initialPasses:4,keepSpace:true}),book=await s.run();
+  assert.equal(s.builds,3);assert.equal(s.settings[1].passes,1);assert.equal(s.settings[2].passes,1);
+  assert.equal(book.report.layoutAgent.total_render_passes,6);assert(s.settings[2].initial.inFlow.includes('portrait'));
+  assert.equal(s.previews.length,2);assert(s.events.some(e=>e.kind==='layout'&&e.message.includes('original paragraphs')));
+});
+await test('source mutation during deterministic source-position repair is held before preview',async()=>{
+  const s=await scenario({interrupted:true,changeSource:true});await assert.rejects(s.run,/Source text changed/);assert.equal(s.previews.length,0);
 });
 console.log(`${passed} complete publisher orchestration checks passed`);

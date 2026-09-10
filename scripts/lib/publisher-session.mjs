@@ -13,6 +13,7 @@ Use these structural facts and the complete printed_text:
 - An ending on a MULTI-page article is different: a stranded tail or excessive gap needs repair unless the actual content gives a specific reason. The absence of a candidate is never itself a design reason.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
+set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. Prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
 printed_text_truncated tells you whether this request shortened the page text; do not infer missing print content from a shortened excerpt.
 Give a factual reason under 180 characters. For intentional_space and needs_review, candidate_id must be null.`;
 export async function publisherSession({directory, env=process.env, fetchImpl=fetch}) {
@@ -67,6 +68,15 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     if(!input.pages.length)return {decisions:[]};
     const key=createHash('sha256').update(JSON.stringify([LAYOUT_TASK,z.toJSONSchema(LayoutDecisions),input])).digest('hex'),cache=new Map(state.cache);
     if(cache.has(key))return validateLayout(cache.get(key),input);
+    // Reuse completed larger batches from earlier runs, but keep new reasoning
+    // to six pages. A twelve-page review exhausted the completion ceiling before
+    // returning any verdict. Smaller calls share the same ledger and cache.
+    if(input.pages.length>6){
+      const decisions=[];
+      for(const batch of layoutBatches(input,6))decisions.push(...(await layoutBatch(batch)).decisions);
+      const result=validateLayout({decisions},input);cache.clear();for(const pair of state.cache)cache.set(...pair);
+      cache.set(key,result);state.cache=[...cache];await save();return result;
+    }
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
     const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,task:LAYOUT_TASK};
     let result;

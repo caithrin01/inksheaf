@@ -27,7 +27,7 @@ proofs/*.html
 node_modules/
 dist/
 .astro/
-proofs/.cache/
+proofs/.cache
 # pipeline runtime artifacts (regenerable; proofs live on the private Modal store, never in public/)
 public/*.pdf
 proofs/pipe/**/*.pdf

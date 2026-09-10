@@ -86,9 +86,19 @@ export function validateStructure(result, sources) {
 }
 
 // Source reading and bounded PNG page review share the same persisted ledger.
-// At <=4096px per side we reserve 65,536 image tokens per image, substantially
-// above current Claude patch counts and Gemini tile counts. Oversize images are
-// rejected before a request; actual usage is reconciled and checked below.
+// Sonnet 5 uses 28px patches with a 4,784-token native image limit (Anthropic
+// vision docs, checked 2026-09-10). Reserve the larger of that limit and the raw
+// unscaled patch count, plus 1,024 tokens per image for headroom. Do not rely on
+// provider downscaling to reduce the reservation. Other models retain the
+// conservative 65,536-token bound. Oversize files are rejected before a request.
+// https://platform.claude.com/docs/en/build-with-claude/vision
+export function publisherImageTokenBound(modelId, width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096)
+    throw Error('Publisher page images must be bounded PNG files');
+  return modelId === 'anthropic/claude-sonnet-5'
+    ? Math.max(4784, Math.ceil(width / 28) * Math.ceil(height / 28)) + 1024
+    : 65536;
+}
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
   journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
@@ -110,7 +120,7 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       }
       // UTF-8 bytes conservatively bound text tokens; also reserve framing/schema
       // overhead and the entire completion ceiling, including billed reasoning.
-      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.length * 65536;
+      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
       const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);

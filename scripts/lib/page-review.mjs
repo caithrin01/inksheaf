@@ -5,6 +5,7 @@
 // checklist with page numbers. Pass 2: each flagged page alone, at higher resolution, a stronger
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
 // records model failures. The publisher orchestrator holds delivery until review is complete.
+import { auditRunningMatter } from "./running-matter.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -143,6 +144,11 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   let pages;
   try { pages = rasterise(pdf, join(dir, "pages")); } catch (e) { out.errors.push(`rasterise: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.pages = pages.length;
+  try { out.running_matter = auditRunningMatter(pdf,pageContext); }
+  catch(e) { out.errors.push(`running matter: ${String(e.message).slice(0,120)}`); out.ms=Date.now()-started; return out; }
+  const verifiedHeads=new Set(out.running_matter.filter(p=>p.verified).map(p=>p.page));
+  const wrongHeads=new Set(out.running_matter.filter(p=>!p.verified).map(p=>p.page));
+  for(const p of out.running_matter.filter(p=>!p.verified))out.findings.push({page:p.page,check:5,confidence:1,origin:'measured_layout',note:`Printed ${[!p.head_matches&&'running head',!p.folio_matches&&'folio'].filter(Boolean).join(' and ')} differs from the compiled page map.`});
   let sheets;
   try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.sheets = sheets.length;
@@ -170,6 +176,13 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
   for (const f of byPage.values()) {
+    // Check 5 is about label identity/presence. Actual glyphs decide it when both
+    // renderer maps are available; unknown layouts still receive model review.
+    if(f.check===5&&verifiedHeads.has(f.page)){
+      out.dismissed.push({...f,origin:'measured_layout',note:'Actual printed running head and folio match the compiled page map.'});
+      continue;
+    }
+    if(f.check===5&&wrongHeads.has(f.page))continue;
     if(stopOnError&&out.errors.length)break;
     let single;
     /* one directory per page: pdftoppm names by page number and a shared directory once handed

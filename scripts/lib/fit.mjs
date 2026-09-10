@@ -10,12 +10,12 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
-  let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText};
+  let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures};
   for (let pass = 1; pass <= passes; pass++) {
     const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
     const textArg = Object.keys(fitText).length ? ['--fit-text', Object.entries(fitText).map(([n,v])=>`${n}=${v}`).join(',')] : [];
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
-      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...extra];
+      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...(Object.keys(readingFigures).length?['--reading-figures',Object.entries(readingFigures).map(([id,mode])=>`${id}=${mode}`).join(',')]:[]), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try {
@@ -24,7 +24,7 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
          that is one more pass, and a figure is fitted once, so the loop cannot oscillate */
       let pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); } catch {}
       /* a figure may be fitted again only to a smaller height: the sequence is monotone, so it ends */
-      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => (f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
+      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => !readingFigures[f.id] && (f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
       if (tails.length && pass < passes) { for (const f of tails) fitFigs[f.id] = f.height; log(`pass ${pass}: clean; fitting figures ${tails.map(f => `${f.id} to ${f.height}in`).join(", ")}`); continue; }
       // Bring a very sparse ending back by adjusting leading, never font size, within
       // 0.12em (1.26pt). A finite, monotone sequence avoids oscillating pagination.
@@ -43,7 +43,7 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
       if (stranded.length && pass < passes) {
         stranded.forEach(a=>backLinks.add(a.n));log(`pass ${pass}: collecting overflow link notes for articles ${stranded.map(a=>a.n).join(', ')}`);continue;
       }
-      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, out: out.trim() };
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, out: out.trim() };
     }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}
@@ -52,7 +52,7 @@ export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {}
       log(`pass ${pass}: ${bad.map(b => b.closer ? `${b.page} (closing page holds only a figure)` : `${b.page} (${Math.round(b.blank * 100)}%)`).join(", ")}`);
       if (pj.engine === "typst") {
         /* Typst: scale the figure that fell after each short page to the height that was left */
-        const fits = (pj.fit || []).filter(f => !(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1);
+        const fits = (pj.fit || []).filter(f => !readingFigures[f.id] && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1));
         if (!fits.length) throw new Error(`${bad.length} page(s) over the blank limit with no figure to fit: ${bad.map(b => b.page).join(", ")}`);
         for (const f of fits) fitFigs[f.id] = f.height;
         log(`pass ${pass}: fitting ${fits.map(f => `${f.id} to ${f.height}in`).join(", ")}`);

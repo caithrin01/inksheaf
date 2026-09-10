@@ -1,0 +1,18 @@
+PASS available modes fit the text block and preserve the 150ppi floor
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/figure-reading/feed-normal.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/figure-reading/feed-column.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/figure-reading/chart-normal.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/figure-reading/chart-landscape.typ` instead
+
+PASS both reading modes increase actual compiled image scale and keep source position
+PASS rendered PDFs preserve bitmap pixels, source markers, caption adjacency and trim bounds
+PASS publisher selects only measured enlargements and cannot invent an operation
+PASS adopted reading mode survives repairs and cannot be shrunk by the layout fitter
+5 figure reading checks passed

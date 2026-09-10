@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from "node:fs";
 import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
 import { dirname, resolve } from "node:path";
+import {figureReadingSizes} from './figure-reading.mjs';
 
 const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
 const RUBRIC = "#7d6448", FAINT = "#6b6457", RULE = "#b9b19d", INK = "#1e1710";
@@ -63,7 +64,7 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "", publisherWatermarks = true } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
@@ -156,12 +157,22 @@ export function emitTypst(html, opts = {}) {
     const capTxt = caption ? `, caption: [${caption}]` : "";
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
     const id = attr(imgEl, "data-fig") || src;
+    const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
+    const readingMode=readingFigures[id],reading=readingSizes.find(s=>s.mode===readingMode);
+    if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
+    const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
+    const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
+    const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
-    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!fitH && !isLast && !inFlow.includes(id))}, page: here().page(), y: here().position().y.pt(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
+    const tagFor = extra => {
+      const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+    };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
+    if(reading)return `#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
     if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */

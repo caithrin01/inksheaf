@@ -34,6 +34,7 @@ export function pageContext(measurement,report) {
       running_head_map_available:headMap,
       expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
       article_title:title,publication:report.pubName||null,
+      ...((measurement.figures||[]).some(f=>f.page===p.page&&f.reading_mode==='landscape')?{figure_orientation:'A quarter-turn figure is intentional landscape reading. Check its actual readability, caption and bounds; rotation alone is not a defect.'}:{}),
       ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
   });
 }
@@ -51,6 +52,13 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
   const unused=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
   const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
   for(const f of review.findings||[])concerns.add(f.page);
+  for(const f of measurement.figures||[]){
+    if(!(review.findings||[]).some(v=>v.page===f.page&&v.check===3))continue;
+    for(const size of f.reading_sizes||[]){
+      if(!['column','landscape'].includes(size.mode)||size.mode===fit.readingFigures?.[f.id]||![size.image_width_points,size.width_points,size.height_points].every(v=>Number.isFinite(v)&&v>0)||!Number.isFinite(f.image_width_points)||size.image_width_points<=f.image_width_points*1.12)continue;
+      candidates.push({id:`reading:${f.id}:${size.mode}`,page:f.page,operation:'set_figure_reading_size',figure:f.id,...size});
+    }
+  }
   for(const page of concerns){
     const findings=(review.findings||[]).filter(f=>f.page===page);
     if(!findings.some(f=>[2,8].includes(f.check)))continue;
@@ -64,7 +72,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
     }
   }
   for(const f of measurement.fit||[]){
-    if(Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
+    if(!fit.readingFigures?.[f.id]&&Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
   }
   for(const a of articles){
     const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
@@ -78,7 +86,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
       ...context.get(p.page),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
-      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,floating})=>({id,role,height_points:h,floating})),
+      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode})=>({id,role,height_points:h,width_points:w,floating,reading_mode})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
       findings:(review.findings||[]).filter(f=>f.page===p.page)};
   })};
@@ -98,12 +106,17 @@ export function validateLayout(result,input){
 export function applyLayoutRepairs(fit,result,input){
   validateLayout(result,input);
   const next={defer:[...(fit.defer||[])],fitFigs:{...fit.fitFigs},fitText:{...fit.fitText},backLinks:[...(fit.backLinks||[])],inFlow:[...(fit.inFlow||[])]};
+  if(fit.readingFigures)next.readingFigures={...fit.readingFigures};
   for(const d of result.decisions.filter(d=>d.decision==='repair')){
     const c=input.candidates.find(c=>c.id===d.candidate_id);
     if(c.operation==='fit_figure')next.fitFigs[c.figure]=c.height;
     else if(c.operation==='tighten_leading')next.fitText[c.article]=c.leading;
     else if(c.operation==='collect_references')next.backLinks.push(c.article);
     else if(c.operation==='keep_figure_in_flow'&&!next.inFlow.includes(c.figure))next.inFlow.push(c.figure);
+    else if(c.operation==='set_figure_reading_size'){
+      next.readingFigures??={};next.readingFigures[c.figure]=c.mode;
+      delete next.fitFigs[c.figure];
+    }
   }
   return next;
 }
