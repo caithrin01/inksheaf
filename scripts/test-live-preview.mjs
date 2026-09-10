@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { PREVIEW_SCHEMA_VERSION } from "../functions/lib/publication-identity.js";
 // Production feature gate. This is intentionally not a mock: it fails unless the deployed
 // Inksheaf API can personalize several real publications through the same URL beta users call.
 import { strict as assert } from "node:assert";
@@ -41,7 +42,7 @@ for (const [label, publicationUrl, expectedKind] of cases) {
     const body = await r.json();
     assert.equal(r.status, 200, JSON.stringify(body));
     assert.equal(body.ok, true, JSON.stringify(body));
-    assert.equal(body.summary_version, 7);
+    assert.equal(body.summary_version, PREVIEW_SCHEMA_VERSION);
     assert.ok(body.divisions && body.recommended, label + ": divisions plan present");
     assert.ok(body.publication && body.publication.length > 1);
     assert.ok(body.public_posts > 0);
