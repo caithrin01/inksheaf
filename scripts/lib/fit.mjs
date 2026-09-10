@@ -5,13 +5,35 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-export function fit({ args, html, pdf, log = () => {}, passes = 10, initial = {} }) {
+export function fit(options) {
+  const steps = fitPasses(options);
+  let step;
+  do { step = steps.next(); } while (!step.done);
+  return step.value;
+}
+
+// The publisher reserves a pass durably before any child builder can run. Legacy
+// tools retain the synchronous entry point, using the very same fitting loop.
+export async function fitWithBudget({ beforePass, ...options }) {
+  if (typeof beforePass !== 'function') throw Error('Publisher fit requires durable render accounting');
+  const steps = fitPasses(options);
+  try {
+    for (;;) {
+      const step = steps.next();
+      if (step.done) return step.value;
+      await beforePass(step.value);
+    }
+  } finally { steps.return(); }
+}
+
+function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {} }) {
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
   let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures};
   for (let pass = 1; pass <= passes; pass++) {
+    yield { pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: { ...fitText }, backLinks: [...backLinks], inFlow: [...inFlow], readingFigures: { ...readingFigures }, extra: [...extra] };
     const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
     const textArg = Object.keys(fitText).length ? ['--fit-text', Object.entries(fitText).map(([n,v])=>`${n}=${v}`).join(',')] : [];
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,

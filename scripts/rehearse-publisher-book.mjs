@@ -4,7 +4,7 @@
 import {existsSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {resolve} from 'node:path';
-import {fit} from './lib/fit.mjs';
+import {fitWithBudget} from './lib/fit.mjs';
 import {publisherSession} from './lib/publisher-session.mjs';
 import {publishVolume} from './lib/publish-volume.mjs';
 const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
@@ -33,9 +33,9 @@ for(const [signal,code] of [['SIGINT',130],['SIGTERM',143]])process.once(signal,
   saveResult();process.exit(code);
 });
 try{
-  const book=await publishVolume({build:({passes,initial})=>{
+  const book=await publishVolume({build:async({passes,initial,beforePass})=>{
     const args=['scripts/build-book.mjs',host,'--fixture',fixture,'--out',html,...(brand?['--brand-file',brand]:['--no-brand']),'--cover-design','classic','--print-interior','--direct-links','--publisher-dir',directory,'--publisher-volume','1'];
-    const fitted=fit({args,html,pdf,passes,initial,log:console.error});
+    const fitted=await fitWithBudget({args,html,pdf,passes,initial,beforePass,log:console.error});
     const report=JSON.parse(readFileSync(html.replace(/\.html$/,'.report.json'),'utf8'));report.fit=fitted;
     return{html,pdf,report};
   },session,emit,volume:'1',reviewDirectory:out+'/review',log:console.error});

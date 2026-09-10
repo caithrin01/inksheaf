@@ -3,27 +3,39 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings} from './publisher-layout.mjs';
 import {reviewPdf,writerLine} from './page-review.mjs';
+import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions/lib/publisher-policy.js';
 
 // The same complete local pipeline is used by the press and by private rehearsals.
 // Complete-file publication/email happen only after a checked PDF returns.
 // An optional private draft excerpt may appear while that review continues.
 export async function publishVolume({build,session,emit,volume,reviewDirectory,log=()=>{},onRendered=async()=>{}}){
-  let book=await build({passes:4}),totalPasses=book.report.fit.pass,review,layout;
+  let usage=(await session()).renderUsage(volume),totalPasses=usage.passes,review,layout;
+  const boundedBuild=async options=>{
+    const remaining=PUBLISHER_MAX_RENDERS-totalPasses;
+    if(remaining<1)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+    let reservations=0;
+    const book=await build({...options,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
+      usage=await(await session()).reserveRender(volume,settings);totalPasses=usage.passes;reservations++;
+    }});
+    if(reservations!==book.report.fit.pass)throw Error('Renderer did not account for every pass; the book is held for recovery.');
+    return book;
+  };
+  let book=await boundedBuild({passes:4});
   const sourceHashes=JSON.stringify(book.report.bodyHashes);
   // Restore known paragraph boundaries before spending vision calls rediscovering
   // the same deterministic interruption. This is one bounded batch, not a loop.
   const firstMeasurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
   const interruptions=readingOrderFindings(firstMeasurement);
   if(interruptions.length){
-    if(totalPasses>=6)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+    if(totalPasses>=PUBLISHER_MAX_RENDERS)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
     const initial={...book.report.fit,inFlow:[...new Set([...(book.report.fit.inFlow||[]),...interruptions.map(f=>f.figure_id)])]};
-    const available=6-totalPasses,passes=Math.min(2,Math.max(1,available-1));
+    const available=PUBLISHER_MAX_RENDERS-totalPasses,passes=Math.min(2,Math.max(1,available-1));
     await emit({kind:'typesetting',volume,message:'Keeping photographs between the paragraphs that surround them in your original writing.'});
-    book=await build({initial,passes});totalPasses+=book.report.fit.pass;
+    book=await boundedBuild({initial,passes});
     if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
     await emit({kind:'layout',volume,passes:totalPasses,decisions:interruptions.map(f=>({page:f.page,decision:'repair',candidate_id:`inflow:${f.figure_id}:${f.page}`,reason:'Kept this image between its original source paragraphs.'})),message:'Images have been placed back between their original paragraphs. The new pages will be checked.'});
   }
-  for(let round=0;round<=2;round++){
+  for(let round=0;round<=PUBLISHER_MAX_REPAIR_ROUNDS;round++){
     await emit({kind:'typesetting',volume,included:book.report.included,message:round?'The adjusted pages have been typeset again.':'Your writing and images have been set on the page.'});
     await onRendered({book,round,volume});
     const publisher=await session();
@@ -41,13 +53,14 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,l
       if(layout.decisions.some(d=>d.decision==='needs_review'))throw Error('The layout needs a closer look before the complete PDF is ready.');
       break;
     }
-    if(round===2||totalPasses>=6)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+    if(usage.repairs>=PUBLISHER_MAX_REPAIR_ROUNDS||totalPasses>=PUBLISHER_MAX_RENDERS)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
     const initial=applyLayoutRepairs(book.report.fit,layout,input);
+    usage=await(await session()).reserveRepair(volume,initial);
     // A source-position repair can expose a new figure gap. Let the deterministic
     // fitter use otherwise-unused passes, while reserving a final repair round.
-    const available=6-totalPasses;
+    const available=PUBLISHER_MAX_RENDERS-totalPasses;
     const passes=Math.min(3,Math.max(1,available-(round===0&&available>1?1:0)));
-    book=await build({initial,passes});totalPasses+=book.report.fit.pass;
+    book=await boundedBuild({initial,passes});
     if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
   }
   // A measured, explained use of whitespace is recorded as a resolved finding.

@@ -7,14 +7,16 @@ import {join} from 'node:path';
 import {PDFDocument} from 'pdf-lib';
 import {publishVolume} from './lib/publish-volume.mjs';
 import {validateLayout} from './lib/publisher-layout.mjs';
+import {newRenderBudget,renderUsage,reserveRenderWork} from '../functions/lib/publisher-render-budget.js';
 let passed=0;
 async function test(name,fn){await fn();console.log('PASS',name);passed++;}
 async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false,initialPasses=1,keepSpace=false}={}){
   const dir=mkdtempSync(join(tmpdir(),'publisher-volume-')),pdf=join(dir,'book.pdf');
   const doc=await PDFDocument.create();doc.addPage([432,648]);doc.addPage([432,648]);if(mixedHold)doc.addPage([432,648]);writeFileSync(pdf,await doc.save());
   let builds=0;const events=[],settings=[],previews=[];
-  const build=async({initial,passes})=>{
+  const build=async({initial,passes,beforePass})=>{
     builds++;settings.push({initial,passes});
+    for(let pass=1;pass<=(builds===1?initialPasses:1);pass++)await beforePass({pass,initial});
     const repaired=Boolean(initial)&&!alwaysRepair&&(!keepSpace||initial.fitText?.[1]<leading);
     const measurement={pages:[{page:1,blank:.1},{page:2,blank:repaired ? .1 : .7}],articles:[{n:1,start:1,end:2}],fit:[]};
     if(mixedHold)measurement.pages.push({page:3,blank:repaired&&!persistentHold?.1:.7});
@@ -22,7 +24,8 @@ async function scenario({alwaysRepair=false,changeSource=false,visionFails=false
     writeFileSync(pdf.replace('.pdf','.pages.json'),JSON.stringify(measurement));
     return{pdf,report:{included:1,bodyHashes:{source:changeSource&&builds>1?'changed':'original'},postOrder:[{id:1}],publisher:{decisions:[]},fit:{...initial,pass:builds===1?initialPasses:1,fitText:initial?.fitText||{1:leading}}}};
   };
-  const emit=async e=>events.push(e),publisher={emit,vision:async()=>{if(visionFails)throw Error('provider unavailable');return{text:'[]'};},layout:async input=>{
+  const state={renderBudget:newRenderBudget()},reserve=(volume,kind)=>reserveRenderWork(state,volume,kind,{id:crypto.randomUUID(),selection_revision:0,run_id:'fixture',started:new Date().toISOString(),settings_hash:'a'.repeat(64)});
+  const emit=async e=>events.push(e),publisher={emit,renderUsage:volume=>renderUsage(state,volume),reserveRender:async volume=>reserve(volume,'render'),reserveRepair:async volume=>reserve(volume,'repair'),vision:async()=>{if(visionFails)throw Error('provider unavailable');return{text:'[]'};},layout:async input=>{
     const result={decisions:input.pages.map(p=>{const held=hold||(mixedHold&&p.page===3);return{page:p.page,decision:held?'needs_review':'repair',candidate_id:held?null:input.candidates.find(c=>c.page===p.page)?.id,reason:held?'A content defect needs investigation.':'Bring the stranded ending back using measured leading.'};})};
     return validateLayout(result,input);
   }};
@@ -68,5 +71,13 @@ await test('measured reading-order repair runs before vision and still preserves
 });
 await test('source mutation during deterministic source-position repair is held before preview',async()=>{
   const s=await scenario({interrupted:true,changeSource:true});await assert.rejects(s.run,/Source text changed/);assert.equal(s.previews.length,0);
+});
+await test('reentering a held volume cannot reset its render or repair allowance',async()=>{
+  const exhausted=await scenario({alwaysRepair:true,initialPasses:4});
+  await assert.rejects(exhausted.run,/bounded layout repairs/);assert.equal(exhausted.builds,3);
+  await assert.rejects(exhausted.run,/bounded layout repairs/);assert.equal(exhausted.builds,3);
+  const repairs=await scenario({alwaysRepair:true});
+  await assert.rejects(repairs.run,/bounded layout repairs/);assert.equal(repairs.builds,3);
+  await assert.rejects(repairs.run,/bounded layout repairs/);assert.equal(repairs.builds,4);
 });
 console.log(`${passed} complete publisher orchestration checks passed`);

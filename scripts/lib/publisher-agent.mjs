@@ -1,6 +1,7 @@
 // In-product editorial work. Decisions refer to original posts; models never rewrite
 // the source. The caller persists the journal before a paid request and each event.
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { Parser } from 'htmlparser2';
 import { z } from 'zod';
 import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
@@ -13,6 +14,10 @@ export const PUBLISHER_MODELS = {
 export const COMPUTE_POLICY = Object.freeze({ currency: 'USD', generationChargeMinor: 0,
   printRetailAdditionMinor: 200, collection: 'printed-copy-order', purpose: 'inference-cost-recovery' });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// Bind cached editorial decisions to the actual system/task/schema/validation
+// implementation, rather than relying on a manually bumped version alone.
+export const PUBLISHER_CACHE_POLICY = createHash('sha256').update(readFileSync(new URL(import.meta.url)))
+  .update(readFileSync(new URL('../../functions/lib/publisher-policy.js',import.meta.url))).digest('hex');
 const kinds = ['essay', 'interview', 'poem', 'recipe', 'photo-essay', 'story', 'review', 'dispatch', 'housekeeping', 'mixed', 'unknown'];
 export const Reading = z.object({ decisions: z.array(z.object({
   post_id: z.string(), kind: z.enum(kinds), decision: z.enum(['keep', 'set_aside', 'uncertain']),
@@ -192,7 +197,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
     // A text-only classifier cannot judge an image-only piece. Preserve it for the
     // visual review and make that limitation explicit in the decision.
     const readable = batch.filter(p => p.text);
-    const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.reader.id, publication, readable]);
+    const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.reader, publication, readable]);
     let reading = { decisions: [] };
     if (readable.length) {
       let result = cache.get(key);
@@ -225,7 +230,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   if (!kept.length) throw Error('Only housekeeping remains; there is no complete book to typeset');
   const input = kept.map(p => ({ id: p.id, title: p.title, date: p.date, authors: p.authors,
     kind: decisions.find(d => d.post_id === p.id).kind, evidence: decisions.find(d => d.post_id === p.id).evidence }));
-  const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.publisher.id, publication, input]);
+  const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.publisher, publication, input]);
   let structure = cache.get(key);
   if (!structure) {
     const task = 'Compose the table of contents for this edition. Use one chronological section unless the writing clearly warrants a few meaningful sections. Preserve chronological order within each section. Keep every supplied post exactly once. The description MUST be under 200 characters, each section title under 80 characters, and each reason under 200 characters. Explain the arrangement in one short sentence; avoid literary praise. Do not invent post titles, author identities, page numbers or source facts; you are using source-backed classifications and quotations, not claiming another full reading.';

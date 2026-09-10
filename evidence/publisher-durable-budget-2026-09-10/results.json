@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-09-10T20:03:54.630803+00:00",
+  "scope": "Durable render/repair allowance and policy-aware review cache; candidate only.",
+  "code_sha256": {
+    "functions/api/publisher-state.js": "2f6d2bcd60265504dc138c5f0da111c1f184f29fbd6ae3eeb8434e362435b815",
+    "functions/lib/publisher-policy.js": "ebdb080019074e17e5ae93c75673d1d65bbcba23bb3fd2db34b75b76106a9e81",
+    "functions/lib/publisher-render-budget.js": "649accb86b44e52dff120a54eeb5bf40977ece4f638e683487bdeddafeff847a",
+    "scripts/lib/fit.mjs": "6eb0a322d25f0ec7d2a7581c47240998067550d7dab54dd29e6f4897086b5772",
+    "scripts/lib/publish-volume.mjs": "40ccf5e38502e8771bec3db5d637800ef0b7722d806f856558755f3ee0cb89f7",
+    "scripts/lib/publisher-agent.mjs": "5d2ab1ea620e6a32f5a6ce170405ec75239b56fe012c12849f354562c0c9d5ec",
+    "scripts/lib/publisher-session.mjs": "87ff3f523fe77da453c0b58e6c6fb994bcf9f5c0a2303c22aa2d9baae81e822d",
+    "scripts/press.mjs": "0c87c2ddd37541e8954b161fe9e667f8ad8b3029d6e82b7ec7d957c1dfb4df7e",
+    "scripts/rehearse-publisher-book.mjs": "fd1605b61ad52e5cf5ec887058a7385e7e135e67d2605f8ecd71e239c70fe13e",
+    "scripts/test-publish-volume.mjs": "91c2add1cd9ef644c4a405886d7b4c62e6edc28fb9b4eb3c4f03bd096ef17193",
+    "scripts/test-publisher-render-budget.mjs": "61e758ec45c0411f475e7e1890827f5799ab3da2d59b1eb3e970e82f226a46ff",
+    "package.json": "6b08460eb14712cfb7096d9bddf2c3a38bc4f787e7089ba88831d6273b5de135"
+  },
+  "checks": {
+    "test:preview:unit": "All package commands passed; first segment through migrations, sips image fixture rerun outside sandbox (8 pass), remaining segment from test-typst-fixtures through test-press-release.",
+    "test-renderer": "69 pass, 0 fail; isolated Chrome requires sandbox escalation in this environment.",
+    "test-publisher-render-budget": "12 pass; real files, SQLite, process kill and real fitter.",
+    "test-publish-volume": "11 pass.",
+    "build": "pass",
+    "test-honesty --source-only": "48 pass",
+    "validate.py": "13 pass, 0 warn, 0 fail",
+    "git diff --check": "pass"
+  },
+  "external_effects": {
+    "paid_inference_calls": 0,
+    "original_annual_pdf_renders": 0,
+    "deployments": 0,
+    "press_dispatches": 0,
+    "deliveries": 0
+  },
+  "limits": [
+    "Legacy render history requires explicit reconciliation.",
+    "No finished-render restart checkpoint or service monetary admission added.",
+    "Six renders and two repair rounds are shared across pre-PDF selection changes; no fresh revision allowance.",
+    "Annual quality, cold completion and public launch remain held."
+  ]
+}
