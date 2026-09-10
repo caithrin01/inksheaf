@@ -9,3 +9,15 @@ Local validation: 22 public-sample/design assertions, eight relay tests, 21 arch
 ## Deployment dependency
 
 The previous automatic approval rejection for a direct Modal update remains unresolved. It required explicit owner authorization for that infrastructure deployment outside the protected GitHub site workflow. Do not merge/release this change until `python3 -m modal deploy services/archive_relay.py` is authorized and the new endpoint passes authenticated public reads. Site deployment must still use the protected GitHub workflow. No author emails, generated public books, listings or orders are part of this repair.
+
+## Repeatable contract check
+
+The temporary probe referenced by earlier vault notes did not survive restart. Its replacement
+is `node scripts/check-sample-relay.mjs`, optionally with `--out <local-evidence.json>`. Run it
+after the specifically authorized service update. It reads the existing relay credential
+without printing it, requires a bad signature to return 401, checks the identified owner public
+post, and compares the relayed body hash with a direct reference. Output contains status, public
+post ID and body hash only. Requests reject redirects and bound time/bytes. Four injected-fetch
+checks cover success, a missing endpoint, changed body and paid content; the live check remains
+pending. Use `python3 -m modal deploy services/archive_relay.py`; the older stop-first helper
+would introduce an unnecessary service interruption.
