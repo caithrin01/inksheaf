@@ -1,8 +1,9 @@
-"""Minimal authenticated origin for Substack archive metadata.
+"""Authenticated origin for Substack archive metadata and bounded public samples.
 
 Cloudflare egress is rate-limited by Substack, so the Pages Function uses this only after its
 direct request fails. The relay exposes one fixed read-only path, validates the response as a JSON
-array, and never requests post bodies.
+array. The separate sample endpoint reads one signed, identified public post;
+archive responses still omit bodies.
 """
 
 import hmac
@@ -22,6 +23,7 @@ app = modal.App("inksheaf-archive-relay")
 # retries, and without this the retry started over. Results are keyed by host for 10 min.
 results = modal.Dict.from_name("inksheaf-relay-results", create_if_missing=True)
 RESULT_TTL = 600
+RESULT_SCHEMA = 2  # include the publication's original logo in slim identity metadata
 PAGE_BATCH = 4          # concurrent archive pages per batch (GCP egress; measured clean)
 BATCH_PAUSE = 0.25
 image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi")
@@ -70,9 +72,10 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
 
     if mode == "all":
         hit = None
+        result_key = f"v{RESULT_SCHEMA}|{host}|{since}"
         if not cold:   # cold=1 (signed callers only) forces a fresh read, for the reliability sample
             try:
-                hit = results.get(host + "|" + since)
+                hit = results.get(result_key)
             except Exception:
                 hit = None
         if hit and _t.time() - hit["at"] < RESULT_TTL:
@@ -101,7 +104,7 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
         if len(body) > MAX_BYTES * 4:
             raise HTTPException(status_code=502, detail="response too large")
         try:
-            results[host + "|" + since] = {"at": _t.time(), "body": body, "complete": complete}
+            results[result_key] = {"at": _t.time(), "body": body, "complete": complete}
         except Exception:
             pass
         return Response(content=body, media_type="application/json",
@@ -167,7 +170,7 @@ def slim(p):
     def pub_slim(u):
         pub = (u.get("publication") or {}) if isinstance(u, dict) else {}
         return {"publication": {k: pub.get(k) for k in
-                ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop")}}
+                ("name", "custom_domain", "subdomain", "id", "theme_var_background_pop", "logo_url")}}
     body = str(p.get("body_html") or "")
     import re as _re
     return {
@@ -235,3 +238,74 @@ def fetch_page(host, offset, HTTPException):
     if not isinstance(value, list):
         raise HTTPException(status_code=502, detail="invalid archive shape")
     return value
+
+
+def sample_signature_ok(secret, host, slug, post_id, signature, now=None):
+    import time
+    if (not secret or not valid_host(host) or
+            not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,199}", slug, re.I) or
+            not isinstance(post_id, int) or not 0 < post_id <= 9007199254740991):
+        return False
+    bucket = int((time.time() if now is None else now) // 300)
+    return any(hmac.compare_digest(signature, hmac.new(secret.encode(),
+        f"{host}:sample:{slug}:{post_id}:{b}".encode(), hashlib.sha256).hexdigest())
+        for b in (bucket, bucket - 1))
+
+
+def fetch_public_sample(host, slug, post_id, HTTPException):
+    # Follow only the same publication's www alias, on the exact public-post path.
+    # Never forward authentication or let an upstream redirect choose another origin.
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    opener = urllib.request.build_opener(NoRedirect)
+    path = f"/api/v1/posts/{slug}"
+    target = f"https://{host}{path}"
+    body = None
+    for _ in range(3):
+        request = urllib.request.Request(target, headers={
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 Inksheaf-public-sample/1.0 (+https://inksheaf.com)",
+            "Referer": f"https://{host}/p/{slug}",
+        })
+        try:
+            with opener.open(request, timeout=5) as upstream:
+                body = upstream.read(MAX_BYTES + 1)
+            break
+        except urllib.error.HTTPError as exc:
+            if not 300 <= exc.code < 400:
+                raise HTTPException(status_code=502, detail="public post unavailable") from exc
+            next_url = urllib.parse.urljoin(target, exc.headers.get("Location", ""))
+            parsed = urllib.parse.urlparse(next_url)
+            if (parsed.scheme != "https" or parsed.username or parsed.password or
+                    parsed.port or (parsed.hostname or "").removeprefix("www.") != host.removeprefix("www.") or
+                    parsed.path != path or parsed.query or parsed.fragment):
+                raise HTTPException(status_code=502, detail="unsafe redirect") from exc
+            target = next_url
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise HTTPException(status_code=503, detail="public post unavailable") from exc
+    if body is None or len(body) > MAX_BYTES:
+        raise HTTPException(status_code=502, detail="public post response limit")
+    try:
+        post = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=502, detail="invalid public post") from exc
+    if (not isinstance(post, dict) or str(post.get("id")) != str(post_id) or
+            post.get("slug") != slug or post.get("audience") != "everyone" or
+            post.get("is_published") is False or not isinstance(post.get("body_html"), str) or
+            not post["body_html"].strip()):
+        raise HTTPException(status_code=422, detail="public post unavailable")
+    return {k: post.get(k) for k in ("id", "slug", "title", "subtitle", "post_date",
+                                    "audience", "is_published", "body_html")}
+
+
+@app.function(image=image, secrets=[modal.Secret.from_name("inksheaf-relay")], timeout=20,
+              max_inputs=1, cloud="gcp")
+@modal.fastapi_endpoint(method="GET")
+def sample(host: str, slug: str, post_id: int, sig: str = ""):
+    from fastapi import HTTPException, Response
+    if not sample_signature_ok(os.environ.get("ARCHIVE_RELAY_TOKEN", ""), host, slug, post_id, sig):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    post = fetch_public_sample(host, slug, post_id, HTTPException)
+    return Response(content=json.dumps(post).encode(), media_type="application/json",
+                    headers={"Cache-Control": "no-store"})
