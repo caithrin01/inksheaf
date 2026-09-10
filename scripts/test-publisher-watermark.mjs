@@ -13,7 +13,8 @@ for(const [name,publisherWatermarks] of [['plain',false],['marked',true]]){
  execFileSync('typst',['compile','--font-path','fonts','--ignore-system-fonts',file,`${out}/${name}.pdf`]);
 }
 const comparison=JSON.parse(execFileSync('python3',['-c',`
-import fitz,json
+import pymupdf as fitz
+import json
 from pathlib import Path
 root=Path('${out}');a=fitz.open(root/'plain.pdf');b=fitz.open(root/'marked.pdf');assert len(a)==len(b)
 changes=[];text_same=True;collisions=[]

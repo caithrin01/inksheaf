@@ -6,8 +6,10 @@ set-aside reasons, contents, typesetting/review events and complete PDF links. E
 uses the saved edition outbox automatically; its status and retry are separate from PDF creation.
 There is no pre-PDF verification click. Ownership permission remains necessary before publishing.
 
-This is the candidate for **draft PR #7, not deployed**. Production remains on its earlier
-release. The full annual PDF acceptance is still held; this is not launch acceptance.
+The owner authorized releasing PR #7 on September 10 and continuing the build. Production
+remains on its earlier release until the protected GitHub deployment completes. The full
+annual PDF acceptance is still held; permission to release the application does not clear
+those PDF findings or establish public-launch acceptance.
 The current evidence and remaining gates are in `evidence/publisher-agent-2026-09-08/` and the
 vault's `publisher-agent-design-2026-09-08.md`.
 
@@ -182,8 +184,11 @@ Build, source honesty **48**, and vault validator **13** pass. The final Chromiu
 pass after the critique fixes, including the preserved original explanation and source quote.
 
 GitHub acceptance **34389625351** passed on the previous `2f62191` candidate, including the full
-browser suite and 2,112 cover-fit checks. Restoration acceptance **34393762938** passed on `8fc50c1`. The newer page-reader changes
-still need their own CI run. No browser/profile changes are part of this PR.
+browser suite and 2,112 cover-fit checks. Restoration acceptance **34393762938** passed on
+`8fc50c1`. Page-reader acceptance **34399306635** failed in the watermark test: the CI PDF
+library's deprecated `fitz` alias printed a warning into JSON output. The test now uses the
+supported `pymupdf` import; fresh GitHub acceptance is required. No browser/profile changes
+are part of this PR.
 
 Actual paid rehearsal evidence is separate from tests with controlled model responses:
 - The synthetic eight-source run completed with six retained pieces and 14 PDF pages. It predates
@@ -232,9 +237,11 @@ requests can fall back on the pinned `a560d91` press. New requests carry `publis
 if compatible deployed code cannot be confirmed. Outages/malformed manifests never fall back.
 This compatibility arrangement has local tests; production rollout remains untested.
 
-Before release, finish real annual PDF acceptance and review the final candidate. Then use the
-already existing owner reservation 15 to prove ordinary production dispatch, actual inbox delivery,
-complete private PDF access and the operator copy. Do not repeat signup or order 22370559.
+Release authorization was given on September 10. Preserve the protected GitHub path and pass
+the candidate checks before deploying. Continue real annual PDF acceptance separately; the
+publisher must still hold unresolved books. Use the already existing owner reservation 15
+for later production dispatch, actual inbox delivery, complete private PDF access and the
+operator copy. Do not repeat signup or order 22370559.
 
 Still open: creator link renewal/retention, automatic recovery of stopped workers,
 actual owner-export acceptance, durable revision
