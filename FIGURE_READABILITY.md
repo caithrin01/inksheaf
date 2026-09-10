@@ -73,3 +73,9 @@ intentional-space reasons, nine request measured repairs and six still require r
 The annual PDF remains held at six renders. The final visual scan passing does not override
 those decisions. Campaign spend is $15.7992395 known, $18.118924 including unknown-charge
 reservations, below the $50 limit. No further annual inference is running.
+
+The first full CI passed all units/build/honesty, then exposed a reader test race: the
+parent counter updates before the iframe's print-view message is handled. The acceptance
+now waits for the actual print page to be visible and still checks its real text. An injected
+200ms message delay verifies the handoff in Chromium/WebKit at desktop and phone sizes;
+all four pass. No reader product code changed in this correction.

@@ -13,6 +13,15 @@ for(const [name,type]of[['chromium',chromium],['webkit',webkit]]){
  if(path==='/api/preview')return route.fulfill({json:{...edited,logo_url:identity.logo_url,theme:identity.theme}});
  if(path==='/api/sample')return route.fulfill({json:sample});
  events.push(path);return route.fulfill({json:{ok:true,press:'test'}});});
+ // Exercise the asynchronous iframe handoff even on a fast local machine.
+ await p.addInitScript(()=>{
+   let delayed=false;
+   addEventListener('message',event=>{
+     if(location.pathname!=='/reader/'||delayed||event.data?.type!=='sample-view'||event.data.mode!=='print')return;
+     delayed=true;event.stopImmediatePropagation();
+     const {data,origin}=event;setTimeout(()=>dispatchEvent(new MessageEvent('message',{data,origin})),200);
+   });
+ });
  await p.goto(base);await p.waitForTimeout(700);
  const hero=await p.locator('#tryurl').boundingBox();check(hero.y+hero.height<844,'URL field is not immediately visible');
  check(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'hero overflow');
@@ -26,6 +35,9 @@ for(const [name,type]of[['chromium',chromium],['webkit',webkit]]){
  await p.locator('#sample-mode').click();
  await p.waitForFunction(()=>document.querySelector('#sample-position').textContent==='1 / 4');
  const frame=p.frames().find(f=>f.url().includes('/reader/'));
+ // The parent updates its counter before the iframe receives sample-view. Wait
+ // for the actual print page, not just the parent counter, before reading it.
+ await frame.locator('.pagedjs_page.active').waitFor({state:'visible'});
  check((await frame.locator('.pagedjs_page.active').innerText()).includes('On the surface'),'first page is blank or invented');
  await p.evaluate(()=>document.querySelector('#sample-frame').contentWindow.postMessage({type:'sample-turn',delta:1,channel:'wrong'},location.origin));await p.waitForTimeout(60);check(await p.locator('#sample-position').textContent()==='1 / 4','unauthenticated reader message accepted');
  const text=await frame.locator('.pagedjs_page.active').innerText();await p.locator('#sample-next').click();
