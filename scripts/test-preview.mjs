@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { PREVIEW_SCHEMA_VERSION } from "../functions/lib/publication-identity.js";
 import { strict as assert } from "node:assert";
 import { summarizeArchive } from "../functions/lib/preview-summary.js";
 
@@ -13,7 +14,7 @@ const summarize = posts => summarizeArchive(posts, { publicationName: null, them
 
 const personal = summarize(Array.from({ length: 27 }, (_, i) => post(`Essay ${i + 1}`, 1900)));
 assert.equal(personal.public_posts, 27);
-assert.equal(personal.summary_version, 9);
+assert.equal(personal.summary_version, PREVIEW_SCHEMA_VERSION);
 assert.equal(personal.est_pages, 227);
 assert.equal(personal.cadence, "Annual");
 assert.equal(personal.kind, "essays");

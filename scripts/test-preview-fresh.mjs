@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { PREVIEW_SCHEMA_VERSION } from "../functions/lib/publication-identity.js";
 // Unit test for the signed fresh= cache bypass in functions/api/preview.js (launch-hardening,
 // 2026-09-01). Fake D1, stubbed fetch, one cached host. The cache read must be skipped only
 // when fresh= carries a valid HMAC of host:fresh:bucket under ARCHIVE_RELAY_TOKEN; a missing,
@@ -45,7 +46,7 @@ async function call(query, env) {
   return { status: r.status, body: await r.json() };
 }
 
-const cachedPayload = { summary_version: 9, marker: "from-cache" };
+const cachedPayload = { summary_version: PREVIEW_SCHEMA_VERSION, marker: "from-cache" };
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log(`ok   ${name}`); } else { fail++; console.log(`FAIL ${name}`); } };
 

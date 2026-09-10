@@ -101,7 +101,7 @@ async function read(){
   sample=result;status.textContent='Setting the sample…';frame.hidden=false;
   const source=document.getElementById('sample-source') as HTMLAnchorElement;source.href=result.source;source.hidden=false;
   if(!frame.src){frame.src='/reader/#'+channel;}else sendSample();
- }catch(error){if(host===ownHost){status.textContent=(error as any).name==='AbortError'?'The sample is taking too long. Try opening it again, or reserve for a complete proof.':(error as Error).message;frame.hidden=true;}}
+ }catch(error){if(host===ownHost){status.textContent=(error as any).name==='AbortError'?'The sample is taking too long. Try opening it again, or choose Email me my book to start your complete PDF.':(error as Error).message;frame.hidden=true;}}
  finally{clearTimeout(timeout);if(controller===ownController)loading=false;}
 }
 document.getElementById('view-cover')!.addEventListener('click',cover);
@@ -133,7 +133,7 @@ addEventListener('message',event=>{
    pageIndex=event.data.index;pageCount=event.data.count;updateReaderView();
    previous.disabled=event.data.index===0;next.disabled=event.data.index===event.data.count-1;
  }
- if(event.data?.type==='sample-failed'){sample=null;frame.hidden=true;status.hidden=false;status.textContent='The sample could not be typeset. Try again, or reserve for your complete proof.';}
+ if(event.data?.type==='sample-failed'){sample=null;frame.hidden=true;status.hidden=false;status.textContent='The sample could not be typeset. Try again, or choose Email me my book to start your complete PDF.';}
 });
 document.getElementById('sample-mode')!.addEventListener('click',()=>{printView=!printView;presentation.classList.remove('actual-size');document.getElementById('sample-scale')!.textContent='Actual size';updateReaderView();});
 document.getElementById('sample-continue')!.addEventListener('click',()=>document.getElementById('sample-enlarge')!.click());
