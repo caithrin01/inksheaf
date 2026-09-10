@@ -1,0 +1,441 @@
+{
+  "as_of": "2026-09-09T18:30:02.922Z",
+  "status": "held",
+  "pdf_sha256": "9a0113f4ec5379d2d8f3b360f630cc78936c111c8b401eb4f2c405739b6116db",
+  "pages": 152,
+  "included": 22,
+  "source_count": 23,
+  "source_hashes_match": true,
+  "all_pages_measured": true,
+  "pages_above_30_percent": [
+    {
+      "page": 1,
+      "unused": 0.9589307048984468,
+      "position": "front matter"
+    },
+    {
+      "page": 2,
+      "unused": 1,
+      "position": "blank front-matter verso"
+    },
+    {
+      "page": 3,
+      "unused": 0.9184027082746317,
+      "position": "front matter"
+    },
+    {
+      "page": 4,
+      "unused": 0.8666163345391604,
+      "position": "front matter"
+    },
+    {
+      "page": 5,
+      "unused": 0.3616431633916237,
+      "position": "front matter"
+    },
+    {
+      "page": 6,
+      "unused": 1,
+      "position": "blank verso before a section divider"
+    },
+    {
+      "page": 7,
+      "unused": 0.8961068111223702,
+      "position": "section divider: Working Through the Frontier: Early Dispatches"
+    },
+    {
+      "page": 8,
+      "unused": 1,
+      "position": "blank verso after a section divider"
+    },
+    {
+      "page": 13,
+      "unused": 0.3041770791494718,
+      "position": "article ending"
+    },
+    {
+      "page": 18,
+      "unused": 0.37588720652080065,
+      "position": "article ending"
+    },
+    {
+      "page": 21,
+      "unused": 0.3763114605610801,
+      "position": "article ending"
+    },
+    {
+      "page": 27,
+      "unused": 0.4075898486083839,
+      "position": "article opening"
+    },
+    {
+      "page": 36,
+      "unused": 0.5271585822247833,
+      "position": "article ending"
+    },
+    {
+      "page": 41,
+      "unused": 0.9371761062239233,
+      "position": "section divider: Life Inside the Claude Era"
+    },
+    {
+      "page": 42,
+      "unused": 1,
+      "position": "blank verso after a section divider"
+    },
+    {
+      "page": 66,
+      "unused": 0.49175256868132267,
+      "position": "article ending"
+    },
+    {
+      "page": 76,
+      "unused": 0.4849770658759661,
+      "position": "article ending"
+    },
+    {
+      "page": 77,
+      "unused": 0.9371761062239233,
+      "position": "section divider: Safety Clusters and the Compute State"
+    },
+    {
+      "page": 78,
+      "unused": 1,
+      "position": "blank verso after a section divider"
+    },
+    {
+      "page": 84,
+      "unused": 0.3695196074254482,
+      "position": "article ending"
+    },
+    {
+      "page": 93,
+      "unused": 0.5892557123655915,
+      "position": "article ending"
+    },
+    {
+      "page": 109,
+      "unused": 0.3693492107778752,
+      "position": "article ending"
+    },
+    {
+      "page": 112,
+      "unused": 0.36442936335555687,
+      "position": "body"
+    },
+    {
+      "page": 116,
+      "unused": 0.4773486751524494,
+      "position": "article ending"
+    },
+    {
+      "page": 141,
+      "unused": 0.6871257056187273,
+      "position": "article ending"
+    },
+    {
+      "page": 142,
+      "unused": 0.4217827043795387,
+      "position": "article opening"
+    },
+    {
+      "page": 150,
+      "unused": 0.3828162144304319,
+      "position": "article ending"
+    },
+    {
+      "page": 151,
+      "unused": 0.6561463804940026,
+      "position": "end matter"
+    },
+    {
+      "page": 152,
+      "unused": 0.5905372620768303,
+      "position": "end matter"
+    }
+  ],
+  "parts": [
+    {
+      "title": "Working Through the Frontier: Early Dispatches",
+      "page": 7
+    },
+    {
+      "title": "Life Inside the Claude Era",
+      "page": 41
+    },
+    {
+      "title": "Safety Clusters and the Compute State",
+      "page": 77
+    }
+  ],
+  "physical_printed_parity_matches": true,
+  "first_article": {
+    "n": 1,
+    "start": 9,
+    "end": 13
+  },
+  "model_findings": [
+    {
+      "page": 26,
+      "check": 3,
+      "note": "Chart is scaled down significantly from source; axis labels, annotation text, and footnote are noticeably smaller and harder to read than the original figure.",
+      "pass1": "The chart is small and the axis labels are difficult to read at the current scale.",
+      "confidence": 0.9,
+      "origin": "rendered_layout",
+      "source_comparisons": 1,
+      "neighbouring_pages": []
+    },
+    {
+      "page": 31,
+      "check": 6,
+      "note": "The heading reads 'Slide 5 \u00e2\u20ac\"' \u2014 mojibake from a mis-encoded em dash, an encoding defect introduced in typesetting, not source content.",
+      "pass1": "The text '\u00e2\u20ac' is a mojibake error representing an unintended character encoding issue in the heading.",
+      "confidence": 1,
+      "origin": "rendered_layout",
+      "source_comparisons": 2,
+      "neighbouring_pages": []
+    },
+    {
+      "page": 46,
+      "check": 5,
+      "note": "Running head reads 'CAITHRIN' instead of the article title 'Ten Commandments of AI Parties', inconsistent with other pages.",
+      "pass1": "The running head on page 46 incorrectly displays 'CAITHRIN' instead of the article title 'Ten Commandments of AI Parties'. They should be consistent with the other pages in the series.",
+      "confidence": 1,
+      "origin": "rendered_layout",
+      "source_comparisons": 0,
+      "neighbouring_pages": []
+    },
+    {
+      "page": 54,
+      "check": 2,
+      "note": "A single stranded line ('something intelligent and refuse to raise it right. Apply here if') sits alone atop page 54, continuing from page 53's paragraph.",
+      "pass1": "A widow exists on page 54 where the final line of the paragraph appears alone at the top of the page.",
+      "confidence": 0.95,
+      "origin": "rendered_layout",
+      "source_comparisons": 0,
+      "neighbouring_pages": [
+        53,
+        55
+      ]
+    },
+    {
+      "page": 111,
+      "check": 3,
+      "note": "Interactive map's legend, city labels, and caption text are shrunk too small to read at print size versus the legible source image.",
+      "pass1": "The figure at the bottom of the page has illegible, overly small text in its legend and labels.",
+      "confidence": 0.9,
+      "origin": "rendered_layout",
+      "source_comparisons": 2,
+      "neighbouring_pages": []
+    },
+    {
+      "page": 118,
+      "check": 3,
+      "note": "Substack feed screenshot is shrunk small on the printed page, making its text noticeably harder to read than the full-size source image.",
+      "pass1": "The screen capture of the Substack feed is displayed at a low resolution, making the text within the image illegible.",
+      "confidence": 0.9,
+      "origin": "rendered_layout",
+      "source_comparisons": 2,
+      "neighbouring_pages": []
+    }
+  ],
+  "measured_reading_order": [
+    {
+      "page": 10,
+      "check": 8,
+      "figure_id": "working-with-llms-time-and-focus:1",
+      "paragraph_id": 14,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure working-with-llms-time-and-focus:1 interrupts source paragraph 14 between its measured start and end."
+    },
+    {
+      "page": 10,
+      "check": 8,
+      "figure_id": "working-with-llms-time-and-focus:2",
+      "paragraph_id": 14,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure working-with-llms-time-and-focus:2 interrupts source paragraph 14 between its measured start and end."
+    },
+    {
+      "page": 15,
+      "check": 8,
+      "figure_id": "crypto-smell-and-the-virtues-of-seriousness:1",
+      "paragraph_id": 31,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure crypto-smell-and-the-virtues-of-seriousness:1 interrupts source paragraph 31 between its measured start and end."
+    },
+    {
+      "page": 15,
+      "check": 8,
+      "figure_id": "crypto-smell-and-the-virtues-of-seriousness:2",
+      "paragraph_id": 31,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure crypto-smell-and-the-virtues-of-seriousness:2 interrupts source paragraph 31 between its measured start and end."
+    },
+    {
+      "page": 29,
+      "check": 8,
+      "figure_id": "the-dream-of-ai-slide-decks-a-september:1",
+      "paragraph_id": 107,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure the-dream-of-ai-slide-decks-a-september:1 interrupts source paragraph 107 between its measured start and end."
+    },
+    {
+      "page": 33,
+      "check": 8,
+      "figure_id": "the-dream-of-ai-slide-decks-a-september:4",
+      "paragraph_id": 119,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure the-dream-of-ai-slide-decks-a-september:4 interrupts source paragraph 119 between its measured start and end."
+    },
+    {
+      "page": 35,
+      "check": 8,
+      "figure_id": "the-dream-of-ai-slide-decks-a-september:5",
+      "paragraph_id": 129,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure the-dream-of-ai-slide-decks-a-september:5 interrupts source paragraph 129 between its measured start and end."
+    },
+    {
+      "page": 51,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:1",
+      "paragraph_id": 196,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:1 interrupts source paragraph 196 between its measured start and end."
+    },
+    {
+      "page": 51,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:2",
+      "paragraph_id": 196,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:2 interrupts source paragraph 196 between its measured start and end."
+    },
+    {
+      "page": 52,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:3",
+      "paragraph_id": 196,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:3 interrupts source paragraph 196 between its measured start and end."
+    },
+    {
+      "page": 53,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:4",
+      "paragraph_id": 200,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:4 interrupts source paragraph 200 between its measured start and end."
+    },
+    {
+      "page": 54,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:5",
+      "paragraph_id": 205,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:5 interrupts source paragraph 205 between its measured start and end."
+    },
+    {
+      "page": 54,
+      "check": 8,
+      "figure_id": "lord-byron-and-how-to-properly-oppose:6",
+      "paragraph_id": 205,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure lord-byron-and-how-to-properly-oppose:6 interrupts source paragraph 205 between its measured start and end."
+    },
+    {
+      "page": 111,
+      "check": 8,
+      "figure_id": "whos-getting-clanked-in-2027:1",
+      "paragraph_id": 506,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure whos-getting-clanked-in-2027:1 interrupts source paragraph 506 between its measured start and end."
+    },
+    {
+      "page": 111,
+      "check": 8,
+      "figure_id": "whos-getting-clanked-in-2027:2",
+      "paragraph_id": 506,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure whos-getting-clanked-in-2027:2 interrupts source paragraph 506 between its measured start and end."
+    },
+    {
+      "page": 112,
+      "check": 8,
+      "figure_id": "whos-getting-clanked-in-2027:3",
+      "paragraph_id": 506,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure whos-getting-clanked-in-2027:3 interrupts source paragraph 506 between its measured start and end."
+    },
+    {
+      "page": 114,
+      "check": 8,
+      "figure_id": "whos-getting-clanked-in-2027:5",
+      "paragraph_id": 511,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure whos-getting-clanked-in-2027:5 interrupts source paragraph 511 between its measured start and end."
+    },
+    {
+      "page": 124,
+      "check": 8,
+      "figure_id": "every-day-i-live-in-house-vi:1",
+      "paragraph_id": 550,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure every-day-i-live-in-house-vi:1 interrupts source paragraph 550 between its measured start and end."
+    },
+    {
+      "page": 124,
+      "check": 8,
+      "figure_id": "every-day-i-live-in-house-vi:2",
+      "paragraph_id": 550,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure every-day-i-live-in-house-vi:2 interrupts source paragraph 550 between its measured start and end."
+    },
+    {
+      "page": 125,
+      "check": 8,
+      "figure_id": "every-day-i-live-in-house-vi:3",
+      "paragraph_id": 550,
+      "confidence": 1,
+      "origin": "measured_layout",
+      "note": "Floating figure every-day-i-live-in-house-vi:3 interrupts source paragraph 550 between its measured start and end."
+    }
+  ],
+  "result": {
+    "status": "held",
+    "fixture": "proofs/publisher/owner-annual/sources.json",
+    "host": "www.caithrin.com",
+    "started": "2026-09-09T18:19:48.890Z",
+    "model_cost_usd": 0.7825202499999997,
+    "reserved_or_spent_usd": 1.2039222500000002,
+    "error": "Page 31: a content or overflow defect (checks 6) cannot be excused as intentional space. Choose an applicable measured repair or needs_review",
+    "finished": "2026-09-09T18:25:31.874Z"
+  },
+  "limitation": "Not an accepted annual PDF. Glyph/head review-context corrections and mixed repair/hold handling were added after this paid run; they still need real-model acceptance. Existing unresolved image readability and source-position findings require repairs and full recheck.",
+  "physical_bounds_pass": true,
+  "physical_bounds_counts": {
+    "pages": 152,
+    "glyphs": 188427,
+    "images": 58
+  }
+}

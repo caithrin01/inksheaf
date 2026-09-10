@@ -11,6 +11,7 @@ import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
 import { dirname, resolve } from "node:path";
 
+const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
 const RUBRIC = "#7d6448", FAINT = "#6b6457", RULE = "#b9b19d", INK = "#1e1710";
 const isEl = n => n && n.type === "tag";
 const cls = n => (isEl(n) && n.attribs && n.attribs.class) ? n.attribs.class.split(/\s+/) : [];
@@ -62,12 +63,12 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], host = "" } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -156,13 +157,13 @@ export function emitTypst(html, opts = {}) {
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
     const id = attr(imgEl, "data-fig") || src;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
-    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, page: here().page(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
+    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!fitH && !isLast && !inFlow.includes(id))}, page: here().page(), y: here().position().y.pt(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if (isLast && figTotal > 0) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* the last figure stays in flow, before the notes */
+    if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
   }
@@ -222,11 +223,21 @@ export function emitTypst(html, opts = {}) {
     switch (n.name) {
       case "p": {
         const imgs = findAll(n, k => isEl(k) && k.name === "img");
-        const t = kids(n).map(k => inline(k)).join("").trim();
+        // Editor <br>s at a paragraph's end have no following source line. Remove
+        // them before trimming: a stripped newline would let the trailing Typst
+        // line-break slash escape the generated measurement's #context.
+        let t = kids(n).map(k => inline(k)).join("").replace(/(?:[ \t]*\\\n\s*)+$/, '').trim();
         let s = "";
         for (const im of imgs) s += figureOf(im, "");
         const exampleLead = textOf(n).trim().length <= 160 && /(?:^\s*Before:|\b(?:Before|After):\s*$)/i.test(textOf(n));
-        if (t) s += (exampleLead ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${kids(n).map(k => inline(k)).join("")}])\n\n` : t + "\n\n");
+        const meaningful=kids(n).filter(k=>(k.type!=='text'||k.data.trim())&&!(isEl(k)&&k.name==='br'));
+        const boldHeading=meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
+        if(t){
+          const id=++paragraphN;
+          const point=label=>`#context [#metadata((id: ${id}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          t=point('parstart')+t+point('parend');
+          s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
+        }
         return s;
       }
       case "h1": case "h2": return `== ${kids(n).map(k => inline(k)).join("").trim()}\n\n`;
@@ -275,7 +286,7 @@ export function emitTypst(html, opts = {}) {
   }
 
   /* ---- an article: collect its footnotes first, then head, body, endnotes ---- */
-  function article(sec, index) {
+  function article(sec, index, afterPart = false) {
     fnMap = new Map(); endnotes = []; figN = 0;
     figTotal = findAll(find(sec, k => isEl(k) && has(k, "artbody")) || sec, k => isEl(k) && k.name === "img" && attr(k, "src")).length; /* body images only; the link note's QR is not a figure */
     for (const fn of findAll(sec, k => isEl(k) && k.name === "div" && has(k, "footnote"))) {
@@ -299,7 +310,7 @@ export function emitTypst(html, opts = {}) {
     // At the tightest fit this is -15 units per em, a small copy-fitting adjustment.
     const tracking = (-(.66 - Number(leading)) / 8).toFixed(3);
     const compact = Number(leading) <= .58 && textOf(bodyEl).trim().split(/\s+/).length < 600;
-    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact})\n`;
+    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, after-part: ${afterPart}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact})\n`;
     s += kids(bodyEl).map(block).join("");
     /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
     const linkBlocks = kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join('');
@@ -341,7 +352,7 @@ export function emitTypst(html, opts = {}) {
   /* the copyright page, verso of the title page: the rights line first, provenance, imprint, then the setting */
   const rights = (colophon.match(/©[^·]*$/) || [""])[0].trim();
   const setting = colophon.replace(/·?\s*©[^·]*$/, "").replace(/\s*·\s*Proof edition\s*/, " · ").replace(/^\s*·\s*|\s*·\s*$/g, "").trim();
-  const copyrightPage = `#set par(first-line-indent: 0em, justify: false, spacing: 0.9em)\n#set text(size: 8.5pt, fill: rgb("#3a352c"))\n#align(bottom)[${rights ? esc(rights) + "\n\n" : ""}These ${esc(kindLine ? "pieces" : "essays")} first appeared at ${esc(host)}${tp.s ? ", " + esc(tp.s) : ""}, and are printed in the order they first appeared.\n\nPrinted and bound by Inksheaf, an independent service for Substack writers, not affiliated with Substack Inc. inksheaf.com\n\n${esc(setting)}${/Proof edition/.test(colophon) ? "\n\nProof edition." : ""}]\n`;
+  const copyrightPage = `#set par(first-line-indent: 0em, justify: false, spacing: 0.9em)\n#set text(size: 8.5pt, fill: rgb("#3a352c"))\n#align(bottom)[${rights ? esc(rights) + "\n\n" : ""}These pieces first appeared at ${esc(host)}${tp.s ? ", " + esc(tp.s) : ""}.\n\nPrinted and bound by Inksheaf, an independent service for Substack writers, not affiliated with Substack Inc. inksheaf.com\n\n${esc(setting)}${/Proof edition/.test(colophon) ? "\n\nProof edition." : ""}]\n`;
   const getmore = fm.getmore ? kids(fm.getmore).filter(k => isEl(k)).map(k => k.name === "h3" ? "" : has(k, "qr") ? (() => {
       const imgs = findAll(k, x => isEl(x) && x.name === "img"); const labels = textOf(k).replace(/\s+/g, " ").trim().split(/\s+/);
       return `#v(0.5in)\n#grid(columns: (1fr, 1fr), gutter: 12pt, ${imgs.map((im, i) => { const src = localImage(attr(im, "src"));
@@ -361,17 +372,30 @@ export function emitTypst(html, opts = {}) {
 #let inbody = state("inbody", false)
 #let rubric = rgb("${RUBRIC}")
 #let faint = rgb("${FAINT}")
+#let publisher-mark() = {
+  let pg = here().page()
+  if query(<publisher-page>).any(m => m.location().page() == pg) {
+    align(bottom + center, pad(bottom: 1.05in, image(bytes(${str(PUBLISHER_MARK)}), format: "svg", width: 3.6in, alt: none)))
+  }
+}
+#let part-verso() = {
+  let pg = here().page()
+  let ends = query(<artend>)
+  let article = query(<artstart>).any(a => a.value.page <= pg and ends.any(e => e.value.n == a.value.n and e.value.page >= pg))
+  not article and query(<partstart>).any(p => calc.abs(p.value.page - pg) == 1)
+}
 /* running heads: none on a page where an essay opens (the chapter-opener convention), the
    publication on left pages, the essay that is current at the top of the page on right pages,
    found by querying the level-1 headings rather than a state set mid-page */
 #set page(width: 6in, height: 9in, margin: (inside: 0.85in, outside: 0.62in, top: 0.78in, bottom: 0.78in),
-  header: context { if inbody.get() {
+  ${publisherWatermarks?"background: context publisher-mark(),":""}
+  header: context { if inbody.get() and not part-verso() {
     let pg = here().page(); let hs = query(heading.where(level: 1))
     if not hs.any(h => h.location().page() == pg) {
       let before = hs.filter(h => h.location().page() < pg)
       set text(size: 7.5pt, tracking: 0.14em, fill: faint)
       if calc.even(counter(page).get().first()) [#smallcaps[${esc(pubName.toLowerCase())}]] else if before.len() > 0 [#h(1fr) #emph(text(tracking: 0em, size: 8pt)[#before.last().body])] } } },
-  footer: context { if inbody.get() [ #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
+  footer: context { if inbody.get() and not part-verso() [ #metadata((page: here().page(), folio: counter(page).get().first())) <folio> #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
 #set text(font: ("Source Serif 4", "Noto Serif SC", "Noto Emoji"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
 #set par(justify: true, leading: 0.66em, first-line-indent: 1.35em, spacing: 0.66em)
 #set heading(numbering: none, outlined: false)
@@ -388,9 +412,9 @@ export function emitTypst(html, opts = {}) {
 #set enum(indent: 1em, spacing: 0.5em)
 #set footnote.entry(separator: line(length: 30%, stroke: 0.5pt + rgb("${RULE}")), indent: 0em, gap: 0.5em)
 #show footnote.entry: set text(size: 8.5pt)
-#let arthead(n, title, sub, meta, first: false, index: 0, headspace: 0.55in, compact: false) = {
+#let arthead(n, title, sub, meta, first: false, after-part: false, index: 0, headspace: 0.55in, compact: false) = {
   if not first { place.flush() } /* no float from the previous essay crosses into this one */
-  pagebreak(weak: true)
+  if first or after-part { pagebreak(to: "odd", weak: true) } else { pagebreak(weak: true) }
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
   arttitle.update(title)
   v(headspace)
@@ -401,7 +425,11 @@ export function emitTypst(html, opts = {}) {
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
-#let partpage(kind, title) = page(header: none, footer: none)[ #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
+#let partpage(kind, title) = {
+  place.flush()
+  pagebreak(to: "odd", weak: true)
+  page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
+}
 #let fmpage(body) = page(header: none, footer: none, body)
 `;
 
@@ -410,18 +438,19 @@ export function emitTypst(html, opts = {}) {
      About (recto), dedication (recto), contents (recto); the body opens on a recto. In a proof the
      cover page comes first and the counter starts again after it, so left and right stay true. */
   if (coverPage) out.push(coverPage);
-  out.push(`#pagebreak(to: "odd", weak: true)\n#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
+  out.push(`#pagebreak(to: "odd", weak: true)\n${publisherWatermarks?'#context [#metadata((kind: "opening", page: here().page())) <publisher-page>]\n':""}#v(3.2in) #align(center, text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[${esc(tp.t || pubName)}])\n`);
   out.push(`#pagebreak(to: "odd")\n#v(2.5in) #align(center)[#text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt)[${esc(tp.t || pubName)}] #v(0.35em) #text(size: 10pt, fill: faint)[${esc(tp.s)}] ${tp.a ? `#v(0.9in) #text(size: 10.5pt)[${esc(tp.a)}]` : ""}]\n`);
   out.push(`#pagebreak()\n${copyrightPage}`);
   if (fm.dedication) out.push(`#pagebreak(to: "odd")\n#v(3in) #align(center, emph[${esc(textOf(fm.dedication).trim())}])\n`);
   if (epigraphTyp) out.push(`#pagebreak(to: "odd")\n#v(2.8in) #align(center, block(width: 3.4in, emph(text(size: 11pt)[${epigraphTyp}])))\n`);
   out.push(`#pagebreak(to: "odd")\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[CONTENTS] #v(1em) #set text(size: 10pt); #set par(first-line-indent: 0em, justify: false); #context { for hd in query(heading.where(level: 1)) [ #box(width: 1fr, [#hd.body #box(width: 1fr, repeat[#h(3pt).#h(3pt)])]) #h(6pt) #counter(page).at(hd.location()).first() \\ ] }\n`);
-  out.push(`#pagebreak(to: "odd")\n`);
-  let ai = 0;
+  let ai = 0, afterPart = false;
   for (const s of sections) {
-    if (s.part) { const k = textOf(find(s.part, x => has(x, "partkind")) || {}).trim(), t = textOf(find(s.part, x => has(x, "parttitle")) || {}).trim(); out.push(`#partpage(${str(k)}, ${str(t)})\n`); }
-    else out.push(article(s.article, ai++));
+    if (s.part) { const k = textOf(find(s.part, x => has(x, "partkind")) || {}).trim(), t = textOf(find(s.part, x => has(x, "parttitle")) || {}).trim(); out.push(`#partpage(${str(k)}, ${str(t)})\n`); afterPart = true; }
+    else { out.push(article(s.article, ai++, afterPart)); afterPart = false; }
   }
+  // End matter has its own headings; it must not inherit the last article's running head.
+  out.push("#set page(header: none)\n");
   if (backNotes.length) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[NOTES]\n#v(0.8em)\n#set par(first-line-indent: 0em, justify: false)\n`);
     for (const b of backNotes) out.push(`#text(size: 9.5pt, weight: 600)[${esc(b.title)}]\n${b.blk}`);
@@ -434,7 +463,10 @@ export function emitTypst(html, opts = {}) {
     out.push(`#pagebreak(weak: true)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[FROM THE COMMENTS]\n#v(0.8em)\n`);
     out.push(kids(fm.appendix).filter(k => isEl(k) && k.name !== "h3").map(block).join(""));
   }
-  if (aboutBody) out.push(`#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false, spacing: 1em)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[A NOTE ON THIS EDITION]\n#v(0.8em)\n${aboutBody}\n`);
+  // References and the edition note can share end matter. A single collected link
+  // must not force a nearly empty leaf followed by another short note page.
+  if (aboutBody) out.push(`${collectedLinks.length&&!fm.appendix?'#v(0.45in)':'#pagebreak(weak: true)'}\n#set par(first-line-indent: 0em, justify: false, spacing: 1em)\n#block(sticky: true)[#text(size: 9pt, tracking: 0.26em, fill: rubric)[A NOTE ON THIS EDITION]]\n#v(0.8em)\n${aboutBody}\n`);
   if (fm.getmore) out.push(`#pagebreak(weak: true)\n#set par(first-line-indent: 0em, justify: false)\n#text(size: 9pt, tracking: 0.26em, fill: rubric)[GET MORE]\n#v(0.8em)\n${getmore}`);
+  if (publisherWatermarks && (aboutBody || fm.getmore)) out.push('#context [#metadata((kind: "closing", page: here().page())) <publisher-page>]');
   return out.join("\n");
 }

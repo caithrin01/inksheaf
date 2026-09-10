@@ -7,7 +7,7 @@ const rows = []; const sqls = [];
 const DB = { prepare(sql) { let args = []; return { bind(...a) { args = a; return this; },
   async first() { if (/FROM edition_versions/.test(sql)) return rows.find(r => r.id === args[0]) || null; return null; },
   async run() { sqls.push(sql.slice(0, 50)); if (/INSERT INTO edition_versions/.test(sql)) { rows.push({ id: rows.length + 1, signup_id: args[0], status: "proofed", approval_nonce: args[10], proof_sha256: args[8] }); return { meta: { last_row_id: rows.length } }; }
-    if (/SET status = 'superseded'/.test(sql)) for (const r of rows) if (r.signup_id === args[0] && r.status === "proofed") r.status = "superseded"; return { meta: {} }; } }; } };
+    if (/SET status = 'superseded'/.test(sql)) for (const r of rows) if (r.signup_id === args[0] && r.id !== args[1] && r.status === "proofed") r.status = "superseded"; return { meta: {} }; } }; } };
 const env = { DB, ARCHIVE_RELAY_TOKEN: "t" };
 const sig = await hmacHex("t", "version:9");
 const body = { signup_id: 9, sig, plan_json: { cadence: "single" }, post_ids: [{ id: 1, slug: "a" }], body_hashes: { 1: "x" }, renderer_sha: "abc", print_mode: "bw", volumes: [{ label: "v", pages: 10 }], proof_key: "proofs/k.pdf", proof_sha256: "e".repeat(64), pages: 10 };

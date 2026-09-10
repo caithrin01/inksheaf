@@ -1,6 +1,8 @@
 // POST /api/signup — store one beta signup in D1 and start the press. No cookies, no IP stored.
 import { validDesign } from "../lib/book-design.js";
-import { sendVerification, verificationState } from "./verify.js";
+import { startPrivatePdf, editionLink, reservePdfCapacity } from '../lib/private-pdf.js';
+import { parseHost, readLimitedText } from './preview.js';
+import { ipKey } from '../lib/quota.js';
 import { funnelHost, funnelSession, recordFunnel, scheduleFunnelAlert } from "../lib/funnel.js";
 const FIELDS = ["publication_url","name","role","email","archive_type","frequency",
   "posts_per_year","cadence_pref","us_subscribers","expected_orders",
@@ -18,7 +20,7 @@ export async function onRequest({ request, env, waitUntil }) {
   if ((recent?.n || 0) >= 30) return bad("busy", 429);
 
   let body;
-  try { body = await request.json(); } catch { return bad("invalid json"); }
+  try { body = JSON.parse(await readLimitedText(request, 32_768)); } catch { return bad("invalid json"); }
   if (body.website) return ok(); // honeypot filled: pretend success, store nothing
 
   const rawUrl = String(body.publication_url || "").trim();
@@ -29,7 +31,7 @@ export async function onRequest({ request, env, waitUntil }) {
   if (email.length > 200) return bad("email too long");
   let parsed;
   try { parsed = new URL(rawUrl); } catch { return bad("bad url"); }
-  if (!/^https?:$/.test(parsed.protocol)) return bad("bad url scheme");
+  if (!/^https?:$/.test(parsed.protocol) || parsed.username || parsed.password || parsed.port || !parseHost(rawUrl)) return bad("bad url scheme");
   parsed.hash = ""; parsed.search = "";
   const path = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
   const url = parsed.origin.toLowerCase() + path;
@@ -58,11 +60,18 @@ export async function onRequest({ request, env, waitUntil }) {
     if (row.email !== email || row.publication_url !== url || (reservationKey && row.reservation_payload_hash !== requestHash))
       return bad("reservation details changed; start a new request", 409);
     if (/\+journeytest@caithrin\.com$/i.test(email)) return reply({ ok: true, id: row.id, press: "test" });
-    if (row.email_verified_at) return reply({ ok: true, id: row.id, existing: true, verified: true, press: row.dispatch_status || "queued" });
-    return reply({ ok: true, id: row.id, existing: true, press: "verify", ...await verificationState(env, row.id) });
+    const state = await startPrivatePdf(env, row);
+    // A legacy email + URL match is not a secret. Only the originating request key
+    // can recover its private workspace; old email links keep their own scopes.
+    return reply({ ok: true, id: row.id, existing: true, ...state,
+      workspace_url: reservationKey ? await editionLink(env, row.id) : null });
   };
   if (dupe) return resume(dupe);
 
+  if (!/\+journeytest@caithrin\.com$/i.test(email)) {
+    try { if (!await reservePdfCapacity(env, { host: parsed.hostname, ip: await ipKey(request) })) return bad('The press is full for now. Your choices are still here; please try again later.', 429); }
+    catch { return bad('The press is temporarily unavailable. Your choices are still here.', 503); }
+  }
   const inserted = await env.DB.prepare(
     `INSERT INTO signups (publication_url,name,role,email,archive_type,frequency,
        posts_per_year,cadence_pref,us_subscribers,expected_orders,founding_count,
@@ -77,9 +86,6 @@ export async function onRequest({ request, env, waitUntil }) {
   const row = reservationKey
     ? await env.DB.prepare("SELECT * FROM signups WHERE reservation_key = ?").bind(reservationKey).first()
     : await env.DB.prepare("SELECT * FROM signups WHERE email = ? AND publication_url = ? ORDER BY id DESC LIMIT 1").bind(email, url).first();
-  /* No press run without verification (Codex audit P0-8): the confirmation goes to the
-     publication's own Substack address; the press starts after explicit confirmation. Journey test
-     reservations (+journeytest@) neither send nor dispatch. */
   if (!row?.id) return bad("We could not confirm the saved reservation. Please retry.", 503);
   if (inserted?.meta?.changes === 0) return resume(row);
   const session = funnelSession(body.session) || funnelSession(`signup${row.id}`);
@@ -88,11 +94,8 @@ export async function onRequest({ request, env, waitUntil }) {
   if (tracked.alert && !/\+journeytest@caithrin\.com$/i.test(email))
     scheduleFunnelAlert(waitUntil, env, { ...tracked, stage: "signup", email });
   if (/\+journeytest@caithrin\.com$/i.test(email)) { await env.DB.prepare("UPDATE signups SET dispatch_status = 'test' WHERE id = ?").bind(row.id).run().catch(() => {}); return new Response(JSON.stringify({ ok: true, id: row.id, press: "test" }), { headers: { "content-type": "application/json" } }); }
-  await env.DB.prepare("UPDATE signups SET dispatch_status = 'awaiting-verification' WHERE id = ?").bind(row.id).run().catch(() => {});
-  const v = await sendVerification(env, { id: row.id, publication_url: url, email }, new URL(request.url).origin);
-  await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, 'awaiting-verification', ?, datetime('now')) ON CONFLICT(signup_id) DO UPDATE SET status = 'awaiting-verification', detail = excluded.detail, updated_at = datetime('now')`)
-    .bind(row.id, JSON.stringify({ message: v.sent ? `confirmation accepted for ${v.sent_to}` : "confirmation not sent; retry or ownership fallback available" })).run().catch(() => {});
-  return reply({ ...v, ok: true, id: row.id, press: "verify" });
+  const state = await startPrivatePdf(env, row);
+  return reply({ ok: true, id: row.id, ...state, workspace_url: await editionLink(env, row.id) });
 }
 const reply = body => new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const ok  = () => new Response(JSON.stringify({ ok: true }),

@@ -1,0 +1,20 @@
+{
+  "pages": 9,
+  "changed": [
+    1,
+    9
+  ],
+  "all_text_matches": true,
+  "text_collisions": [],
+  "marks": [
+    {
+      "kind": "opening",
+      "page": 1
+    },
+    {
+      "kind": "closing",
+      "page": 9
+    }
+  ],
+  "scope": "Synthetic local proof. No upload or order."
+}

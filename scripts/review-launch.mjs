@@ -14,7 +14,7 @@ const liveReads=process.env.INKSHEAF_REVIEW_PUBLIC_READS==='1', DB=reviewMemoryD
 const relayToken=liveReads && process.env.INKSHEAF_REVIEW_RELAY==='1' ? process.env.ARCHIVE_RELAY_TOKEN || (await readFile(process.env.HOME+'/.secrets/inksheaf-relay-token','utf8')).trim() : undefined;
 const root=resolve('dist'), port=Number(process.env.INKSHEAF_REVIEW_PORT||8807);
 await stat(resolve(root,'index.html'));
-const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml',
+const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.wasm':'application/wasm','.css':'text/css','.svg':'image/svg+xml',
   '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf'};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');

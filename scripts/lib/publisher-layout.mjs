@@ -1,0 +1,109 @@
+// Models select among measured, reversible typesetting operations. They never
+// delete a source post, shrink type, invent figure dimensions or edit the prose.
+import {z} from 'zod';
+export const LayoutDecisions=z.object({decisions:z.array(z.object({
+  page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
+  candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
+}))});
+// A floating image between a source paragraph's actual start/end interrupts its
+// reading even when vision misses it. Positions come from the compiled document.
+export function readingOrderFindings(measurement){
+  const before=(a,b)=>a.page<b.page||(a.page===b.page&&a.y<b.y);
+  const valid=p=>p&&Number.isInteger(p.page)&&Number.isFinite(p.y);
+  const findings=[];
+  for(const figure of measurement.figures||[]){
+    if(!figure.floating||!valid(figure))continue;
+    const paragraph=(measurement.paragraphs||[]).find(p=>valid(p.start)&&valid(p.end)&&before(p.start,figure)&&before(figure,p.end));
+    if(paragraph)findings.push({page:figure.page,check:8,figure_id:figure.id,paragraph_id:paragraph.id,confidence:1,origin:'measured_layout',note:`Floating figure ${figure.id} interrupts source paragraph ${paragraph.id} between its measured start and end.`});
+  }
+  return findings;
+}
+export function pageContext(measurement,report) {
+  const articles=measurement.articles||[],parts=new Map((measurement.parts||[]).map(p=>[p.page,p.title]));
+  const first=Math.min(...articles.map(a=>a.start)),last=Math.max(...articles.map(a=>a.end));
+  return (measurement.pages||[]).map(p=>{
+    const article=articles.find(a=>p.page>=a.start&&p.page<=a.end);
+    const title=article?report.publisher?.decisions.find(d=>String(d.post_id)===String(report.postOrder?.[article.n-1]?.id))?.title||report.postOrder?.[article.n-1]?.title:null;
+    const folio=measurement.folios?.find(f=>f.page===p.page)?.folio??null;
+    const headMap=measurement.engine==='typst'&&Array.isArray(measurement.folios);
+    return {page:p.page,position:p.page===measurement.pages.length&&p.blank===1&&report.printInterior?'blank binding verso to complete an even leaf count':parts.has(p.page)?'section divider: '+parts.get(p.page):parts.has(p.page-1)&&!article&&p.blank===1?'blank verso after a section divider':parts.has(p.page+1)&&!article&&p.blank===1?'blank verso before a section divider':p.page<first?(p.blank===1?'blank front-matter verso':'front matter'):p.page>last?'end matter':article&&article.start===article.end?'complete short piece':article?.start===p.page?'article opening':article?.end===p.page?'article ending':'body',
+      expected_printed_folio:folio,
+      folio_map_available:Array.isArray(measurement.folios),
+      // Matches this renderer's alternating publication/essay heads, suppressed
+      // on openers and structural leaves. Capitalisation is a styling choice.
+      running_head_map_available:headMap,
+      expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
+      article_title:title,publication:report.pubName||null,
+      ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
+  });
+}
+export function layoutBatches(input,size=12){
+  if(!Number.isInteger(size)||size<1||size>12)throw Error('Invalid layout batch size');
+  const batches=[];
+  for(let i=0;i<input.pages.length;i+=size){const pages=input.pages.slice(i,i+size),ids=new Set(pages.map(p=>p.page));batches.push({...input,pages,candidates:input.candidates.filter(c=>ids.has(c.page))});}
+  return batches;
+}
+export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]}) {
+  const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
+  const context=new Map(pageContext(measurement,report).map(p=>[p.page,p]));
+  // `blank` measures the trailing gap only. Top-aligned empty areas (e.g. a
+  // copyright leaf) and large internal gaps also need a recorded design reason.
+  const unused=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+  const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
+  for(const f of review.findings||[])concerns.add(f.page);
+  for(const page of concerns){
+    const findings=(review.findings||[]).filter(f=>f.page===page);
+    if(!findings.some(f=>[2,8].includes(f.check)))continue;
+    const measuredIds=new Set(findings.filter(f=>f.figure_id).map(f=>f.figure_id));
+    // A measured floating image on this or the next page may split a paragraph.
+    // Keeping it at its source position changes no prose, size or image bytes.
+    for(const figure of measurement.figures||[]){
+      if(figure.floating!==true||![page,page+1].includes(figure.page)||(fit.inFlow||[]).includes(figure.id))continue;
+      if(measuredIds.size&&!measuredIds.has(figure.id))continue;
+      candidates.push({id:`inflow:${figure.id}:${page}`,page,operation:'keep_figure_in_flow',figure:figure.id,figure_page:figure.page});
+    }
+  }
+  for(const f of measurement.fit||[]){
+    if(Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
+  }
+  for(const a of articles){
+    const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
+    if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:Math.max(.54,+(current-.04).toFixed(2))});
+    if(a.end>a.start&&page?.blank>.30&&!fit.backLinks?.includes(a.n)&&measurement.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1))candidates.push({id:`references:${a.n}`,page:a.end,operation:'collect_references',article:a.n});
+  }
+  return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{
+    const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
+    const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
+    return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
+      ...context.get(p.page),
+      title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
+      internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
+      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,floating})=>({id,role,height_points:h,floating})),
+      design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
+      findings:(review.findings||[]).filter(f=>f.page===p.page)};
+  })};
+}
+export function validateLayout(result,input){
+  const invalid=message=>Object.assign(Error(message),{code:'PUBLISHER_LAYOUT_INVALID'});
+  const parsed=LayoutDecisions.parse(result),seen=new Set(),pages=new Map(input.pages.map(p=>[p.page,p])),candidates=new Map(input.candidates.map(c=>[c.id,c]));
+  for(const d of parsed.decisions){
+    const p=pages.get(d.page);if(!p||seen.has(d.page))throw invalid('Layout review must account for each supplied page exactly once');seen.add(d.page);
+    if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
+    if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
+    if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
+  }
+  if(seen.size!==pages.size)throw invalid('Layout review omitted a measured page');
+  return parsed;
+}
+export function applyLayoutRepairs(fit,result,input){
+  validateLayout(result,input);
+  const next={defer:[...(fit.defer||[])],fitFigs:{...fit.fitFigs},fitText:{...fit.fitText},backLinks:[...(fit.backLinks||[])],inFlow:[...(fit.inFlow||[])]};
+  for(const d of result.decisions.filter(d=>d.decision==='repair')){
+    const c=input.candidates.find(c=>c.id===d.candidate_id);
+    if(c.operation==='fit_figure')next.fitFigs[c.figure]=c.height;
+    else if(c.operation==='tighten_leading')next.fitText[c.article]=c.leading;
+    else if(c.operation==='collect_references')next.backLinks.push(c.article);
+    else if(c.operation==='keep_figure_in_flow'&&!next.inFlow.includes(c.figure))next.inFlow.push(c.figure);
+  }
+  return next;
+}

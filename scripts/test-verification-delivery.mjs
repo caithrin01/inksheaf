@@ -22,7 +22,7 @@ function setup() {
     async all() { return { results: stmt.all(...args) }; },
     async run() { const r = stmt.run(...args); return { meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } }; },
   }; } };
-  const env = { DB, INKSHEAF_ENV: 'production', RESEND_API_KEY: 'test-only', GITHUB_DISPATCH_TOKEN: 'test-only' };
+  const env = { DB, INKSHEAF_ENV: 'production', RESEND_API_KEY: 'test-only', GITHUB_DISPATCH_TOKEN: 'test-only', ARCHIVE_RELAY_TOKEN:'test-secret' };
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url: String(url), options });
@@ -36,9 +36,12 @@ const mailCalls = calls => calls.filter(c => c.url === 'https://api.resend.com/e
 const dispatchCalls = calls => calls.filter(c => c.url.startsWith('https://api.github.com/'));
 async function reserve(env, body = fixture()) { return signup({ request: request('/api/signup', body), env }); }
 async function makeReservation(context, body = fixture()) {
-  const r = await reserve(context.env, body); assert.equal(r.status, 200);
-  const result = await r.json();
-  const row = context.db.prepare('SELECT * FROM signups WHERE id = ?').get(result.id);
+  // These tests exercise already-issued ownership links. Private PDF signup has
+  // its own tests below and no longer sends these messages.
+  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([body.publication_url,body.email,body.plan_json||null]))))].map(n=>n.toString(16).padStart(2,'0')).join('');
+  const saved=context.db.prepare("INSERT INTO signups (publication_url,email,plan_json,raw_json,reservation_key,reservation_payload_hash,dispatch_status) VALUES (?,?,?,'{}',?,?,'awaiting-verification')").run(body.publication_url,body.email,body.plan_json,body.reservation_key,hash);
+  const row=context.db.prepare('SELECT * FROM signups WHERE id=?').get(Number(saved.lastInsertRowid));
+  const result={...await sendVerification(context.env,row,'https://inksheaf.com'),ok:true,id:row.id};
   const token = context.db.prepare('SELECT token FROM email_verifications WHERE signup_id = ? ORDER BY rowid DESC LIMIT 1').get(result.id)?.token;
   return { body, result, row, token };
 }
@@ -48,21 +51,25 @@ async function test(name, run) { const c = setup(); try { await run(c); passed++
 await test('a new edition for a returning owner preserves the older reservation', async c => {
   const body = fixture();
   c.db.prepare("INSERT INTO signups (publication_url,email,raw_json,plan_json,dispatch_status) VALUES (?,?,'{}','old plan','done')").run(body.publication_url, body.email);
-  const { result } = await makeReservation(c, body);
-  assert.equal(result.id, 2); assert.equal(result.sent, true);
-  assert.equal(c.db.prepare('SELECT plan_json FROM signups WHERE id=1').get().plan_json, 'old plan');
-  assert.equal(mailCalls(c.calls).length, 1);
-  assert.deepEqual(JSON.parse(mailCalls(c.calls)[0].options.body).to, ['writer@substack.com']);
+  const result=await (await reserve(c.env,body)).json();
+  assert.equal(result.id,2); assert.equal(result.press,'dispatched');
+  assert.equal(c.db.prepare('SELECT plan_json FROM signups WHERE id=1').get().plan_json,'old plan');
+  assert.equal(mailCalls(c.calls).length,0);
+  assert.equal(dispatchCalls(c.calls).length,1);
+  assert.match(result.workspace_url,/^\/edition\?id=2&sig=[a-f0-9]{64}$/);
+  assert.equal(c.db.prepare('SELECT email_verified_at FROM signups WHERE id=2').get().email_verified_at,null);
 });
-await test('simultaneous retries create one reservation and one verification send', async c => {
+await test('simultaneous submissions create one free edition and one press dispatch', async c => {
   const body = fixture();
   const responses = await Promise.all([reserve(c.env, body), reserve(c.env, body)]);
   const values = await Promise.all(responses.map(r => r.json()));
   assert.equal(values[0].id, values[1].id);
   assert.equal(c.db.prepare('SELECT count(*) n FROM signups').get().n, 1);
-  assert.equal(mailCalls(c.calls).length, 1);
+  assert.equal(mailCalls(c.calls).length, 0);
+  assert.equal(dispatchCalls(c.calls).length, 1);
   const repeat = await (await reserve(c.env, body)).json();
-  assert.equal(repeat.sent, true); assert.equal(mailCalls(c.calls).length, 1);
+  assert.equal(repeat.press, 'dispatched'); assert.equal(mailCalls(c.calls).length, 0);
+  assert.equal(dispatchCalls(c.calls).length, 1);
 });
 await test('a reused request key cannot replace the recipient or selected edition', async c => {
   const { body } = await makeReservation(c);
@@ -209,5 +216,28 @@ await test('stored ambiguous mail cannot cross from production into a staging in
   const { row } = await makeReservation(c);
   const retry = await sendVerification({ ...c.env, INKSHEAF_ENV:'staging', STAGING_EMAIL:'sink@example.com' }, row, 'https://stage.example.com', { resend:true });
   assert.equal(retry.sent, false); assert.equal(calls, 1);
+});
+await test('free creation rejects local destinations without dispatching or emailing',async c=>{
+  for(const publication_url of ['http://127.0.0.1','https://localhost','https://x.local','https://user:pass@writer.substack.com','https://writer.substack.com:1234'])assert.equal((await reserve(c.env,fixture({publication_url}))).status,400);
+  assert.equal(c.calls.length,0);
+});
+await test('free creation preserves unknown dispatch outcomes across signup retries',async c=>{
+  let attempts=0;globalThis.fetch=async()=>{attempts++;throw Error('lost acknowledgement');};
+  const body=fixture(); const first=await(await reserve(c.env,body)).json();const second=await(await reserve(c.env,body)).json();
+  assert.equal(first.press,'dispatch-uncertain');assert.equal(second.press,'dispatch-uncertain');assert.equal(attempts,1);
+});
+await test('new job capacity fails closed and duplicate intent does not spend again',async c=>{
+  const body=fixture();await reserve(c.env,body);await reserve(c.env,body);
+  await reserve(c.env,fixture());await reserve(c.env,fixture());
+  assert.equal((await reserve(c.env,fixture())).status,429);assert.equal(dispatchCalls(c.calls).length,3);
+});
+await test('test reservations neither email nor run inference',async c=>{
+  const body=fixture({email:'owner+journeytest@caithrin.com'});const r=await(await reserve(c.env,body)).json();
+  assert.equal(r.press,'test');assert.equal(c.calls.length,0);
+});
+await test('an old completed edition cannot be rebuilt or disclose a workspace by email lookup',async c=>{
+  const body=fixture();const {row}=await makeReservation(c,body);
+  c.db.prepare("INSERT INTO edition_versions (signup_id,plan_json,post_ids,body_hashes,renderer_sha,print_mode,volumes,status) VALUES (?,'{}','[]','{}','fixture','bw','[]','proofed')").run(row.id);
+  const r=await(await reserve(c.env,{...body,reservation_key:undefined})).json();assert.equal(r.press,'proofed');assert.equal(r.workspace_url,null);assert.equal(dispatchCalls(c.calls).length,0);
 });
 console.log(`${passed} verification delivery checks passed`);

@@ -58,8 +58,8 @@ ok("shipping is exact only at measured set sizes (source)", astroSrc.includes("O
 ok("shipping 8-point is from the sweep", readFileSync(new URL("../scripts/quote-sweep.mjs", import.meta.url), "utf8").includes("[1, 2, 4, 8]"));
 
 /* labels promise what the click does (audit gate 6, decision D2 2026-09-01) */
-ok("big button reserves, does not start", html.includes(">Reserve this print run<") && !html.includes("Start the print run"));
-ok("reply card confirms a reservation", html.includes("Your print run is reserved."));
+ok("preview button opens the free book request", html.includes(">Make this book<") && !html.includes("Start the print run"));
+ok("free PDF request has no verification gate", html.includes("Your edition is saved.") && html.includes("Make my book") && !html.includes("verify-resend"));
 ok("snippet offers a preview until an edition is live", js.includes("Preview a print edition of ") && !js.includes("Get a print copy of "));
 
 /* time budget: server relay retries finish inside 40s, the page gives up at 45s (1.6) */
@@ -107,8 +107,8 @@ ok("brand: no Substack corporate logo assets", !/substack\.com\/img/i.test(html+
 const orangeRules=[...css.matchAll(/([^{}]+)\{([^{}]*#ff6719[^{}]*)\}/gi)];
 ok("brand: signature orange is confined to the custom post button", orangeRules.length>0 && orangeRules.every(m=>m[1].includes('substack-print-button')));
 ok("subscriber button leads to the existing Lulu edition", /class="substack-print-button"[^>]*href="https:\/\/www.lulu.com\/shop\/[^"]+product-m2v2e82.html"/.test(html));
-ok("beta payout copy does not promise an automated margin", html.includes('not an automated beta feature today') && !html.includes('Whatever you set'));
-ok("delivery timing is confirmed rather than promised by date", html.includes('does not order a book or guarantee a delivery date') && !html.includes('aiming for December'));
+ok("beta payout copy does not promise an automated margin", html.includes('use your own Lulu account and choose your markup') && html.includes('During the beta, we guide you') && !html.includes('Whatever you set'));
+ok("delivery timing is confirmed rather than promised by date", html.includes('shipping options and prices are confirmed before ordering') && html.includes('Making a PDF does not order a book') && !html.includes('aiming for December'));
 
 /* reachable-state checks against the live API (the audit's core objection) */
 if (sourceOnly) { console.log(`HONESTY GATE (source only): ${n} checks passed`); process.exit(0); }

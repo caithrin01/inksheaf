@@ -1,0 +1,62 @@
+[
+  {
+    "engine": "chromium",
+    "width": 1280,
+    "pass": true,
+    "states": [
+      "reading",
+      "contents",
+      "restore failure and retry",
+      "saved restore survives reload",
+      "corrected contents",
+      "PDF ready with email delayed",
+      "reload"
+    ],
+    "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "pass": true,
+    "states": [
+      "reading",
+      "contents",
+      "restore failure and retry",
+      "saved restore survives reload",
+      "corrected contents",
+      "PDF ready with email delayed",
+      "reload"
+    ],
+    "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+  },
+  {
+    "engine": "webkit",
+    "width": 1280,
+    "pass": true,
+    "states": [
+      "reading",
+      "contents",
+      "restore failure and retry",
+      "saved restore survives reload",
+      "corrected contents",
+      "PDF ready with email delayed",
+      "reload"
+    ],
+    "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "pass": true,
+    "states": [
+      "reading",
+      "contents",
+      "restore failure and retry",
+      "saved restore survives reload",
+      "corrected contents",
+      "PDF ready with email delayed",
+      "reload"
+    ],
+    "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+  }
+]

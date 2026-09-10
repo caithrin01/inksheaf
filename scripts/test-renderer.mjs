@@ -3,7 +3,7 @@
 // Exit 0 = green. This is the measurable form of "0 bugs, all edge cases accounted for".
 // Usage: node scripts/test-renderer.mjs [--skip-render]
 import { execFileSync, execSync, spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 const t0 = Math.floor(Date.now() / 1000);
@@ -56,10 +56,16 @@ ok(html.includes("1 paid") || html.includes("1 paid essay"), "paid-omission note
 
 /* ---------- 4. render + in-DOM assertions ---------- */
 if (!process.argv.includes("--skip-render")) {
-  const port = 9200 + Math.floor(Math.random() * 300);
-  const srv = spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1"],
-    { cwd: "proofs", stdio: "ignore" });
-  await new Promise(r => setTimeout(r, 1000));
+  // Ask the OS for an available port. A random port could reach another local
+  // workerd while Python silently failed to bind, producing a false renderer failure.
+  const srv = spawn("python3", ["-u", "-m", "http.server", "0", "--bind", "127.0.0.1"],
+    { cwd: "proofs", stdio: ["ignore","pipe","pipe"] });
+  const port=await new Promise((resolve,reject)=>{
+    let output='';const timer=setTimeout(()=>{srv.kill();reject(Error('Renderer fixture server did not start'));},10000);
+    srv.stdout.on('data',chunk=>{output+=chunk;const m=output.match(/port (\d+)/);if(m){clearTimeout(timer);resolve(Number(m[1]));}});
+    srv.once('error',error=>{clearTimeout(timer);reject(error);});
+    srv.once('exit',code=>{clearTimeout(timer);reject(Error(`Renderer fixture server exited ${code}`));});
+  });
   let domOut = "";
   const renderCli = `playwright-cli -s=isr-${process.pid}`;
   try {
@@ -121,7 +127,7 @@ if (!process.argv.includes("--skip-render")) {
     ok(d.folio, "folio page numbers render");
     ok(d.fnTarget, "footnote link resolves to namespaced target");
   }
-  const mt = Number(execSync("stat -f %m proofs/torture-proof.pdf", { encoding: "utf-8" }).trim());
+  const mt = Math.floor(statSync('proofs/torture-proof.pdf').mtimeMs/1000);
   ok(mt >= t0, "torture PDF is fresh, not stale");
 }
 

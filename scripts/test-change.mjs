@@ -1,6 +1,6 @@
 // The change endpoint with a fake database: what left the book is listed with reasons and the
 // writer's include flags; a bad ISBN is refused before any archive read; no plan means 409.
-import { onRequest } from "../functions/api/change.js";
+import { onRequest, restorePublisherPosts } from "../functions/api/change.js";
 import { hmacHex } from "../functions/lib/press-dispatch.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const TOKEN = "t"; const ID = 7;
@@ -31,4 +31,7 @@ let r = await post({ plan: plan1, detail: {} }, { isbn: "12345", exclude: [] });
 ok(r.status === 400 && /ISBN/.test(r.body.error), "bad ISBN refused: " + r.status + " " + r.body.error);
 r = await post({ plan: plan0, detail: {} }, { include: ["x"] });
 ok(r.status === 409, "no plan to change: " + r.status);
+const restored=restorePublisherPosts([{label:'I',post_ids:[1]},{label:'II',post_ids:[3]}],[{slug:'thank-you',post_id:2,volume:1}],[{id:2,slug:'thank-you'}],['thank-you']);
+ok(JSON.stringify(restored.map(v=>v.post_ids))==='[[1,2],[3]]','restoring an editorial exclusion returns the original ID to its own volume');
+let ambiguous=false;try{restorePublisherPosts([{post_ids:[1]},{post_ids:[3]}],[],[{id:2,slug:'missing-volume'}],['missing-volume']);}catch{ambiguous=true;}ok(ambiguous,'ambiguous multi-volume restore never guesses or silently drops writing');
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

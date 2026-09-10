@@ -1,0 +1,173 @@
+{
+  "status": "completed",
+  "fixture": "local own-publication source cache",
+  "host": "www.caithrin.com",
+  "started": "2026-09-09T16:13:00.476Z",
+  "included": [
+    {
+      "id": 183082229,
+      "slug": "lord-byron-and-how-to-properly-oppose"
+    }
+  ],
+  "layout": {
+    "decisions": [
+      {
+        "page": 1,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title leaf; minimal text is structural, not a content gap."
+      },
+      {
+        "page": 2,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank front-matter verso required by binding layout."
+      },
+      {
+        "page": 3,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title/subtitle leaf; sparse text is by design, not a defect."
+      },
+      {
+        "page": 4,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Copyright/colophon page; content complete, no filler needed."
+      },
+      {
+        "page": 5,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Contents page listing one essay; density reflects a single-entry table, not a gap."
+      },
+      {
+        "page": 6,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank front-matter verso required by binding layout."
+      },
+      {
+        "page": 16,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter links list plus edition note; content is complete for its purpose."
+      },
+      {
+        "page": 17,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter 'Get More' page; content complete, no additional material to add."
+      },
+      {
+        "page": 18,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso to complete an even leaf count."
+      }
+    ],
+    "total_render_passes": 5
+  },
+  "review": {
+    "pdf": "local ignored artifact: proofs/publisher/owner-reading-order/run/book.pdf",
+    "pages": 18,
+    "sheets": 5,
+    "pass1": {
+      "model": "google/gemini-3.1-flash-lite",
+      "calls": 5,
+      "flagged": 1,
+      "errors": 0
+    },
+    "pass2": {
+      "model": "anthropic/claude-sonnet-5",
+      "calls": 1,
+      "confirmed": 0,
+      "dismissed": 1,
+      "errors": 0
+    },
+    "findings": [],
+    "dismissed": [
+      {
+        "page": 10,
+        "check": 4,
+        "note": "Block quote text wraps normally within margins; no words or lines overflow past the right margin or off the page.",
+        "pass1": "The right margin of the block-quoted text is tight and inconsistently aligned, leading to potential reading overflow.",
+        "confidence": 0.9,
+        "origin": "uncertain",
+        "source_comparisons": 0,
+        "neighbouring_pages": []
+      }
+    ],
+    "errors": [],
+    "usage": {
+      "prompt_tokens": 2260,
+      "completion_tokens": 5
+    },
+    "skipped": null,
+    "ms": 5194,
+    "measured_findings": [],
+    "layout_exceptions": [
+      {
+        "page": 1,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title leaf; minimal text is structural, not a content gap."
+      },
+      {
+        "page": 2,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank front-matter verso required by binding layout."
+      },
+      {
+        "page": 3,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title/subtitle leaf; sparse text is by design, not a defect."
+      },
+      {
+        "page": 4,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Copyright/colophon page; content complete, no filler needed."
+      },
+      {
+        "page": 5,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Contents page listing one essay; density reflects a single-entry table, not a gap."
+      },
+      {
+        "page": 6,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank front-matter verso required by binding layout."
+      },
+      {
+        "page": 16,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter links list plus edition note; content is complete for its purpose."
+      },
+      {
+        "page": 17,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "End-matter 'Get More' page; content complete, no additional material to add."
+      },
+      {
+        "page": 18,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Blank binding verso to complete an even leaf count."
+      }
+    ],
+    "resolved": []
+  },
+  "pdf": "local ignored artifact: proofs/publisher/owner-reading-order/run/book.pdf",
+  "finished": "2026-09-09T16:14:23.405Z",
+  "model_cost_usd": 0.2935890000000001,
+  "reserved_or_spent_usd": 0.4968609999999999,
+  "acceptance_scope": "Targeted illustrated single-article repair; not annual-edition, print-minimum, inbox or Lulu acceptance.",
+  "supersedes": "The first automated pass missed floating-image interruptions. Geometry now detects them; this result includes two model-directed repair rounds and five renders."
+}

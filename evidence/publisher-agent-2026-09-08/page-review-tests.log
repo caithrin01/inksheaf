@@ -1,0 +1,27 @@
+ok   six pages rasterised in order
+ok   two contact sheets, four then two pages
+ok   parseJson takes a fenced array
+ok   parseJson takes prose around an object
+ok   parseJson gives null on nothing
+ok   pass 1 ran once per sheet
+ok   only in-sheet flags over the threshold reach pass 2
+ok   pass 2 got the single page at full size
+ok   pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)
+ok   confirmed finding reported with page, check and both notes
+ok   usage summed
+ok   review.json written
+ok   writer line reports incomplete review
+ok   operator block carries counts and the finding
+ok   an invented page is recorded as incomplete review, never a clean pass
+ok   a dismissed flag is not a finding
+ok   writer line says nothing flagged
+ok   model failure never throws and is counted
+ok   no writer line when nothing was read
+ok   unparseable answers are errors, not findings
+ok   truncated pass-2 JSON leaves review incomplete
+ok   no key skips the review with a reason
+ok   operator block says skipped
+ok   eight checks in the list
+ok   dismissing whitespace cannot hide overflow on the same page
+ok   rerasterising a shorter repaired PDF removes obsolete pages
+page-review: 26 pass, 0 fail

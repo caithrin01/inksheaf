@@ -59,7 +59,7 @@ import WriterFAQs from "../components/WriterFAQs.astro";
         <div class="pv-big" id="pv-big"></div>
         <p class="pv-sub" id="pv-sub"></p>
         <div class="pv-price" id="pv-price"></div>
-        <button class="pv-cta" id="pv-cta" type="button">Reserve this print run</button>
+        <button class="pv-cta" id="pv-cta" type="button">Make this book</button>
         <p class="pv-note note">Nothing prints until you approve your proof. Readers order from Lulu.</p>
         <div class="desk" id="desk" hidden>
           <p class="plan-what" id="plan-what"></p>
@@ -96,28 +96,22 @@ import WriterFAQs from "../components/WriterFAQs.astro";
         </div>
         <div class="step2">
           <div class="prefilled" id="carried"></div>
-          <label for="email">Your email for the proof</label>
+          <label for="email">Your email for the complete PDF</label>
           <input type="email" id="email" name="email" required />
           <input type="hidden" name="posts_per_year" id="ppy" />
           <input type="hidden" name="frequency" />
           <input type="hidden" name="cadence_pref" id="cadence_pref" />
           <input type="hidden" name="plan_json" id="plan_json" />
-          <button type="submit" class="main">Request a spot</button>
+          <button type="submit" class="main">Make my book</button>
+          <p class="note">Free to create. Watch your book take shape; we’ll also email the complete PDF.</p>
           <button type="button" class="ghost" data-back="1">Back</button>
         </div>
         <div class="err" id="err" role="alert"></div>
       </form>
       <div class="done" id="done">
-        <h3 id="done-h">Your print run is reserved. One more step: confirm from your publication's inbox.</h3>
-        <p id="done-verify" role="status">Confirm ownership of your publication to prepare your private PDF.</p>
-        <button type="button" class="ghost" id="verify-resend" hidden>Resend confirmation</button>
-        <p class="note" id="verify-help" hidden>Check the inbox that receives replies to your Substack, including spam. Your Substack reply settings can filter confirmation emails. You can also confirm with a code on your About page.</p>
-        <div id="done-alt" style="display:none">
-          <button type="button" class="ghost" id="alt-start">Prove it another way</button>
-          <p class="note" id="alt-text" style="display:none">Put this line anywhere on your publication&rsquo;s About page and save it: <b id="alt-code"></b>. Then press Check. Remove the line afterwards. The code is good for two days.</p>
-          <button type="button" class="ghost" id="alt-check" style="display:none">Check</button>
-          <p class="note" id="alt-result" role="status"></p>
-        </div>
+        <h3 id="done-h">Your edition is saved.</h3>
+        <p id="done-verify" role="status"></p>
+        <a id="open-workspace" hidden>Watch your book take shape ↗</a>
       </div>
     </section>
 
@@ -167,7 +161,7 @@ const f = document.getElementById('f') as HTMLFormElement;
 let sid = Math.random().toString(36).slice(2,10);
 try { sid = sessionStorage.getItem('inksheaf_sid') || sid; sessionStorage.setItem('inksheaf_sid', sid); } catch { /* Private storage restrictions must not stop a preview. */ }
 const seen = new Set();
-let aboutTimer: ReturnType<typeof setTimeout> | null = null;
+
 function beacon(ev: string, host = ''){
   const key = ev + ':' + host.toLowerCase();
   if (seen.has(key)) return; seen.add(key);
@@ -177,11 +171,9 @@ function beacon(ev: string, host = ''){
 beacon('view');
 function show(n: number){
   document.getElementById('beta')!.hidden=n===1;
-  if (aboutTimer) clearTimeout(aboutTimer);
   f.style.display = 'block';
   (document.querySelector('.steps') as HTMLElement).style.display = 'block';
   document.getElementById('done')!.style.display = 'none';
-  document.getElementById('done-alt')!.style.display = 'none';
   for (const k of [1,2]) (f.querySelector('.step'+k) as HTMLElement).style.display = (k===n?'block':'none');
   document.getElementById('stepnum')!.textContent = String(n);
   document.getElementById('err')!.textContent = '';
@@ -387,7 +379,7 @@ function paintCover(d: any, E: any){
 }
 function renderPreview(d: any){
   document.dispatchEvent(new CustomEvent('publication-preview', {detail:d}));
-  document.getElementById('pv-cta')!.textContent = 'Reserve this print run';
+  document.getElementById('pv-cta')!.textContent = 'Make this book';
   const publicPosts = d.public_posts ?? d.posts;
   const E = editionView(d);
   paintCover(d, E);
@@ -909,52 +901,6 @@ async function requestKey(data: Record<string, any>){
   try { sessionStorage.setItem(storageKey, key); } catch {}
   return key;
 }
-function showVerification(j: any){
-  const heading = document.getElementById('done-h')!, message = document.getElementById('done-verify')!;
-  const resend = document.getElementById('verify-resend') as HTMLButtonElement;
-  const help = document.getElementById('verify-help')!;
-  resend.hidden = true; help.hidden = true;
-  if (j.press === 'test') {
-    heading.textContent = 'Test reservation recorded.';
-    message.textContent = 'No confirmation is sent for a test address.';
-    return;
-  }
-  if (j.verified) {
-    heading.textContent = 'Your publication is already confirmed.';
-    message.textContent = 'Your request is saved. Use your latest Inksheaf email for your PDF or contact caithrin@caithrin.com for help.';
-    document.getElementById('done-alt')!.style.display = 'none';
-    return;
-  }
-  if (j.press !== 'verify') {
-    heading.textContent = 'Your print run is reserved.';
-    message.textContent = 'Your request is saved. Contact caithrin@caithrin.com if you need help with your confirmation.';
-    return;
-  }
-  heading.textContent = 'Your edition is reserved. Confirm your publication.';
-  if (j.sent === true && j.sent_to) {
-    message.replaceChildren(document.createTextNode('We sent a confirmation link to '), Object.assign(document.createElement('b'), {id:'done-to', textContent:j.sent_to}), document.createTextNode('. Open it and confirm to prepare your private PDF.'));
-  } else if (j.verification_status === 'sending') {
-    message.textContent = 'Your confirmation email is being sent. Check your inbox, or retry shortly if it does not arrive.';
-  } else {
-    message.textContent = j.error || 'We could not confirm an email was sent. Request a confirmation below, or use the About-page option.';
-  }
-  if (j.id) {
-    resend.hidden = false; resend.disabled = false; help.hidden = false;
-    resend.textContent = j.sent ? 'Resend confirmation' : 'Send confirmation';
-    aboutFallback(j.id, 0);
-    resend.onclick = async () => {
-      resend.disabled = true; resend.textContent = 'Sending…';
-      try {
-        const response = await fetch('/api/verify', {method:'POST', signal:AbortSignal.timeout(40000), headers:{'content-type':'application/json'}, body:JSON.stringify({signup_id:j.id})});
-        const result = await response.json();
-        showVerification({...result, id:j.id, press:result.verified ? result.press : 'verify'});
-      } catch {
-        message.textContent = 'We could not confirm the email was sent. Check your inbox or try again.';
-        resend.disabled = false; resend.textContent = 'Retry confirmation';
-      }
-    };
-  }
-}
 f.addEventListener('submit', async (e)=>{
   e.preventDefault();
   if (reservationPending) return;
@@ -969,7 +915,7 @@ f.addEventListener('submit', async (e)=>{
   if (previewData?.editorial?.planned_by === 'calendar') document.getElementById('plan-by')!.textContent = 'Planned by the calendar';
   reservationPending = true;
   const submit = f.querySelector('button[type="submit"]') as HTMLButtonElement;
-  submit.disabled = true; submit.textContent = 'Reserving…';
+  submit.disabled = true; submit.textContent = 'Starting your book…';
   f.setAttribute('aria-busy', 'true'); err.textContent = '';
   const data = { ...Object.fromEntries(new FormData(f).entries()), session: sid };
   const controller = new AbortController();
@@ -984,42 +930,25 @@ f.addEventListener('submit', async (e)=>{
     (document.querySelector('.steps') as HTMLElement).style.display='none';
     const done = document.getElementById('done')!;
     done.style.display='block';
-    showVerification(j);
+    if (j.workspace_url) {
+      const mast=document.getElementById('pv-mast')?.textContent || 'Your publication';
+      try { sessionStorage.setItem('inksheaf_edition_'+j.id,JSON.stringify({publication:mast,host:previewData?.host,logo_url:previewData?.logo_url,logo_treatment:previewData?.logo_treatment,theme:previewData?.theme,design:designSelection(selectedDesign,previewData?.theme,previewData?.logo_treatment),dates:document.getElementById('pv-dates')?.textContent||''})); } catch {}
+      const link=document.getElementById('open-workspace') as HTMLAnchorElement;link.hidden=false;link.href=j.workspace_url;
+      window.location.assign(j.workspace_url);
+    } else {
+      document.getElementById('done-h')!.textContent=j.press==='test'?'Test reservation recorded.':'Your edition is saved.';
+      document.getElementById('done-verify')!.textContent=j.press==='test'?'No email or book run is sent for a test address.':'We’ll email your complete PDF when it is ready. Use your latest private Inksheaf link to return to an existing edition.';
+    }
     done.setAttribute('tabindex', '-1'); done.focus();
   } catch {
-    err.textContent = 'We could not confirm your reservation. Your details are still here; try again, or email caithrin@caithrin.com.';
+    err.textContent = 'We could not confirm the start of your book. Your choices are still here; try again, or email caithrin@caithrin.com.';
   } finally {
     clearTimeout(timeout); reservationPending = false;
-    submit.disabled = false; submit.textContent = 'Request a spot';
+    submit.disabled = false; submit.textContent = 'Make my book';
     f.removeAttribute('aria-busy');
     if (f.style.display !== 'none' && previewData) askTheEditor(previewData);
   }
 });
-/* The About-page fallback (P0-8): after `delay` ms without the confirmation link, offer the code. */
-function aboutFallback(id: number, delay: number){
-  if (!id) return;
-  const alt = document.getElementById('done-alt')!, start = document.getElementById('alt-start')!, text = document.getElementById('alt-text')!;
-  const code = document.getElementById('alt-code')!, check = document.getElementById('alt-check') as HTMLButtonElement, result = document.getElementById('alt-result')!;
-  if (aboutTimer) clearTimeout(aboutTimer);
-  aboutTimer = setTimeout(() => { alt.style.display = 'block'; }, delay);
-  start.removeAttribute('disabled'); start.style.display = 'block';
-  text.style.display = 'none'; check.style.display = 'none'; check.disabled = false; result.textContent = '';
-  code.textContent = '';
-  const post = (body: object) => fetch('/api/verify-about', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
-  (start as HTMLButtonElement).onclick = async () => {
-    start.setAttribute('disabled', ''); result.textContent = '';
-    try { const j = await post({signup_id: id}); if (!j.ok) { result.textContent = j.error || 'That did not work. Write to caithrin@caithrin.com.'; start.removeAttribute('disabled'); return; }
-      code.textContent = j.code; text.style.display = 'block'; check.style.display = 'inline-block'; start.style.display = 'none';
-    } catch { result.textContent = 'That did not work. Write to caithrin@caithrin.com.'; start.removeAttribute('disabled'); }
-  };
-  check.onclick = async () => {
-    check.disabled = true; result.textContent = 'Checking your About page.';
-    try { const j = await post({signup_id: id, check: true});
-      if (j.ok && j.verified) { result.textContent = j.press === 'dispatched' ? 'Confirmed. The proof is being made; the email comes when it is ready.' : 'Confirmed. The press is queued; the email comes when the proof is ready.'; text.style.display = 'none'; check.style.display = 'none'; }
-      else { if (j.expired) aboutFallback(id, 0); result.textContent = j.message || j.error || 'Not there yet. Try again in a minute.'; check.disabled = false; }
-    } catch { result.textContent = 'The check failed on our side. Try again in a minute.'; check.disabled = false; }
-  };
-}
 </script>
 
 </body>

@@ -1,0 +1,209 @@
+---
+import '../styles/press.css';
+import Logo from '../components/Logo.astro';
+import EditionPages from '../components/EditionPages.astro';
+import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
+// Visual thesis: the creator's book stays on a quiet paper desk while its editorial
+// story accumulates beside it. Content: cover, actual discoveries, contents, PDF.
+// Interaction: discoveries appear on completion; contents unfold on request;
+// the finished PDF becomes the primary action without moving keyboard focus.
+---
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/><meta name="robots" content="noindex,nofollow"/><meta name="referrer" content="no-referrer"/><title>Your edition · Inksheaf</title><link rel="stylesheet" href="/book/cover.css"/></head>
+<body class="edition-workspace">
+<a class="skip-link" href="#making">Skip to your book</a>
+<header class="work-header"><a href="/" aria-label="Inksheaf home"><Logo/></a><span>Your private edition</span></header>
+<main id="making" class="making">
+  <div class="making-intro"><p class="work-eyebrow">From your archive to paper</p><h1 id="edition-title">Your book is taking shape.</h1><p id="edition-status" role="status" aria-live="polite">Opening your saved edition…</p></div>
+  <div class="making-layout">
+    <section class="making-object" aria-label="Your selected book cover">
+      <div class="making-desk"><div id="edition-cover" class="cover-face" data-design="masthead" style={coverStyle('masthead',{},'Your publication')} set:html={coverMarkup({kind:'Collected writing',dates:'',foot:'6 × 9 · perfect bound'})}/></div>
+      <p class="cover-caption" id="cover-caption">Your chosen cover. The complete print file follows below.</p>
+      <button id="open-pages" class="return-link open-pages" hidden>Read the first pages →</button>
+      <div id="edition-downloads" class="edition-downloads" hidden><h2>Your complete PDF</h2><div id="download-links"></div><p id="download-expiry"></p><a id="print-options-link" class="return-link" href="#edition-next" hidden>Print options ↓</a></div>
+      <div id="edition-continuity" class="edition-continuity"><p class="email-companion" id="email-companion"></p><button id="retry-pdf-email" class="return-link email-retry" hidden>Retry PDF email</button><p id="email-retry-status" role="status" class="work-note"></p>
+      <a class="return-link" id="return-link" href="#" hidden>Keep this private link to return</a></div><span id="continuity-home" hidden></span>
+    </section>
+    <section class="making-notes" aria-label="Your publisher's work">
+      <div class="work-tabs" role="group" aria-label="Explore your edition"><button id="show-reading" aria-pressed="true">The reading</button><button id="show-contents" aria-pressed="false" disabled>Contents</button><button id="show-pages" aria-pressed="false" disabled>Pages</button></div>
+      <div id="reading-panel"><h2 id="reading-heading">First, your writing.</h2><p id="reading-intro">Your publication’s name, contributors and selected writing will appear here as they are read.</p><div id="identity-note" hidden></div><div id="reading-list"></div><div id="production-notes"></div></div>
+      <div id="contents-panel" hidden><h2>The shape of your book.</h2><div id="contents-list"></div><p class="work-note">Page numbers appear in the typeset PDF.</p></div>
+      <EditionPages/><div id="continuity-reading" hidden></div>
+      <div id="edition-next" class="edition-next" hidden><h2>Make it yours.</h2><p>Review what’s included, restore a piece, or change your edition.</p><a id="change-edition">Adjust this edition <span aria-hidden="true">↗</span></a><p class="print-routes">For personal copies, Inksheaf can host the Lulu listing. To sell to subscribers, we’ll guide you through your own Lulu account and your “Get a print copy” button.</p><a href="mailto:caithrin@caithrin.com?subject=My%20Inksheaf%20print%20edition">Get help with printing</a></div>
+      <p id="workspace-error" role="alert" hidden></p><button class="workspace-retry" id="workspace-retry" hidden>Refresh progress</button>
+    </section>
+  </div>
+</main>
+<script>
+import {editionPages} from '../scripts/edition-pages';
+import {coverLogo} from '../../functions/lib/cover-logo.js';
+import {coverMarkup,coverStyle,COVER_DESIGNS} from '../../functions/lib/book-design.js';
+const $=(id:string)=>document.getElementById(id)!;
+const params=new URLSearchParams(location.search), id=params.get('id'), sig=params.get('sig');
+const endpoint='/api/edition?'+new URLSearchParams({id:id||'',sig:sig||''});
+let lastSequence=0,run:string|null=null,timer:ReturnType<typeof setTimeout>,busy=false,identity:any={},selection='masthead',ready=false,coverKey='',readCount=0,keptCount=0,asideCount=0;
+let selectionRevision=0,displayedRevision=0,restored=new Set<string>(),restoreSig:string|null=null;
+const pieces=new Map<string,any>(),saving=new Set<string>();
+try{identity=JSON.parse(sessionStorage.getItem('inksheaf_edition_'+id)||'{}');}catch{}
+const statusText=(text:string)=>{if($('edition-status').textContent!==text)$('edition-status').textContent=text;};
+const el=(tag:string,text:string,className='')=>Object.assign(document.createElement(tag),{textContent:text,className});
+function cover(){
+  const key=JSON.stringify([identity,selection]);if(key===coverKey)return;coverKey=key;
+  const name=identity.publication||'Your publication',node=$('edition-cover');
+  node.dataset.design=selection;node.setAttribute('style',coverStyle(selection,identity.theme||{},name));
+  node.innerHTML=coverMarkup({publication:name,...coverLogo(identity,selection),kind:'Collected writing',dates:identity.dates||'',foot:identity.contributors?.join(' · ')||'6 × 9 · perfect bound'});
+  $('cover-caption').textContent=(COVER_DESIGNS.find(d=>d.id===selection)?.name||'Masthead')+' cover · 6 × 9 inches';
+}
+cover();
+const pageReader=editionPages(),phoneReader=matchMedia('(max-width:750px)');
+function placeContinuity(){
+  const reading=phoneReader.matches&&document.body.dataset.readingPages==='true',node=$('edition-continuity'),target=reading?$('continuity-reading'):$('continuity-home').parentElement!;
+  $('continuity-reading').hidden=!reading;
+  if(node.parentElement!==target){const focus=document.activeElement as HTMLElement|null,restore=focus&&node.contains(focus);if(reading)target.append(node);else target.insertBefore(node,$('continuity-home'));if(restore)focus!.focus({preventScroll:true});}
+}
+phoneReader.addEventListener('change',placeContinuity);
+
+function tabs(panel:string){
+  for(const name of ['reading','contents','pages']){$(name+'-panel').hidden=name!==panel;$('show-'+name).setAttribute('aria-pressed',String(name===panel));}
+  pageReader.activate(panel==='pages');document.body.dataset.readingPages=String(panel==='pages');placeContinuity();
+}
+$('draft-changes').onclick=()=>{tabs('reading');const details=$('production-notes').querySelector<HTMLDetailsElement>('.layout-reasons');if(details){details.open=true;details.querySelector<HTMLElement>('summary')?.focus();details.scrollIntoView({block:'nearest'});}};
+$('show-reading').onclick=()=>tabs('reading');$('show-contents').onclick=()=>tabs('contents');$('show-pages').onclick=()=>tabs('pages');
+$('open-pages').onclick=()=>{tabs('pages');$('show-pages').focus();$('show-pages').scrollIntoView({block:'nearest',behavior:'instant'});};
+function resetPages(){pageReader.reset();($('show-pages') as HTMLButtonElement).disabled=true;$('open-pages').hidden=true;}
+
+function acceptSelection(value:any){
+  if(Number.isSafeInteger(value?.revision)&&value.revision>=selectionRevision){if(value.revision>selectionRevision)resetPages();selectionRevision=value.revision;restored=new Set(value.restored||[]);}
+}
+function updateChoices(){
+  keptCount=0;asideCount=0;
+  for(const [id,p] of pieces){
+    const back=restored.has(id),aside=p.decision.decision==='set_aside'&&!back;
+    if(aside)asideCount++;else keptCount++;
+    p.detail.dataset.decision=aside?'set_aside':'keep';
+    if(p.button){p.button.hidden=!restoreSig||back;p.button.disabled=saving.has(id);p.button.textContent=saving.has(id)?'Saving your choice…':'Put this back in the book';}
+    if(p.asideLabel)p.asideLabel.textContent=back?'Kept by you.':`Set aside · ${p.decision.reason}`;
+  }
+  if(readCount)$('reading-intro').textContent=`${keptCount} for the book${asideCount?', '+asideCount+' set aside':''}. Open a title to read the reason and its source.`;
+  if(displayedRevision<selectionRevision){($('show-contents') as HTMLButtonElement).disabled=true;tabs('reading');}
+}
+async function restorePiece(id:string){
+  const p=pieces.get(id);if(!p||!restoreSig||saving.has(id))return;
+  saving.add(id);p.notice.replaceChildren();updateChoices();
+  try{
+    const response=await fetch('/api/edition-restore',{method:'POST',signal:AbortSignal.timeout(15000),headers:{'content-type':'application/json'},body:JSON.stringify({id:params.get('id'),post_id:id,sig:restoreSig})});
+    const data=await response.json();
+    if(!response.ok||!data.ok){
+      p.notice.textContent=data.error||'We could not save that change. Please try again.';
+      if(data.change_url){const url=new URL(data.change_url,location.origin);if(url.origin===location.origin&&url.pathname==='/change'){const a=el('a','Adjust this edition') as HTMLAnchorElement;a.href=url.href;p.notice.append(document.createTextNode(' '),a);}}
+      return;
+    }
+    acceptSelection(data.selection);p.notice.textContent='Saved. This piece belongs in your book.';updateChoices();
+    if(!busy)await refresh();
+  }catch{p.notice.textContent='We could not confirm your change. Try again; a saved choice will not be duplicated.';}
+  finally{saving.delete(id);updateChoices();}
+}
+function showEvent(e:any){
+  if(e.kind==='pages'){if((e.selection_revision||0)===selectionRevision){pageReader.set(e);($('show-pages') as HTMLButtonElement).disabled=false;$('open-pages').hidden=false;}return;}
+  displayedRevision=Math.max(displayedRevision,e.selection_revision||0);
+  if(e.kind==='identity'){
+    identity={...identity,...e};cover();$('identity-note').hidden=false;
+    $('identity-note').replaceChildren(el('p',e.publication,'identity-name'),el('p',e.contributors?.length?'Writing by '+e.contributors.join(', '):'The publication name is confirmed.','identity-byline'));
+  } else if(e.kind==='reading'){
+    readCount=e.read;
+    $('reading-heading').textContent=`${e.read} of ${e.total} pieces read${e.volume&&e.volume!=='1'?' · volume '+e.volume:''}.`;
+    $('reading-intro').textContent=`${keptCount} for the book${asideCount?', '+asideCount+' set aside':''}. Open a title to read the reason and its source.`;
+    for(const d of e.decisions||[]){
+      const postId=String(d.post_id);if(pieces.has(postId))continue;
+      const detail=el('details','','reading-piece'),summary=el('summary','');
+      summary.append(el('span',d.title,'piece-title'),el('span',d.kind.replaceAll('-',' '),'piece-kind'));
+      detail.dataset.decision=d.decision;detail.dataset.postId=postId;
+      detail.append(summary);
+      const reason=el('p',d.original_reason?`Originally ${d.original_decision==='set_aside'?'set aside':'kept'} · ${d.original_reason}`:d.reason,'piece-reason');detail.append(reason);
+      if(d.decision==='uncertain')detail.append(el('p','Kept for a closer look.','piece-reason'));
+      if(d.evidence)detail.append(el('blockquote',d.evidence));
+      $('reading-list').append(detail);
+      const piece:any={decision:d,detail,reason};pieces.set(postId,piece);
+      if(d.decision==='set_aside'||d.original_decision==='set_aside'){
+        detail.classList.add('has-choice');
+        const aside=el('div','','aside-summary');aside.dataset.postId=postId;
+        const asideLabel=el('p',d.author_override?'Kept by you.':'Set aside · '+d.reason),button=el('button','Put this back in the book','restore-piece') as HTMLButtonElement;
+        button.type='button';button.onclick=()=>restorePiece(postId);
+        const notice=el('p','','restore-status');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+        aside.append(asideLabel,button,notice);$('reading-list').append(aside);Object.assign(piece,{asideLabel,button,notice});
+      }
+    }
+    updateChoices();
+  } else if(e.kind==='contents'){
+    const section=el('section','','contents-volume');
+    if(e.volume&&e.volume!=='1')section.append(el('h3','Volume '+e.volume));
+    section.append(el('p',e.description,'contents-description'));
+    for(const part of e.sections||[]){
+      section.append(el('h3',part.title));const list=el('ol','');
+      for(const post of part.posts||[])list.append(el('li',post.title));section.append(list);
+    }
+    $('contents-list').append(section);($('show-contents') as HTMLButtonElement).disabled=false;
+  } else if(['typesetting','layout','review'].includes(e.kind)){
+    const line=el('p',e.message,'production-note');if(e.kind==='layout')line.append(el('span',` ${e.pages} typeset pages.`));$('production-notes').append(line);
+    if(e.kind==='layout'&&e.decisions?.length){const details=el('details','','layout-reasons');details.append(el('summary','How these pages are being set'));for(const d of e.decisions)details.append(el('p',`Page ${d.page}: ${d.reason}`));$('production-notes').append(details);}
+  } else if(e.kind==='ready'){
+    ready=true;$('edition-title').textContent='Your writing, in print.';
+    statusText(`Your complete edition is ready${e.pages?' · '+e.pages+' pages':''}.`);
+    $('edition-downloads').hidden=false;
+    const expired=Date.parse(e.expires_at)<Date.now();
+    $('download-links').replaceChildren();
+    for(const file of e.files||[]){
+      let url;try{url=new URL(file.url);}catch{continue;}
+      if(url.origin!=='https://caithrin--inksheaf-proof-store-web.modal.run'||url.pathname!=='/proof')continue;
+      if(!expired){const a=el('a',`Read ${e.files.length>1?file.label:'your complete PDF'} ↗`,'pdf-link') as HTMLAnchorElement;a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';$('download-links').append(a);}
+    }
+    $('download-expiry').textContent=expired?'This download link has expired. Your edition is saved; contact us to recover the file.':'Save your PDF. These private download links work until '+new Date(e.expires_at).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+'.';
+  }
+}
+async function refresh(){
+  if(busy)return;busy=true;clearTimeout(timer);
+  try{
+    const response=await fetch(endpoint,{signal:AbortSignal.timeout(15000),cache:'no-store'}),data=await response.json();
+    if(!response.ok||!data.ok)throw Error(data.error||'Progress is temporarily unavailable.');
+    $('workspace-error').hidden=true;$('workspace-retry').hidden=true;
+    acceptSelection(data.selection);restoreSig=data.restore_sig||null;
+    const openIds=[...pieces].filter(([,p])=>p.detail.open).map(([id])=>id);
+    const focused=document.activeElement as HTMLElement|null,focusId=focused?.closest<HTMLElement>('[data-post-id]')?.dataset.postId;
+    if(data.run_id!==run){run=data.run_id;lastSequence=0;ready=false;readCount=0;keptCount=0;asideCount=0;displayedRevision=0;pieces.clear();$('reading-list').replaceChildren();$('contents-list').replaceChildren();$('production-notes').replaceChildren();resetPages();$('edition-downloads').hidden=true;$('edition-next').hidden=true;($('show-contents') as HTMLButtonElement).disabled=true;tabs('reading');}
+    if(data.design?.logo)identity.logo_treatment=data.design.logo;
+    if(data.design?.palette)identity.theme=data.design.palette;
+    selection=data.design?.cover||identity.design?.cover||'masthead';if(!COVER_DESIGNS.some(d=>d.id===selection))selection='masthead';
+    cover();
+    for(const event of data.events||[])if(event.sequence>lastSequence){showEvent(event);lastSequence=event.sequence;}
+    updateChoices();
+    for(const id of openIds){const p=pieces.get(id);if(p)p.detail.open=true;}
+    if(focusId&&focused&&!focused.isConnected)pieces.get(focusId)?.detail.querySelector('summary')?.focus({preventScroll:true});
+    pageReader.complete(ready);
+    if(!ready){
+      $('edition-title').textContent='Your book is taking shape.';
+      statusText(data.status==='failed'?'Your book needs a closer look. Your choices and the work so far are saved.':displayedRevision<selectionRevision?'Your choice is saved. We’re updating your book to include it.':lastSequence?'Reading, arranging and setting your writing for paper.':'Your book is in the press queue. This page will follow it as work begins.');
+    }
+    $('email-companion').textContent=['accepted','delivered'].includes(data.email_status)?`We’ve also sent the PDF to ${data.email}.`:`We’ll also email your finished PDF to ${data.email}.`;
+    const emailDelayed=ready&&['failed','uncertain','queued','reconcile','bounced','complained'].includes(data.email_status);
+    $('email-companion').classList.toggle('email-delayed',emailDelayed);
+    if(emailDelayed)$('email-companion').textContent=`Email delayed. Your PDF is ready here; we’re checking delivery to ${data.email}.`;
+    const retry=$('retry-pdf-email') as HTMLButtonElement;retry.hidden=!ready||!data.retry_email_sig||!['failed','uncertain','queued'].includes(data.email_status);
+    retry.onclick=async()=>{retry.disabled=true;$('email-retry-status').textContent='Checking your saved PDF email…';try{const r=await fetch('/api/edition-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id,sig:data.retry_email_sig})});const result=await r.json();$('email-retry-status').textContent=result.delivery?.accepted?'Your PDF email has been accepted for delivery.':'Your PDF is safe here. Delivery still needs attention; contact caithrin@caithrin.com.';refresh();}catch{$('email-retry-status').textContent='We could not confirm delivery. Your PDF is safe here.';}finally{retry.disabled=false;}};
+    $('return-link').hidden=false;($('return-link') as HTMLAnchorElement).href=location.href;
+    $('print-options-link').hidden=!ready||!data.change_url;
+    if(ready&&data.change_url){$('edition-next').hidden=false;($('change-edition') as HTMLAnchorElement).href=data.change_url;}
+    if(!ready||!['accepted','delivered'].includes(data.email_status))timer=setTimeout(refresh,4000);
+  }catch(error){$('workspace-error').textContent=(error as Error).message;$('workspace-error').hidden=false;$('workspace-retry').hidden=false;timer=setTimeout(refresh,10000);}
+  finally{busy=false;}
+}
+$('workspace-retry').onclick=()=>refresh();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();else clearTimeout(timer);});
+refresh();
+</script>
+<style is:global>
+.edition-workspace{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif)}.work-header{max-width:1320px;margin:auto;padding:28px var(--gutter);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hair);gap:22px}.work-header>a{width:288px;max-width:60%;flex:none}.work-header>span,.work-eyebrow{font:500 11px/1.5 var(--sans);letter-spacing:.065em;text-transform:uppercase;color:var(--muted)}.making{max-width:1320px;margin:auto;padding:50px var(--gutter) 90px}.making-intro{margin-bottom:38px}.making-intro h1{font:500 clamp(29px,4.1vw,52px)/1.15 var(--sans);letter-spacing:-.035em;margin:13px 0 14px}.making-intro>p:last-child{font:400 15px/1.7 var(--sans);max-width:65ch;color:var(--muted);min-height:26px}.making-layout{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(36px,7vw,94px);align-items:start}.making-object{position:sticky;top:24px;min-width:0}.making-desk{background:var(--stage);background-image:var(--stage-wash);padding:42px clamp(35px,5vw,72px) 48px}.making-desk .cover-face{width:100%;box-shadow:1px 2px 0 #c7c4b6,2px 4px 0 #bcb9ac,9px 15px 22px #20231f22}.cover-caption,.email-companion,.return-link{font:400 12px/1.7 var(--sans);color:var(--muted);margin-top:15px}.open-pages{min-height:44px;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);padding:8px 0;text-align:left}.email-companion{margin-top:24px}.return-link{display:inline-block;margin-top:6px;text-underline-offset:4px}.work-tabs{display:flex;border-bottom:1px solid var(--hair);margin-bottom:28px}.work-tabs button{white-space:nowrap;font:500 14px/1.5 var(--sans);padding:12px 18px;min-height:48px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);flex:1}.work-tabs button[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}.work-tabs button:disabled{color:var(--muted);cursor:default}.making-notes{min-width:0}.making-notes h2,.edition-downloads h2{font:500 25px/1.25 var(--sans);letter-spacing:-.025em;margin:0 0 16px}.making-notes>div>p,.edition-next>p{font:400 15px/1.65 var(--serif);color:var(--muted)}#identity-note{margin:24px 0 12px;padding-bottom:22px;border-bottom:1px solid var(--hair)}.identity-name{font:500 16px/1.4 var(--sans);overflow-wrap:anywhere}.identity-byline{font:400 12px/1.6 var(--sans);margin-top:6px;color:var(--muted)}.reading-piece{padding:16px 0;border-bottom:1px solid var(--hair)}.reading-piece summary{cursor:pointer;min-height:30px;display:flex;align-items:baseline;justify-content:space-between;gap:14px}.reading-piece summary::after{content:'+';font:400 18px var(--sans)}.reading-piece[open] summary::after{content:'−'}.piece-title{font:400 18px/1.35 var(--serif);overflow-wrap:anywhere;flex:1}.piece-kind{font:400 10px/1.4 var(--sans);color:var(--muted);max-width:92px;text-align:right}.reading-piece[data-decision=set_aside] .piece-title{color:var(--muted)}.aside-summary{font:400 12px/1.65 var(--sans);color:var(--muted);padding:0 0 16px;margin-top:-7px;border-bottom:1px solid var(--hair)}.reading-piece[data-decision=set_aside]{border-bottom:0}.aside-reason{font:400 13px/1.65 var(--sans);color:var(--muted);margin-top:14px}.email-retry{background:none;border:0;text-decoration:underline;text-underline-offset:4px;min-height:44px;padding:8px 0;cursor:pointer}.piece-reason{font:400 14px/1.6 var(--sans);margin-top:17px;color:var(--muted)}.reading-piece blockquote{font:400 15px/1.65 var(--serif);padding-left:17px;margin:14px 0 0;border-left:2px solid var(--hair);white-space:pre-wrap}.layout-reasons{font:400 12px/1.7 var(--sans);color:var(--muted);margin-top:12px}.layout-reasons summary{cursor:pointer;min-height:44px;padding:10px 0}.layout-reasons p{margin:10px 0}.production-note{font:400 13px/1.7 var(--sans);padding-top:20px;color:var(--muted)}.contents-volume{margin:24px 0 32px}.contents-description{font:400 16px/1.7 var(--serif);color:var(--muted)}.contents-volume h3{font:500 12px/1.5 var(--sans);margin:26px 0 10px;text-transform:uppercase;letter-spacing:.045em}.contents-volume ol{padding-left:26px}.contents-volume li{padding:12px 0 12px 8px;border-bottom:1px solid var(--hair);font:400 20px/1.35 var(--serif);overflow-wrap:anywhere}.contents-volume li::marker{font:400 11px var(--sans);color:var(--muted)}.work-note{font:400 12px/1.65 var(--sans)!important}.edition-downloads{margin-top:28px;padding-top:25px;border-top:1px solid var(--hair)}.pdf-link{display:block;background:var(--ink);color:var(--paper);padding:16px 20px;margin:10px 0;font:500 14px/1.5 var(--sans);text-decoration:none}.edition-downloads>p{font:400 12px/1.6 var(--sans);color:var(--muted);margin-top:10px}.edition-next{border-top:1px solid var(--hair);margin-top:36px;padding-top:28px}.edition-next>a{display:inline-block;min-height:44px;padding:10px 0;font:500 14px/1.6 var(--sans);text-underline-offset:5px}.print-routes{margin-top:22px}.workspace-retry{background:var(--ink);color:var(--paper);padding:13px 20px;border:0;font:500 14px var(--sans);margin-top:16px}#workspace-error{font:400 14px/1.7 var(--sans);margin-top:25px;color:var(--error)}.making [hidden]{display:none!important}.making :focus-visible{outline:2px solid var(--ink);outline-offset:5px}
+.reading-piece.has-choice{border-bottom:0}.aside-summary{margin-top:0}.aside-summary>p{margin:0}.restore-piece{display:inline-block;border:0;background:none;color:var(--ink);font:500 13px/1.5 var(--sans);text-decoration:underline;text-underline-offset:4px;min-height:44px;padding:10px 0;cursor:pointer}.restore-piece:disabled{color:var(--muted);cursor:wait}.restore-status:not(:empty){margin-top:8px;font:400 12px/1.6 var(--sans);color:var(--ink)}.restore-status a{color:inherit;text-underline-offset:3px}
+.work-tabs{margin-bottom:0}#reading-panel,#contents-panel,#pages-panel{padding-top:28px}.email-companion.email-delayed{border-left:2px solid var(--muted);padding:8px 0 8px 12px;color:var(--ink)}
+@media(max-width:750px){.work-header{padding-block:22px;gap:18px}.work-header>a{width:clamp(166px,48vw,180px);max-width:64%}.work-header>span{max-width:84px;text-align:right}.work-header>span{font-size:9px}.making{padding-top:32px}.making-layout{grid-template-columns:1fr;gap:32px}.making-object{position:static}.making-desk{padding:22px max(68px,calc((100% - 190px)/2)) 28px}.making-object .email-companion{margin-top:12px}.work-tabs{position:sticky;top:0;background:var(--paper);z-index:3}.reading-piece{padding-block:13px}.making-intro{margin-bottom:27px}.making-notes h2{font-size:24px}.cover-caption{margin-top:12px}.email-companion{margin-top:16px}}
+@media(max-width:750px){.edition-workspace[data-reading-pages=true] .making-desk{padding:14px max(68px,calc((100% - 120px)/2)) 18px}.edition-continuity .email-companion{font:400 12px/1.7 var(--sans)}#continuity-reading{margin-top:26px;padding-top:16px;border-top:1px solid var(--hair)}.work-tabs button{padding-inline:10px}}
+@media(prefers-reduced-motion:no-preference){.making-desk{animation:work-enter .35s both}.reading-piece,.contents-volume,.production-note,.edition-downloads{animation:work-enter .25s both}.pdf-link{transition:background .15s}.pdf-link:hover{background:var(--action-hover)}@keyframes work-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}}
+</style></body></html>

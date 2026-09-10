@@ -1,0 +1,27 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 2800,
+  "brief": "brand-prominence-2026-09-09.md",
+  "images": [
+    {
+      "file": "../../output/playwright/launch/overhead/chromium-1280.png",
+      "label": "Homepage desktop: enlarged accepted masthead on its existing dark header; faint gradient across the screen work surface."
+    },
+    {
+      "file": "../../output/playwright/launch/publisher-pages/chromium-1280-print.png",
+      "label": "Private reader desktop: larger upper-left mark and subtle paper stage, synthetic PDF."
+    },
+    {
+      "file": "../../output/playwright/launch/publisher-pages/webkit-390-text.png",
+      "label": "Private reader phone: larger mark, compact cover, readable source text, continuity below."
+    },
+    {
+      "file": "../../output/brand-prominence/book-1.png",
+      "label": "Synthetic nine-page print specimen: opening half-title with the unchanged vector watermark."
+    },
+    {
+      "file": "../../output/brand-prominence/book-9.png",
+      "label": "Same specimen: closing edition note with watermark lifted clear of the folio."
+    }
+  ]
+}

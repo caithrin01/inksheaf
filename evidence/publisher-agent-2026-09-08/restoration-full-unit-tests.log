@@ -1,0 +1,584 @@
+
+> inksheaf@0.0.1 test:preview:unit
+> node scripts/test-plan-check.mjs && node scripts/test-cuts.mjs && node scripts/test-components.mjs && node scripts/test-recurring-sections.mjs && node scripts/test-change.mjs && node scripts/test-approve.mjs && node scripts/test-approval-recovery.mjs && node scripts/test-version.mjs && node scripts/test-migrations.mjs && python3 scripts/test-print-images.py && node scripts/test-typst-fixtures.mjs && node scripts/test-tofu.mjs && node scripts/test-publication-identity.mjs && node scripts/test-publication-lookup.mjs && node scripts/test-public-sample.mjs && node scripts/test-cover-v2.mjs && node scripts/test-preview.mjs && node scripts/test-preview-fresh.mjs && node scripts/test-archive-refusal.mjs && node scripts/test-preview-outage.mjs && python3 services/test_relay_paging.py && node scripts/test-lulu-gql.mjs && node scripts/test-lulu-worker.mjs && node scripts/test-list-queue.mjs && node scripts/test-mailings-flag.mjs && node scripts/test-mail-context.mjs && node scripts/test-quote-pages.mjs && node scripts/test-signup.mjs && node scripts/test-verification-delivery.mjs && node scripts/test-email-outbox.mjs && node scripts/test-proof-email.mjs && node scripts/test-runtime-safety.mjs && node scripts/test-operator-pdf-mail.mjs && node scripts/test-page-review.mjs && node scripts/test-feedback.mjs && node scripts/test-funnel.mjs && node scripts/test-publisher-agent.mjs && node scripts/test-publisher-workspace.mjs && node scripts/test-publisher-restore.mjs && node scripts/test-publisher-layout.mjs && node scripts/test-publish-volume.mjs && node scripts/test-press-release.mjs
+
+ok   window mid-quarter start: four completed quarters
+ok   window label spans two years
+ok   halves named as halves
+ok   twelve months
+ok   quarter in progress is Q3 2026
+ok   1 January: window is the calendar year
+ok   last second of a quarter: that quarter is still in progress
+ok   first second of a quarter rolls the window
+ok   input: 72 posts in window, 2 in progress
+ok   input: paid and podcast posts are not rows
+ok   fallback: passes the checker
+ok   fallback: half-years recommended for a 490-page year, quarterly and monthly offered
+ok   fallback: four quarter volumes with Q labels
+ok   fallback: volume numbers derived
+ok   fallback: young archive is a single volume
+ok   prose: four whole quarters say so
+ok   prose: lopsided year passes the checker
+ok   prose: quarterly is not offered when most quarters fold
+ok   prose: monthly, if offered, never claims a book a month over folded volumes
+ok   prose: every offered route's sentence counts its own volumes (full year)
+ok   prose: every offered route's sentence counts its own volumes (lopsided year)
+ok   prose: every offered route's sentence counts its own volumes (young archive)
+ok   rule: a good plan passes
+ok   rule: a post bound nowhere
+ok   rule: a post bound twice
+ok   rule: a post from the quarter in progress
+ok   rule: a label not in the window
+ok   rule: a post dated outside its label
+ok   rule: two recommended routes
+ok   rule: contributor without a byline
+ok   rule: excluded post must be in the window
+ok   rule: excluding over half needs kind notes
+ok   rule: an exclusion needs a reason
+ok   rule: parts must cover the volume exactly
+ok   rule: notes none with footnotes present
+ok   fallback: quarters that all split are ruled out and the months are offered
+ok   rule: a volume over the cap is refused
+ok   rule: folded label of two adjacent quarters is accepted
+ok   younger than a quarter: window is everything so far
+ok   younger than a quarter: one book, checker passes
+ok   rule: overlapping folded periods refused
+ok   paid-only: headline names paid subscribers
+ok   rule: periods expand to post ids
+ok   rule: an unknown period is refused
+plan-check: 44 checks, all pass
+18 pass, 0 fail
+14 pass, 0 fail
+6 recurring-section checks passed
+7 pass, 0 fail
+6 pass, 0 fail
+PASS HEAD is read-only and unsupported methods cannot approve or dispatch a book
+PASS scanner GET is read-only and a valid explicit POST approves once
+PASS a requested revision makes the previous proof ineligible immediately
+PASS a newer version blocks an old proof even if both plans are identical
+PASS a revision racing the approval claim is caught inside the SQL transition
+PASS a new version racing the claim cannot publish the old proof
+PASS ownership must be confirmed before approving a PDF
+PASS publication-derived volume labels are escaped on the confirmation page
+PASS dispatch failure preserves approval and gives no invented deadline
+PASS an approval storage failure is an explicit retryable error
+10 approval recovery checks passed
+7 pass, 0 fail
+24 pass, 0 fail
+8 print image checks passed
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<partstart>).map(it => it.value)' --in proofs/fixtures/publisher-structure.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<folio>).map(it => it.value)' --in proofs/fixtures/publisher-structure.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<partstart>).map(it => it.value)' --in proofs/fixtures/middle-part-verso.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<artstart>).map(it => it.value)' --in proofs/fixtures/middle-part-verso.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parend>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parstart>).map(it => it.value)' --in proofs/fixtures/publisher-float.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parend>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<fig>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parstart>).map(it => it.value)' --in proofs/fixtures/publisher-inflow.typ` instead
+
+warning: the `typst query` subcommand is deprecated
+ = hint: use `typst eval 'query(<parend>).map(it => it.value)' --in proofs/fixtures/trailing-editor-breaks.typ` instead
+
+42 pass, 0 fail
+tofu: 2 pass, 0 fail
+ok matches publication, not first author membership
+ok looks beyond the first byline and first post
+ok never guesses a sole byline as the publication name
+ok never returns an unrelated membership
+ok matches explicit publication ID for a custom domain
+ok accepts a normalized custom domain
+ok reads escaped homepage JSON without evaluating JavaScript
+ok rejects homepage metadata for a different publication
+ok rejects malformed preload JSON
+ok preserves exact publication name and removes controls
+ok accepts Substack CDN logo
+ok accepts publication-host relative logo
+ok rejects unsafe logo javascript:alert(1)
+ok rejects unsafe logo http://substackcdn.com/a.png
+ok rejects unsafe logo https://substackcdn.com.evil.example/a.png
+ok rejects unsafe logo https://user:pass@substackcdn.com/a.png
+ok rejects unsafe logo https://substackcdn.com:8443/a.png
+ok rejects unsafe logo //127.0.0.1/a.png
+ok homepage is authoritative and includes logo
+ok homepage outage uses only a matched archive identity
+ok unresolved metadata stays unresolved
+ok oversized homepage is discarded
+ok homepage timeout is bounded and preserves verified archive identity
+ok v7 wrong-name cache is replaced by verified v8 name and logo
+ok unresolved name offers a hand-built preview, never a guessed cover
+publication identity: 25 checks passed
+PASS one bounded homepage read supplies exact name, logo and contrasting theme
+PASS typing does not log a funnel event or mutate preview cache
+PASS rejects javascript:alert(1)
+PASS rejects 127.0.0.1
+PASS rejects intranet.local
+PASS rejects not a URL
+PASS GET only
+PASS bounded per-caller and per-host reads
+PASS fresh full-preview identity avoids origin work
+PASS old identity schema cannot supply a guessed name
+PASS existing authenticated page relay supplies metadata only
+PASS without relay credentials, reads only first ten archive rows
+PASS byline alone is never publication identity
+PASS response size bound
+PASS no logo from different publication id
+PASS matched publication id can fill missing homepage logo
+PASS logo allowlist preserved
+PASS unavailable identity remains a quiet optional failure
+publication lookup: 18 checks passed
+PASS public prose preserves emphasis and drops active content
+PASS paid/unpublished/empty bodies never enter sample
+PASS whole paragraphs retained, truncation stated
+PASS cover title and logo attributes are escaped
+PASS all four designs have safe versioned snapshots
+PASS unknown version, design, or palette rejected
+PASS confirmed post body returns source and real text
+PASS mismatched post ID rejected
+PASS paid response rejected even for cached public entry
+PASS cross-host redirect is not followed
+PASS www alias redirect accepted for same post only
+PASS expired preview cannot initiate a body read
+PASS old wrong-identity caches do not supply excerpts
+13 public sample and design checks passed
+PASS new reservations use version 2; historical version 1 remains valid
+PASS only confirmed owner hosts use the transparent owner marks
+PASS flat opaque logo background survives a reservation and changes footer contrast
+PASS transparent and complex edges preserve original artwork
+PASS invalid logo settings and unsafe markup cannot enter the cover
+PASS print embeds the same local transparent master without a network fetch
+PASS our band labels meet 4.5:1 contrast on original logo grounds
+7 cover version and logo policy checks passed
+PASS FIXTURE preview logic: personal, daily letters, paid-heavy, mixed-media, young, 150pp, 900pp, folding, image-heavy, forms, all-infeasible
+ok   plain request served from cache
+ok   plain request read the cache
+ok   plain request never fetched origin
+ok   signed fresh request served from origin
+ok   signed fresh request skipped the cache read
+ok   signed fresh request fetched origin
+ok   signed fresh request wrote the cache
+ok   previous-bucket signature accepted
+ok   wrong token: cache still serves
+ok   stale bucket: cache still serves
+ok   other host's signature: cache still serves
+ok   garbage: cache still serves
+ok   no ARCHIVE_RELAY_TOKEN: fresh ignored
+preview fresh: 13 pass, 0 fail
+PASS public archive 403 uses one authenticated existing relay; paid content stays excluded
+PASS direct 401 does not invoke the relay
+PASS direct 404 does not invoke the relay
+ok   relay "upstream unavailable": status 503, not 422
+ok   relay "upstream unavailable": error upstream_busy
+ok   relay "upstream unavailable": message never blames the address
+ok   relay "upstream unavailable": message offers retry and the hand-built route
+ok   relay "upstream unavailable": relay was tried more than once
+ok   relay "upstream unavailable": detail carries the relay's reason
+ok   relay "upstream 503": status 503, not 422
+ok   relay "upstream 503": error upstream_busy
+ok   relay "upstream 503": message never blames the address
+ok   relay "upstream 503": message offers retry and the hand-built route
+ok   relay "upstream 503": relay was tried more than once
+ok   relay "upstream 503": detail carries the relay's reason
+ok   relay "upstream 429": status 503, not 422
+ok   relay "upstream 429": error upstream_busy
+ok   relay "upstream 429": message never blames the address
+ok   relay "upstream 429": message offers retry and the hand-built route
+ok   relay "upstream 429": relay was tried more than once
+ok   relay "upstream 429": detail carries the relay's reason
+ok   relay "upstream 404": status 503, not 422
+ok   relay "upstream 404": error upstream_busy
+ok   relay "upstream 404": message never blames the address
+ok   relay "upstream 404": message offers retry and the hand-built route
+ok   relay "upstream 404": relay was tried more than once
+ok   relay "upstream 404": detail carries the relay's reason
+ok   relay "invalid upstream JSON": status 503, not 422
+ok   relay "invalid upstream JSON": error upstream_busy
+ok   relay "invalid upstream JSON": message never blames the address
+ok   relay "invalid upstream JSON": message offers retry and the hand-built route
+ok   relay "invalid upstream JSON": relay was tried more than once
+ok   relay "invalid upstream JSON": detail carries the relay's reason
+ok   relay "response too large": status 503, not 422
+ok   relay "response too large": error upstream_busy
+ok   relay "response too large": message never blames the address
+ok   relay "response too large": message offers retry and the hand-built route
+ok   relay "response too large": relay was tried more than once
+ok   relay "response too large": detail carries the relay's reason
+ok   direct 429 then relay failure: 503 upstream_busy
+ok   stale cache row served during an outage
+ok   direct 404 on apex and www: still 422 not_substack
+ok   direct 404: relay never called
+ok   direct 404: www was tried once
+ok   dead domain: 422 not_substack with the address message
+ok   dead domain: the resolver was asked
+ok   dead domain: answered inside 2s, relay never called
+ok   thrown direct read on a live host: relay tried, 503
+ok   dead domain after a relay sweep: still the address message
+ok   live domain in outage: resolver asked, still 503
+ok   direct 404: resolver never asked
+ok   slow direct and slow relay: answer inside 42s
+ok   slow direct and slow relay: still 503 upstream_busy
+
+50 pass, 0 fail
+ok   old fixed-offset reading skipped posts 23 and 24
+ok   new reading: every post in the window, in order, no gaps
+ok   new reading: no duplicates
+ok   new reading: read to the cutoff and stopped
+ok   first page read alone, then batches from the count read
+ok   mid-batch short page: still every post, no gaps
+ok   mid-batch short page: resynced from its end
+ok   mid-batch short page: read to the end, complete
+ok   deep archive: every post inside the window is present
+ok   deep archive: complete
+ok   deep archive: stopped within a batch of the cutoff
+ok   more than 700 posts in the year: marked incomplete
+ok   capped read: still no gaps
+ok   empty archive: nothing read, complete
+ok   slim keeps the id
+ok   slim keeps the slug
+ok   slim counts footnotes
+ok   slim counts external links only
+ok   slim counts images
+ok   slim drops the body
+ok   slim trims the excerpt
+
+21 pass, 0 fail
+[dry-run] create: createProject
+  variables: {"projectType":"PRINTED_BOOK"}
+[dry-run] start: setStartStepDetails
+  variables: {"id":"DRY","projectTitle":"Weijin Research — 2025–2026","language":"English","category":null}
+[dry-run] title: updateTitleAndEdition
+  variables: {"id":"DRY","bookTitle":"Weijin Research","bookSubtitle":"2025–2026"}
+[dry-run] contributors: updateContributors
+  variables: {"id":"DRY","bookContributors":[{"role":"A01","firstName":"Weijin Research","lastName":""}]}
+[dry-run] interior-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-interior.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] interior-set: setInteriorFile
+  variables: {"projectId":"DRY","fileId":0}
+[dry-run] spec: updatePodPackageId
+  variables: {"id":"DRY","podPackageId":"0600X0900.BW.STD.PB.060UW444.MXX","coverType":"UPLOADED"}
+[dry-run] cover-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-cover.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] cover-set: setCoverFile
+  variables: {"projectId":"DRY","fileId":0,"coverType":"UPLOADED"}
+[dry-run] details: updateCategoriesAndKeywords
+  variables: {"id":"DRY","category":null,"bisacCategories":[],"keywords":["ai","china"]}
+[dry-run] audience: updateAudience
+  variables: {"id":"DRY","audience":"GENERAL","adultRating":"NO"}
+[dry-run] revenue: patchRevenueGoal
+  variables: {"id":"DRY","input":{"minimumRevenue":{"amount":0,"currency":"USD"}}}
+[dry-run] payee: createPayee
+  variables: {"input":{"firstName":"Test","lastName":"Payee","currency":"USD","paymentType":"CHECK"}}
+[dry-run] shares: setProjectRevenueShares
+  variables: {"projectId":"DRY","input":[{"payeeId":"DRY-PAYEE","share":100}]}
+[dry-run] publish: publishLastVersion
+  variables: {"projectId":"DRY"}
+[dry-run] access: setSelectAccess
+  variables: {"id":"DRY","sellIntention":"DIRECT"}
+[dry-run] url: projectUrl
+  variables: {"id":"DRY"}
+[dry-run] create: createProject
+  variables: {"projectType":"PRINTED_BOOK"}
+[dry-run] start: setStartStepDetails
+  variables: {"id":"DRY","projectTitle":"Weijin Research — 2025–2026","language":"English","category":null}
+[dry-run] title: updateTitleAndEdition
+  variables: {"id":"DRY","bookTitle":"Weijin Research","bookSubtitle":"2025–2026"}
+[dry-run] contributors: updateContributors
+  variables: {"id":"DRY","bookContributors":[{"role":"A01","firstName":"Weijin Research","lastName":""}]}
+[dry-run] interior-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-interior.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] interior-set: setInteriorFile
+  variables: {"projectId":"DRY","fileId":0}
+[dry-run] spec: updatePodPackageId
+  variables: {"id":"DRY","podPackageId":"0600X0900.BW.STD.PB.060UW444.MXX","coverType":"UPLOADED"}
+[dry-run] cover-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-cover.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] cover-set: setCoverFile
+  variables: {"projectId":"DRY","fileId":0,"coverType":"UPLOADED"}
+[dry-run] details: updateCategoriesAndKeywords
+  variables: {"id":"DRY","category":null,"bisacCategories":[],"keywords":["ai","china"]}
+[dry-run] audience: updateAudience
+  variables: {"id":"DRY","audience":"GENERAL","adultRating":"NO"}
+[dry-run] revenue: patchRevenueGoal
+  variables: {"id":"DRY","input":{"minimumRevenue":{"amount":0,"currency":"USD"}}}
+[dry-run] payee: createPayee
+  variables: {"input":{"firstName":"Test","lastName":"Payee","currency":"USD","paymentType":"CHECK"}}
+[dry-run] shares: setProjectRevenueShares
+  variables: {"projectId":"DRY","input":[{"payeeId":"DRY-PAYEE","share":100}]}
+[dry-run] create: createProject
+  variables: {"projectType":"PRINTED_BOOK"}
+[dry-run] start: setStartStepDetails
+  variables: {"id":"DRY","projectTitle":"Weijin Research — 2025–2026","language":"English","category":null}
+[dry-run] title: updateTitleAndEdition
+  variables: {"id":"DRY","bookTitle":"Weijin Research","bookSubtitle":"2025–2026"}
+[dry-run] contributors: updateContributors
+  variables: {"id":"DRY","bookContributors":[{"role":"A01","firstName":"Weijin Research","lastName":""}]}
+[dry-run] interior-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-interior.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] interior-set: setInteriorFile
+  variables: {"projectId":"DRY","fileId":0}
+[dry-run] spec: updatePodPackageId
+  variables: {"id":"DRY","podPackageId":"0600X0900.BW.STD.PB.060UW444.MXX","coverType":"UPLOADED"}
+[dry-run] cover-upload: createDirectUploadURL
+  variables: {"input":{"filename":"weijinresearch.substack.com-cover.pdf","mimetype":"application/pdf","filesize":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg=="}}
+[dry-run] cover-set: setCoverFile
+  variables: {"projectId":"DRY","fileId":0,"coverType":"UPLOADED"}
+[dry-run] details: updateCategoriesAndKeywords
+  variables: {"id":"DRY","category":null,"bisacCategories":[],"keywords":["ai","china"]}
+[dry-run] audience: updateAudience
+  variables: {"id":"DRY","audience":"GENERAL","adultRating":"NO"}
+[dry-run] revenue: patchRevenueGoal
+  variables: {"id":"DRY","input":{"minimumRevenue":{"amount":0,"currency":"USD"}}}
+[dry-run] shares: setProjectRevenueShares
+  variables: {"projectId":"DRY","input":[{"payeeId":"pay_1","share":100}]}
+[dry-run] create: createProject
+  variables: {"projectType":"PRINTED_BOOK"}
+[dry-run] start: setStartStepDetails
+  variables: {"id":"DRY","projectTitle":"Weijin Research — 2025–2026","language":"English","category":null}
+[dry-run] title: updateTitleAndEdition
+  variables: {"id":"DRY","bookTitle":"Weijin Research","bookSubtitle":"2025–2026"}
+[dry-run] contributors: updateContributors
+  variables: {"id":"DRY","bookContributors":[{"role":"A01","firstName":"Weijin Research","lastName":""}]}
+lulu-gql: 30 pass, 0 fail
+2026-09-09T19:06:17.182Z queue: 1 edition(s) waiting
+  weijinresearch.substack.com v1: LISTED https://www.lulu.com/shop/p1.html
+2026-09-09T19:06:17.185Z queue: 1 edition(s) waiting
+  weijinresearch.substack.com v1: FAILED at publish: [publish] INTERNAL — left at listing-pending for the hand-made fallback
+lulu-worker: 8 pass, 0 fail
+list-queue: 9 pass, 0 fail
+mailings-flag: 5 pass, 0 fail
+mail-context: 6 pass, 0 fail
+quote-pages: 6 pass, 0 fail
+PASS SIGNUP unit: plan_json bound, honeypot inert, oversize capped
+PASS a new edition for a returning owner preserves the older reservation
+PASS simultaneous submissions create one free edition and one press dispatch
+PASS a reused request key cannot replace the recipient or selected edition
+PASS provider rejection is a saved reservation with a truthful failed-send result
+PASS missing credentials cannot be reported as a sent confirmation
+PASS uncertain email acknowledgement retries the exact message and provider key
+PASS an explicit resend after acceptance produces a new confirmation
+PASS email-scanner GET makes no database changes and starts no press
+PASS concurrent confirmation and later replay dispatch exactly one press run
+PASS SQLite UTC expiry rejects an earlier time today and permits a later time today
+PASS invalid and missing tokens cannot confirm ownership
+PASS unknown dispatch outcome is held instead of blindly dispatching again
+PASS confirmed provider rejection can be retried after the dispatch problem is fixed
+PASS a verified reservation cannot resend verification or restart its press
+PASS staging never emails the publication alias
+PASS About-page verification shares the same single-dispatch claim
+PASS expired About-page codes cannot be replaced silently during a check
+PASS request retries still resume after the press updates the working plan
+PASS custom-domain metadata selects its matching publication alias
+PASS an unrelated author membership never selects the wrong verification inbox
+PASS database-read failure is unavailable, never an invalid-token verdict
+PASS stored ambiguous mail cannot cross from production into a staging inbox
+PASS free creation rejects local destinations without dispatching or emailing
+PASS free creation preserves unknown dispatch outcomes across signup retries
+PASS new job capacity fails closed and duplicate intent does not spend again
+PASS test reservations neither email nor run inference
+PASS an old completed edition cannot be rebuilt or disclose a workspace by email lookup
+27 verification delivery checks passed
+PASS concurrent registration and send create one durable operation and one request
+PASS a saved operation cannot change its recipient, edition or message
+PASS missing credentials leave a queued message without claiming acceptance
+PASS lost acknowledgement reuses exact payload and provider idempotency key
+PASS unknown provider outcome past its deduplication window requires reconciliation
+PASS a stale sending lease can retry inside the deduplication window
+PASS a stale sending lease past the deduplication window cannot blindly resend
+PASS provider rejection is retryable without leaking private response details
+PASS server errors and malformed success do not claim acceptance
+PASS persisted production mail cannot replay in staging or development
+PASS staging persists only its allowlisted destination and blocks changed allowlists
+PASS message corruption is held before any network request
+PASS provider acceptance survives storage acknowledgement loss through the saved send key
+PASS a slow stale worker cannot overwrite a newer accepted lease
+PASS delivery status and later replay cannot resend a bounced message automatically
+PASS repeated failure stops at a bounded number of provider attempts
+16 durable email outbox checks passed
+PASS initial delivery and replay preserve complete multi-volume links and saved recipient
+PASS private PDF delivery requires no ownership click
+PASS another edition cannot be accessed with this signature
+PASS a newer edition or superseded proof cannot send an old ready email
+PASS email rejection leaves the ready edition intact and retry sends only the saved message
+PASS an outage is reported rather than an empty successful delivery
+PASS GET does not register or send an email
+PASS a changed reservation recipient requires review rather than redirecting a saved message
+PASS press callback accurately distinguishes pending email and transport failure
+PASS operator status is read-only and retry cannot invent a missing message
+PASS operator retry recovers the saved message without providing content or recipient
+PASS a pending revision blocks an old ready email before the replacement is rendered
+PASS a revision racing the send claim cannot emit an old ready message
+13 creator proof-email checks passed
+ok   an unspecified environment is not production
+ok   production selects Lulu production
+ok   staging selects Lulu sandbox
+ok   development selects Lulu sandbox
+ok   production dispatch keeps the production event
+ok   staging cannot hit the production press event
+ok   development cannot hit the production mail event
+ok   staging rewrites the recipient to the allowlist
+ok   staging labels the subject
+ok   staging records but does not contact the intended recipient
+ok   staging without an allowlisted inbox fails closed
+ok   production preserves the intended recipient
+ok   the real dispatch helper namespaces staging events
+ok   the real dispatch payload records its environment
+ok   a no-key local run writes the intended email to a private outbox without sending
+runtime-safety: 15 pass, 0 fail
+PASS every complete volume is linked and attached to the operator only
+PASS a large set retains all private links when attachments exceed the cap
+PASS a missing local attachment does not hide the uploaded PDF or later files
+PASS operator provider failure is isolated and does not leak its response into logs
+PASS link signing failure cannot stop writer delivery or send incomplete notification
+PASS wrap covers and interiors are independently available in the print-files notice
+PASS real mail adapter respects staging recipient isolation and carries complete attachments
+PASS network timeout reports notification failure without stalling the press
+8 operator PDF notification checks passed
+ok   six pages rasterised in order
+ok   two contact sheets, four then two pages
+ok   parseJson takes a fenced array
+ok   parseJson takes prose around an object
+ok   parseJson gives null on nothing
+ok   pass 1 ran once per sheet
+ok   only in-sheet flags over the threshold reach pass 2
+ok   pass 2 got the single page at full size
+ok   pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)
+ok   confirmed finding reported with page, check and both notes
+ok   usage summed
+ok   review.json written
+ok   writer line reports incomplete review
+ok   operator block carries counts and the finding
+ok   an invented page is recorded as incomplete review, never a clean pass
+ok   a dismissed flag is not a finding
+ok   writer line says nothing flagged
+ok   model failure never throws and is counted
+ok   no writer line when nothing was read
+ok   unparseable answers are errors, not findings
+ok   truncated pass-2 JSON leaves review incomplete
+ok   no key skips the review with a reason
+ok   operator block says skipped
+ok   eight checks in the list
+ok   dismissing whitespace cannot hide overflow on the same page
+ok   rerasterising a shorter repaired PDF removes obsolete pages
+ok   figure confirmation sees the actual source image and physical/printed page map
+ok   publisher outage stops the review before attempting later pages
+ok   a pagination finding is confirmed against both actual neighbouring pages
+ok   glyph review explicitly compares lettering inside the original screenshot
+ok   running-head confirmation receives the intended alternating label
+page-review: 31 pass, 0 fail
+ok   a remark is accepted
+ok   row inserted with text, lowercased email, publication, page, ua
+ok   placeholders match binds
+ok   honeypot: pretend success, store nothing
+ok   too short is refused with a sentence
+ok   too long is refused
+ok   a bad email is refused, blank allowed
+ok   blank email stored as null
+ok   thirty in a minute: busy
+ok   GET is refused
+ok   a failed insert says where else to write
+feedback: 11 pass, 0 fail
+funnel: 14 pass, 0 fail
+PASS full PDF creation is free and recovery applies only to printed copies
+PASS normalization retains prose and poem lines but excludes executable markup
+PASS unknown and duplicate source IDs cannot enter the agent
+PASS every source must have one validated classification
+PASS unknown model post IDs cannot be applied
+PASS invented evidence cannot justify an editorial decision
+PASS poem citations preserve the original line instead of generated slash notation
+PASS automatic exclusion cannot remove a classified poem or essay
+PASS TOC cannot silently omit, duplicate or invent selected posts
+PASS real batches emit before the final contents and preserve source bodies
+PASS creator restoration survives cached model suggestions and enters contents
+PASS unchanged source replay makes no second inference call
+PASS missing full bodies hold the book without a model call
+PASS image-only work is retained as unreviewed by the text classifier
+PASS budget denial occurs before any provider request
+PASS annual review can pass 96 calls while the 256-call and $2 limits remain enforced
+PASS provider timeout retains its reservation and private errors are not shown as success
+PASS truncated model results are never accepted
+PASS the provider must honour schemas, privacy and price ceilings
+PASS contents reject reversed dates inside a section
+PASS one invalid reference is corrected before any batch is published
+PASS image cost is reserved before a vision call and oversized files never reach the model
+PASS a transient provider failure gets one same-model retry in the same spend ledger
+PASS a repeating provider failure stops after the one bounded retry
+24 publisher-agent tests passed.
+PASS private workspace requires a capability scoped to that edition
+PASS workspace is read-only and has no public indexing or caching
+PASS events bind their entire payload and replay without duplication
+PASS new run replaces prior progress rather than mixing editions
+PASS inference reservations survive reload and stale writers cannot reset spend
+PASS a creator capability cannot read the private model journal
+PASS the complete annual-review ledger is durable but excess calls cannot be saved
+PASS a ready workspace reads actual outbox columns and retries only its saved message
+8 publisher workspace checks passed
+PASS restoration requires its own edition capability and an actual excluded source
+PASS restores merge atomically, repeated clicks are idempotent, and the journal stays intact
+PASS old-selection progress cannot replace the corrected edition on screen
+PASS a restart identity cannot hide another piece the creator was just inspecting
+PASS a stale complete PDF cannot create a version or overwrite the saved plan
+PASS the actual insert constraint catches a correction at the final version boundary
+PASS when completion wins, a late restore offers the existing adjustment route
+PASS selection changes restart the build and only commit the latest result
+PASS a last-moment commit rejection also resumes the current selection
+PASS real failures do not loop and repeated changes have a finite recovery bound
+[publisher] identity
+[publisher] reading 2/2
+[publisher] contents
+PASS the real session applies saved restores using cached reading and the same budget
+11 publisher restoration checks passed
+PASS only measured finite figure and leading adjustments are offered
+PASS repairs cannot name another page or invent a destructive operation
+PASS every measured page needs a decision even when the renderer exempted it
+PASS a blank-page justification cannot dismiss an overflow defect
+PASS applying a repair changes only bounded typesetter settings
+PASS a complete short poem may retain intentional space with an explicit reason
+PASS front matter never inherits a nonexistent article design purpose
+PASS section dividers have a measured identity without exempting adjacent article tails
+PASS the visual review gets front-matter verso and actual printed-folio context
+PASS running-head context follows the publication/essay alternation and suppresses openers
+PASS large layouts retain exact page coverage in bounded model requests
+PASS large top and internal gaps cannot disappear behind a small trailing gap
+PASS several smaller gaps over 30 percent together require a layout verdict
+PASS reading-order repairs only move measured nearby floats back to their source position
+PASS measured paragraph boundaries catch interruptions that vision misses
+15 bounded publisher layout checks passed
+PASS a validated repair reaches the builder and the changed PDF is reviewed again
+PASS source mutation during a repair holds the complete edition
+PASS unresolved layout stops without a ready event or extra render
+PASS two unsuccessful model repair rounds are a finite hold
+PASS available repairs run before a mixed hold and all affected pages are rechecked
+PASS a finding still held after other repairs cannot emit a ready review
+PASS unavailable visual review cannot release an unreviewed PDF
+PASS a model scan with no findings cannot clear a measured paragraph interruption
+8 complete publisher orchestration checks passed
+PASS the press selects the deployed commit instead of merged main
+PASS only a legacy request can use the pinned pre-manifest release
+PASS outage or a malformed manifest never selects a fallback
+PASS artifact contains the exact commit and disables manifest caching
+4 press release compatibility checks passed

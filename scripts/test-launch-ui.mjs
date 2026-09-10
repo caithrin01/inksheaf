@@ -7,7 +7,7 @@ import { resolve, extname, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 const root=resolve('dist');
 await stat(resolve(root,'index.html'));
-const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml',
+const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.wasm':'application/wasm','.css':'text/css','.svg':'image/svg+xml',
   '.png':'image/png','.jpg':'image/jpeg','.avif':'image/avif','.webp':'image/webp','.woff2':'font/woff2'};
 const server=createServer(async(req,res)=>{
   try{
@@ -27,14 +27,21 @@ async function run(script,args){
   if(code!==0)throw new Error(`${script} exited ${code}`);
 }
 try{
-  await run('scripts/test-overhead-journey.mjs',[base,'output/playwright/launch/overhead']);
-  await run('scripts/test-edition-journey.mjs',[base,'output/playwright/launch/edition']);
-  await run('scripts/test-publication-cover.mjs',[base,'output/playwright/launch/publication-cover']);
-  await run('scripts/test-launch-states.mjs',[base,'output/playwright/launch/states']);
-  await run('scripts/test-site-design.mjs',[base]);
-  await run('scripts/test-site-workflows.mjs',[base]);
-  await run('scripts/test-verification-ui.mjs',[base]);
-  await run('scripts/test-live-publication.mjs',[base,'output/playwright/launch/live-publication']);
+  if(process.argv.includes('--pages-only')){
+    await run('scripts/test-publisher-pages-ui.mjs',[base]);
+  }else if(process.argv.includes('--publisher-only')){
+    await run('scripts/test-verification-ui.mjs',[base]);
+  }else{
+    await run('scripts/test-overhead-journey.mjs',[base,'output/playwright/launch/overhead']);
+    await run('scripts/test-edition-journey.mjs',[base,'output/playwright/launch/edition']);
+    await run('scripts/test-publication-cover.mjs',[base,'output/playwright/launch/publication-cover']);
+    await run('scripts/test-launch-states.mjs',[base,'output/playwright/launch/states']);
+    await run('scripts/test-site-design.mjs',[base]);
+    await run('scripts/test-site-workflows.mjs',[base]);
+    await run('scripts/test-verification-ui.mjs',[base]);
+    await run('scripts/test-publisher-pages-ui.mjs',[base]);
+    await run('scripts/test-live-publication.mjs',[base,'output/playwright/launch/live-publication']);
 
+  }
 }catch(error){console.error(error.message);process.exitCode=1;}
 finally{server.close();}

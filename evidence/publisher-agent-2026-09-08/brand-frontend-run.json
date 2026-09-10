@@ -1,0 +1,79 @@
+{
+  "status": "completed",
+  "started": "2026-09-09T19:58:52.288Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Homepage desktop: enlarged accepted masthead on its existing dark header; faint gradient across the screen work surface.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/overhead/chromium-1280.png",
+      "saved": "input-1.png",
+      "sha256": "a9b75a85c4c4fa11f83bcb9a6df1f6110110174f335e0db541918bf50d29d2f1"
+    },
+    {
+      "label": "Private reader desktop: larger upper-left mark and subtle paper stage, synthetic PDF.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher-pages/chromium-1280-print.png",
+      "saved": "input-2.png",
+      "sha256": "8572c41db22e0baab232453e683b6056d7a0799cc2eb33ea0363e7ce4c93e940"
+    },
+    {
+      "label": "Private reader phone: larger mark, compact cover, readable source text, continuity below.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher-pages/webkit-390-text.png",
+      "saved": "input-3.png",
+      "sha256": "101a9db50dc6fb9295da9023f38443bb0e3ba8f6289a6878b5ec07249c32247e"
+    },
+    {
+      "label": "Synthetic nine-page print specimen: opening half-title with the unchanged vector watermark.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/brand-prominence/book-1.png",
+      "saved": "input-4.png",
+      "sha256": "069a25614a010e7676ba080b93663c30635a8e4618c6c886f18b15cd122c85e1"
+    },
+    {
+      "label": "Same specimen: closing edition note with watermark lifted clear of the folio.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/brand-prominence/book-9.png",
+      "saved": "input-5.png",
+      "sha256": "dc9e345676a29d86eadec195d468649f448ab323844a8b2ba084f383e68f3ce9"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "2a7a74df7e3ce0544a63f1014ffc878f7044e29177c51b202574f604b5268f40",
+  "git_head": "8fc50c11e1dc3898b823f2c68a5d8560f2198875",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 2800,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788983933-LrWtNyJenhLe0npwh9FW",
+  "usage": {
+    "prompt_tokens": 8283,
+    "completion_tokens": 1843,
+    "total_tokens": 10126,
+    "cost": 0.08749,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.08749,
+      "upstream_inference_prompt_cost": 0.041415,
+      "upstream_inference_completions_cost": 0.046075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 618,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-09T19:59:29.683Z"
+}

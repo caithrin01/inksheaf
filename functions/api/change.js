@@ -66,6 +66,8 @@ export async function onRequest({ request, env }) {
       volumes = alt.volumes.map(v => ({ label: v.label, title: v.title, subtitle: v.subtitle, notes_policy: v.notes_policy, parts: v.parts, post_ids: v.post_ids }));
       cadence = ch.cadence;
     }
+    try { volumes=restorePublisherPosts(volumes,plan.publisher?.excluded||[],r.posts||[],include); }
+    catch (error) {return json({ok:false,error:error.message},400);}
     const out = [];
     for (const v of volumes) {
       const ids = (v.post_ids || []).filter(pid => !exclude.has(Number(pid)));
@@ -98,3 +100,21 @@ export async function onRequest({ request, env }) {
   return json({ ok: true });
 }
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });
+
+// Restoration adds the original source ID back to its volume, as well as bypassing
+// the editorial cut. Merely setting --include could never restore an absent ID.
+export function restorePublisherPosts(volumes, excluded, archive, include) {
+  const result=volumes.map(v=>({...v,post_ids:[...(v.post_ids||[])]}));
+  for(const slug of include){
+    const source=archive.find(p=>p.slug===slug);
+    if(!source)throw Error('A piece you want to restore is unavailable in the archive.');
+    const id=postId(source);
+    if(result.some(v=>v.post_ids.some(x=>String(x)===String(id))))continue;
+    const decision=excluded.find(d=>d.slug===slug);
+    let index=Number(decision?.volume)-1;
+    if(result.length===1)index=0;
+    if(!Number.isInteger(index)||index<0||index>=result.length)throw Error('We need to place this restored piece in a volume. Please send us a change request.');
+    result[index].post_ids.push(id);
+  }
+  return result;
+}

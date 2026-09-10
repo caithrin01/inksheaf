@@ -25,14 +25,21 @@ export async function onRequest({ request, env }) {
   for (const k of need) if (b[k] == null || b[k] === "") return json({ ok: false, error: `${k} required` }, 400);
   if (!/^[0-9a-f]{64}$/.test(String(b.proof_sha256))) return json({ ok: false, error: "proof_sha256 must be a sha256 hex" }, 400);
   if (!["bw", "color"].includes(b.print_mode)) return json({ ok: false, error: "print_mode" }, 400);
+  const selectionRevision=b.selection_revision??0;
+  if(!Number.isSafeInteger(selectionRevision)||selectionRevision<0)return json({ok:false,error:'selection_revision'},400);
   const nonce = [...crypto.getRandomValues(new Uint8Array(18))].map(x => x.toString(16).padStart(2, "0")).join("");
   const str = x => typeof x === "string" ? x : JSON.stringify(x);
-  await env.DB.prepare("UPDATE edition_versions SET status = 'superseded', updated_at = datetime('now') WHERE signup_id = ? AND status IN ('proofed')").bind(id).run().catch(() => {});
-  const r = await env.DB.prepare(`INSERT INTO edition_versions (signup_id, plan_json, post_ids, body_hashes, renderer_sha, print_mode, volumes, proof_key, proof_sha256, pages, status, approval_nonce, run_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proofed', ?, ?)`)
+  let r;
+  try{r = await env.DB.prepare(`INSERT INTO edition_versions (signup_id, plan_json, post_ids, body_hashes, renderer_sha, print_mode, volumes, proof_key, proof_sha256, pages, status, approval_nonce, run_id, selection_revision)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proofed', ?, ?, ?)`)
     .bind(id, str(b.plan_json).slice(0, 60000), str(b.post_ids).slice(0, 60000), str(b.body_hashes).slice(0, 200000), String(b.renderer_sha).slice(0, 64), b.print_mode, str(b.volumes).slice(0, 20000),
-      String(b.proof_key).slice(0, 300), String(b.proof_sha256), Number(b.pages) || 0, nonce, String(b.run_id || "").slice(0, 40)).run();
+      String(b.proof_key).slice(0, 300), String(b.proof_sha256), Number(b.pages) || 0, nonce, String(b.run_id || "").slice(0, 40),selectionRevision).run();
+  }catch(error){
+    if(String(error.message).includes('publisher selection changed'))return json({ok:false,error:'The creator changed this selection.',code:'PUBLISHER_SELECTION_CHANGED'},409);
+    throw error;
+  }
   const version_id = r.meta?.last_row_id;
+  await env.DB.prepare("UPDATE edition_versions SET status = 'superseded', updated_at = datetime('now') WHERE signup_id = ? AND id <> ? AND status IN ('proofed')").bind(id,version_id).run();
   await env.DB.prepare("UPDATE signups SET plan_json = ? WHERE id = ?").bind(str(b.plan_json).slice(0, 60000), id).run().catch(() => {}); /* the plan the version was built from is the reservation's plan */
   return json({ ok: true, version_id, nonce });
 }

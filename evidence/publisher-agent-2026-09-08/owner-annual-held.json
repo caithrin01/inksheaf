@@ -1,0 +1,15 @@
+{
+  "status": "held",
+  "fixture": "local own-publication annual cache",
+  "host": "www.caithrin.com",
+  "started": "2026-09-09T05:12:40.670Z",
+  "error": "A content or overflow defect cannot be excused as intentional space",
+  "finished": "2026-09-09T05:19:26.665Z",
+  "model_cost_usd": 0.29286024999999993,
+  "reserved_or_spent_usd": 0.29286024999999993,
+  "included_count": 22,
+  "source_count": 23,
+  "words": 36001,
+  "pages": 150,
+  "followup": "Neighbour-page review and source-position figure repair added afterward. Annual acceptance has not passed."
+}

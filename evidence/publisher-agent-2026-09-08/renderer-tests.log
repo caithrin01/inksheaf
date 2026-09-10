@@ -1,0 +1,71 @@
+PASS 5 printable articles
+PASS excluded: podcast
+PASS excluded: crosspost
+PASS excluded: paywall
+PASS excluded: slug
+PASS excluded: is_published
+PASS duplicate slug reported
+PASS empty body reported
+PASS overlong title reported
+PASS rtl+cjk detected
+PASS no unexpected decline signals
+PASS paid omission counted
+PASS 3 dead images detected
+PASS included article count is explicit
+PASS toc rows match articles
+PASS toc bylines (multi-author)
+PASS title-page roster with principals threshold
+PASS verse class applied
+PASS gif caption present
+PASS longurl span present
+PASS opener drop-cap class present
+PASS picture elements are not corrupted by paragraph matching
+PASS opener class belongs to a paragraph
+PASS iframe became embedcard
+PASS no raw iframes remain
+PASS no scripts inside body content
+PASS figcaption preserved
+PASS no raw ProseMirror JSON leaks
+PASS media-only post excluded from chapters
+PASS media-only About note printed
+PASS no zero-word meta lines
+PASS text after comment blob survives
+PASS paid-omission note printed
+PASS render completed
+PASS page count sane
+PASS no text-loss pages (glyphs past page edge)
+PASS verse computes ragged-left
+PASS 3 missing-image boxes rendered
+PASS running header carries article title
+PASS folio page numbers render
+PASS footnote link resolves to namespaced target
+PASS torture PDF is fresh, not stale
+PASS letters kind detected
+PASS letters TOC groups into 2 month parts
+PASS letters TOC rows carry excerpts
+PASS 2 part divider pages
+PASS no chapter numerals on letters
+PASS cover foot says letters
+PASS letters book lint-clean
+PASS recipes kind detected from tags
+PASS cover foot says recipes
+PASS production interior omits the cover wrapper
+PASS production interior has no orphaned cover matter before the half-title
+PASS --top 3 prints 3 pieces
+PASS Selected label on cover
+PASS selection recorded
+PASS selected top-3 by reactions, chronological order
+PASS oversized estimate refuses with exit 2 before fetch
+PASS refusal names the estimate
+PASS refusal states the 300 recommendation and the 800 limit
+PASS oversized source with --top 1 builds
+PASS --top 1 prints one piece
+PASS --force-pages overrides the refusal
+PASS forced build records the over-800 warning
+PASS 300 to 800 estimate builds
+PASS heavy estimate is inside 300..800
+PASS 300 to 800 warns, does not refuse
+PASS torture fixture carries no page warning
+PASS proof-lint clean
+
+69 pass, 0 fail

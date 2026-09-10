@@ -12,7 +12,11 @@ on:
   push:
     branches: [main]
     paths-ignore: ["**.md"]
-concurrency: { group: production, cancel-in-progress: false }
+# PR/push checks can run while a release awaits its human approval. They must not occupy
+# the production queue or replace a pending release. Actual releases remain serialized.
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'production' || format('checks-{0}', github.ref) }}
+  cancel-in-progress: false
 permissions: { contents: read, deployments: write }
 jobs:
   checks:

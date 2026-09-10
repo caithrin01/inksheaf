@@ -1,0 +1,23 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "max_tokens": 3000,
+  "brief": "publisher-restoration-2026-09-09.md",
+  "images": [
+    {
+      "file": "../../output/playwright/launch/publisher/chromium-1280-reading.png",
+      "label": "Desktop: two actual restore controls beside synthetic excluded pieces."
+    },
+    {
+      "file": "../../output/playwright/launch/publisher/webkit-390-reading.png",
+      "label": "Phone: before restoring, eight read, six selected."
+    },
+    {
+      "file": "../../output/playwright/launch/publisher/webkit-390-restored-pending.png",
+      "label": "Phone: after saving and reloading, seven selected; old contents disabled until rebuilt."
+    },
+    {
+      "file": "../../output/playwright/launch/publisher/chromium-1280-ready.png",
+      "label": "Desktop: after revised contents and simulated PDF readiness; email status remains explicitly delayed."
+    }
+  ]
+}

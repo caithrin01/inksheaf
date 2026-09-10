@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY } from './lib/publisher-agent.mjs';
+const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
+const sources = prepareSources(posts);
+const reading = batch => ({ decisions: batch.map(p => ({ post_id: p.id, kind: [102,106].includes(Number(p.id)) ? 'housekeeping' : p.id === '103' ? 'poem' : 'essay',
+  decision: [102,106].includes(Number(p.id)) ? 'set_aside' : 'keep', reason: 'Fixture judgement.', evidence_line: 1 })) });
+const ask = async ({ role, data }) => role === 'reader' ? reading(data) : ({ description: 'The selected writing, in order.', sections: [{ title: 'Collected writing', post_ids: data.posts.map(p => p.id), reason: 'Chronological order.' }] });
+let count = 0;
+async function test(name, fn) { await fn(); count++; console.log('PASS', name); }
+await test('full PDF creation is free and recovery applies only to printed copies', () => { assert.equal(COMPUTE_POLICY.generationChargeMinor, 0); assert.equal(COMPUTE_POLICY.printRetailAdditionMinor, 200); assert.equal(COMPUTE_POLICY.collection, 'printed-copy-order'); });
+await test('normalization retains prose and poem lines but excludes executable markup', () => { assert.equal(sourceText('<p>A &amp; B<br>C</p><script>bad()</script><p>D</p>'), 'A & B\nC\nD'); });
+await test('unknown and duplicate source IDs cannot enter the agent', () => { assert.throws(() => prepareSources([posts[0], posts[0]])); });
+await test('every source must have one validated classification', () => { const r = reading(sources); r.decisions.pop(); assert.throws(() => validateReading(r, sources)); });
+await test('unknown model post IDs cannot be applied', () => { const r = reading(sources); r.decisions[0].post_id = '999'; assert.throws(() => validateReading(r, sources)); });
+await test('invented evidence cannot justify an editorial decision', () => { const r = reading(sources); r.decisions[0].evidence_line = 999; assert.throws(() => validateReading(r, sources)); });
+await test('poem citations preserve the original line instead of generated slash notation', () => { const r=validateReading(reading(sources), sources); assert.equal(r.decisions[2].evidence,sources[2].text.split('\n')[0]); });
+await test('automatic exclusion cannot remove a classified poem or essay', () => { const r = reading(sources); r.decisions[2].decision = 'set_aside'; assert.throws(() => validateReading(r, sources)); });
+await test('TOC cannot silently omit, duplicate or invent selected posts', () => { for (const ids of [['101'], ['101','101'], ['999']]) assert.throws(() => validateStructure({description:'Test',sections:[{title:'Test',post_ids:ids,reason:'Test'}]},sources)); });
+await test('real batches emit before the final contents and preserve source bodies', async () => { const events = [], before = JSON.stringify(posts); const result = await publishSelection({ posts, publication:'Fixture', ask, emit: async e => events.push(e) }); assert.equal(JSON.stringify(posts),before); assert.deepEqual(result.excluded_ids,['102','106']); assert.deepEqual(events.map(e=>e.kind),['identity','reading','reading','contents']); assert(result.included_ids.includes('103')); assert(result.included_ids.includes('104')); assert.equal(events.at(-1).sections[0].posts[0].title,posts[0].title); });
+await test('creator restoration survives cached model suggestions and enters contents', async () => { const cache = new Map(); await publishSelection({posts,publication:'Fixture',ask,cache}); const result = await publishSelection({posts,publication:'Fixture',ask,cache,overrides:{102:'keep'}}); assert(result.included_ids.includes('102')); assert.equal(result.decisions.find(d=>d.post_id==='102').reason,'Kept by you.'); });
+await test('unchanged source replay makes no second inference call', async () => { const cache = new Map(); await publishSelection({posts,publication:'Fixture',ask,cache}); await publishSelection({posts,publication:'Fixture',cache,ask:()=>{throw Error('Unexpected paid replay');}}); });
+await test('missing full bodies hold the book without a model call', async () => { await assert.rejects(publishSelection({posts:[{id:1,title:'Missing'}],publication:'Fixture',ask:()=>{throw Error('Should not call');}}),/source text is missing/); });
+await test('image-only work is retained as unreviewed by the text classifier', async () => { const result=await publishSelection({posts:[{id:1,title:'Photograph',body_html:'<img src="photo.png">'}],publication:'Fixture',ask}); assert.deepEqual(result.included_ids,['1']); assert.equal(result.decisions[0].decision,'uncertain'); });
+await test('budget denial occurs before any provider request', async () => { let network=0; const call=openRouterPublisher({key:'fixture',budget:0,fetchImpl:async()=>{network++;}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/budget/); assert.equal(network,0); });
+await test('annual review can pass 96 calls while the 256-call and $2 limits remain enforced',async()=>{
+  let network=0;const journal={calls:Array.from({length:96},()=>({cost:.001})),spent:.096};
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{network++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});
+  await call({role:'reader',task:'Read',schema:Reading});assert.equal(network,1);assert.equal(journal.calls.length,97);
+  journal.calls.push({reserved:1.91});
+  await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
+  journal.calls=Array.from({length:256},()=>({cost:.001}));
+  await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
+});
+await test('provider timeout retains its reservation and private errors are not shown as success', async () => { const journal={calls:[],spent:0};const call=openRouterPublisher({key:'fixture-secret',journal,fetchImpl:async()=>{throw Error('network fixture-secret');}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading})); assert.equal(journal.calls[0].status,'failed');assert(journal.calls[0].reserved>0);assert(!journal.calls[0].error.includes('fixture-secret')); });
+await test('truncated model results are never accepted', async () => { const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>Response.json({choices:[{finish_reason:'length',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}})});await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/incomplete/); });
+await test('the provider must honour schemas, privacy and price ceilings', async () => { let body;const call=openRouterPublisher({key:'fixture',fetchImpl:async(url,opts)=>{body=JSON.parse(opts.body);return Response.json({model:body.model,choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});await call({role:'reader',task:'Read',data:sources,schema:Reading});assert.equal(body.provider.require_parameters,true);assert.equal(body.provider.data_collection,'deny');assert.equal(body.response_format.json_schema.strict,true);assert.equal(body.provider.max_price.prompt,.25); });
+await test('contents reject reversed dates inside a section', () => { assert.throws(()=>validateStructure({description:'Test',sections:[{title:'Test',post_ids:sources.map(p=>p.id).reverse(),reason:'Test'}]},sources),/chronological/); });
+await test('one invalid reference is corrected before any batch is published', async () => {let calls=0;const events=[]; await publishSelection({posts:posts.slice(0,1),publication:'Fixture',emit:async e=>events.push(e),ask:async request=>{const r=await ask(request);if(request.role==='reader' && calls++===0)r.decisions[0].evidence_line=999;return r;}});assert.equal(calls,2);assert.equal(events.filter(e=>e.kind==='reading').length,1);});
+await test('image cost is reserved before a vision call and oversized files never reach the model',async()=>{let calls=0;const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1800,16);png.writeUInt32BE(1200,20);const journal={calls:[],spent:0};const ask=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{calls++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});await ask({role:'reader',task:'Read',schema:Reading,images:[png]});assert(journal.calls[0].reserved>.016);png.writeUInt32BE(4097,16);await assert.rejects(ask({role:'reader',task:'Read',schema:Reading,images:[png]}),/bounded PNG/);assert.equal(calls,1);});
+await test('a transient provider failure gets one same-model retry in the same spend ledger',async()=>{
+  let calls=0;const journal={calls:[],spent:0};const models=[];
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async(url,opts)=>{
+    calls++;models.push(JSON.parse(opts.body).model);
+    return calls===1?Response.json({choices:[{finish_reason:'error'}]}):Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await call({role:'reader',task:'Read',schema:Reading});assert.equal(calls,2);assert.equal(models[0],models[1]);assert(journal.calls[0].reserved>0);assert.equal(journal.calls[0].cost,undefined);
+});
+await test('a repeating provider failure stops after the one bounded retry',async()=>{
+  let calls=0;const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>{calls++;return Response.json({error:{message:'busy'}},{status:503});}});
+  await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/did not complete/);assert.equal(calls,2);
+});
+console.log(`${count} publisher-agent tests passed.`);

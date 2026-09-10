@@ -134,24 +134,12 @@ await journey('editor may replace a binding with a hand plan',{},async page=>{
   ok((await page.locator('#pv-cvpages').textContent())==='Binding to be planned','cover still promises the abandoned binding');
   ok((await page.locator('#pv-price').textContent())==='','old price survives the hand plan');
 });
-await journey('verification fallback can be used for a second reservation',{},async page=>{
-  let signup=100;const checks=[];
-  await page.route('**/api/signup',route=>route.fulfill({json:{ok:true,id:++signup,press:'verify',sent_to:null}}));
-  await page.route('**/api/verify-about',route=>{
-    const data=route.request().postDataJSON();checks.push(data);
-    return route.fulfill({json:data.check?{ok:true,verified:true,press:signup===101?'queued':'dispatched'}:{ok:true,code:'local-code-'+signup}});
-  });
-  await preview(page);
-  for(const id of [101,102]){
-    await page.locator('#pv-cta').click();await page.locator('#email').fill('reader@example.com');
-    await page.locator('#f button[type=submit]').click();
-    await page.locator('#alt-start').click();
-    await page.waitForFunction(id=>document.querySelector('#alt-code').textContent==='local-code-'+id,id);
-    await page.locator('#alt-check').click();
-    await page.waitForFunction(()=>document.querySelector('#alt-result').textContent.startsWith('Confirmed.'));
-    ok((await page.locator('#alt-result').textContent()).includes(id===101?'queued':'being made'),'press state misreported');
-    ok(checks.filter(row=>row.signup_id===id).length===2,'duplicate or stale verification handler');
-  }
+await journey('a saved free request never introduces a verification step',{},async page=>{
+  await page.route('**/api/signup',route=>route.fulfill({json:{ok:true,id:101,press:'queued'}}));
+  await preview(page);await page.locator('#pv-cta').click();await page.locator('#email').fill('reader@example.com');
+  await page.locator('#f button[type=submit]').click();await page.locator('#done').waitFor({state:'visible'});
+  ok((await page.locator('#done-verify').textContent()).includes('email your complete PDF'),'PDF delivery missing');
+  ok(await page.locator('#alt-start,#verify-resend').count()===0,'verification gate returned');
 });
 await journey('deduplicated reservation does not claim a new email was sent',{},async page=>{
   await page.route('**/api/signup',route=>route.fulfill({json:{ok:true}}));
@@ -159,7 +147,7 @@ await journey('deduplicated reservation does not claim a new email was sent',{},
   await page.locator('#email').fill('reader@example.com');await page.locator('#f button[type=submit]').click();
   await page.waitForFunction(()=>document.querySelector('#done').style.display==='block');
   ok(!(await page.locator('#done-verify').textContent()).includes('We sent'),'acknowledgement invents a new delivery');
-  ok((await page.locator('#done-h').textContent())==='Your print run is reserved.','request not acknowledged');
+  ok((await page.locator('#done-h').textContent())==='Your edition is saved.','request not acknowledged');
 });
 await browser.close();writeFileSync(`${out}/results.json`,JSON.stringify({simulated:true,rows,failures},null,2));
 console.log(failures.length?`LAUNCH STATES: ${failures.length} failures\n${failures.join('\n')}`:`LAUNCH STATES: ${rows.length} journeys passed`);

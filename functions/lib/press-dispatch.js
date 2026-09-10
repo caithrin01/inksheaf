@@ -13,7 +13,7 @@ export async function dispatchPress(env, payload) {
       headers: { authorization: `Bearer ${env.GITHUB_DISPATCH_TOKEN}`, accept: "application/vnd.github+json",
         "content-type": "application/json", "user-agent": "inksheaf-press/1.0" },
       body: JSON.stringify({ event_type: pressEventType(env, payload.event),
-        client_payload: { ...payload, environment: runtimeMode(env) } }),
+        client_payload: { ...payload, environment: runtimeMode(env), press_protocol: 'publisher-v1' } }),
     });
     return { ok: r.status === 204, status: r.status };
   } catch (e) { return { ok: false, reason: String(e.message || e).slice(0, 120) }; }

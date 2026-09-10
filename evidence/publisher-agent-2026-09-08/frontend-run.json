@@ -1,0 +1,73 @@
+{
+  "status": "completed",
+  "started": "2026-09-08T23:59:19.115Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Desktop: actual workspace, eight synthetic pieces, source-backed poem decision open.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher/chromium-1280-reading.png",
+      "saved": "input-1.png",
+      "sha256": "11147b4397d1bf5acfb8abbddbe334ebea79a5ef3a6eaea13bfbed89ef49414f"
+    },
+    {
+      "label": "Phone: full page during the reading, long publication title stress fixture.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher/chromium-390-reading.png",
+      "saved": "input-2.png",
+      "sha256": "65e95c9bc9d181575515100c3722aed0ae298e80c118ea36ffd49bd3b22402c4"
+    },
+    {
+      "label": "Desktop: real recorded model contents, six retained pieces.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher/chromium-1280-contents.png",
+      "saved": "input-3.png",
+      "sha256": "1341bfc7b350320f20f41e455c555077bff27f1a90453ccdac975252892c54a0"
+    },
+    {
+      "label": "Phone: simulated PDF ready, email delayed. Link belongs to an intercepted fixture.",
+      "source": "/Users/caithrinrintoul/repos/inksheaf-pdf-recovery-2026-09-08/output/playwright/launch/publisher/chromium-390-ready.png",
+      "saved": "input-4.png",
+      "sha256": "778ca30389707d2dc358b2882b3dbfa0b2ee78fc71cd0f8f51ec17bd0e8dcd24"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "ceb072b190a393dcda683a0a5bb584c5cecdfa183f034615ebf70b730242f51f",
+  "git_head": "036fdeac6f8c68e2b7e136a01b227e9df16a1af3",
+  "git_dirty": true,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 3500,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1788911959-G2Nzhr60F4005UcBXymD",
+  "usage": {
+    "prompt_tokens": 7067,
+    "completion_tokens": 3123,
+    "total_tokens": 10190,
+    "cost": 0.11341,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.11341,
+      "upstream_inference_prompt_cost": 0.035335,
+      "upstream_inference_completions_cost": 0.078075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 423,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "finished": "2026-09-09T00:00:14.021Z"
+}
