@@ -8,16 +8,28 @@ Local validation: 22 public-sample/design assertions, eight relay tests, 21 arch
 
 ## Deployment dependency
 
-The previous automatic approval rejection for a direct Modal update remains unresolved. It required explicit owner authorization for that infrastructure deployment outside the protected GitHub site workflow. Do not merge/release this change until `python3 -m modal deploy services/archive_relay.py` is authorized and the new endpoint passes authenticated public reads. Site deployment must still use the protected GitHub workflow. No author emails, generated public books, listings or orders are part of this repair.
+The owner explicitly approved the Modal update on September 10. Deployment completed and live
+contracts passed: bad signatures return 401, the signed public owner sample returns 200 with
+the direct source's body hash, and slim archive metadata preserves the publication name/logo
+without post bodies. PR #8 merged as `0a0e6a8`.
+
+Protected release `34532863814` then stopped before migration/deployment: Chromium's real-read
+journeys passed 12/12; WebKit failed an immediate frame-URL lookup after iframe visibility.
+The test now delays the reader document by 350ms and waits for visible paragraph content in
+that iframe before checking its URL and both cleared loading messages. The old assertion
+reproduces the race; corrected real-read Chromium and WebKit journeys each pass 12/12.
+PR #10 merged as `d30f0aa`; protected release `34535983027` passed, including 12/12 production
+journeys. The deployed commit, sample body and publication logo were verified against their
+sources. Site deployment still uses the protected GitHub workflow. PDF candidate PR #9 remains
+separate. No author emails, generated public books, listings or orders were part of this repair.
 
 ## Repeatable contract check
 
-The temporary probe referenced by earlier vault notes did not survive restart. Its replacement
-is `node scripts/check-sample-relay.mjs`, optionally with `--out <local-evidence.json>`. Run it
-after the specifically authorized service update. It reads the existing relay credential
-without printing it, requires a bad signature to return 401, checks the identified owner public
-post, and compares the relayed body hash with a direct reference. Output contains status, public
-post ID and body hash only. Requests reject redirects and bound time/bytes. Four injected-fetch
-checks cover success, a missing endpoint, changed body and paid content; the live check remains
-pending. Use `python3 -m modal deploy services/archive_relay.py`; the older stop-first helper
-would introduce an unnecessary service interruption.
+`node scripts/check-sample-relay.mjs`, optionally with `--out <local-evidence.json>`, reads the
+existing relay credential without printing it, requires a bad signature to return 401, checks
+the identified owner public post, and compares the relayed body hash with a direct reference.
+Output contains status, public post ID and body hash only. Requests reject redirects and bound
+time/bytes. Four injected-fetch checks cover success, a missing endpoint, changed body and paid
+content; the live check passed after the approved deployment. The deployment command was
+`python3 -m modal deploy services/archive_relay.py`; the older stop-first helper would introduce
+an unnecessary service interruption.

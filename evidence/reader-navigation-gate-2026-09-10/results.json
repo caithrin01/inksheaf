@@ -1,0 +1,230 @@
+{
+  "trigger_release": 34532863814,
+  "base_commit": "0a0e6a8bb9bbc81ccf877dc855a00165cbec6cf0",
+  "test_sha256": "95d98c475ac310a8a9418830197c6c9f72bcefd51efe1da721ac55bf9155336e",
+  "delay_ms": 350,
+  "reproduction": {
+    "mode": "Local fixed fixture with delayed reader document",
+    "reader_result": {
+      "name": "sample-keyboard-and-status",
+      "pass": false,
+      "error": "reader frame loads",
+      "interceptedWrites": [
+        "/api/event",
+        "/api/event"
+      ]
+    },
+    "fixture_limit": "Two unrelated live-only publication/error cases are unsupported by the fixed fixture; this is a targeted race reproduction, not a full baseline gate."
+  },
+  "corrected_real_read_results": {
+    "chromium": {
+      "base": "http://127.0.0.1:8873",
+      "engine": "chromium",
+      "mode": "Real public reads; all mutations intercepted",
+      "results": [
+        {
+          "name": "opening",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event"
+          ]
+        },
+        {
+          "name": "desktop-edition",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "mobile-edition",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "cover-designs",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "sample-keyboard-and-status",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "cadence-consistency",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "handoff-payload-no-email",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "replace-publication",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "failure-clears-preview",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "deep-link",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "accessible-names",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "no-javascript",
+          "pass": true,
+          "interceptedWrites": []
+        }
+      ]
+    },
+    "webkit": {
+      "base": "http://127.0.0.1:8873",
+      "engine": "webkit",
+      "mode": "Real public reads; all mutations intercepted",
+      "results": [
+        {
+          "name": "opening",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event"
+          ]
+        },
+        {
+          "name": "desktop-edition",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "mobile-edition",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "cover-designs",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "sample-keyboard-and-status",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "cadence-consistency",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "handoff-payload-no-email",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "replace-publication",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "failure-clears-preview",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "deep-link",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "accessible-names",
+          "pass": true,
+          "interceptedWrites": [
+            "/api/event",
+            "/api/event"
+          ]
+        },
+        {
+          "name": "no-javascript",
+          "pass": true,
+          "interceptedWrites": []
+        }
+      ]
+    }
+  },
+  "effects": "API writes intercepted; disposable browsers; no email, reservation, book, listing or order sent."
+}
