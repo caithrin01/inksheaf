@@ -119,6 +119,12 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const jsonSchema = z.toJSONSchema(schema);
       const outputLimit = maxOutput == null ? model.maxOutput : Math.min(model.maxOutput, Math.max(1,Math.floor(maxOutput)));
       if (!Number.isFinite(outputLimit) || !Array.isArray(images) || images.length > 4) throw Error('Invalid publisher image/output limits');
+      // A short visual confirmation needs a structured verdict. In the owner
+      // trial, adaptive thinking consumed 399/400 output tokens and returned no
+      // verdict. Disable it for these bounded confirmations; longer editorial
+      // requests keep medium effort. Sonnet 5 exposes non-mandatory reasoning.
+      // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+      const reasoning=role==='publisher'?(images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
       for (const image of images) {
         if (!Buffer.isBuffer(image) || image.length < 24 || image.subarray(0,8).toString('hex') !== '89504e470d0a1a0a'
           || image.readUInt32BE(16)<1 || image.readUInt32BE(20)<1 || image.readUInt32BE(16)>4096 || image.readUInt32BE(20)>4096) throw Error('Publisher page images must be bounded PNG files');
@@ -130,14 +136,14 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
       const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
       if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
-      call = { id: crypto.randomUUID(), model: model.id, role, reserved, status: 'reserved', started: new Date().toISOString() };
+      call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
       journal.calls.push(call); await persist(journal);
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
         headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher' },
         body: JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
-          ...(role === 'publisher' ? { reasoning: { effort: 'medium' } } : {}),
+          ...(reasoning ? { reasoning } : {}),
           provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
           response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } }),
       });

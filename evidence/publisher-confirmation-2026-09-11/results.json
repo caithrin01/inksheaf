@@ -1,0 +1,122 @@
+{
+  "scope": "Short visual confirmation response; does not accept the annual or change its render allowance",
+  "files": {
+    "scripts/lib/publisher-agent.mjs": "5e813efea56cdd9941580e19dacaa837b5f937d26e24ff70ecb3a2dc5d01eaf8",
+    "scripts/lib/page-review.mjs": "b330cc5d89175cf123a6c2d2ba461a4473ba54c5e10c7cc961c6961e3e41a18b",
+    "scripts/test-publisher-agent.mjs": "231d20bbb798dcb919061bd5ceed73ff02c4ea4a8da3c1d942ffd5f4b10cc86b"
+  },
+  "baseline": {
+    "source_commit": "09193bf7b175848c4ce1b7b399a759efff8be85d",
+    "physical_page": 51,
+    "check": 2,
+    "finish_reason": "length",
+    "completion_tokens": 400,
+    "reasoning_tokens": 399,
+    "cost_usd": 0.023808
+  },
+  "fix": {
+    "short_image_request_reasoning": {
+      "enabled": false
+    },
+    "output_limit": 400,
+    "long_publisher_request_reasoning": {
+      "effort": "medium"
+    },
+    "model_metadata_observed": {
+      "id": "anthropic/claude-sonnet-5",
+      "reasoning_mandatory": false
+    },
+    "documentation": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+  },
+  "live_probe": {
+    "pdf_sha256": "5bf4da0c4b75cd56b1a63f06b6b82b27300c49c4516f7a929254ea7d59dc58eb",
+    "finish_reason": "stop",
+    "reasoning": {
+      "enabled": false
+    },
+    "reasoning_tokens": 0,
+    "cost_usd": 0.020548,
+    "calls_added": 1,
+    "pdf_unchanged": true
+  },
+  "checks": {
+    "publisher_agent": 28,
+    "page_review": 31,
+    "orchestration": 11,
+    "durable_budget": 12,
+    "renderer": 69,
+    "validator": 13,
+    "build": "pass"
+  },
+  "annual_artifact": {
+    "pdf_sha256": "5bf4da0c4b75cd56b1a63f06b6b82b27300c49c4516f7a929254ea7d59dc58eb",
+    "pages": 158,
+    "retained_pieces": 22,
+    "source_body_hashes_match_original": true,
+    "retained_titles_found_in_print": 22,
+    "running_matter": {
+      "pages": 158,
+      "verified": 158
+    },
+    "measured_paragraph_interruptions": [],
+    "whitespace_pages_over_30_percent": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      18,
+      21,
+      27,
+      34,
+      36,
+      41,
+      42,
+      51,
+      54,
+      55,
+      57,
+      67,
+      68,
+      69,
+      70,
+      80,
+      81,
+      82,
+      88,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      118,
+      121,
+      128,
+      130,
+      147,
+      155,
+      157,
+      158
+    ],
+    "original_annual_unchanged": true
+  },
+  "annual_status": "Held after six renders and two repair rounds; final review incomplete; no successful cold completion or inbox evidence",
+  "development_trial_including_probe": {
+    "calls": 134,
+    "committed_usd": 1.2747935,
+    "limit_usd": 2,
+    "campaign_committed_usd": 19.3937175
+  },
+  "external_effects": {
+    "emails": 0,
+    "uploads": 0,
+    "listings": 0,
+    "orders": 0,
+    "production_releases": 0
+  }
+}

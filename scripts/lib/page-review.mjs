@@ -119,7 +119,7 @@ Printed source cards for videos and attachments, including their readable URLs, 
 
 Answer with a JSON array and nothing else. Each element: {"page": <number>, "check": <1-8>, "note": "<one sentence>", "confidence": <0 to 1>}. An empty array [] when nothing is wrong.`;
 
-const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+export const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
 
 When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
 

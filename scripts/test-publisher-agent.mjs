@@ -79,4 +79,20 @@ await test('actual image usage above its reserved bound fails closed', async () 
   await assert.rejects(call({role:'publisher',task:'Check',schema:Reading,maxOutput:400}),/exceeded its reservation/);
   assert.equal(journal.calls[0].status,'failed');assert.equal(journal.calls[0].cost,1);
 });
+await test('short visual confirmations reserve their verdict instead of exhausting output on thinking',async()=>{
+  const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1200,16);png.writeUInt32BE(1800,20);
+  const journal={calls:[],spent:0},requests=[];
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async(url,opts)=>{
+    const request=JSON.parse(opts.body);requests.push(request);
+    assert.deepEqual(journal.calls.at(-1).reasoning,request.reasoning);
+    if(request.max_tokens===400&&request.reasoning.enabled!==false)
+      return Response.json({choices:[{finish_reason:'length',message:{content:''}}],usage:{cost:.023808,completion_tokens:400,completion_tokens_details:{reasoning_tokens:399}}});
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await call({role:'publisher',task:'Confirm the measured defect',schema:Reading,images:[png],maxOutput:400});
+  assert.equal(requests[0].max_tokens,400);assert.deepEqual(requests[0].reasoning,{enabled:false});
+  await call({role:'publisher',task:'Compose the contents',schema:Reading,maxOutput:5000});
+  assert.deepEqual(requests[1].reasoning,{effort:'medium'});
+  assert.equal(journal.calls.length,2);assert(journal.calls.every(c=>c.status==='completed'));
+});
 console.log(`${count} publisher-agent tests passed.`);
