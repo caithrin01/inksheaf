@@ -1,0 +1,69 @@
+{
+  "as_of": "2026-09-11T23:07:51.086912+00:00",
+  "scope": "Typed boundary adjudication, correct empty end-marker interpretation and ordinary pagination of bold label/value fields",
+  "annual_inspection": {
+    "pdf_sha256": "5bf4da0c4b75cd56b1a63f06b6b82b27300c49c4516f7a929254ea7d59dc58eb",
+    "method": "Direct inspection of saved PDF rasters, actual printed lines and compiled anchors; no model call or annual render.",
+    "pages": [
+      {
+        "page": 27,
+        "paragraph_id": 89,
+        "lines_on_page": 2,
+        "lines_on_next_page": 0,
+        "finding": "Complete bold introductory paragraph; not a one-line fragment. The large gap is independently explained by a chain of bold fields emitted as sticky headings."
+      },
+      {
+        "page": 39,
+        "paragraph_id": 143,
+        "lines_on_previous_page": 4,
+        "lines_on_page": 2,
+        "finding": "Ordinary multi-line paragraph continuation. The earlier confirmation asserted a widow while describing two lines."
+      },
+      {
+        "page": 128,
+        "paragraph_id": 549,
+        "lines_on_page": 1,
+        "lines_on_next_page": 0,
+        "finding": "Complete one-line source introduction below a heading. Its end marker moved to the following page; that marker is not printed continuation. Figure placement/space remains a separate layout decision."
+      }
+    ],
+    "whole_annual_accepted": false,
+    "new_publisher_calls": 0,
+    "new_annual_renders": 0
+  },
+  "synthetic_regression": {
+    "before": "First field printed on physical page 8 while introduction was on page 7; real old-emitter fixture failed",
+    "after": "Introduction and first field share page 7; all nine source values, ordinary heading attachment and glyph bounds pass",
+    "visual": "Corrected page raster inspected; field emphasis remains visible. This is operator inspection, not model or creator approval."
+  },
+  "validation": {
+    "full_local_unit_suite": "passed",
+    "paragraph_boundaries": 8,
+    "typed_confirmation_and_durable_budget": 16,
+    "page_review": 31,
+    "publisher_orchestration": 11,
+    "checkpoint_recovery": 5,
+    "typst_fixtures": 42,
+    "renderer": {
+      "passed": 69,
+      "failed": 0
+    },
+    "build": "passed",
+    "validator": 13,
+    "honesty": 84
+  },
+  "paid_calls_during_diagnosis": 0,
+  "annual_renders_during_diagnosis": 0,
+  "limits_unchanged": {
+    "edition_usd": 2,
+    "calls": 256,
+    "renders": 6,
+    "repairs": 2
+  },
+  "notes": [
+    "A typed single-line claim contradicted by printed lines is dismissed with the original model response retained.",
+    "Heading claims, unknown boundaries and explicit uncertain judgments are not waived.",
+    "The renderer fingerprint changed. Old saved annuals remain held; a cold corrected-code trial requires a separate recorded development allocation.",
+    "No production deploy, email, upload, listing or order was performed."
+  ]
+}

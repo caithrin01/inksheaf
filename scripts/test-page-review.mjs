@@ -86,7 +86,7 @@ let adjacent=false;
 const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stub',ask:async({text,images})=>{
   if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":2,"confidence":0.9,"note":"word continues on the next page"}]':'[]'};
   adjacent=images.length===3&&text.includes('image 2 = physical page 2')&&text.includes('image 3 = physical page 4')&&text.includes('Two or more continuation lines');
-  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page."}'};
+  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page.","defect":"none","edge":"foot"}'};
 }});
 ok('a pagination finding is confirmed against both actual neighbouring pages',adjacent&&continuation.dismissed.length===1&&continuation.errors.length===0);
 let glyphComparison=false;

@@ -6,6 +6,7 @@
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
 // records model failures. The publisher orchestrator holds delivery until review is complete.
 import { auditRunningMatter } from "./running-matter.mjs";
+import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -135,7 +136,9 @@ Look at the page carefully and decide whether the SPECIFIC flagged defect is pre
 
 Classify origin as rendered_layout, source_content or uncertain. source_content means the finding is entirely explained by faithfully preserved source material, with no additional print loss. An intentionally broken screenshot or original photo crop can qualify. Essential detail made unreadable by print scaling is rendered_layout. When intent/readability cannot be established, use uncertain.
 
-Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"}.`;
+${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_heading, none or uncertain) and edge (top, foot, both or uncertain). A whole source paragraph is not a split fragment even when its empty end marker lands on the following page. A heading followed by body text is not alone at the foot. Whitespace and an image positioned after a complete introductory paragraph are separate layout questions; do not relabel them as a single-line widow. Do not confirm when defect is none.':''}
+
+Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':''}}.`;
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
 export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
@@ -200,13 +203,15 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
       const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):[];
       const adjacent=neighbours.map(p=>rasterise(pdf,join(dir,'adjacent',String(p)),{scale:1800,first:p,last:p})[0]);
-      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours), maxTokens: 400 });
+      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours), maxTokens: 400,check:f.check });
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); continue; }
+      if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
       const sourcePreserved=j.origin==='source_content'&&comparisons.length>0&&[3,6].includes(f.check);
       const rec = { page: f.page, check: f.check, note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
         ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours };
+      if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   }

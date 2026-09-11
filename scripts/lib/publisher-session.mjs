@@ -8,6 +8,7 @@ import {currentPublisherSelection,selectionChanged} from './publisher-selection.
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
 import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
 import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
+import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
 for(const name of ['publisher-session.mjs','publisher-layout.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
@@ -82,12 +83,12 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     // Public Actions logs contain stage/counts only, never private quotations or URLs.
     console.error(`[publisher] ${event.kind}${event.read!=null?` ${event.read}/${event.total}`:''}`);
   };
-  const vision = async ({model,images,text,maxTokens}) => {
+  const vision = async ({model,images,text,maxTokens,check}) => {
     await ensureSelection();
     const role = model === PUBLISHER_MODELS.reader.id ? 'reader' : model === PUBLISHER_MODELS.publisher.id ? 'publisher' : null;
     if (!role) throw Error('Page review model is outside the edition budget configuration');
     const buffers=images.map(path=>readFileSync(path));
-    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
+    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):check===2?BoundaryConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
     const task=text+' Return only the requested JSON schema; notes must be under 200 characters.'+(role==='reader'?' Put the findings array in the findings field.':'');
     const key=publisherReviewCacheKey({model,task,schema,maxTokens,imageHashes:buffers.map(b=>createHash('sha256').update(b).digest('hex'))});
     const cache=new Map(state.cache);

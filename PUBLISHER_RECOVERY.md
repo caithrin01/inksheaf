@@ -47,3 +47,18 @@ The subsequent bounded schema-correction fix has deterministic tests; it has not
 yet completed another live annual review. The annual's final layout verdict and
 all release/creator acceptance gates remain open. See the vault's launch execution
 record for current ledger totals and the private evidence directory.
+
+Further assessment found two distinct causes: empty paragraph end markers could
+move to the following page, and bold label/value fields could form a chain of
+sticky headings. Boundary review now asks for the specific defect and edge;
+measured multiple lines or a complete source paragraph can contradict a claimed
+single-line fragment, while headings, missing evidence and explicit uncertainty
+remain held. The original model answer is retained in the audit. Bold field values
+now paginate normally; real heading elements and standalone bold headings retain
+their existing treatment.
+
+The renderer correction changes the checkpoint renderer fingerprint. The older
+private annual is retained as diagnosis, and normal recovery correctly holds its
+older fingerprint. A corrected cold trial needs its own recorded development
+allocation and fresh journal; it must not reset either exhausted run or be confused
+with production/inbox acceptance. Current outcomes belong in the vault handoff.
