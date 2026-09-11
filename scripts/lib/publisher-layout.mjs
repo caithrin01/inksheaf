@@ -44,6 +44,35 @@ export function layoutBatches(input,size=12){
   for(let i=0;i<input.pages.length;i+=size){const pages=input.pages.slice(i,i+size),ids=new Set(pages.map(p=>p.page));batches.push({...input,pages,candidates:input.candidates.filter(c=>ids.has(c.page))});}
   return batches;
 }
+// Keep adjacent-page evidence with its concern even when review batches split at
+// that page. Local image paths and unrelated source text never enter this packet.
+export function adjacentLayoutContext(measurement,page,pageText=[]){
+  const pages=measurement.pages||[],articles=measurement.articles||[];
+  const owner=n=>articles.find(a=>n>=a.start&&n<=a.end)?.n;
+  const excerpt=(value,limit,tail=false)=>{
+    const text=String(value||'');return {text:tail?text.slice(-limit):text.slice(0,limit),truncated:text.length>limit};
+  };
+  const view=(n,edge)=>{
+    const p=pages.find(p=>p.page===n);if(!p)return null;
+    const geometry=p.layout_geometry,all=geometry?.blocks||[];
+    const blocks=edge==='end'?all.slice(-6):all.slice(0,8);
+    const figures=(measurement.figures||[]).filter(f=>f.page===n);
+    const paragraphs=(measurement.paragraphs||[]).filter(p=>p.start?.page<=n&&p.end?.page>=n);
+    const anchors=edge==='end'?paragraphs.slice(-4):paragraphs.slice(0,4);
+    return {page:n,same_article:owner(page)!=null&&owner(n)===owner(page),
+      printed_excerpt:excerpt(pageText[n-1],2000,edge==='end'),
+      body_bounds_points:geometry?.body_bounds_points??null,
+      last_occupied_y_points:geometry?.last_occupied_y_points??null,
+      trailing_space_points:geometry?.trailing_space_points??null,
+      printed_blocks:blocks.map(({kind,bbox,text})=>({kind,bbox,...(text!=null?{printed_text:excerpt(text,400)}:{})})),
+      printed_blocks_truncated:blocks.length<all.length,
+      figures:figures.slice(0,12).map(({id,role,page,y,h,w,floating,reading_mode})=>({id,role,page,y_points:y,height_points:h,width_points:w,floating,reading_mode})),
+      figures_truncated:figures.length>12,
+      paragraph_anchors:anchors.map(({id,start,end})=>({id,start,end})),
+      paragraph_anchors_truncated:anchors.length<paragraphs.length};
+  };
+  return {previous_page:view(page-1,'end'),current_page:view(page,'end'),next_page:view(page+1,'start')};
+}
 export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]}) {
   const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
   const context=new Map(pageContext(measurement,report).map(p=>[p.page,p]));
@@ -84,6 +113,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
     return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
+      adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
       figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode})=>({id,role,height_points:h,width_points:w,floating,reading_mode})),

@@ -75,7 +75,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     const spacing=JSON.parse(fs.readFileSync(f.replace(/\.pages\.json$/,".whitespace.json"),"utf8"));
     if(spacing.pages.length!==d.pages.length)throw Error("Whitespace measurement omitted pages");
     d.whitespace_metric=spacing.metric;
-    for(const p of d.pages){const s=spacing.pages.find(s=>s.page===p.page);if(!s||!Number.isFinite(s.unused))throw Error("Whitespace measurement missing");p.unused=s.unused;}
+    for(const p of d.pages){const s=spacing.pages.find(s=>s.page===p.page);if(!s||!Number.isFinite(s.unused)||!s.layout_geometry)throw Error("Whitespace measurement missing");p.unused=s.unused;p.layout_geometry=s.layout_geometry;}
     /* short body pages: the figure that fell onto the next page is scaled to the space left, less
        1.2in for figure spacing and a subheading that may stick to it */
     for (const b of d.bad) { const nx=figs.find(x=>x.page===b.page+1); if (!nx) continue;

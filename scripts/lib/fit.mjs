@@ -4,6 +4,7 @@
 //   node -e 'import("./scripts/lib/fit.mjs").then(m => m.fit({ args: [...], html, pdf, log: console.log }))'
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import {readingOrderFindings} from './publisher-layout.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -42,28 +43,28 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     sh("node", a);
     try {
       const out = sh("bash", ["scripts/render-book.sh", html, pdf]);
-      /* Typst: a clean render may still name an essay tail whose figure has not been fitted yet;
-         that is one more pass, and a figure is fitted once, so the loop cannot oscillate */
       let pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); } catch {}
-      /* a figure may be fitted again only to a smaller height: the sequence is monotone, so it ends */
+      // Batch independent measured repairs into the next reserved render. Previously
+      // each category continued the loop immediately; reference tails waited behind
+      // every leading adjustment and could consume the whole allowance unchanged.
+      const interruptions=pj.engine==='typst'?readingOrderFindings(pj).filter(f=>!inFlow.includes(f.figure_id)):[];
       const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => !readingFigures[f.id] && (f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
-      if (tails.length && pass < passes) { for (const f of tails) fitFigs[f.id] = f.height; log(`pass ${pass}: clean; fitting figures ${tails.map(f => `${f.id} to ${f.height}in`).join(", ")}`); continue; }
+      const stranded = pj.engine === 'typst' ? (pj.articles || []).filter(a=>!backLinks.has(a.n) && a.end>a.start &&
+        pj.pages[a.end-1]?.ink_rows < .25 && pj.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1)) : [];
       // Bring a very sparse ending back by adjusting leading, never font size, within
       // 0.12em (1.26pt). A finite, monotone sequence avoids oscillating pagination.
       // Article boundaries remain; any tail that cannot fit stays flagged for visual review.
       const sparse = pj.engine === 'typst' ? (pj.articles || []).filter(a=>a.end>a.start &&
-        pj.pages[a.end-1]?.ink_rows < .25 && (fitText[a.n] || .66) > .54) : [];
-      if (sparse.length && pass < passes) {
+        pj.pages[a.end-1]?.ink_rows < .25 && (fitText[a.n] || .66) > .54 &&
+        !stranded.some(s=>s.n===a.n) && !tails.some(f=>f.page>=a.start&&f.page<=a.end) &&
+        !interruptions.some(f=>f.page>=a.start&&f.page<=a.end)) : [];
+      if ((interruptions.length||tails.length||stranded.length||sparse.length) && pass < passes) {
+        for(const f of interruptions)if(!inFlow.includes(f.figure_id))inFlow.push(f.figure_id);
+        for(const f of tails)fitFigs[f.id]=f.height;
+        stranded.forEach(a=>backLinks.add(a.n));
         for (const a of sparse) fitText[a.n] = Math.max(.54, +((fitText[a.n] || .66) - .04).toFixed(2));
-        log(`pass ${pass}: fitting sparse text endings ${sparse.map(a=>`${a.n} at ${fitText[a.n]}em`).join(', ')}`);
+        log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
         continue;
-      }
-      // A short reference list still stranded after bounded fitting joins the shared
-      // end section. The article opening gives its printed page; content is never cut.
-      const stranded = pj.engine === 'typst' ? (pj.articles || []).filter(a=>!backLinks.has(a.n) && a.end>a.start &&
-        pj.pages[a.end-1]?.ink_rows < .25 && pj.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1)) : [];
-      if (stranded.length && pass < passes) {
-        stranded.forEach(a=>backLinks.add(a.n));log(`pass ${pass}: collecting overflow link notes for articles ${stranded.map(a=>a.n).join(', ')}`);continue;
       }
       return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, out: out.trim() };
     }
