@@ -6,8 +6,10 @@ import {LayoutDecisions,validateLayout,layoutBatches} from './publisher-layout.m
 import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
 import {currentPublisherSelection,selectionChanged} from './publisher-selection.mjs';
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
+import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
+import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['publisher-session.mjs','publisher-layout.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['publisher-session.mjs','publisher-layout.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -24,11 +26,12 @@ keep_figure_in_flow preserves the image at its original source position between 
 set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. Prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
 printed_text_truncated tells you whether this request shortened the page text; do not infer missing print content from a shortened excerpt.
 Give a factual reason under 180 characters. For intentional_space and needs_review, candidate_id must be null.`;
-export async function publisherSession({directory, env=process.env, fetchImpl=fetch}) {
+export async function publisherSession({directory, env=process.env, fetchImpl=fetch, checkpointStore}) {
   mkdirSync(directory,{recursive:true});
   const file=`${directory}/state.json`, id=Number(env.SIGNUP_ID), site=env.SITE_BASE?.replace(/\/$/,''), secret=env.ARCHIVE_RELAY_TOKEN;
   const baseRun=String(env.GITHUB_RUN_ID||'local')+'.'+String(env.GITHUB_RUN_ATTEMPT||1);
   const remote=Boolean(id&&site&&secret);
+  const artifacts=checkpointStore||(remote?privateCheckpointStore(`signup-${id}`):null);
   const sign=m=>createHmac('sha256',secret).update(m).digest('hex');
   let state={journal:{calls:[],spent:0},cache:[],runs:{},renderBudget:newRenderBudget()}, revision=0, selection={revision:0,restored:[]};
   let localSnapshot=existsSync(file)?readFileSync(file,'utf8'):null;
@@ -119,7 +122,25 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     for(const batch of layoutBatches(input))decisions.push(...(await layoutBatch(batch)).decisions);
     return validateLayout({decisions},input);
   };
+  const renderScope=volume=>{
+    renderUsage(state,String(volume));
+    const record=state.renderBudget.volumes[String(volume)];
+    return {volume:String(volume),selection_revision:selection.revision,render_ids:(record?.passes||[]).map(p=>p.id),repair_ids:(record?.repairs||[]).map(p=>p.id)};
+  };
   return {emit,vision,layout,selection,
+    renderScope,
+    loadRender:async(volume,identity)=>{
+      await ensureSelection();const reference=state.completedRenders?.[String(volume)];
+      if(!reference||reference.scope.selection_revision!==selection.revision)return null;
+      return restoreRenderCheckpoint({reference,directory:`${directory}/renders`,scope:renderScope(volume),identity,store:artifacts});
+    },
+    saveRender:async(volume,book,identity,expectedScope)=>{
+      await ensureSelection();const scope=renderScope(volume);
+      if(JSON.stringify(scope)!==JSON.stringify(expectedScope))throw Error('Another render started before this PDF could be saved; the book is held for recovery.');
+      if(!scope.render_ids.length)throw Error('An unreserved render cannot be checkpointed.');
+      const reference=await saveRenderCheckpoint({book,directory:`${directory}/renders`,scope,identity,store:artifacts});
+      await ensureSelection();state.completedRenders||={};state.completedRenders[String(volume)]=reference;await save();
+    },
     renderUsage:volume=>renderUsage(state,String(volume)),
     reserveRender:(volume,settings)=>reserveWork(volume,'render',settings),
     reserveRepair:(volume,settings)=>reserveWork(volume,'repair',settings),

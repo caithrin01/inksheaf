@@ -1,6 +1,7 @@
 // Models select among measured, reversible typesetting operations. They never
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
+import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
 export const LayoutDecisions=z.object({decisions:z.array(z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
   candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
@@ -34,6 +35,7 @@ export function pageContext(measurement,report) {
       running_head_map_available:headMap,
       expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
       article_title:title,publication:report.pubName||null,
+      paragraph_boundaries:paragraphBoundaryContext(measurement,p.page),
       ...((measurement.figures||[]).some(f=>f.page===p.page&&f.reading_mode==='landscape')?{figure_orientation:'A quarter-turn figure is intentional landscape reading. Check its actual readability, caption and bounds; rotation alone is not a defect.'}:{}),
       ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
   });

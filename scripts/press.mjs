@@ -8,10 +8,11 @@
 //   list:  reuse approved interiors, build covers and validate with Lulu; bookstore publishing
 //          remains a separate operation until the listing launch work is complete.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { validDesign } from "../functions/lib/book-design.js";
 import {publishPreview} from './lib/publisher-preview.mjs';
 import {publishVolume} from "./lib/publish-volume.mjs";
+import {renderIdentity} from './lib/render-checkpoint.mjs';
 import { publisherSession } from "./lib/publisher-session.mjs";
 import {currentPublisherSelection,withPublisherSelection} from "./lib/publisher-selection.mjs";
 import { fitWithBudget } from "./lib/fit.mjs";
@@ -123,7 +124,7 @@ async function buildVolume(v, i, { proof, initial = {}, passes = 4, beforePass }
   if (!args.includes("--direct-links")) registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
-  return { html, pdf, report, pages };
+  return { html, pdf, report, pages, brand:existsSync(brandPath)?JSON.parse(readFileSync(brandPath,'utf8')):null };
 }
 
 if (EVENT === "press") {
@@ -142,6 +143,10 @@ if (EVENT === "press") {
       for (let i = 0; i < volumes.length; i++) {
         const v = volumes[i];
         const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
+          renderIdentity:renderIdentity({host,plan,volume:v,index:i,interior}),
+          // Preserve the saved edition's scraped palette before any repair or
+          // later volume/cover work. It is not a new creator instruction.
+          onRestored:book=>{if(book.brand)writeFileSync(brandPath,JSON.stringify(book.brand));else if(existsSync(brandPath))unlinkSync(brandPath);},
           session:()=>publisherSession({directory:`${DIR}/publisher`}),emit,volume:String(i+1),
           onRendered:({book,round,volume})=>publishPreview({book,round,volume,emit,upload:uploadProof,url:k=>signedProofUrl(k,7*24*3600),key:file=>proofKey(`${slug}-${ID}`,'preview',file),log:m=>log('preview',m)}),
           reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});

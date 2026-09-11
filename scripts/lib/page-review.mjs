@@ -123,6 +123,8 @@ export const pass2Prompt = (f,context,sources,neighbours) => `The first image is
 
 When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
 
+For check 2, paragraph_boundaries contains actual printed first/last lines and line counts, grouped using compiled source-paragraph anchors. Count paragraph lines on each side of the turn, not words in the final line. A paragraph with several lines on both pages has no single-line fragment. A complete one-line source paragraph is different from a split paragraph; inspect whether it acts as a stranded heading. An end anchor on the next page with zero printed lines is not proof of continuation. Unknown evidence cannot clear a heading, caption or ambiguous boundary.
+
 ${neighbours.length ? 'Additional images show neighbouring pages: '+neighbours.map((p,i)=>'image '+(i+2)+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
 
 ${sources.length ? 'The first image is the printed page. Additional images are the actual source figures used on this page, in order: '+sources.map((s,i)=>'image '+(i+2)+' = '+s.id).join('; ')+'. Compare against those sources. Preserve deliberately cropped photos or screenshots of bad text: source content must not be reconstructed or rewritten. Loss introduced by the print layout, or essential detail made unreadable in print, is still a defect.' : 'No separate source-image comparison is available; do not assume source-image spelling was introduced by typesetting.'}
@@ -176,6 +178,11 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
   for (const f of byPage.values()) {
+    const boundary=pageContext.find(p=>p.page===f.page)?.paragraph_boundaries;
+    if(f.check===2&&boundary?.verified_no_single_line_fragment){
+      out.dismissed.push({...f,origin:'measured_layout',paragraph_boundaries:boundary,note:'Both page edges contain multiple printed lines of their anchored paragraphs; neither is a stranded heading or single-line fragment.'});
+      continue;
+    }
     // Check 5 is about label identity/presence. Actual glyphs decide it when both
     // renderer maps are available; unknown layouts still receive model review.
     if(f.check===5&&verifiedHeads.has(f.page)){

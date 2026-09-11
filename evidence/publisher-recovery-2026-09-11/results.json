@@ -1,0 +1,49 @@
+{
+  "as_of": "2026-09-11T20:48:31.291560+00:00",
+  "scope": "Ground paragraph-break review in printed lines and restore completed renders without resetting durable allowances",
+  "validation": {
+    "full_local_unit_suite": "passed",
+    "paragraph_boundaries": 6,
+    "saved_render_recovery": 5,
+    "private_checkpoint_service": 5,
+    "publisher_orchestration": 11,
+    "renderer": {
+      "passed": 69,
+      "failed": 0
+    },
+    "build": "passed",
+    "validator": {
+      "passed": 13,
+      "failed": 0
+    },
+    "honesty": 84
+  },
+  "regressions": [
+    "Actual 8+5 printed-line continuation; real one-line continuation remains a finding",
+    "Whole short paragraphs, two-line headings, ambiguous anchors and missing geometry cannot automatically clear check 2",
+    "A killed worker resumes review at six renders and two repairs without building",
+    "Replacement worker restores exact PDF and source-image bytes via durable state and a controlled private store",
+    "Changed identity/selection, pending render, stale CAS, corrupt bytes and failed upload hold safely",
+    "Service routes enforce purpose-bound HMAC, exact digest, streaming size limit and seven-day retention"
+  ],
+  "legacy_annual_reconciliation": {
+    "pdf_sha256": "5bf4da0c4b75cd56b1a63f06b6b82b27300c49c4516f7a929254ea7d59dc58eb",
+    "measurement_sha256": "5f574bdaff81bfe232d3470570ce8c85cb4dfe7fe67670d4043557b65851272d",
+    "report_sha256": "df3ecb74c6c272ba02b597ff7ad19c58f06859fad92abdeb90721985c4903883",
+    "renderer_ref": "09193bf",
+    "renderer_policy": "adcfed7fc4e576b183f9db37168a80e1e9b49cea17d233d6c629bc425ebb3267",
+    "last_render_settings_sha256": "2480cac7c640f3337ab0e7272e3dc6734799a752a4b8effc353eafd4100c724d",
+    "source_hashes_unchanged": true,
+    "all_158_printed_geometries_match": true,
+    "render_passes": 6,
+    "repair_rounds": 2,
+    "new_model_calls": 0,
+    "new_renders": 0
+  },
+  "limits": [
+    "Service route tests use local Modal/FastAPI adapters; remote transport is simulated, not live deployment acceptance.",
+    "Production proof-store checkpoint routes must be deployed before this press candidate is released.",
+    "The legacy annual import is explicit operator reconciliation; ordinary pre-checkpoint retries do not invent missing provenance.",
+    "No cold annual success, creator/operator delivery or public launch acceptance is established by these tests."
+  ]
+}

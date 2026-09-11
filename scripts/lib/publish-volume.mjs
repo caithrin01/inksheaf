@@ -8,20 +8,28 @@ import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions
 // The same complete local pipeline is used by the press and by private rehearsals.
 // Complete-file publication/email happen only after a checked PDF returns.
 // An optional private draft excerpt may appear while that review continues.
-export async function publishVolume({build,session,emit,volume,reviewDirectory,log=()=>{},onRendered=async()=>{}}){
+export async function publishVolume({build,session,emit,volume,reviewDirectory,renderIdentity,log=()=>{},onRendered=async()=>{},onRestored=async()=>{}}){
   let usage=(await session()).renderUsage(volume),totalPasses=usage.passes,review,layout;
+  let sourceHashes;
   const boundedBuild=async options=>{
     const remaining=PUBLISHER_MAX_RENDERS-totalPasses;
     if(remaining<1)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
-    let reservations=0;
+    let reservations=0,renderScope;
     const book=await build({...options,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
-      usage=await(await session()).reserveRender(volume,settings);totalPasses=usage.passes;reservations++;
+      const publisher=await session();usage=await publisher.reserveRender(volume,settings);totalPasses=usage.passes;reservations++;
+      if(renderIdentity)renderScope=publisher.renderScope(volume);
     }});
     if(reservations!==book.report.fit.pass)throw Error('Renderer did not account for every pass; the book is held for recovery.');
+    const hashes=JSON.stringify(book.report.bodyHashes);
+    if(sourceHashes!==undefined&&hashes!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
+    sourceHashes=hashes;
+    if(renderIdentity)await(await session()).saveRender(volume,book,renderIdentity,renderScope);
     return book;
   };
-  let book=await boundedBuild({passes:4});
-  const sourceHashes=JSON.stringify(book.report.bodyHashes);
+  let book=renderIdentity?await(await session()).loadRender(volume,renderIdentity):null;
+  if(book)await onRestored(book);
+  book||=await boundedBuild({passes:4});
+  sourceHashes=JSON.stringify(book.report.bodyHashes);
   // Restore known paragraph boundaries before spending vision calls rediscovering
   // the same deterministic interruption. This is one bounded batch, not a loop.
   const firstMeasurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
@@ -35,8 +43,8 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,l
     if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
     await emit({kind:'layout',volume,passes:totalPasses,decisions:interruptions.map(f=>({page:f.page,decision:'repair',candidate_id:`inflow:${f.figure_id}:${f.page}`,reason:'Kept this image between its original source paragraphs.'})),message:'Images have been placed back between their original paragraphs. The new pages will be checked.'});
   }
-  for(let round=0;round<=PUBLISHER_MAX_REPAIR_ROUNDS;round++){
-    await emit({kind:'typesetting',volume,included:book.report.included,message:round?'The adjusted pages have been typeset again.':'Your writing and images have been set on the page.'});
+  for(let round=usage.repairs;round<=PUBLISHER_MAX_REPAIR_ROUNDS;round++){
+    await emit({kind:'typesetting',volume,included:book.report.included,message:book.recovered?'The saved PDF is ready to continue its page checks.':round?'The adjusted pages have been typeset again.':'Your writing and images have been set on the page.'});
     await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
