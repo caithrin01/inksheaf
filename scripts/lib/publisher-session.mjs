@@ -93,7 +93,15 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const cache=new Map(state.cache);
     if(cache.has(key))return {text:JSON.stringify(cache.get(key)),usage:{prompt_tokens:0,completion_tokens:0,cost:0}};
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
-    const answer=await ask({role,images:buffers,task,schema,maxOutput:maxTokens});
+    const request={role,images:buffers,task,schema,maxOutput:maxTokens};
+    let answer;
+    try{answer=await ask(request);}catch(error){
+      if(error.name!=='ZodError')throw error;
+      // A complete answer can still violate the output schema (the live page-39
+      // confirmation exceeded its note limit). Give it one bounded correction;
+      // retain the failed charge, and never cache or truncate the invalid verdict.
+      answer=await ask({...request,task:task+' The previous response failed schema validation: '+error.message+'. Recheck the specific defect and return a valid answer with a concise note under 200 characters.'});
+    }
     const result=role==='reader'?answer.findings:answer;cache.set(key,result);state.cache=[...cache];await save();
     return {text:JSON.stringify(result),usage:state.journal.calls.at(-1)?.usage};
   };

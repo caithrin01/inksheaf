@@ -16,7 +16,10 @@
       "passed": 13,
       "failed": 0
     },
-    "honesty": 84
+    "honesty": 84,
+    "durable_budget_and_schema_retry": 15,
+    "publisher_agent": 28,
+    "page_review": 31
   },
   "regressions": [
     "Actual 8+5 printed-line continuation; real one-line continuation remains a finding",
@@ -24,7 +27,8 @@
     "A killed worker resumes review at six renders and two repairs without building",
     "Replacement worker restores exact PDF and source-image bytes via durable state and a controlled private store",
     "Changed identity/selection, pending render, stale CAS, corrupt bytes and failed upload hold safely",
-    "Service routes enforce purpose-bound HMAC, exact digest, streaming size limit and seven-day retention"
+    "Service routes enforce purpose-bound HMAC, exact digest, streaming size limit and seven-day retention",
+    "Captured overlong confirmation gets at most one schema correction; failed charge retained; two invalid answers or the 256-call cap hold without caching."
   ],
   "legacy_annual_reconciliation": {
     "pdf_sha256": "5bf4da0c4b75cd56b1a63f06b6b82b27300c49c4516f7a929254ea7d59dc58eb",
@@ -45,5 +49,15 @@
     "Production proof-store checkpoint routes must be deployed before this press candidate is released.",
     "The legacy annual import is explicit operator reconciliation; ordinary pre-checkpoint retries do not invent missing provenance.",
     "No cold annual success, creator/operator delivery or public launch acceptance is established by these tests."
-  ]
+  ],
+  "live_recovery": {
+    "status": "held",
+    "new_renders": 0,
+    "new_model_calls": 45,
+    "new_cost_usd": 0.122947,
+    "pages_scanned": 158,
+    "confirmation_failure": "Page 39 completed response exceeded 200-character note schema",
+    "full_review_completed": false,
+    "subsequent_schema_retry_fix": "deterministically tested; not yet a complete live annual review"
+  }
 }

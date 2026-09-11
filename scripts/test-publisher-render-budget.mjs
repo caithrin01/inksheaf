@@ -159,6 +159,27 @@ await test('old image-only cache keys are ignored while current identical review
   assert(read(dir).cache.some(([key])=>key===oldKey));
 });
 
+const longConfirmation='The paragraph beginning on page 38 ends with only two lines at the top of page 39 before the next paragraph starts, but the metadata shows just a two-line remainder—borderline, not a true single-line widow.';
+assert(longConfirmation.length>200);
+for(const mode of ['corrected','invalid-again','call-cap'])await test(`schema correction is bounded and charged: ${mode}`,async()=>{
+  const dir=temporary(),image=join(dir,'page.png'),png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(10,16);png.writeUInt32BE(10,20);writeFileSync(image,png);
+  if(mode==='call-cap')writeFileSync(join(dir,'state.json'),JSON.stringify({journal:{calls:Array.from({length:255},(_,id)=>({id:String(id),cost:0,reserved:0,status:'completed'})),spent:0},cache:[],runs:{},renderBudget:newRenderBudget()}));
+  let calls=0;
+  const s=await publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
+    calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,400);assert.deepEqual(request.reasoning,{enabled:false});
+    if(calls===2)assert(JSON.stringify(request.messages).includes('previous response failed schema validation'));
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(calls===2&&mode==='corrected'?{confirmed:false,origin:'rendered_layout',note:'Two continuation lines are not a single-line widow.'}:{confirmed:true,origin:'rendered_layout',note:longConfirmation})}}],usage:{cost:.001}});
+  }});
+  const request={model:PUBLISHER_MODELS.publisher.id,images:[image],text:'Confirm the actual page boundary.',maxTokens:400};
+  if(mode==='corrected'){
+    assert.equal(JSON.parse((await s.vision(request)).text).confirmed,false);await s.vision(request);assert.equal(calls,2);
+    assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).journal.spent,.002);assert.equal(read(dir).cache.length,1);
+  }else{
+    await assert.rejects(s.vision(request),mode==='call-cap'?/model budget reached/:/Too big/);
+    assert.equal(calls,mode==='call-cap'?1:2);assert.equal(read(dir).journal.calls.length,mode==='call-cap'?256:2);assert.equal(read(dir).cache.length,0);
+  }
+});
+
 await test('the real fitter saves before its builder, renders a PDF, and retains the count on restart',async()=>{
   mkdirSync('proofs',{recursive:true});const dir=mkdtempSync(resolve('proofs/publisher-budget-test-'));directories.push(dir);
   const builder=join(dir,'builder.mjs'),html=join(dir,'book.html'),pdf=join(dir,'book.pdf'),ledger=join(dir,'journal'),marker=join(dir,'builder-started');
