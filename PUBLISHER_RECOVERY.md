@@ -54,7 +54,7 @@ sticky headings. Boundary review now asks for the specific defect and edge;
 measured multiple lines or a complete source paragraph can contradict a claimed
 single-line fragment, while headings, missing evidence and explicit uncertainty
 remain held. The original model answer is retained in the audit. Bold field values
-now paginate normally; real heading elements and standalone bold headings retain
+with explicit brace-delimited template values now paginate normally; real heading elements and standalone bold headings retain
 their existing treatment.
 
 The renderer correction changes the checkpoint renderer fingerprint. The older
@@ -62,3 +62,23 @@ private annual is retained as diagnosis, and normal recovery correctly holds its
 older fingerprint. A corrected cold trial needs its own recorded development
 allocation and fresh journal; it must not reset either exhausted run or be confused
 with production/inbox acceptance. Current outcomes belong in the vault handoff.
+
+The next cold trial at `fcfcbf2` retained all 22 expected pieces in 158 pages but
+held during its second layout review: a six-page request used 4,695 of its 5,000
+output tokens for thinking and returned incomplete JSON. Its 138 calls cost
+$1.6705985, including the failed call; five renders and one repair remain counted.
+Independent extraction passes source hashes, article-opening titles, physical
+bounds and running matter, but finds one remaining reading-order interruption.
+The final layout verdict is incomplete, so this is not cold-book acceptance.
+
+That trial also exposed the overbroad colon-field rule: ordinary titles containing
+a colon lost their heading attachment. The correction is restricted to explicit
+template values, with real page-turn regressions for both colon styles. A legible
+monochrome emoji is no longer described as a font defect merely for lacking colour.
+Layout requests now specify a 2,048-token thinking budget within the unchanged
+5,000-token completion limit and six-page batch. This uses OpenRouter's documented
+[`reasoning.max_tokens`](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)
+control. Local tests verify the request and preservation of a truncated charge
+across restart; live provider compliance and completed quality review remain open.
+Incomplete answers still hold without being accepted or cached. No new paid trial
+was started after these corrections.

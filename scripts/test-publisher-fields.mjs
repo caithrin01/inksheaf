@@ -36,5 +36,18 @@ print(json.dumps({'markers':markers,'outside':outside,'pages':len(d)}))
   assert.equal(measured.markers.Field1Marker.page,measured.markers.IntroMarker.page,'The first field fits below the introduction; it must not be pushed away with the whole bold chain');
   assert.equal(measured.markers['Ordinary heading'].page,measured.markers.HeadingBodyMarker.page);
   assert.equal(measured.outside.length,0);
-  console.log('PASS real prompt-field pagination: first field follows the introduction; all nine values, ordinary heading and glyph bounds survive');
+  // A colon is also ordinary title punctuation. This amount of preceding prose
+  // reproduces the real annual's stranded poet heading with the broad field rule.
+  for(const [index,colon] of [':','：'].entries()){
+    const heading=`2026 William Blake${colon} A Prophet of Meaning`;
+    const headingHtml=`<html><body><section class="article" id="art-0"><header class="arthead"><h2 class="arttitle">Heading attachment</h2></header><div class="artbody"><p>${'The preceding discussion provides useful context for the printed example. '.repeat(25)}</p><p><strong>${heading}</strong></p><p>BodyMarker introduces the discussion of the poet and the source text that belongs to this heading.</p></div></section></body></html>`;
+    const headingTyp=join(dir,`heading-${index}.typ`),headingPdf=join(dir,`heading-${index}.pdf`);
+    writeFileSync(headingTyp,emitTypst(headingHtml,{baseDir:dir,pubName:'Fixture',host:'example.com'}));
+    execFileSync('typst',['compile','--root',process.cwd(),'--font-path','fonts','--ignore-system-fonts',headingTyp,headingPdf],{stdio:'pipe'});
+    const printed=execFileSync('pdftotext',['-layout',headingPdf,'-'],{encoding:'utf8'}).split('\f');
+    const headingPage=printed.findIndex(p=>p.includes(heading)),bodyPage=printed.findIndex(p=>p.includes('BodyMarker'));
+    assert(headingPage>=0&&bodyPage>=0,'The complete colon heading and following body must both print');
+    assert.equal(headingPage,bodyPage,'A colon heading must stay with the body it introduces');
+  }
+  console.log('PASS real prompt-field pagination: first field follows the introduction; all nine values, ordinary/colon headings and glyph bounds survive');
 }finally{if(process.argv.includes('--keep'))console.log(dir);else rmSync(dir,{recursive:true,force:true});}

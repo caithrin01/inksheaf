@@ -242,9 +242,10 @@ export function emitTypst(html, opts = {}) {
         for (const im of imgs) s += figureOf(im, "");
         const exampleLead = textOf(n).trim().length <= 160 && /(?:^\s*Before:|\b(?:Before|After):\s*$)/i.test(textOf(n));
         const meaningful=kids(n).filter(k=>(k.type!=='text'||k.data.trim())&&!(isEl(k)&&k.name==='br'));
-        // A label with its own inline value is a complete field. Consecutive
-        // bold prompt fields must break normally instead of chaining together.
-        const fieldValue=/[:：]\s*\S/.test(textOf(n));
+        // Explicit template values can paginate instead of chaining as headings.
+        // A colon alone is also title punctuation ("Blake: A Prophet of Meaning")
+        // and must not detach a heading from the content it introduces.
+        const fieldValue=/[:：]\s*\{[\s\S]+\}\s*$/.test(textOf(n));
         const boldHeading=!fieldValue&&meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
         if(t){
           const id=++paragraphN;

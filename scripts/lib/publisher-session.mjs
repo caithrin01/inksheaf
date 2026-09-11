@@ -121,7 +121,10 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
       cache.set(key,result);state.cache=[...cache];await save();return result;
     }
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
-    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,task:LAYOUT_TASK};
+    // The cold annual's six-page batch consumed 4,695/5,000 tokens thinking and
+    // truncated its verdict. Keep the same total allowance and six-page batch,
+    // but request at most 2,048 thinking tokens; incomplete output still holds.
+    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,reasoningBudget:2048,task:LAYOUT_TASK};
     let result;
     try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
     validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;

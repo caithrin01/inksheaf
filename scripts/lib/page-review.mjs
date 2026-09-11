@@ -17,7 +17,7 @@ export const CHECKS = {
   3: "Figures: an image separated from its caption; an image cropped or overflowing the text block; an image too small to read; a placeholder box, 'could not be retrieved' or broken-image notice where a picture should be.",
   4: "Overflow: a table, code block, URL or wide word running past the right margin or off the page.",
   5: "Running heads and folios: the head names the wrong essay; a folio missing; front matter carrying a head.",
-  6: "Glyphs: boxes, question marks in diamonds, mojibake, a font fallback (a line in a different face).",
+  6: "Glyphs: missing/replacement characters, boxes, question marks in diamonds, mojibake, or an unintended prose font change. A legible monochrome emoji is valid print typography; lack of full colour alone is not a glyph defect. Still flag an absent or unreadable symbol.",
   7: "Artefacts: raw HTML or markup printed, a stray 'Figure 1:' label, doubled rules, a stray 'Leave a comment' or 'Subscribe' button text, an empty page in the body.",
   8: "Reading order: two columns where there should be one, a paragraph split by a figure mid-sentence.",
 };

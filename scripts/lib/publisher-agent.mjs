@@ -109,7 +109,7 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
   let busy = false;
-  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput }) {
+  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput, reasoningBudget }) {
     if (busy) throw Error('Publisher requests share one serial spend ledger');
     busy = true;
     let call;
@@ -121,10 +121,12 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       if (!Number.isFinite(outputLimit) || !Array.isArray(images) || images.length > 4) throw Error('Invalid publisher image/output limits');
       // A short visual confirmation needs a structured verdict. In the owner
       // trial, adaptive thinking consumed 399/400 output tokens and returned no
-      // verdict. Disable it for these bounded confirmations; longer editorial
-      // requests keep medium effort. Sonnet 5 exposes non-mandatory reasoning.
+      // verdict. Disable it for these bounded confirmations. Layout batches can
+      // request an explicit thinking budget to leave room for their JSON verdict.
+      // Other editorial requests keep medium effort.
       // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-      const reasoning=role==='publisher'?(images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
+      if(reasoningBudget!=null&&(role!=='publisher'||!Number.isInteger(reasoningBudget)||reasoningBudget<1024||reasoningBudget>=outputLimit))throw Error('Invalid publisher reasoning budget');
+      const reasoning=role==='publisher'?(reasoningBudget!=null?{max_tokens:reasoningBudget}:images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
       for (const image of images) {
         if (!Buffer.isBuffer(image) || image.length < 24 || image.subarray(0,8).toString('hex') !== '89504e470d0a1a0a'
           || image.readUInt32BE(16)<1 || image.readUInt32BE(20)<1 || image.readUInt32BE(16)>4096 || image.readUInt32BE(20)>4096) throw Error('Publisher page images must be bounded PNG files');

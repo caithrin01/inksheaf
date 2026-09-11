@@ -194,6 +194,24 @@ await test('page-break confirmation requests its typed schema and retries an unt
   assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
 });
 
+await test('layout reserves answer space and retains a truncated charge across restart without caching its partial verdict',async()=>{
+  const dir=temporary();let calls=0;
+  const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};
+  const decisions=input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.'}));
+  const session=()=>publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
+    calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,5000);assert.deepEqual(request.reasoning,{max_tokens:2048});
+    // Preserve the live failure shape even if a provider ignores the requested
+    // thinking budget: a partial JSON answer cannot become quality acceptance.
+    return Response.json({choices:[{finish_reason:calls===1?'length':'stop',message:{content:calls===1?'{"decisions":[':JSON.stringify({decisions})}}],usage:calls===1?{cost:.107472,completion_tokens:5000,completion_tokens_details:{reasoning_tokens:4695}}:{cost:.001}});
+  }});
+  await assert.rejects((await session()).layout(input),/response was incomplete/);
+  assert.equal(calls,1);assert.equal(read(dir).cache.length,0);assert.equal(read(dir).journal.spent,.107472);
+  assert.deepEqual(await(await session()).layout(input),{decisions});
+  await(await session()).layout(input);assert.equal(calls,2);
+  assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);
+  assert(Math.abs(read(dir).journal.spent-.108472)<1e-12);
+});
+
 await test('the real fitter saves before its builder, renders a PDF, and retains the count on restart',async()=>{
   mkdirSync('proofs',{recursive:true});const dir=mkdtempSync(resolve('proofs/publisher-budget-test-'));directories.push(dir);
   const builder=join(dir,'builder.mjs'),html=join(dir,'book.html'),pdf=join(dir,'book.pdf'),ledger=join(dir,'journal'),marker=join(dir,'builder-started');
