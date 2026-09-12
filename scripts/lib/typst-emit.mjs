@@ -158,7 +158,9 @@ export function emitTypst(html, opts = {}) {
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
     const id = attr(imgEl, "data-fig") || src;
     const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
-    const readingMode=readingFigures[id],reading=readingSizes.find(s=>s.mode===readingMode);
+    // Missing alt text does not establish that an image is decorative. Keep its
+    // detail at the bounded column reading size until its role is known.
+    const readingMode=readingFigures[id]||(attr(imgEl,'data-role')==='unknown'&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
     if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
     const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
@@ -437,14 +439,14 @@ export function emitTypst(html, opts = {}) {
   if n != none and not compact { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
   context [#metadata((n: index, page: here().page())) <artstart>] /* the opener page, measured here in the head */
-  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, title)])
+  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
 #let partpage(kind, title) = {
   place.flush()
   pagebreak(to: "odd", weak: true)
-  page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
+  page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt, hyphenate: false)[#title]] ]
 }
 #let fmpage(body) = page(header: none, footer: none, body)
 `;

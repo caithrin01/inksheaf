@@ -110,7 +110,11 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
   const layoutBatch=async input=>{
     await ensureSelection();
     if(!input.pages.length)return {decisions:[]};
-    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,maxTokens:5000}),cache=new Map(state.cache);
+    // With optional thinking disabled, reserve for the bounded decision schema.
+    // Six decisions in the live probe used 446 tokens; retain ample room for
+    // 200-character reasons without reserving a 5,000-token reasoning response.
+    const maxTokens=Math.max(600,400*Math.min(6,input.pages.length)+100);
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,maxTokens}),cache=new Map(state.cache);
     if(cache.has(key))return validateLayout(cache.get(key),input);
     // Reuse completed larger batches with this same policy, but keep new reasoning
     // to six pages. A twelve-page review exhausted the completion ceiling before
@@ -125,7 +129,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     // The cold annual and a numeric-cap probe exhausted all output on thinking.
     // Disable optional thinking for this bounded, measured decision packet, as
     // for short visual confirmations. Incomplete answers still hold and count.
-    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,reasoningBudget:0,task:LAYOUT_TASK};
+    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
     try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
     validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;

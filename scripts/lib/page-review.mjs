@@ -18,7 +18,7 @@ export const CHECKS = {
   4: "Overflow: a table, code block, URL or wide word running past the right margin or off the page.",
   5: "Running heads and folios: the head names the wrong essay; a folio missing; front matter carrying a head.",
   6: "Glyphs: missing/replacement characters, boxes, question marks in diamonds, mojibake, or an unintended prose font change. A legible monochrome emoji is valid print typography; lack of full colour alone is not a glyph defect. Still flag an absent or unreadable symbol.",
-  7: "Artefacts: raw HTML or markup printed, a stray 'Figure 1:' label, doubled rules, a stray 'Leave a comment' or 'Subscribe' button text, an empty page in the body.",
+  7: "Artefacts: raw HTML or markup printed, a stray 'Figure 1:' label, doubled rules, a stray 'Leave a comment' or 'Subscribe' button text, an empty page in the body. A QR code with its 'Read online' caption in a labelled Links section is intentional print reference apparatus; that caption is not a leftover web button. Still check for clipping, overlap or a detached caption.",
   8: "Reading order: two columns where there should be one, a paragraph split by a figure mid-sentence.",
 };
 export const PASS1_MODEL = process.env.REVIEW_PASS1_MODEL || "google/gemini-3.1-flash-lite";

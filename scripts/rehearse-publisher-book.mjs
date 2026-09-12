@@ -36,7 +36,7 @@ for(const [signal,code] of [['SIGINT',130],['SIGTERM',143]])process.once(signal,
 try{
   const book=await publishVolume({build:async({passes,initial,beforePass})=>{
     const args=['scripts/build-book.mjs',host,'--fixture',fixture,'--out',html,...(brand?['--brand-file',brand]:['--no-brand']),'--cover-design','classic','--print-interior','--direct-links','--publisher-dir',directory,'--publisher-volume','1'];
-    const fitted=await fitWithBudget({args,html,pdf,passes,initial,beforePass,log:console.error});
+    const fitted=await fitWithBudget({args,html,pdf,passes,initial,beforePass,allowMeasuredSpaceReview:true,log:console.error});
     const report=JSON.parse(readFileSync(html.replace(/\.html$/,'.report.json'),'utf8'));report.fit=fitted;
     return{html,pdf,report};
   },session,emit,volume:'1',renderIdentity:renderIdentity({host,fixture:readFileSync(fixture,'utf8'),brand:brand?readFileSync(brand,'utf8'):null,design:'classic',printInterior:true}),reviewDirectory:out+'/review',log:console.error});

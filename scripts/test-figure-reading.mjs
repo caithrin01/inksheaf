@@ -19,7 +19,7 @@ for name,w,h in [('chart',2000,1200),('feed',760,1059)]:
  for y in range(50,h-50,55):d.text((30,y),'SOURCE LABEL and values: 1234567890',fill='black')
  im.save('${out}/'+name+'.png')
 `]);
-const html=name=>`<html><body><section class="titlepage"><div class="t">Reading figures</div></section><section class="article"><div class="arthead"><h2 class="arttitle">An illustrated piece</h2></div><div class="artbody"><p>BeforeMarker. The source paragraph stays before the figure.</p><figure><img src="${name}.png" data-fig="example" alt=""/><figcaption>CaptionMarker. These labels belong to this image.</figcaption></figure><p>AfterMarker. The source paragraph stays after the figure.</p></div></section></body></html>`;
+const html=(name,alt=name==='feed'?'portrait':'chart')=>`<html><body><section class="titlepage"><div class="t">Reading figures</div></section><section class="article"><div class="arthead"><h2 class="arttitle">An illustrated piece</h2></div><div class="artbody"><p>BeforeMarker. The source paragraph stays before the figure.</p><figure><img src="${name}.png" data-fig="example" alt="${alt}"/><figcaption>CaptionMarker. These labels belong to this image.</figcaption></figure><p>AfterMarker. The source paragraph stays after the figure.</p></div></section></body></html>`;
 const compiled={};
 for(const [name,mode] of [['feed','normal'],['feed','column'],['chart','normal'],['chart','landscape']]){
  const key=name+'-'+mode,file=out+'/'+key;
@@ -32,6 +32,19 @@ test('both reading modes increase actual compiled image scale and keep source po
  for(const [name,mode] of [['feed','column'],['chart','landscape']]){
   const a=compiled[name+'-normal'].figure,b=compiled[name+'-'+mode].figure;
   assert(b.image_width_points>a.image_width_points*1.12);assert.equal(b.floating,false);assert.equal(a.source,b.source);assert(b.w<=4.53*72+.1);assert(b.h<=6.74*72+.1);assert.equal(b.reading_mode,mode);
+ }
+});
+test('absent image description preserves the bounded reading scale despite a shrinking fit hint',()=>{
+ const file=out+'/unknown-feed';
+ writeFileSync(file+'.typ',emitTypst(html('feed',''),{baseDir:out,fitFigs:{example:1.4}}));
+ execFileSync('typst',['compile','--font-path','fonts','--ignore-system-fonts',file+'.typ',file+'.pdf']);
+ const [figure]=JSON.parse(execFileSync('typst',['query','--font-path','fonts','--ignore-system-fonts',file+'.typ','<fig>','--field','value'],{encoding:'utf8'}));
+ assert.equal(figure.role,'unknown');assert.equal(figure.reading_mode,'column');
+ assert.equal(figure.image_width_points,compiled['feed-column'].figure.image_width_points);
+ assert.equal(figure.source,compiled['feed-column'].figure.source);assert.equal(figure.floating,false);
+ for(const role of ['unknown','reading']){
+  const packet=layoutInput({measurement:{pages:[{page:1,blank:.7}],figures:[{...figure,role,page:1}],fit:[{id:'example',page:1,height:1.4}]},report:{},fit:{},review:{findings:[]}});
+  assert(!packet.candidates.some(c=>c.operation==='fit_figure'));
  }
 });
 const checks=JSON.parse(execFileSync('python3',['-c',`

@@ -27,9 +27,9 @@ export async function fitWithBudget({ beforePass, ...options }) {
   } finally { steps.return(); }
 }
 
-function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {} }) {
+function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false }) {
   const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
-    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
+    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
   let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures};
@@ -42,13 +42,21 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try {
-      const out = sh("bash", ["scripts/render-book.sh", html, pdf]);
+      let out,spacePending=false;
+      try{out=sh("bash", ["scripts/render-book.sh", html, pdf]);}
+      catch(error){
+        // Only the explicit spacing-only exit can enter mandatory publisher
+        // review. Compile, glyph, measurement and other failures still stop.
+        if(!allowMeasuredSpaceReview||error.exitStatus!==4)throw error;
+        out=error.output;spacePending=true;
+      }
       let pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); } catch {}
+      if(spacePending&&(pj.engine!=='typst'||!pj.pages?.length||!pj.bad?.length||pj.pages.some(p=>!p.layout_geometry)))throw Error('Spacing review requires complete measured pages');
       // Batch independent measured repairs into the next reserved render. Previously
       // each category continued the loop immediately; reference tails waited behind
       // every leading adjustment and could consume the whole allowance unchanged.
       const interruptions=pj.engine==='typst'?readingOrderFindings(pj).filter(f=>!inFlow.includes(f.figure_id)):[];
-      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => !readingFigures[f.id] && (f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
+      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => (!allowMeasuredSpaceReview||pj.figures?.find(x=>x.id===f.id)?.role==='picture') && !readingFigures[f.id] && (spacePending||f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
       const stranded = pj.engine === 'typst' ? (pj.articles || []).filter(a=>!backLinks.has(a.n) && a.end>a.start &&
         pj.pages[a.end-1]?.ink_rows < .25 && pj.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1)) : [];
       // Bring a very sparse ending back by adjusting leading, never font size, within
@@ -66,7 +74,7 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
         log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
         continue;
       }
-      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, out: out.trim() };
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, ...(spacePending?{spacing_requires_review:true}:{}), out: out.trim() };
     }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}

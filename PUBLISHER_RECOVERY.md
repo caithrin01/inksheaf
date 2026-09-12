@@ -107,3 +107,30 @@ unmatched lines, uncertainty and missing evidence retain their hold. Private
 source tails are used locally for matching and omitted from model anchor packets.
 New cold acceptance results belong in the vault; all old trial results and costs
 remain retained.
+
+The ea29120 cold annual retained 22 pieces / 36,001 source words in 154 pages,
+with zero measured reading-order findings and passing independent source/title,
+bounds and running-matter checks. It still held: 183 calls, six renders, two
+repairs, $1.81615625 known and $1.837507 including one unresolved provider charge.
+Its next layout request could not reserve within $2. No limits or prior evidence
+were reset, and the title/screenshot concerns prevent accepting that PDF.
+
+The follow-up keeps words whole in article/section display titles and identifies
+QR captions in labelled Links sections as intentional print apparatus. Unknown
+image roles now use the existing bounded column reading size: absent alt text
+cannot justify shrinking a screenshot. Model and automatic shrinking candidates
+require a known picture role; enlargement remains available when review finds
+unreadable detail. This can increase page count for images without descriptions.
+
+Only the renderer's explicit spacing-only exit (4), with complete measurements,
+can enter the normal publisher review despite its blank-page gate. Both press and
+rehearsal opt into this path; every >30% gap still needs an explicit layout
+verdict. Compile, glyph and measurement failures still stop. A real regression
+keeps the source image at 300pt, preserves its three source markers, and proves a
+compile error cannot use stale spacing data to enter review. Checkpoints retain
+the unresolved-spacing flag. This flag is never a completed-book verdict.
+
+Layout requests keep thinking disabled and reserve 600–2,500 output tokens for
+one to six short schema-bound decisions. Incomplete output still holds and is
+charged. The local 158-page size diagnostic reuses the held selection and fit
+settings; it is not a new cold acceptance or a continuation of the spent journal.

@@ -21,7 +21,7 @@ export async function saveRenderCheckpoint({book,directory,scope,identity,store}
   const pdfBytes=readFileSync(book.pdf),pdf=add(pdfBytes),measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
   for(const figure of measurement.figures||[])if(figure.source){figure.source_asset=add(readFileSync(figure.source));delete figure.source;}
   const report=structuredClone(book.report);
-  report.fit=Object.fromEntries(['pass','defer','fitFigs','fitText','backLinks','inFlow','readingFigures'].filter(k=>report.fit[k]!==undefined).map(k=>[k,report.fit[k]]));
+  report.fit=Object.fromEntries(['pass','defer','fitFigs','fitText','backLinks','inFlow','readingFigures','spacing_requires_review'].filter(k=>report.fit[k]!==undefined).map(k=>[k,report.fit[k]]));
   const value={version:1,identity,renderer_policy:RENDER_CHECKPOINT_POLICY,scope,pdf,measurement,report,brand:book.brand??null,assets};
   const raw=Buffer.from(JSON.stringify(value));if(raw.length>CHECKPOINT_MAX_BYTES)throw held();
   const bytes=gzipSync(raw),sha256=hash(bytes),file=join(directory,sha256+'.json.gz');
