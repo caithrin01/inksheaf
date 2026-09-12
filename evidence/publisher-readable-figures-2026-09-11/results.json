@@ -1,0 +1,134 @@
+{
+  "annual": {
+    "trial_code": "ea291202c8ebb812fd459896a23a33a12fcb60b5",
+    "trial_status": "held",
+    "trial_error": "Publisher model budget reached; saved work is retained",
+    "pdf_sha256": "799c66bbea519875641d3ac9b7077212a8d502e93ea01e7722ed0112106db4c3",
+    "pages": 154,
+    "pieces": 22,
+    "source_words": 36001,
+    "checks": {
+      "fixture_hash_matches": true,
+      "source_inventory_matches": true,
+      "selection_matches": true,
+      "piece_count_matches": true,
+      "source_word_count_matches": true,
+      "all_source_hashes_match": true,
+      "all_article_opening_titles_present": true,
+      "physical_bounds_pass": true,
+      "pdf_page_count_matches": true,
+      "fresh_geometry_matches": true,
+      "running_matter_pass": true,
+      "reading_order_pass": true
+    },
+    "whitespace_over30": 32
+  },
+  "spend": {
+    "allocation": {
+      "id": "owner-cold-source-order-2026-09-11",
+      "status": "reconciled-held",
+      "limit_usd": 2,
+      "reserved_usd": 0,
+      "scope": "One fresh private annual through normal publisher path on corrected code. Original cached source bytes only; no old answers/PDF or reset journals. Existing $2/256-call/six-render/two-repair caps. No upload, email, listing, order or production signup in this rehearsal.",
+      "directory": "proofs/publisher/owner-cold-source-order-2026-09-11",
+      "code_commit": "ea291202c8ebb812fd459896a23a33a12fcb60b5",
+      "created_at": "2026-09-12T00:37:45.337316+00:00",
+      "parent_campaign_prior_committed_usd": 21.356927,
+      "actual_or_unknown_usd": 1.837507,
+      "finished_at": "2026-09-12T01:08:44.707Z"
+    },
+    "run": {
+      "run": "proofs/publisher/owner-cold-source-order-2026-09-11/publisher",
+      "calls": 183,
+      "spent_usd": 1.81615625,
+      "reserved_or_spent_usd": 1.837507,
+      "status": "held: Publisher model budget reached; saved work is retained",
+      "render_passes": 6,
+      "repair_rounds": 2,
+      "failed_calls": 1,
+      "unknown_cost_calls": 1,
+      "pdf_sha256": "799c66bbea519875641d3ac9b7077212a8d502e93ea01e7722ed0112106db4c3"
+    },
+    "campaign_known_usd": 20.85339875,
+    "campaign_committed_usd": 23.194434
+  },
+  "diagnostic": {
+    "status": "diagnostic-only",
+    "model_calls": 0,
+    "model_cost_usd": 0,
+    "source_html_sha256": "aca9eee5d4296df782b7db67a00214b77865b30acff3a89d1cb249a465d45064",
+    "prior_pdf_sha256": "799c66bbea519875641d3ac9b7077212a8d502e93ea01e7722ed0112106db4c3",
+    "pdf_sha256": "979a008194fb720f528dee713ab7a8a731c57c1f119f7b684bb9a23d5bb18239",
+    "pages": 158,
+    "bounds_pass": true,
+    "figures": [
+      {
+        "id": "my-browser-tool-that-automatically:1",
+        "role": "unknown",
+        "page": 38,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "my-browser-tool-that-automatically:2",
+        "role": "unknown",
+        "page": 40,
+        "image_width_points": 297.576,
+        "reading_mode": "column"
+      },
+      {
+        "id": "my-browser-tool-that-automatically:3",
+        "role": "unknown",
+        "page": 41,
+        "image_width_points": 163.152,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:1",
+        "role": "unknown",
+        "page": 129,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:2",
+        "role": "unknown",
+        "page": 130,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:3",
+        "role": "unknown",
+        "page": 131,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:4",
+        "role": "unknown",
+        "page": 131,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:5",
+        "role": "unknown",
+        "page": 132,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      },
+      {
+        "id": "whos-getting-clanked-in-2027:6",
+        "role": "unknown",
+        "page": 134,
+        "image_width_points": 326.16,
+        "reading_mode": "column"
+      }
+    ],
+    "limitation": "Reuses held editorial selection and previous fit settings. Spacing still requires publisher review; not a cold completion or accepted book."
+  },
+  "candidate_status": "Title and figure-scale corrections pass full local unit suite, required renderer 69/0, build and validator 13/0. No new live inference or deployment.",
+  "production": "d30f0aada9dd226ae2f09ecc4b466f978d9f0984; no site or service deployment",
+  "limits": "The independent audit does not waive the held quality result. The rerender is offline diagnostic evidence only."
+}

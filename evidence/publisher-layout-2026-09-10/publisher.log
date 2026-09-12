@@ -1,0 +1,28 @@
+PASS full PDF creation is free and recovery applies only to printed copies
+PASS normalization retains prose and poem lines but excludes executable markup
+PASS unknown and duplicate source IDs cannot enter the agent
+PASS every source must have one validated classification
+PASS unknown model post IDs cannot be applied
+PASS invented evidence cannot justify an editorial decision
+PASS poem citations preserve the original line instead of generated slash notation
+PASS automatic exclusion cannot remove a classified poem or essay
+PASS TOC cannot silently omit, duplicate or invent selected posts
+PASS real batches emit before the final contents and preserve source bodies
+PASS creator restoration survives cached model suggestions and enters contents
+PASS unchanged source replay makes no second inference call
+PASS missing full bodies hold the book without a model call
+PASS image-only work is retained as unreviewed by the text classifier
+PASS budget denial occurs before any provider request
+PASS annual review can pass 96 calls while the 256-call and $2 limits remain enforced
+PASS provider timeout retains its reservation and private errors are not shown as success
+PASS truncated model results are never accepted
+PASS the provider must honour schemas, privacy and price ceilings
+PASS contents reject reversed dates inside a section
+PASS one invalid reference is corrected before any batch is published
+PASS image cost is reserved before a vision call and oversized files never reach the model
+PASS a transient provider failure gets one same-model retry in the same spend ledger
+PASS a repeating provider failure stops after the one bounded retry
+PASS Sonnet image reservations exceed documented patches at every accepted size
+PASS four-image confirmation fits remaining dollars while unknown charges stay reserved
+PASS actual image usage above its reserved bound fails closed
+27 publisher-agent tests passed.

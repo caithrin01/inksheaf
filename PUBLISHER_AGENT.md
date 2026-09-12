@@ -149,12 +149,33 @@ allowed and charged to the same ledger. A failed review stops after that retry r
 accumulating unknown-charge reservations on later pages. Semantic/schema correction is also bounded.
 
 One edition shares a $2 inference cap and 256-call ceiling across all volumes and retries. Calls
-are serial. Each volume attempt shares six render passes across initial fitting and at most two
-model repair rounds; unused passes can fit figure gaps exposed by a repair. The inference cap
-persists across attempts. The existing URL-preview planner has its separate pre-existing quota.
+are serial. Each volume shares six render passes across initial fitting and at most two model
+repair rounds, including worker restarts and pre-PDF selection changes. Unused passes can fit
+figure gaps exposed by a repair. The existing URL-preview planner has its separate pre-existing quota.
 A D1 revision compare-and-swap prevents two workers from independently resetting the budget.
 The former 96-call ceiling could not fit three scans of a 150-page book (114 sheet calls alone). The shared 256-call limit allows that review while the $2 cap, previous reservations and repair limits remain unchanged. Source/model results and actual progress survive worker restarts. Private journal content is
 not exposed through the creator API or public Actions artifacts.
+
+The September 10 candidate reserves each render before its builder starts, in the existing
+parent state payload. Repair reservations are also append-only. Remote compare-and-swap and
+local locked snapshot comparison reject competing stale workers; a lost acknowledgement
+starts no builder and leaves the reservation counted. State writes cannot reduce or erase
+saved reservations. Legacy journals without render history hold for explicit reconciliation;
+do not insert an empty allowance into an old journal. No historical journal was migrated.
+A deliberate future revision needs its own declared admission policy, which is still open.
+
+Review cache keys now bind the effective model, task, schema, source/image inputs and the
+editorial/renderer policy implementation. Unchanged inputs reuse the current cache; old keys
+and charges remain saved without lending stale verdicts to a changed policy. This does not
+recover an interrupted PDF by itself: durable finished-render checkpoints and stopped-job
+recovery remain separate launch work. A leftover local `state.json.lock` also holds safely;
+inspect its worker PID and journal before explicit recovery rather than deleting it on retry.
+
+`node scripts/test-publisher-render-budget.mjs` exercises actual journal files, SQLite API
+handlers, killed child processes and the real fitter. Twelve checks cover restart, concurrent
+workers, lost acknowledgement, failed saves, legacy holds, selection changes, monotonic
+reservations and stale/current cache behavior, without paid requests. The normal orchestration
+suite also checks that reentering a held volume cannot reset its allowance.
 
 PDF creation costs the creator $0. The owner's pricing decision is a **$2 gross retail addition
 per physical copy**, collected only on printing. `COMPUTE_POLICY` records that rule; Lulu retail

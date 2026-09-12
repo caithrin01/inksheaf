@@ -149,4 +149,10 @@ if(r.ok){
   const ends=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/trailing-editor-breaks.typ','<parend>','--field','value'],{encoding:'utf8'}));
   ok(ends.length===3&&ends.every(p=>Number.isFinite(p.y)&&p.page>0),'each paragraph retains its compiled end position');
 }
+/* Display titles must wrap at word boundaries without changing their text. */
+const displayTitle='Working with AI: Craft, Tools, and Focus';
+const displayHtml=wrap('<p>DisplaySourceMarker.</p>').replace('<section class="article"','<section class="part"><div class="partkind">Annual</div><div class="parttitle">'+displayTitle+'</div></section><section class="article"');
+r=compile(emitTypst(displayHtml,{baseDir:'proofs/fixtures',pubName:'Fixture'}),'display-title');
+ok(r.ok,'long display title compiles');
+if(r.ok){const t=text(r.pdf),divider=t.split('\f').find(p=>p.includes('Craft, Tools'));ok(divider.includes('Focus')&&!/Fo[-\u00ad]\s*cus/.test(divider),'section title retains whole Focus at its line break');ok(t.includes('DisplaySourceMarker'),'display-title wrapping preserves source body');}
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

@@ -3,3 +3,5 @@
 // The monetary cap and bounded repair rounds remain independent hard limits.
 export const PUBLISHER_MAX_CALLS = 256;
 export const PUBLISHER_BUDGET_USD = 2;
+export const PUBLISHER_MAX_RENDERS = 6;
+export const PUBLISHER_MAX_REPAIR_ROUNDS = 2;

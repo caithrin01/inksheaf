@@ -17,6 +17,8 @@ import hmac
 import os
 import re
 import time
+import tempfile
+from typing import Optional
 
 import modal
 
@@ -25,6 +27,7 @@ image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi")
 volume = modal.Volume.from_name("inksheaf-proofs", create_if_missing=True)
 ROOT = "/proofs"
 KEY = re.compile(r"^proofs/[a-z0-9][a-z0-9-]{0,63}/[a-z]-[0-9a-f]{12}\.pdf$")
+CHECKPOINT_KEY = re.compile(r"^checkpoints/[a-z0-9][a-z0-9-]{0,63}/([0-9a-f]{64})\.json\.gz$")
 MAX_BYTES = 150_000_000  # a 44-essay print interior at 300 ppi is about 30 MB; raised from 60 MB on 2026-09-02
 PURGE_AFTER = 7 * 86400
 
@@ -48,6 +51,52 @@ def web():
 
     api = FastAPI()
 
+    @api.put("/checkpoint")
+    async def checkpoint_upload(request: Request, key: str = "", sig: str = ""):
+        bucket = int(time.time() // 300)
+        if not _ok(sig, f"{key}:checkpoint-upload:{bucket}", f"{key}:checkpoint-upload:{bucket - 1}"):
+            raise HTTPException(status_code=401, detail="unauthorized")
+        match = CHECKPOINT_KEY.fullmatch(key)
+        if not match:
+            raise HTTPException(status_code=400, detail="bad key")
+        path = os.path.join(ROOT, key)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        temporary = None
+        try:
+            size = 0
+            digest = hashlib.sha256()
+            with tempfile.NamedTemporaryFile(dir=os.path.dirname(path), delete=False) as f:
+                temporary = f.name
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > MAX_BYTES:
+                        raise HTTPException(status_code=413, detail="too large")
+                    digest.update(chunk)
+                    f.write(chunk)
+            if not size or digest.hexdigest() != match.group(1):
+                raise HTTPException(status_code=400, detail="hash mismatch")
+            os.replace(temporary, path)
+            volume.commit()
+            return {"ok": True, "sha256": digest.hexdigest(), "bytes": size}
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
+
+    @api.get("/checkpoint")
+    def checkpoint_read(key: str = "", exp: str = "", sig: str = ""):
+        if not exp.isdigit() or int(exp) < time.time():
+            raise HTTPException(status_code=403, detail="expired")
+        if not _ok(sig, f"{key}:checkpoint-read:{exp}"):
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if not CHECKPOINT_KEY.fullmatch(key):
+            raise HTTPException(status_code=400, detail="bad key")
+        volume.reload()
+        path = os.path.join(ROOT, key)
+        if not os.path.isfile(path):
+            raise HTTPException(status_code=404, detail="no saved render")
+        with open(path, "rb") as f:
+            return Response(content=f.read(), media_type="application/gzip", headers={"cache-control": "private, no-store"})
+
     @api.put("/upload")
     async def upload(request: Request, key: str = "", sig: str = ""):
         bucket = int(time.time() // 300)
@@ -66,7 +115,7 @@ def web():
         return {"ok": True, "key": key, "bytes": len(body),
                 "sha256": hashlib.sha256(body).hexdigest()}
 
-    def _serve(key: str, exp: str, sig: str, head: bool, range_header: str | None):
+    def _serve(key: str, exp: str, sig: str, head: bool, range_header: Optional[str]):
         if not exp.isdigit() or int(exp) < time.time():
             raise HTTPException(status_code=403, detail="expired")
         if not _ok(sig, f"{key}:{exp}"):

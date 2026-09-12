@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-10",
+  "status": "held",
+  "pages": 156,
+  "retained_posts": 22,
+  "words": 36001,
+  "sha256": "dc9fe8648f5f3e537daf8f1076bcde5ae90391999855ad4f5494babad1c5206c",
+  "source_hashes_match": true,
+  "measured_paragraph_interruptions": 0,
+  "running_heads_and_folios_verified": 156,
+  "physical_bounds": {
+    "glyphs": 188631,
+    "images": 58,
+    "pass": true
+  },
+  "visual_review": {
+    "findings": 0,
+    "errors": 0,
+    "cached_sheets": 39,
+    "new_confirmations": 2
+  },
+  "whitespace": {
+    "threshold": 0.3,
+    "pages_over_threshold": 38,
+    "decisions": {
+      "intentional_space": 23,
+      "repair": 9,
+      "needs_review": 6
+    },
+    "repair_pages": [
+      14,
+      22,
+      37,
+      59,
+      69,
+      79,
+      97,
+      113,
+      145
+    ],
+    "needs_review_pages": [
+      35,
+      57,
+      114,
+      115,
+      117,
+      128
+    ]
+  },
+  "render_passes": 6,
+  "calls": 254,
+  "known_annual_usd": 1.4887917499999999,
+  "annual_reserved_or_spent_usd": 1.9101937499999997,
+  "scope": "Private unchanged sixth-pass PDF. No acceptance, delivery, upload, listing or order. No figure enlargement mode was selected in the full annual run."
+}

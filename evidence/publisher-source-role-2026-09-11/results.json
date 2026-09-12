@@ -1,0 +1,102 @@
+{
+  "status": "focused-diagnostics-pass-annual-open",
+  "base_commit": "b2dc148c5d8459dfe8158cca1fec3bfa5e8b9e05",
+  "preserved_annual": {
+    "status": "held-after-billing-recovery",
+    "pdf_sha256": "ffa19c42d99f54c271a54ca85adb0fd0f7db9da9612972bd09d0fff993aa83e0",
+    "pages": 162,
+    "pieces": 22,
+    "words": 36001,
+    "calls": 88,
+    "known_usd": 1.28684375,
+    "committed_usd": 1.38449175
+  },
+  "rejected_combined_role_layout_probe": {
+    "calls": 6,
+    "known_usd": 0.293728,
+    "status": "failed-picture-classification",
+    "reason": "Layout model confused current and following figures and selected a chart as a photo. No repair was applied from this result."
+  },
+  "source_role_checks": {
+    "calls": 12,
+    "known_usd": 0.00512275,
+    "required_roles_pass": true,
+    "one_actual_source_image_per_request": true
+  },
+  "layout_checks": {
+    "two_measured_photo_repairs_selected": true,
+    "reading_images_have_no_shrink_candidate": true,
+    "following_figure_probe_pages": [
+      14,
+      126
+    ],
+    "following_figure_probe_holds": [],
+    "limitation": "Focused saved-page probes, not approval of the whole PDF or a fresh annual."
+  },
+  "offline_render": {
+    "pdf_sha256": "da8c1fae04212b2ac94635f45f8d1fe47e8b159dd0d4ec61e281858d09570c8c",
+    "pages": 162,
+    "pieces": 22,
+    "audit_pass": true,
+    "independent_checks": {
+      "fixture_hash_matches": true,
+      "source_inventory_matches": true,
+      "selection_matches": true,
+      "piece_count_matches": true,
+      "source_word_count_matches": true,
+      "all_source_hashes_match": true,
+      "all_article_opening_titles_present": true,
+      "physical_bounds_pass": true,
+      "pdf_page_count_matches": true,
+      "fresh_geometry_matches": true,
+      "running_matter_pass": true,
+      "reading_order_pass": true
+    },
+    "preservation": {
+      "articles_checked": 22,
+      "normalized_printed_article_text_equal": true,
+      "different_articles": [],
+      "all_embedded_bitmap_pixel_occurrences_equal": true,
+      "bitmap_occurrences": 58,
+      "limits": "Alphanumeric body comparison for each compiled article excludes running matter and generated reference-page pointers. Whitespace, punctuation, front/end matter and detailed layout still need their other checks. This does not accept the PDF."
+    },
+    "photo_moves": [
+      {
+        "from_page": 42,
+        "to_page": 41,
+        "height_before_pt": 419.421375,
+        "height_after_pt": 362.16
+      },
+      {
+        "from_page": 133,
+        "to_page": 132,
+        "height_before_pt": 211.494375,
+        "height_after_pt": 124.56
+      }
+    ],
+    "status": "diagnostic-only; spacing review still required; not a complete fit loop or full review"
+  },
+  "source_role_and_layout_diagnostic": {
+    "run": "proofs/publisher/source-role-probe-2026-09-11",
+    "calls": 16,
+    "spent_usd": 0.17094875,
+    "reserved_or_spent_usd": 0.17094875,
+    "status": "completed-request-only",
+    "render_passes": 0,
+    "repair_rounds": 0,
+    "failed_calls": 0,
+    "pdf_sha256": "ffa19c42d99f54c271a54ca85adb0fd0f7db9da9612972bd09d0fff993aa83e0"
+  },
+  "campaign_known_usd": 24.650443,
+  "campaign_committed_usd": 27.08912625,
+  "validation": {
+    "full_local_unit_suite": "passed; after earlier sandbox HEIC restriction and transient timing failure; isolated timing recheck passed",
+    "renderer": "69 passed, 0 failed; disposable browser required normal macOS access",
+    "build_validator": "13 passed, 0 warnings, 0 failed",
+    "latest_early_fitting_orchestration": "13 passed after full suite",
+    "figure_reading": "9 real rendering checks passed",
+    "source_image_roles": "single-image identity, bounded PNG conversion, safe candidate filtering, durable byte-bound cache and invalid role rejection passed",
+    "ci": "pending new candidate"
+  },
+  "released": false
+}

@@ -75,7 +75,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     const spacing=JSON.parse(fs.readFileSync(f.replace(/\.pages\.json$/,".whitespace.json"),"utf8"));
     if(spacing.pages.length!==d.pages.length)throw Error("Whitespace measurement omitted pages");
     d.whitespace_metric=spacing.metric;
-    for(const p of d.pages){const s=spacing.pages.find(s=>s.page===p.page);if(!s||!Number.isFinite(s.unused))throw Error("Whitespace measurement missing");p.unused=s.unused;}
+    for(const p of d.pages){const s=spacing.pages.find(s=>s.page===p.page);if(!s||!Number.isFinite(s.unused)||!s.layout_geometry)throw Error("Whitespace measurement missing");p.unused=s.unused;p.layout_geometry=s.layout_geometry;}
     /* short body pages: the figure that fell onto the next page is scaled to the space left, less
        1.2in for figure spacing and a subheading that may stick to it */
     for (const b of d.bad) { const nx=figs.find(x=>x.page===b.page+1); if (!nx) continue;
@@ -115,7 +115,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     if (d.tail.length) console.log("TAIL " + d.tail.map(t=>`p${t.page} ${t.id} ${t.figH}in ${t.newH>=1.4?"-> "+t.newH+"in":"kept"}`).join("; "));
     fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS" "$ENDS" "$MAP" "$LINKS" "$PARTS" "$FOLIOS" "$PAR_STARTS" "$PAR_ENDS" "$MARKS"
   # tails are recorded for the fit loop, never a failure here: only the blank gate fails a render
-  if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 1; fi
+  if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 4; fi
   SIZE=$(wc -c < "$PDF" | tr -d ' ')
   echo "OK $PAGES $(basename "$PDF") $SIZE bytes typst $(( $(date +%s) - START ))s"
   exit 0

@@ -31,3 +31,25 @@ export function signedProofUrl(key, ttlSeconds = 3600) {
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   return `${PROOF_STORE_BASE}/proof?key=${encodeURIComponent(key)}&exp=${exp}&sig=${sign(`${key}:${exp}`)}`;
 }
+
+// Private worker recovery bundles use a distinct route and purpose-bound HMAC.
+// They are never returned as proof links or exposed through the reader.
+export function checkpointStore(owner,{fetchImpl=fetch}={}){
+  if(!/^[a-z0-9][a-z0-9-]{0,63}$/.test(owner))throw Error('Invalid checkpoint owner');
+  const key=sha=>{if(!/^[a-f0-9]{64}$/.test(sha))throw Error('Invalid checkpoint hash');return `checkpoints/${owner}/${sha}.json.gz`;};
+  return {
+    async put(sha,bytes){
+      const name=key(sha),bucket=Math.floor(Date.now()/300000);
+      const r=await fetchImpl(`${PROOF_STORE_BASE}/checkpoint?key=${encodeURIComponent(name)}&sig=${sign(`${name}:checkpoint-upload:${bucket}`)}`,{method:'PUT',body:bytes,headers:{'content-type':'application/gzip'},signal:AbortSignal.timeout(120000)});
+      const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok||j.sha256!==sha)throw Error('Completed PDF could not be saved for worker recovery.');
+    },
+    async get(sha){
+      const name=key(sha),exp=Math.floor(Date.now()/1000)+300;
+      const r=await fetchImpl(`${PROOF_STORE_BASE}/checkpoint?key=${encodeURIComponent(name)}&exp=${exp}&sig=${sign(`${name}:checkpoint-read:${exp}`)}`,{signal:AbortSignal.timeout(120000)});
+      if(!r.ok||Number(r.headers.get('content-length'))>150_000_000)throw Error('Saved PDF recovery is unavailable; its allowances remain spent.');
+      const chunks=[];let size=0;
+      for await(const chunk of r.body){size+=chunk.length;if(size>150_000_000)throw Error('Saved PDF recovery exceeds its size limit.');chunks.push(chunk);}
+      return Buffer.concat(chunks);
+    },
+  };
+}

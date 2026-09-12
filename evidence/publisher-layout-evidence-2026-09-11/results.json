@@ -1,0 +1,103 @@
+{
+  "recorded_at": "2026-09-12T02:07:27.709990+00:00",
+  "status": "annual held; diagnostic improvements verified, no new cold acceptance",
+  "base_code": "ec5ea2a43cba33da84612f061aa9d1523bf04121",
+  "annual": {
+    "directory": "proofs/publisher/owner-cold-reading-scale-2026-09-11",
+    "status": "held",
+    "pages": 158,
+    "pieces": 22,
+    "source_words": 36001,
+    "pdf_sha256": "5026429ddb36559d11d11b8962ae3f1589f44687165cbbb3db2f525282a60dd4",
+    "checks": {
+      "fixture_hash_matches": true,
+      "source_inventory_matches": true,
+      "selection_matches": true,
+      "piece_count_matches": true,
+      "source_word_count_matches": true,
+      "all_source_hashes_match": true,
+      "all_article_opening_titles_present": true,
+      "physical_bounds_pass": true,
+      "pdf_page_count_matches": true,
+      "fresh_geometry_matches": true,
+      "running_matter_pass": true,
+      "reading_order_pass": true
+    },
+    "cost": {
+      "run": "proofs/publisher/owner-cold-reading-scale-2026-09-11/publisher",
+      "calls": 141,
+      "spent_usd": 1.85020375,
+      "reserved_or_spent_usd": 1.85020375,
+      "status": "held: The bounded layout repairs need a closer look. Your work is saved.",
+      "render_passes": 6,
+      "repair_rounds": 2,
+      "failed_calls": 0,
+      "unknown_cost_calls": 0,
+      "pdf_sha256": "5026429ddb36559d11d11b8962ae3f1589f44687165cbbb3db2f525282a60dd4"
+    }
+  },
+  "diagnostics": [
+    {
+      "directory": "proofs/publisher/layout-visual-probe-2026-09-11",
+      "calls": 3,
+      "committed_usd": 0.136126,
+      "result": "Four judgments improved with images; the two body-page judgments remained unreliable. Preserved as unsuccessful diagnosis."
+    },
+    {
+      "directory": "proofs/publisher/layout-structure-probe-2026-09-11",
+      "calls": 2,
+      "committed_usd": 0.059194,
+      "layout_decisions": [
+        {
+          "page": 41,
+          "decision": "intentional_space",
+          "candidate_id": null,
+          "reason": "This essay's compiled span ends at page 42 (a full-page photo); page 41 is the final prose page, ending with the article's closing paragraph before that closing image.",
+          "space_basis": "figure_sequence"
+        },
+        {
+          "page": 121,
+          "decision": "intentional_space",
+          "candidate_id": null,
+          "reason": "Compiled article spans to page 124; this page ends a paragraph before the next page's full-page screenshot figure, consistent with the source's image sequence.",
+          "space_basis": "figure_sequence"
+        },
+        {
+          "page": 157,
+          "decision": "intentional_space",
+          "candidate_id": null,
+          "reason": "End matter page with 'Get More' purchase/contact info and publisher watermark; a structural closing leaf that need not be filled with content.",
+          "space_basis": "structural_leaf"
+        }
+      ],
+      "glyph_confirmation": {
+        "confirmed": false,
+        "origin": "rendered_layout",
+        "note": "The glyph is a legible monochrome outline birthday cake with candles, rendered via NotoEmoji font\u2014valid print typography, not a missing/malformed glyph."
+      },
+      "pdf_sha256": "5026429ddb36559d11d11b8962ae3f1589f44687165cbbb3db2f525282a60dd4",
+      "render_passes": 0,
+      "limits": "Only focused request behavior. Original annual remains held, no journal reset or acceptance."
+    }
+  ],
+  "validation": {
+    "full_units": "passed",
+    "renderer": "69 passed, 0 failed",
+    "validator": "13 passed, 0 warnings, 0 failures",
+    "focused": "layout 18; budget 17; orchestration 11; actual neighbour images/cache/missing-image holds; actual glyph/absence/hold fixtures"
+  },
+  "campaign_known_usd": 22.8989225,
+  "campaign_committed_usd": 25.23995775,
+  "release": "Production remains d30f0aa. Private checkpoint deployment awaits accepted book quality; site release through protected GitHub.",
+  "ci_compatibility": {
+    "failed_run": 34666844480,
+    "commit": "43bc4ebe7fb59172f30fb858c8390612aecf7f4f",
+    "cause": "PyMuPDF 1.28.2 prints a deprecated fitz-alias warning on stdout; the new glyph helper parsed that warning as JSON, holding review. Reproduced locally with an isolated current-library environment.",
+    "fix": "Use canonical pymupdf import and a dedicated metadata result file; preserve actual PDF glyph crops and all quality holds.",
+    "targeted_validation": [
+      "PyMuPDF 1.26.5: existing page-review and real glyph fixtures pass",
+      "PyMuPDF 1.28.2: existing page-review and real glyph fixtures pass"
+    ],
+    "annual": "Prepared 43bc4eb trial did not launch or allocate spend because CI failed."
+  }
+}

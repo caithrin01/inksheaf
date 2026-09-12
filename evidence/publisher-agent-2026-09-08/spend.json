@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-09-09T20:03:54.275819+00:00",
+  "as_of": "2026-09-10T18:04:06.859951+00:00",
   "starting_campaign_usd": 12.880265,
   "runs": [
     {
@@ -34,9 +34,9 @@
     },
     {
       "run": "proofs/publisher/owner-acceptance-2026-09-08/publisher",
-      "calls": 158,
-      "spent_usd": 0.7825202499999997,
-      "reserved_or_spent_usd": 1.2039222500000002
+      "calls": 254,
+      "spent_usd": 1.4887917499999999,
+      "reserved_or_spent_usd": 1.9101937499999997
     },
     {
       "run": "proofs/publisher/owner-annual/publisher",
@@ -102,8 +102,8 @@
       "status": "completed"
     }
   ],
-  "known_campaign_usd": 15.092968,
-  "reserved_campaign_usd": 17.4126525,
+  "known_campaign_usd": 15.7992395,
+  "reserved_campaign_usd": 18.118924,
   "campaign_cap_usd": 50,
   "note": "Count each cumulative ledger once, including failed/resumed development calls. Unknown charges remain reserved. No new author email, upload, listing or order."
 }

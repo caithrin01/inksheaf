@@ -1,0 +1,9 @@
+PASS private workspace requires a capability scoped to that edition
+PASS workspace is read-only and has no public indexing or caching
+PASS events bind their entire payload and replay without duplication
+PASS new run replaces prior progress rather than mixing editions
+PASS inference reservations survive reload and stale writers cannot reset spend
+PASS a creator capability cannot read the private model journal
+PASS the complete annual-review ledger is durable but excess calls cannot be saved
+PASS a ready workspace reads actual outbox columns and retries only its saved message
+8 publisher workspace checks passed

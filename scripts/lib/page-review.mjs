@@ -5,6 +5,9 @@
 // checklist with page numbers. Pass 2: each flagged page alone, at higher resolution, a stronger
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
 // records model failures. The publisher orchestrator holds delivery until review is complete.
+import { auditRunningMatter } from "./running-matter.mjs";
+import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
+import {glyphEvidence} from './glyph-evidence.mjs';
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -15,8 +18,8 @@ export const CHECKS = {
   3: "Figures: an image separated from its caption; an image cropped or overflowing the text block; an image too small to read; a placeholder box, 'could not be retrieved' or broken-image notice where a picture should be.",
   4: "Overflow: a table, code block, URL or wide word running past the right margin or off the page.",
   5: "Running heads and folios: the head names the wrong essay; a folio missing; front matter carrying a head.",
-  6: "Glyphs: boxes, question marks in diamonds, mojibake, a font fallback (a line in a different face).",
-  7: "Artefacts: raw HTML or markup printed, a stray 'Figure 1:' label, doubled rules, a stray 'Leave a comment' or 'Subscribe' button text, an empty page in the body.",
+  6: "Glyphs: missing/replacement characters, boxes, question marks in diamonds, mojibake, or an unintended prose font change. A legible monochrome emoji is valid print typography; lack of full colour alone is not a glyph defect. Still flag an absent or unreadable symbol.",
+  7: "Artefacts: raw HTML or markup printed, a stray 'Figure 1:' label, doubled rules, a stray 'Leave a comment' or 'Subscribe' button text, an empty page in the body. A QR code with its 'Read online' caption in a labelled Links section is intentional print reference apparatus; that caption is not a leftover web button. Still check for clipping, overlap or a detached caption.",
   8: "Reading order: two columns where there should be one, a paragraph split by a figure mid-sentence.",
 };
 export const PASS1_MODEL = process.env.REVIEW_PASS1_MODEL || "google/gemini-3.1-flash-lite";
@@ -68,7 +71,7 @@ print(len(spec))
 
 // Print-preservation checks compare the flagged PDF page with its actual source figures.
 // These bounded, local PNG conversions introduce no generated or repaired source content.
-function sourceComparisons(figures,dir){
+export function sourceComparisons(figures,dir){
   mkdirSync(dir,{recursive:true});
   const spec=figures.map((f,i)=>({source:f.source,out:join(dir,`source-${i+1}.png`)}));
   execFileSync('python3',['-c',`
@@ -118,9 +121,13 @@ Printed source cards for videos and attachments, including their readable URLs, 
 
 Answer with a JSON array and nothing else. Each element: {"page": <number>, "check": <1-8>, "note": "<one sentence>", "confidence": <0 to 1>}. An empty array [] when nothing is wrong.`;
 
-const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+export const pass2Prompt = (f,context,sources,neighbours,glyphs=null) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+
+${glyphs?'The final image contains labelled magnified crops of actual PDF glyphs, not reconstructed characters. Their actual PDF text/font records are '+JSON.stringify(glyphs)+'. Inspect the visible symbol and its surroundings. A nonzero glyph ID or Unicode value alone does not prove correct appearance. A legible monochrome emoji is valid; an absent, unreadable or wrong symbol still fails. If the flagged defect is elsewhere or the evidence is truncated, do not assume the crop resolves it.':''}
 
 When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
+
+For check 2, paragraph_boundaries contains actual printed first/last lines and line counts, grouped using compiled source-paragraph anchors. Count paragraph lines on each side of the turn, not words in the final line. A paragraph with several lines on both pages has no single-line fragment. A complete one-line source paragraph is different from a split paragraph; inspect whether it acts as a stranded heading. An end anchor on the next page with zero printed lines is not proof of continuation. Unknown evidence cannot clear a heading, caption or ambiguous boundary.
 
 ${neighbours.length ? 'Additional images show neighbouring pages: '+neighbours.map((p,i)=>'image '+(i+2)+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
 
@@ -132,7 +139,9 @@ Look at the page carefully and decide whether the SPECIFIC flagged defect is pre
 
 Classify origin as rendered_layout, source_content or uncertain. source_content means the finding is entirely explained by faithfully preserved source material, with no additional print loss. An intentionally broken screenshot or original photo crop can qualify. Essential detail made unreadable by print scaling is rendered_layout. When intent/readability cannot be established, use uncertain.
 
-Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"}.`;
+${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_heading, none or uncertain) and edge (top, foot, both or uncertain). A whole source paragraph is not a split fragment even when its empty end marker lands on the following page. A heading followed by body text is not alone at the foot. Whitespace and an image positioned after a complete introductory paragraph are separate layout questions; do not relabel them as a single-line widow. Do not confirm when defect is none.':''}
+
+Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':''}}.`;
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
 export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
@@ -143,6 +152,11 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   let pages;
   try { pages = rasterise(pdf, join(dir, "pages")); } catch (e) { out.errors.push(`rasterise: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.pages = pages.length;
+  try { out.running_matter = auditRunningMatter(pdf,pageContext); }
+  catch(e) { out.errors.push(`running matter: ${String(e.message).slice(0,120)}`); out.ms=Date.now()-started; return out; }
+  const verifiedHeads=new Set(out.running_matter.filter(p=>p.verified).map(p=>p.page));
+  const wrongHeads=new Set(out.running_matter.filter(p=>!p.verified).map(p=>p.page));
+  for(const p of out.running_matter.filter(p=>!p.verified))out.findings.push({page:p.page,check:5,confidence:1,origin:'measured_layout',note:`Printed ${[!p.head_matches&&'running head',!p.folio_matches&&'folio'].filter(Boolean).join(' and ')} differs from the compiled page map.`});
   let sheets;
   try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.sheets = sheets.length;
@@ -170,6 +184,18 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
   for (const f of byPage.values()) {
+    const boundary=pageContext.find(p=>p.page===f.page)?.paragraph_boundaries;
+    if(f.check===2&&boundary?.verified_no_single_line_fragment){
+      out.dismissed.push({...f,origin:'measured_layout',paragraph_boundaries:boundary,note:'Both page edges contain multiple printed lines of their anchored paragraphs; neither is a stranded heading or single-line fragment.'});
+      continue;
+    }
+    // Check 5 is about label identity/presence. Actual glyphs decide it when both
+    // renderer maps are available; unknown layouts still receive model review.
+    if(f.check===5&&verifiedHeads.has(f.page)){
+      out.dismissed.push({...f,origin:'measured_layout',note:'Actual printed running head and folio match the compiled page map.'});
+      continue;
+    }
+    if(f.check===5&&wrongHeads.has(f.page))continue;
     if(stopOnError&&out.errors.length)break;
     let single;
     /* one directory per page: pdftoppm names by page number and a shared directory once handed
@@ -180,13 +206,19 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
       const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):[];
       const adjacent=neighbours.map(p=>rasterise(pdf,join(dir,'adjacent',String(p)),{scale:1800,first:p,last:p})[0]);
-      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours), maxTokens: 400 });
+      // Retain all bounded source comparisons. Add a glyph sheet only when it
+      // fits the four-image request cap; unknown evidence never clears a defect.
+      const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;
+      const glyphRecord=glyphs?{characters:glyphs.characters,truncated:glyphs.truncated}:null;
+      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord), maxTokens: 400,check:f.check });
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); continue; }
+      if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
       const sourcePreserved=j.origin==='source_content'&&comparisons.length>0&&[3,6].includes(f.check);
       const rec = { page: f.page, check: f.check, note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
-        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours };
+        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}) };
+      if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   }
