@@ -88,5 +88,16 @@
   },
   "campaign_known_usd": 22.8989225,
   "campaign_committed_usd": 25.23995775,
-  "release": "Production remains d30f0aa. Private checkpoint deployment awaits accepted book quality; site release through protected GitHub."
+  "release": "Production remains d30f0aa. Private checkpoint deployment awaits accepted book quality; site release through protected GitHub.",
+  "ci_compatibility": {
+    "failed_run": 34666844480,
+    "commit": "43bc4ebe7fb59172f30fb858c8390612aecf7f4f",
+    "cause": "PyMuPDF 1.28.2 prints a deprecated fitz-alias warning on stdout; the new glyph helper parsed that warning as JSON, holding review. Reproduced locally with an isolated current-library environment.",
+    "fix": "Use canonical pymupdf import and a dedicated metadata result file; preserve actual PDF glyph crops and all quality holds.",
+    "targeted_validation": [
+      "PyMuPDF 1.26.5: existing page-review and real glyph fixtures pass",
+      "PyMuPDF 1.28.2: existing page-review and real glyph fixtures pass"
+    ],
+    "annual": "Prepared 43bc4eb trial did not launch or allocate spend because CI failed."
+  }
 }

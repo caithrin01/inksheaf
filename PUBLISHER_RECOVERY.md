@@ -157,3 +157,9 @@ Two normal-packet requests ($0.059194 total) returned structurally consistent
 figure/end-matter decisions and dismissed the cake misidentification. These are
 focused diagnostics, not another annual or permission to overwrite a held verdict.
 See evidence/publisher-layout-evidence-2026-09-11/results.json.
+
+CI 34666844480 on 43bc4eb found a parser compatibility failure before another
+annual could start: PyMuPDF 1.28.2 prints a warning for the deprecated `fitz`
+alias. The new glyph helper had treated stdout as pure JSON. It now uses the
+canonical `pymupdf` import and a separate metadata file. Actual page/glyph tests
+pass with both 1.26.5 and 1.28.2. The prepared trial made no calls or allocation.

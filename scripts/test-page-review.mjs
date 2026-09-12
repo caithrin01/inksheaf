@@ -46,7 +46,7 @@ ok("an invented page is recorded as incomplete review, never a clean pass",r.pas
 
 /* pass 2 dismisses: nothing reported, the dismissal kept */
 const r2 = await reviewPdf(pdf, { outDir: join(dir, "run2"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: text.includes("page 1,") ? '[{"page":2,"check":6,"note":"boxes","confidence":0.9}]' : "[]" } : { text: '{"confirmed": false, "note": "clean Times, no boxes"}' }, key: "stub" });
-ok("a dismissed flag is not a finding", r2.findings.length === 0 && r2.dismissed.length === 1 && r2.pass2.dismissed === 1);
+ok("a dismissed flag is not a finding", r2.findings.length === 0 && r2.dismissed.length === 1 && r2.pass2.dismissed === 1,JSON.stringify(r2.errors));
 ok("writer line says nothing flagged", /flagged nothing/.test(writerLine(r2)));
 
 /* the model is down: no throw, errors recorded, empty findings, writer line empty */

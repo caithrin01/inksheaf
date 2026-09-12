@@ -1,12 +1,16 @@
 // Magnify actual PDF glyphs; never redraw a character from its Unicode value.
 import {execFileSync} from 'node:child_process';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync,readFileSync} from 'node:fs';
 import {join} from 'node:path';
 export function glyphEvidence(pdf,page,directory){
   mkdirSync(directory,{recursive:true});
-  const file=join(directory,'glyphs.png');
-  const metadata=JSON.parse(execFileSync('python3',['-c',`
-import fitz,json,sys
+  const file=join(directory,'glyphs.png'),record=join(directory,'glyphs.json');
+  // Library warnings belong to diagnostic output, never the JSON protocol. New
+  // PyMuPDF releases warn on the old fitz alias; use its canonical module and a
+  // separate result file so other diagnostics cannot corrupt this evidence.
+  execFileSync('python3',['-c',`
+import pymupdf as fitz,json,sys
+from pathlib import Path
 from PIL import Image,ImageDraw
 doc=fitz.open(sys.argv[1]);page=doc[int(sys.argv[2])-1];found=[]
 for span in page.get_texttrace():
@@ -24,7 +28,8 @@ if selected:
         draw.text((10,i*180+5),'Actual PDF crop %d: %s, %s, %.2f pt'%(i+1,g['codepoint'],g['font'],g['size_points']),fill='black')
         sheet.paste(image,(10,i*180+28))
     sheet.save(sys.argv[3],'PNG')
-print(json.dumps(dict(characters=selected,truncated=len(found)>len(selected))))
-`,pdf,String(page),file],{encoding:'utf8',maxBuffer:100000}));
+Path(sys.argv[4]).write_text(json.dumps(dict(characters=selected,truncated=len(found)>len(selected))))
+`,pdf,String(page),file,record],{stdio:['ignore','ignore','pipe'],maxBuffer:100000});
+  const metadata=JSON.parse(readFileSync(record,'utf8'));
   return metadata.characters.length?{file,...metadata}:null;
 }
