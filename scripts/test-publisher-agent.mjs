@@ -50,6 +50,23 @@ await test('a repeating provider failure stops after the one bounded retry',asyn
   let calls=0;const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>{calls++;return Response.json({error:{message:'busy'}},{status:503});}});
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/did not complete/);assert.equal(calls,2);
 });
+await test('a native fetch timeout retains its unknown charge and can retry without mutating DOMException',async()=>{
+  const timeout=new DOMException('Request timed out','TimeoutError'),originalCode=timeout.code,journal={calls:[],spent:0};let calls=0;const saved=[];
+  const ask=openRouterPublisher({key:'fixture',journal,persist:async()=>saved.push(structuredClone(journal)),fetchImpl:async()=>{
+    if(++calls===1)throw timeout;
+    assert.equal(journal.calls[0].status,'failed');assert.equal(journal.calls[0].cost,undefined);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await ask({role:'reader',task:'Read',schema:Reading});assert.equal(calls,2);assert.equal(timeout.code,originalCode);
+  assert.equal(journal.spent,.001);assert(journal.calls.reduce((sum,c)=>sum+(c.cost??c.reserved),0)>.001);
+  assert(saved.some(s=>s.calls.length===1&&s.calls[0].status==='failed'&&s.calls[0].error==='Request timed out'));
+});
+await test('repeated native aborts stop after one retry with both failures durably recorded',async()=>{
+  const aborted=new DOMException('Request aborted','AbortError'),journal={calls:[],spent:0};let calls=0;
+  const ask=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{calls++;throw aborted;}});
+  await assert.rejects(ask({role:'reader',task:'Read',schema:Reading}),error=>error.code==='PUBLISHER_TRANSIENT'&&error.cause===aborted);
+  assert.equal(calls,2);assert(journal.calls.every(c=>c.status==='failed'&&c.reserved>0&&c.cost===undefined));assert.equal(journal.spent,0);
+});
 await test('Sonnet image reservations exceed documented patches at every accepted size', () => {
   for (const [w,h] of [[1,1],[28,28],[1200,1800],[2576,2576],[4096,4096]]) {
     const bound = publisherImageTokenBound('anthropic/claude-sonnet-5',w,h);

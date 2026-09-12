@@ -169,12 +169,16 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       if (call.cost != null && call.cost > reserved + 0.000001) throw Error('Publisher usage exceeded its reservation; review provider accounting');
       return result;
     } catch (error) {
-      if(['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&/fetch failed/i.test(error.message)))error.code='PUBLISHER_TRANSIENT';
+      // Native fetch aborts are DOMExceptions with a read-only numeric `code`.
+      // Keep the original error as the cause; tagging it in place can itself
+      // throw before the failed call is recorded or its bounded retry runs.
+      const transient=['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&/fetch failed/i.test(error.message));
+      const failure=transient?Object.assign(new Error(error.message,{cause:error}),{code:'PUBLISHER_TRANSIENT'}):error;
       if (call) { call.status = 'failed'; call.error = String(error.message).replaceAll(key, '[redacted]').slice(0, 250);
         call.elapsed_ms=Date.now()-Date.parse(call.started);
         if(error.cause?.code)call.transport_error_code=String(error.cause.code).replaceAll(key,'[redacted]').slice(0,64);
       }
-      throw error;
+      throw failure;
     } finally {
       journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
       try { await persist(journal); } finally { busy = false; }
