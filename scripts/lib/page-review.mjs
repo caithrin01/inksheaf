@@ -71,7 +71,7 @@ print(len(spec))
 
 // Print-preservation checks compare the flagged PDF page with its actual source figures.
 // These bounded, local PNG conversions introduce no generated or repaired source content.
-function sourceComparisons(figures,dir){
+export function sourceComparisons(figures,dir){
   mkdirSync(dir,{recursive:true});
   const spec=figures.map((f,i)=>({source:f.source,out:join(dir,`source-${i+1}.png`)}));
   execFileSync('python3',['-c',`

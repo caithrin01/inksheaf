@@ -163,3 +163,21 @@ annual could start: PyMuPDF 1.28.2 prints a warning for the deprecated `fitz`
 alias. The new glyph helper had treated stdout as pure JSON. It now uses the
 canonical `pymupdf` import and a separate metadata file. Actual page/glyph tests
 pass with both 1.26.5 and 1.28.2. The prepared trial made no calls or allocation.
+
+
+Source-image role checks now precede the first full-page scan when an unknown
+image has a measured fitting opportunity. Each inexpensive reader request sees
+one bounded conversion of the actual source image. Only a confirmed picture can
+enter photo fitting; charts, screenshots, text-bearing posters and uncertain
+images retain reading scale. Source and converted-image hashes bind cached
+answers. The next reserved fitting pass shares picture placement and source-order
+repairs, preserving the full-page review budget. Picture decisions survive build
+arguments and private render checkpoints; later readability corrections can
+still enlarge them.
+
+Layout input directly identifies the following source figure and its role,
+physical dimensions and source-order constraint. A separate source role does not
+approve whitespace or waive any content finding. Every measured gap still needs
+a repair or factual layout verdict. `evidence/publisher-source-role-2026-09-11`
+records the rejected combined-role probe, successful individual-image checks,
+two actual PDF photo moves, preservation audits and remaining annual acceptance.

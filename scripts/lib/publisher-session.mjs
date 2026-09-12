@@ -9,8 +9,9 @@ import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib
 import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
 import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
+import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['publisher-session.mjs','publisher-layout.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -25,6 +26,8 @@ The compiled position and compiled_article_span are authoritative; previous visu
 For intentional_space, choose space_basis from that page's allowed_space_bases and give a specific factual reason consistent with that basis. single_piece means a complete one-page work; article_end means the actual final compiled article page; structural_leaf names necessary front/end matter or a divider; source_form preserves a poem or recipe; figure_sequence explains the visible placement of identified figures; composition explains another visible design choice. Neither composition nor figure_sequence permits calling a body page an article ending. A final prose paragraph can precede a closing image within the same article: describe that actual image sequence. Other decisions require space_basis:null. A permitted basis is a structural possibility, never automatic approval of the gap.
 When images are supplied, there is one labelled contact sheet for each target page, in the same order as pages. visual_context identifies the target and its actual neighbours. Judge the actual printed composition and figure detail alongside the measurements. A full-page screenshot can have a specific reading purpose after its explanatory text; a photograph has different scaling needs. Do not invent a figure's role from its dimensions or assume a large gap is justified just because the following figure cannot fit.
 adjacent_layout supplies the previous page's ending, the current ending and the next page's opening: actual printed lines (including captions), image rectangles, source figure IDs/sizes and compiled paragraph anchors. All coordinates are physical PDF points. Compare trailing_space_points with the following image and surrounding text/spacing. An image taller than the gap cannot fit there at its current size, but that alone does not prove its size or the gap is well designed. Check the source sequence, caption and reading role; never shrink a chart merely to fill space. same_article distinguishes a continuation from the next independent piece. Paragraph anchors describe compiled positions and may lie on the next page at a boundary; consult the printed lines before claiming a paragraph actually continues. Missing geometry is unknown, never zero. Truncated context is explicitly marked. A specific intentional-space reason must name the actual content or structural constraint, not just a chapter ending or lack of repair candidates.
+following_source_figure identifies the exact next image, its independently inspected source role, its current reading size, and the space before it. reading_size_protected means its actual text/chart detail needs reading scale; it must stay in source order. Judge whether breaking before that named image has a specific reading purpose. The image belongs to this decision even when the target page contains only text. Do not report no following image when this record and the next-page raster show one. This evidence never excuses a content defect or automatically approves the composition.
+A fit_figure candidate names the page with the gap in candidate.page and the image's current location in candidate.figure_page. It fits that image into the preceding gap; return the repair for candidate.page. picture_evidence records a separate inspection of that exact source image, identified by its image hash. Such candidates are supplied only for confirmed photographs/illustrations; unknown roles and images with text to read have no shrinking candidate. Judge whether the proposed picture size suits the page; do not reject it merely because the full-size image currently prints on the following page. Source order and pixels are preserved and the resulting PDF still receives full review.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
 set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. Prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
@@ -149,7 +152,16 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const record=state.renderBudget.volumes[String(volume)];
     return {volume:String(volume),selection_revision:selection.revision,render_ids:(record?.passes||[]).map(p=>p.id),repair_ids:(record?.repairs||[]).map(p=>p.id)};
   };
-  return {emit,vision,layout,selection,
+  const figureRole=async({image,figure_id,source_sha256})=>{
+    await ensureSelection();
+    const input={figure_id,source_sha256},imageHashes=[createHash('sha256').update(image).digest('hex')],maxTokens=250;
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:FIGURE_ROLE_TASK,schema:FigureRole,input,imageHashes,maxTokens}),cache=new Map(state.cache);
+    if(cache.has(key))return FigureRole.parse(cache.get(key));
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const result=await ask({role:'reader',task:FIGURE_ROLE_TASK,schema:FigureRole,data:input,images:[image],maxOutput:maxTokens});
+    cache.set(key,result);state.cache=[...cache];await save();return result;
+  };
+  return {emit,vision,layout,figureRole,selection,
     renderScope,
     loadRender:async(volume,identity)=>{
       await ensureSelection();const reference=state.completedRenders?.[String(volume)];

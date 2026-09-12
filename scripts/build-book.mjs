@@ -905,12 +905,14 @@ if (ENGINE === "typst") {
   const backLinks = String(argOf('--back-links') || '').split(',').map(Number).filter(n=>Number.isInteger(n)&&n>0);
   const inFlow = String(argOf('--in-flow') || '').split(',').filter(Boolean);
   const readingFigures=Object.fromEntries(String(argOf('--reading-figures')||'').split(',').filter(Boolean).map(x=>{const i=x.lastIndexOf('=');if(i<1||!['column','landscape'].includes(x.slice(i+1)))throw Error('Invalid reading figure mode');return [x.slice(0,i),x.slice(i+1)];}));
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, inFlow, readingFigures, host: host.replace(/^www\./, "") });
+  const pictureFigures=String(argOf('--picture-figures')||'').split(',').filter(Boolean);
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, inFlow, readingFigures, pictureFigures, host: host.replace(/^www\./, "") });
   if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
   if (Object.keys(fitText).length) report.fitText = fitText;
   if (backLinks.length) report.backLinkArticles = backLinks;
   if (inFlow.length) report.inFlowFigures = inFlow;
   if(Object.keys(readingFigures).length)report.readingFigures=readingFigures;
+  if(pictureFigures.length)report.pictureFigures=pictureFigures;
   writeFileSync(OUT.replace(/\.html$/, ".typ"), typ);
   report.engine = "typst"; report.notes = argOf("--notes") || "endnotes_per_article"; report.printInterior = PRINT_INTERIOR;
 } else report.engine = "paged";

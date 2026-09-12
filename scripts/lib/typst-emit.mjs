@@ -64,7 +64,7 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, host = "", publisherWatermarks = true } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
@@ -125,6 +125,7 @@ export function emitTypst(html, opts = {}) {
   /* ---- blocks ---- */
   function figureOf(imgEl, caption) {
     const src = attr(imgEl, "src"); if (!src) return "";
+    const id = attr(imgEl, "data-fig") || src;
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
     const dim = imageSize(path); let size = `width: 100%`;
@@ -142,7 +143,7 @@ export function emitTypst(html, opts = {}) {
       const alt = (attr(imgEl, "alt") || "").toLowerCase();
       const aspect = dim.w / dim.h;
       const reading = /\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
-      const picture = /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
+      const picture = pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
       let pct;
       if (reading) pct = 100;
       else if (picture) pct = aspect >= 1.3 ? 75 : aspect >= 0.8 ? 62 : 50;
@@ -156,7 +157,6 @@ export function emitTypst(html, opts = {}) {
     }
     const capTxt = caption ? `, caption: [${caption}]` : "";
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
-    const id = attr(imgEl, "data-fig") || src;
     const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
     // Missing alt text does not establish that an image is decorative. Keep its
     // detail at the bounded column reading size until its role is known.

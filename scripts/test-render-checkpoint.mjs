@@ -21,7 +21,7 @@ async function fixture(){
   const doc=await PDFDocument.create();doc.addPage([432,648]).drawText('A complete preserved paragraph.',{x:50,y:550,size:10});doc.addPage([432,648]);
   writeFileSync(pdf,await doc.save());writeFileSync(image,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=','base64'));
   writeFileSync(pdf.replace('.pdf','.pages.json'),JSON.stringify({pages:[{page:1,blank:0},{page:2,blank:0}],figures:[{id:'source',page:1,source:image}],articles:[]}));
-  return {dir,pdf,brand:{accent:'#63543a'},report:{included:1,bodyHashes:{one:'original'},publisher:{decisions:[]},fit:{pass:1,fitText:{1:.62},inFlow:['source']}}};
+  return {dir,pdf,brand:{accent:'#63543a'},report:{included:1,bodyHashes:{one:'original'},publisher:{decisions:[]},fit:{pass:1,fitText:{1:.62},inFlow:['source'],pictureFigures:['source'],fitFigs:{source:2.4}}}};
 }
 try{
 await test('a killed worker resumes review at six renders and two repairs without building again',async()=>{
@@ -62,6 +62,7 @@ await test('replacement worker restores PDF and original source images through t
   const restored=await(await remote()).loadRender('1','remote');assert.deepEqual(readFileSync(restored.pdf),original);
   const m=JSON.parse(readFileSync(restored.pdf.replace('.pdf','.pages.json')));assert.deepEqual(readFileSync(m.figures[0].source),source);
   assert.deepEqual(restored.report.fit.inFlow,['source']);
+  assert.deepEqual(restored.report.fit.pictureFigures,['source']);assert.equal(restored.report.fit.fitFigs.source,2.4);
   assert.deepEqual(restored.brand,{accent:'#63543a'});
 });
 await test('lost checkpoint acknowledgement recovers its saved pointer; failed upload cannot publish a pointer',async()=>{

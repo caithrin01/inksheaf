@@ -32,13 +32,13 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
-  let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures};
+  let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures}, pictureFigures=[...(initial.pictureFigures||[])];
   for (let pass = 1; pass <= passes; pass++) {
-    yield { pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: { ...fitText }, backLinks: [...backLinks], inFlow: [...inFlow], readingFigures: { ...readingFigures }, extra: [...extra] };
+    yield { pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: { ...fitText }, backLinks: [...backLinks], inFlow: [...inFlow], readingFigures: { ...readingFigures }, pictureFigures:[...pictureFigures], extra: [...extra] };
     const figArg = Object.keys(fitFigs).length ? ["--fit-figs", Object.entries(fitFigs).map(([k, v]) => `${k}=${v}`).join(",")] : [];
     const textArg = Object.keys(fitText).length ? ['--fit-text', Object.entries(fitText).map(([n,v])=>`${n}=${v}`).join(',')] : [];
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
-      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...(Object.keys(readingFigures).length?['--reading-figures',Object.entries(readingFigures).map(([id,mode])=>`${id}=${mode}`).join(',')]:[]), ...extra];
+      ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...(pictureFigures.length?['--picture-figures',pictureFigures.join(',')]:[]), ...(Object.keys(readingFigures).length?['--reading-figures',Object.entries(readingFigures).map(([id,mode])=>`${id}=${mode}`).join(',')]:[]), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
     sh("node", a);
     try {
@@ -74,7 +74,7 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
         log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
         continue;
       }
-      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, ...(spacePending?{spacing_requires_review:true}:{}), out: out.trim() };
+      return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, pictureFigures, ...(spacePending?{spacing_requires_review:true}:{}), out: out.trim() };
     }
     catch (e) {
       let bad = [], pj = {}; try { pj = JSON.parse(readFileSync(pagesFile, "utf-8")); bad = pj.bad || []; } catch {}

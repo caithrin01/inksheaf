@@ -18,6 +18,7 @@ try{
   writeFileSync(builder,`import {readFileSync,writeFileSync} from 'node:fs';
 import {emitTypst} from ${JSON.stringify(new URL('./lib/typst-emit.mjs',import.meta.url).href)};
 const args=process.argv.slice(2),value=name=>args[args.indexOf(name)+1],state=JSON.parse(readFileSync(${JSON.stringify(join(journal,'state.json'))}));
+if(!args.includes('--picture-figures')||value('--picture-figures')!=='source')throw Error('Lost recorded picture decision');
 if(!state.renderBudget.volumes['1'].passes.length)throw Error('Builder started without reservation');
 const backLinks=args.includes('--back-links')?value('--back-links').split(',').map(Number):[];
 const fitText=args.includes('--fit-text')?Object.fromEntries(value('--fit-text').split(',').map(v=>v.split('=').map(Number))):{};
@@ -26,7 +27,7 @@ writeFileSync(${JSON.stringify(html.replace('.html','.typ'))},emitTypst(${JSON.s
 writeFileSync(${JSON.stringify(html.replace('.html','.report.json'))},JSON.stringify({printInterior:true}));`);
   const reservations=[];
   process.env.BOOK_ENGINE='typst';
-  const result=await fitWithBudget({args:[builder],html,pdf,passes:2,beforePass:async settings=>{
+  const result=await fitWithBudget({args:[builder],html,pdf,passes:2,initial:{pictureFigures:['source']},beforePass:async settings=>{
     if(reservations.length===1){
       const before=JSON.parse(readFileSync(pdf.replace('.pdf','.pages.json')));
       assert(before.articles.every(a=>a.end>a.start&&before.pages[a.end-1].ink_rows<.25));
@@ -34,7 +35,7 @@ writeFileSync(${JSON.stringify(html.replace('.html','.report.json'))},JSON.strin
     await(await publisherSession({directory:journal,env:{}})).reserveRender('1',settings);
     reservations.push(structuredClone(settings));
   }});
-  assert.equal(result.pass,2);assert.equal(reservations.length,2);
+  assert.equal(result.pass,2);assert.deepEqual(result.pictureFigures,['source']);assert.deepEqual(reservations[1].pictureFigures,['source']);assert.equal(reservations.length,2);
   assert.deepEqual(reservations[1].backLinks,[1],'references must reach the second render alongside leading');
   assert.equal(reservations[1].fitText[1],undefined,'move the references before tightening that same article');
   assert.equal(reservations[1].fitText[2],.62,'independent sparse text ending shares the render');

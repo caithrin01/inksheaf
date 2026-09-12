@@ -96,19 +96,45 @@ export function adjacentLayoutContext(measurement,page,pageText=[]){
       trailing_space_points:geometry?.trailing_space_points??null,
       printed_blocks:blocks.map(({kind,bbox,text})=>({kind,bbox,...(text!=null?{printed_text:excerpt(text,400)}:{})})),
       printed_blocks_truncated:blocks.length<all.length,
-      figures:figures.slice(0,12).map(({id,role,page,y,h,w,floating,reading_mode})=>({id,role,page,y_points:y,height_points:h,width_points:w,floating,reading_mode})),
+      figures:figures.slice(0,12).map(({id,role,page,y,h,w,floating,reading_mode,visual_role})=>({id,role,page,y_points:y,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       figures_truncated:figures.length>12,
       paragraph_anchors:anchors.map(({id,start,end})=>({id,start:start?{page:start.page,y:start.y}:start,end:end?{page:end.page,y:end.y}:end})),
       paragraph_anchors_truncated:anchors.length<paragraphs.length};
   };
   return {previous_page:view(page-1,'end'),current_page:view(page,'end'),next_page:view(page+1,'start')};
 }
-export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]}) {
+const unusedBody=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+// Potential dimensions are not available to the layout model until a separate
+// look at this exact source image establishes its picture role.
+export function unknownPictureFits({measurement,fit={},review={}}){
+  const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
+  const concerns=new Set(pages.filter(p=>unusedBody(p)>.30).map(p=>p.page));
+  for(const f of review.findings||[])concerns.add(f.page);
+  for(const n of concerns){
+    const page=pages.find(p=>p.page===n),article=articles.find(a=>n>=a.start&&n<a.end);
+    const figure=(measurement.figures||[]).find(f=>f.page===n+1);
+    if(!page||!article||!figure||figure.page>article.end||figure.role!=='unknown'||![figure.h,figure.w].every(v=>Number.isFinite(v)&&v>0)||fit.readingFigures?.[figure.id]
+      ||(review.findings||[]).some(f=>[n,figure.page].includes(f.page)&&f.check!==1))continue;
+    const measured=(measurement.fit||[]).find(f=>f.page===n&&f.id===figure.id);
+    const gap=page.layout_geometry?.trailing_space_points;
+    // Reserve an inch for figure spacing/caption. Never enlarge a fit or choose
+    // dimensions from prose, aspect-ratio guesses, or a model's invented number.
+    const height=measured?.height??Math.floor(Math.min(gap/72-1,figure.h/72-.15)*100)/100;
+    if(!Number.isFinite(height)||height<1.2||height>5.5||height>=figure.h/72-.09)continue;
+    candidates.push({id:`picture:${figure.id}:${n}`,page:n,operation:'fit_figure',figure:figure.id,
+      figure_page:figure.page,height,original_height_points:figure.h,
+      effect:`Fit the figure currently on physical page ${figure.page} into the gap on physical page ${n}. Return this repair for page ${n}; figure_page is its current location, not a different decision target.`,
+      requires_picture_confirmation:true});
+  }
+  return candidates;
+}
+export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],figureRoles={}}) {
+  measurement={...measurement,figures:(measurement.figures||[]).map(f=>({...f,...(figureRoles[f.id]?{visual_role:figureRoles[f.id]}:{})}))};
   const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
   const context=new Map(pageContext(measurement,report).map(p=>[p.page,p]));
   // `blank` measures the trailing gap only. Top-aligned empty areas (e.g. a
   // copyright leaf) and large internal gaps also need a recorded design reason.
-  const unused=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+  const unused=unusedBody;
   const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
   for(const f of review.findings||[])concerns.add(f.page);
   for(const f of measurement.figures||[]){
@@ -134,6 +160,10 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
     const figure=(measurement.figures||[]).find(x=>x.id===f.id);
     if(figure?.role==='picture'&&!figure.reading_mode&&!fit.readingFigures?.[f.id]&&Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
   }
+  for(const candidate of unknownPictureFits({measurement,fit,review})){
+    const evidence=figureRoles[candidate.figure];
+    if(evidence?.role==='picture'&&/^[a-f0-9]{64}$/.test(evidence.image_sha256||''))candidates.push({...candidate,picture_evidence:evidence});
+  }
   for(const a of articles){
     const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
     if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:Math.max(.54,+(current-.04).toFixed(2))});
@@ -142,13 +172,20 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
   return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{
     const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
+    const following=a&&p.page<a.end?(measurement.figures||[]).find(f=>f.page===p.page+1):null;
     const packet={page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
       compiled_article_span:a?{start:a.start,end:a.end}:null,
+      following_source_figure:following?{id:following.id,physical_page:following.page,
+        source_role:following.visual_role??null,reading_mode:following.reading_mode??null,
+        image_height_points:following.h,trailing_space_before_points:p.layout_geometry?.trailing_space_points??null,
+        same_article:true,kept_in_source_order:following.floating===false,
+        reading_size_protected:following.visual_role?.role==='reading'&&['column','landscape'].includes(following.reading_mode),
+        measurement_note:'Image height excludes caption and figure spacing.'}:null,
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
-      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode})=>({id,role,height_points:h,width_points:w,floating,reading_mode})),
+      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode,visual_role})=>({id,role,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
       findings:(review.findings||[]).filter(f=>f.page===p.page)};
     return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
@@ -160,6 +197,8 @@ export function validateLayout(result,input){
   for(const d of parsed.decisions){
     const p=pages.get(d.page);if(!p||seen.has(d.page))throw invalid('Layout review must account for each supplied page exactly once');seen.add(d.page);
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
+    if(d.decision==='repair'&&candidates.get(d.candidate_id)?.requires_picture_confirmation
+      &&!p.visual_context?.physical_pages?.includes(candidates.get(d.candidate_id).figure_page))throw invalid('Picture confirmation requires the actual figure page image');
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
     if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
     if(d.decision==='intentional_space'&&sparseProseEnding(p))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
@@ -173,9 +212,13 @@ export function applyLayoutRepairs(fit,result,input){
   validateLayout(result,input);
   const next={defer:[...(fit.defer||[])],fitFigs:{...fit.fitFigs},fitText:{...fit.fitText},backLinks:[...(fit.backLinks||[])],inFlow:[...(fit.inFlow||[])]};
   if(fit.readingFigures)next.readingFigures={...fit.readingFigures};
+  if(fit.pictureFigures)next.pictureFigures=[...fit.pictureFigures];
   for(const d of result.decisions.filter(d=>d.decision==='repair')){
     const c=input.candidates.find(c=>c.id===d.candidate_id);
-    if(c.operation==='fit_figure')next.fitFigs[c.figure]=c.height;
+    if(c.operation==='fit_figure'){
+      next.fitFigs[c.figure]=c.height;
+      if(c.requires_picture_confirmation)next.pictureFigures=[...new Set([...(next.pictureFigures||[]),c.figure])];
+    }
     else if(c.operation==='tighten_leading')next.fitText[c.article]=c.leading;
     else if(c.operation==='collect_references')next.backLinks.push(c.article);
     else if(c.operation==='keep_figure_in_flow'&&!next.inFlow.includes(c.figure))next.inFlow.push(c.figure);

@@ -47,6 +47,61 @@ test('absent image description preserves the bounded reading scale despite a shr
   assert(!packet.candidates.some(c=>c.operation==='fit_figure'));
  }
 });
+// The role decision itself belongs to visual review. These fixtures prove that
+// an unconfirmed fit cannot shrink an unknown image and a confirmed, measured
+// operation survives rendering without moving or replacing the source bitmap.
+const unknown={measurement:{pages:[{page:1,blank:.5,layout_geometry:{trailing_space_points:210}},{page:2,blank:0}],articles:[{n:1,start:1,end:2}],figures:[{id:'example',role:'unknown',page:2,h:300,w:200,reading_mode:'column'}]},report:{},fit:{},review:{findings:[]}};
+const pictureEvidence={example:{role:'picture',reason:'A photograph.',image_sha256:'a'.repeat(64)}};
+const pictureInput=layoutInput({...unknown,figureRoles:pictureEvidence}),pictureCandidate=pictureInput.candidates.find(c=>c.requires_picture_confirmation);
+const pictureDecision={decisions:[{page:1,decision:'repair',candidate_id:pictureCandidate?.id,reason:'The actual photograph keeps its subject visible at the measured size.'}]};
+test('an unknown figure gets a conditional measured repair only with actual page evidence',()=>{
+ assert(!layoutInput(unknown).candidates.some(c=>c.requires_picture_confirmation));
+ for(const role of ['reading','uncertain'])assert(!layoutInput({...unknown,figureRoles:{example:{...pictureEvidence.example,role}}}).candidates.some(c=>c.requires_picture_confirmation));
+ assert(pictureCandidate);assert.equal(pictureCandidate.height,1.91);
+ assert.throws(()=>validateLayout(pictureDecision,pictureInput),/actual figure page image/);
+ pictureInput.pages[0].visual_context={physical_pages:[1,2],target_page:1};
+ validateLayout(pictureDecision,pictureInput);
+ const next=applyLayoutRepairs({},pictureDecision,pictureInput);assert.deepEqual(next.pictureFigures,['example']);assert.equal(next.fitFigs.example,1.91);
+ const retained=applyLayoutRepairs(next,{decisions:[{page:1,decision:'needs_review',candidate_id:null,reason:'Still held.'}]},pictureInput);
+ assert.deepEqual(retained.pictureFigures,['example']);
+});
+test('picture fitting excludes known reading roles, readability defects, prior reading choices and other articles',()=>{
+ const cases=[
+  {...unknown,measurement:{...unknown.measurement,figures:[{...unknown.measurement.figures[0],role:'reading'}]}},
+  {...unknown,review:{findings:[{page:2,check:3}]}},
+  {...unknown,fit:{readingFigures:{example:'column'}}},
+  {...unknown,measurement:{...unknown.measurement,articles:[{n:1,start:1,end:1},{n:2,start:2,end:2}]}},
+  {...unknown,measurement:{...unknown.measurement,pages:[{page:1,blank:.5,layout_geometry:{trailing_space_points:80}},{page:2,blank:0}]}},
+  {...unknown,measurement:{...unknown.measurement,pages:[{page:1,blank:.5},{page:2,blank:0}]}},
+ ];
+ for(const c of cases)assert(!layoutInput({...c,figureRoles:pictureEvidence}).candidates.some(c=>c.requires_picture_confirmation));
+});
+test('recorded picture repair preserves source order and pixels; a later reading correction takes precedence',()=>{
+ const repaired=applyLayoutRepairs({},pictureDecision,pictureInput);
+ for(const reading of [false,true]){
+  const file=out+'/confirmed-picture'+(reading?'-reading':'');
+  writeFileSync(file+'.typ',emitTypst(html('feed',''),{baseDir:out,...repaired,...(reading?{readingFigures:{example:'column'}}:{})}));
+  execFileSync('typst',['compile','--font-path','fonts','--ignore-system-fonts',file+'.typ',file+'.pdf']);
+  const [figure]=JSON.parse(execFileSync('typst',['query','--font-path','fonts','--ignore-system-fonts',file+'.typ','<fig>','--field','value'],{encoding:'utf8'}));
+  assert.equal(figure.role,'picture');assert.equal(figure.floating,false);
+  assert.equal(figure.reading_mode,reading?'column':null);
+  assert(Math.abs(figure.h-(reading?compiled['feed-column'].figure.h:1.91*72))<.01);
+  execFileSync('python3',['-c',`import pymupdf as fitz,sys
+from PIL import Image
+doc=fitz.open(sys.argv[1]);source=Image.open(sys.argv[2]).convert('RGB');text=''.join(p.get_text() for p in doc)
+assert text.index('BeforeMarker')<text.index('CaptionMarker')<text.index('AfterMarker')
+seen=0
+for p in doc:
+ for item in p.get_images(full=True):
+  if item[2:4]!=(source.width,source.height):continue
+  assert fitz.Pixmap(doc,item[0]).samples==source.tobytes()
+  rect=p.get_image_rects(item[0])[0]
+  assert fitz.Rect(44,55,388,593).contains(rect)
+  assert p.search_for('CaptionMarker')[0].y0>=rect.y1-.2
+  seen+=1
+assert seen==1`,file+'.pdf',out+'/feed.png']);
+ }
+});
 const checks=JSON.parse(execFileSync('python3',['-c',`
 import pymupdf as fitz,json
 from pathlib import Path
