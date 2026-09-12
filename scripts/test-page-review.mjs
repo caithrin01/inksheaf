@@ -46,7 +46,7 @@ ok("an invented page is recorded as incomplete review, never a clean pass",r.pas
 
 /* pass 2 dismisses: nothing reported, the dismissal kept */
 const r2 = await reviewPdf(pdf, { outDir: join(dir, "run2"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: text.includes("page 1,") ? '[{"page":2,"check":6,"note":"boxes","confidence":0.9}]' : "[]" } : { text: '{"confirmed": false, "note": "clean Times, no boxes"}' }, key: "stub" });
-ok("a dismissed flag is not a finding", r2.findings.length === 0 && r2.dismissed.length === 1 && r2.pass2.dismissed === 1);
+ok("a dismissed flag is not a finding", r2.findings.length === 0 && r2.dismissed.length === 1 && r2.pass2.dismissed === 1,JSON.stringify(r2.errors));
 ok("writer line says nothing flagged", /flagged nothing/.test(writerLine(r2)));
 
 /* the model is down: no throw, errors recorded, empty findings, writer line empty */
@@ -86,7 +86,7 @@ let adjacent=false;
 const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stub',ask:async({text,images})=>{
   if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":2,"confidence":0.9,"note":"word continues on the next page"}]':'[]'};
   adjacent=images.length===3&&text.includes('image 2 = physical page 2')&&text.includes('image 3 = physical page 4')&&text.includes('Two or more continuation lines');
-  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page."}'};
+  return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The paragraph continues for several lines on the next page.","defect":"none","edge":"foot"}'};
 }});
 ok('a pagination finding is confirmed against both actual neighbouring pages',adjacent&&continuation.dismissed.length===1&&continuation.errors.length===0);
 let glyphComparison=false;

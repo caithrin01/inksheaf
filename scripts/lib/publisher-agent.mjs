@@ -1,6 +1,7 @@
 // In-product editorial work. Decisions refer to original posts; models never rewrite
 // the source. The caller persists the journal before a paid request and each event.
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { Parser } from 'htmlparser2';
 import { z } from 'zod';
 import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
@@ -13,6 +14,10 @@ export const PUBLISHER_MODELS = {
 export const COMPUTE_POLICY = Object.freeze({ currency: 'USD', generationChargeMinor: 0,
   printRetailAdditionMinor: 200, collection: 'printed-copy-order', purpose: 'inference-cost-recovery' });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// Bind cached editorial decisions to the actual system/task/schema/validation
+// implementation, rather than relying on a manually bumped version alone.
+export const PUBLISHER_CACHE_POLICY = createHash('sha256').update(readFileSync(new URL(import.meta.url)))
+  .update(readFileSync(new URL('../../functions/lib/publisher-policy.js',import.meta.url))).digest('hex');
 const kinds = ['essay', 'interview', 'poem', 'recipe', 'photo-essay', 'story', 'review', 'dispatch', 'housekeeping', 'mixed', 'unknown'];
 export const Reading = z.object({ decisions: z.array(z.object({
   post_id: z.string(), kind: z.enum(kinds), decision: z.enum(['keep', 'set_aside', 'uncertain']),
@@ -86,15 +91,25 @@ export function validateStructure(result, sources) {
 }
 
 // Source reading and bounded PNG page review share the same persisted ledger.
-// At <=4096px per side we reserve 65,536 image tokens per image, substantially
-// above current Claude patch counts and Gemini tile counts. Oversize images are
-// rejected before a request; actual usage is reconciled and checked below.
+// Sonnet 5 uses 28px patches with a 4,784-token native image limit (Anthropic
+// vision docs, checked 2026-09-10). Reserve the larger of that limit and the raw
+// unscaled patch count, plus 1,024 tokens per image for headroom. Do not rely on
+// provider downscaling to reduce the reservation. Other models retain the
+// conservative 65,536-token bound. Oversize files are rejected before a request.
+// https://platform.claude.com/docs/en/build-with-claude/vision
+export function publisherImageTokenBound(modelId, width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096)
+    throw Error('Publisher page images must be bounded PNG files');
+  return modelId === 'anthropic/claude-sonnet-5'
+    ? Math.max(4784, Math.ceil(width / 28) * Math.ceil(height / 28)) + 1024
+    : 65536;
+}
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
   journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
   let busy = false;
-  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput }) {
+  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput, reasoningBudget }) {
     if (busy) throw Error('Publisher requests share one serial spend ledger');
     busy = true;
     let call;
@@ -104,25 +119,33 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const jsonSchema = z.toJSONSchema(schema);
       const outputLimit = maxOutput == null ? model.maxOutput : Math.min(model.maxOutput, Math.max(1,Math.floor(maxOutput)));
       if (!Number.isFinite(outputLimit) || !Array.isArray(images) || images.length > 4) throw Error('Invalid publisher image/output limits');
+      // A short visual confirmation needs a structured verdict. In the owner
+      // trial, adaptive thinking consumed 399/400 output tokens and returned no
+      // verdict. Disable it for these bounded confirmations. Layout batches can
+      // explicitly disable it too: a live probe ignored a numeric thinking cap.
+      // Other editorial requests keep medium effort.
+      // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+      if(reasoningBudget!=null&&(role!=='publisher'||!Number.isInteger(reasoningBudget)||(reasoningBudget!==0&&reasoningBudget<1024)||reasoningBudget>=outputLimit))throw Error('Invalid publisher reasoning budget');
+      const reasoning=role==='publisher'?(reasoningBudget===0?{enabled:false}:reasoningBudget!=null?{max_tokens:reasoningBudget}:images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
       for (const image of images) {
         if (!Buffer.isBuffer(image) || image.length < 24 || image.subarray(0,8).toString('hex') !== '89504e470d0a1a0a'
           || image.readUInt32BE(16)<1 || image.readUInt32BE(20)<1 || image.readUInt32BE(16)>4096 || image.readUInt32BE(20)>4096) throw Error('Publisher page images must be bounded PNG files');
       }
       // UTF-8 bytes conservatively bound text tokens; also reserve framing/schema
       // overhead and the entire completion ceiling, including billed reasoning.
-      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.length * 65536;
+      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
       const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
       if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
-      call = { id: crypto.randomUUID(), model: model.id, role, reserved, status: 'reserved', started: new Date().toISOString() };
+      call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
       journal.calls.push(call); await persist(journal);
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
         headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher' },
         body: JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
-          ...(role === 'publisher' ? { reasoning: { effort: 'medium' } } : {}),
+          ...(reasoning ? { reasoning } : {}),
           provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
           response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } }),
       });
@@ -182,7 +205,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
     // A text-only classifier cannot judge an image-only piece. Preserve it for the
     // visual review and make that limitation explicit in the decision.
     const readable = batch.filter(p => p.text);
-    const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.reader.id, publication, readable]);
+    const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.reader, publication, readable]);
     let reading = { decisions: [] };
     if (readable.length) {
       let result = cache.get(key);
@@ -215,7 +238,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   if (!kept.length) throw Error('Only housekeeping remains; there is no complete book to typeset');
   const input = kept.map(p => ({ id: p.id, title: p.title, date: p.date, authors: p.authors,
     kind: decisions.find(d => d.post_id === p.id).kind, evidence: decisions.find(d => d.post_id === p.id).evidence }));
-  const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.publisher.id, publication, input]);
+  const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.publisher, publication, input]);
   let structure = cache.get(key);
   if (!structure) {
     const task = 'Compose the table of contents for this edition. Use one chronological section unless the writing clearly warrants a few meaningful sections. Preserve chronological order within each section. Keep every supplied post exactly once. The description MUST be under 200 characters, each section title under 80 characters, and each reason under 200 characters. Explain the arrangement in one short sentence; avoid literary praise. Do not invent post titles, author identities, page numbers or source facts; you are using source-backed classifications and quotations, not claiming another full reading.';

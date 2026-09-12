@@ -1,0 +1,14 @@
+PASS recognized prose reflows while poetry keeps line breaks and all glyph text
+PASS preview copies actual selected leaves, their text and printed labels without changing the book
+PASS preview selection bounds and image-only fallback are deterministic
+PASS a private draft event follows upload, never marks the complete PDF ready
+PASS unavailable preview does not stop final checks, but stale event persistence does
+PASS private workspace gives a same-origin preview link without the upstream capability
+PASS wrong edition capability and non-GET never reach the store
+PASS private PDF bytes are verified, uncached, unindexed and never dispatched or emailed
+PASS unexpected origins, paths, redirects, oversize and mismatched bytes are rejected
+PASS superseded draft and run are unavailable while other volumes remain readable
+PASS replacement pages or a new worker arriving during fetch retire the old response
+PASS an expired snapshot and a saved correction retire the draft
+PASS a correction arriving during the PDF fetch prevents returning old bytes
+13 private publisher preview checks passed

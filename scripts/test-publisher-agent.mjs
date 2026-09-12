@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY } from './lib/publisher-agent.mjs';
+import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
 const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
 const sources = prepareSources(posts);
 const reading = batch => ({ decisions: batch.map(p => ({ post_id: p.id, kind: [102,106].includes(Number(p.id)) ? 'housekeeping' : p.id === '103' ? 'poem' : 'essay',
@@ -49,5 +49,50 @@ await test('a transient provider failure gets one same-model retry in the same s
 await test('a repeating provider failure stops after the one bounded retry',async()=>{
   let calls=0;const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>{calls++;return Response.json({error:{message:'busy'}},{status:503});}});
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/did not complete/);assert.equal(calls,2);
+});
+await test('Sonnet image reservations exceed documented patches at every accepted size', () => {
+  for (const [w,h] of [[1,1],[28,28],[1200,1800],[2576,2576],[4096,4096]]) {
+    const bound = publisherImageTokenBound('anthropic/claude-sonnet-5',w,h);
+    assert(bound >= 4784 + 1024);
+    assert(bound >= Math.ceil(w/28)*Math.ceil(h/28)+1024);
+    assert.equal(publisherImageTokenBound('google/gemini-3.1-flash-lite',w,h),65536);
+    assert.equal(publisherImageTokenBound('future-model',w,h),65536);
+  }
+  assert.throws(()=>publisherImageTokenBound('anthropic/claude-sonnet-5',4097,1),/bounded PNG/);
+});
+await test('four-image confirmation fits remaining dollars while unknown charges stay reserved', async () => {
+  const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1200,16);png.writeUInt32BE(1800,20);
+  const journal={calls:[{cost:1.168},{reserved:.422,status:'reserved'}],spent:1.168};let network=0;
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{
+    network++;assert.equal(journal.calls.at(-1).status,'reserved');
+    assert(journal.calls.at(-1).reserved>.05 && journal.calls.at(-1).reserved<.1);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.015}});
+  }});
+  await call({role:'publisher',task:'Check figures',schema:Reading,images:[png,png,png,png],maxOutput:400});
+  assert.equal(network,1);assert.equal(journal.calls[1].reserved,.422);assert.equal(journal.calls[1].cost,undefined);
+  assert.equal(journal.calls.at(-1).cost,.015);
+  await assert.rejects(openRouterPublisher({key:'fixture',journal,budget:1.62,fetchImpl:()=>{throw Error('Must not call');}})({role:'publisher',task:'Check figures',schema:Reading,images:[png,png,png,png],maxOutput:400}),/budget/);
+});
+await test('actual image usage above its reserved bound fails closed', async () => {
+  const journal={calls:[],spent:0};
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:1}})});
+  await assert.rejects(call({role:'publisher',task:'Check',schema:Reading,maxOutput:400}),/exceeded its reservation/);
+  assert.equal(journal.calls[0].status,'failed');assert.equal(journal.calls[0].cost,1);
+});
+await test('short visual confirmations reserve their verdict instead of exhausting output on thinking',async()=>{
+  const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1200,16);png.writeUInt32BE(1800,20);
+  const journal={calls:[],spent:0},requests=[];
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async(url,opts)=>{
+    const request=JSON.parse(opts.body);requests.push(request);
+    assert.deepEqual(journal.calls.at(-1).reasoning,request.reasoning);
+    if(request.max_tokens===400&&request.reasoning.enabled!==false)
+      return Response.json({choices:[{finish_reason:'length',message:{content:''}}],usage:{cost:.023808,completion_tokens:400,completion_tokens_details:{reasoning_tokens:399}}});
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await call({role:'publisher',task:'Confirm the measured defect',schema:Reading,images:[png],maxOutput:400});
+  assert.equal(requests[0].max_tokens,400);assert.deepEqual(requests[0].reasoning,{enabled:false});
+  await call({role:'publisher',task:'Compose the contents',schema:Reading,maxOutput:5000});
+  assert.deepEqual(requests[1].reasoning,{effort:'medium'});
+  assert.equal(journal.calls.length,2);assert(journal.calls.every(c=>c.status==='completed'));
 });
 console.log(`${count} publisher-agent tests passed.`);

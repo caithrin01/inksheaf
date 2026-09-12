@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-09-12T00:35:35.569763+00:00",
+  "source_position": {
+    "baseline": "real first figure prints after following text; no paragraph intersection required; baseline test failed after one render",
+    "correction": "record same-article following paragraph ID and compare actual printed lines; put displaced floats back in source order before vision; share whitespace-repair render",
+    "regression": "two reserved renders; both images and all source markers retained"
+  },
+  "reasoning_probe": {
+    "pages": [
+      86,
+      95,
+      111,
+      113,
+      115,
+      118
+    ],
+    "calls": [
+      {
+        "reasoning": {
+          "max_tokens": 2048
+        },
+        "finish_reason": "length",
+        "status": "failed",
+        "cost": 0.107472,
+        "reasoning_tokens": 5000,
+        "completion_tokens": 5000,
+        "elapsed_ms": 62184
+      },
+      {
+        "reasoning": {
+          "enabled": false
+        },
+        "finish_reason": "stop",
+        "status": "completed",
+        "cost": 0.062192,
+        "reasoning_tokens": 0,
+        "completion_tokens": 472,
+        "elapsed_ms": 8576
+      }
+    ],
+    "cumulative_usd": 0.169664,
+    "accepted_as_book_quality": false,
+    "quality_followup": "The complete response excused a two-line prose tail. A new measured sparse-tail validation rejects that claim; this old response remains unchanged."
+  },
+  "additional_guards": {
+    "sparse_tail": "No intentional-space verdict for multi-page prose endings with under 25% ink rows and no figures; poem/recipe source forms remain distinct",
+    "heading_claim": "Only a complete body paragraph with its actual final printed line matching the source ending can contradict an isolated-heading claim. Unknown types, mismatched source endings and real headings remain held."
+  },
+  "campaign": {
+    "known_usd": 19.0372425,
+    "committed_usd": 21.356927,
+    "cap_usd": 50
+  },
+  "release": {
+    "deployed": false,
+    "accepted_cold_book": false
+  },
+  "validation": {
+    "renderer": {
+      "passed": 69,
+      "failed": 0
+    },
+    "paragraph_boundaries": 9,
+    "layout": 17,
+    "durable_budget": 17,
+    "publisher_agent": 28,
+    "page_review": 31,
+    "orchestration": 11,
+    "checkpoint": 5,
+    "typst": 42,
+    "figure_source_order": "pass; real two-reserved-render regression, baseline failed",
+    "fit_batching": "pass",
+    "source_heading_fields": "pass",
+    "build": "pass",
+    "validator": 13,
+    "full_local_units": "running at commit; final outcome in vault/CI"
+  }
+}

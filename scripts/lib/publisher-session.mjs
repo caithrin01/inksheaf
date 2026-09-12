@@ -1,41 +1,82 @@
 // One durable inference ledger/cache per edition, shared by every volume and fit pass.
-import { mkdirSync,readFileSync,existsSync,writeFileSync,renameSync } from 'node:fs';
-import { createHash,createHmac } from 'node:crypto';
+import { mkdirSync,readFileSync,existsSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync } from 'node:fs';
+import { createHash,createHmac,randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {LayoutDecisions,validateLayout,layoutBatches} from './publisher-layout.mjs';
-import { openRouterPublisher,publishSelection,PUBLISHER_MODELS } from './publisher-agent.mjs';
+import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
 import {currentPublisherSelection,selectionChanged} from './publisher-selection.mjs';
+import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
+import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
+import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
+import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
+import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
+const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
+for(const name of ['publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
+export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
+export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
+  .update(JSON.stringify({policy,model,task,schema:z.toJSONSchema(schema),input,imageHashes,maxTokens})).digest('hex');
 const LAYOUT_TASK = `Review the measured pages against the book's design. Return one decision for each supplied page.
 The threshold is 30% unused body space. Every page above it needs an applicable repair or a specific design reason.
 Use these structural facts and the complete printed_text:
 - A complete short piece starts and finishes on ONE page. This book starts each independent piece on a new page. Trailing space after its complete text is intentional separation, whatever its genre: essay, interview, recipe, poem or dispatch. Inspect for an internal gap or content defect rather than objecting to the length of the source.
 - Front and end matter have distinct jobs. A dedicated contents page or edition note does not need filler to reach a density target. Identify its actual purpose in the reason. Title leaves and binding versos also have a specific purpose.
 - An ending on a MULTI-page article is different: a stranded tail or excessive gap needs repair unless the actual content gives a specific reason. The absence of a candidate is never itself a design reason.
+The compiled position and compiled_article_span are authoritative; previous visual findings are fallible observations. sparse_prose_ending is the exact predicate for the quarter-page rule. When true, choose a supplied repair or needs_review. Never apply this ending rule to a body page before an image in the same article. Source poems and recipes retain their distinct forms; do not reclassify prose to escape this check.
+For intentional_space, choose space_basis from that page's allowed_space_bases and give a specific factual reason consistent with that basis. single_piece means a complete one-page work; article_end means the actual final compiled article page; structural_leaf names necessary front/end matter or a divider; source_form preserves a poem or recipe; figure_sequence explains the visible placement of identified figures; composition explains another visible design choice. Neither composition nor figure_sequence permits calling a body page an article ending. A final prose paragraph can precede a closing image within the same article: describe that actual image sequence. Other decisions require space_basis:null. A permitted basis is a structural possibility, never automatic approval of the gap.
+When images are supplied, there is one labelled contact sheet for each target page, in the same order as pages. visual_context identifies the target and its actual neighbours. Judge the actual printed composition and figure detail alongside the measurements. A full-page screenshot can have a specific reading purpose after its explanatory text; a photograph has different scaling needs. Do not invent a figure's role from its dimensions or assume a large gap is justified just because the following figure cannot fit.
+adjacent_layout supplies the previous page's ending, the current ending and the next page's opening: actual printed lines (including captions), image rectangles, source figure IDs/sizes and compiled paragraph anchors. All coordinates are physical PDF points. Compare trailing_space_points with the following image and surrounding text/spacing. An image taller than the gap cannot fit there at its current size, but that alone does not prove its size or the gap is well designed. Check the source sequence, caption and reading role; never shrink a chart merely to fill space. same_article distinguishes a continuation from the next independent piece. Paragraph anchors describe compiled positions and may lie on the next page at a boundary; consult the printed lines before claiming a paragraph actually continues. Missing geometry is unknown, never zero. Truncated context is explicitly marked. A specific intentional-space reason must name the actual content or structural constraint, not just a chapter ending or lack of repair candidates.
+following_source_figure identifies the exact next image, its independently inspected source role, its current reading size, and the space before it. reading_size_protected means its actual text/chart detail needs reading scale; it must stay in source order. Judge whether breaking before that named image has a specific reading purpose. The image belongs to this decision even when the target page contains only text. Do not report no following image when this record and the next-page raster show one. This evidence never excuses a content defect or automatically approves the composition.
+A fit_figure candidate names the page with the gap in candidate.page and the image's current location in candidate.figure_page. It fits that image into the preceding gap; return the repair for candidate.page. picture_evidence records a separate inspection of that exact source image, identified by its image hash. Such candidates are supplied only for confirmed photographs/illustrations; unknown roles and images with text to read have no shrinking candidate. Judge whether the proposed picture size suits the page; do not reject it merely because the full-size image currently prints on the following page. Source order and pixels are preserved and the resulting PDF still receives full review.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
+set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. Prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
 printed_text_truncated tells you whether this request shortened the page text; do not infer missing print content from a shortened excerpt.
 Give a factual reason under 180 characters. For intentional_space and needs_review, candidate_id must be null.`;
-export async function publisherSession({directory, env=process.env, fetchImpl=fetch}) {
+export async function publisherSession({directory, env=process.env, fetchImpl=fetch, checkpointStore}) {
   mkdirSync(directory,{recursive:true});
   const file=`${directory}/state.json`, id=Number(env.SIGNUP_ID), site=env.SITE_BASE?.replace(/\/$/,''), secret=env.ARCHIVE_RELAY_TOKEN;
   const baseRun=String(env.GITHUB_RUN_ID||'local')+'.'+String(env.GITHUB_RUN_ATTEMPT||1);
   const remote=Boolean(id&&site&&secret);
+  const artifacts=checkpointStore||(remote?privateCheckpointStore(`signup-${id}`):null);
   const sign=m=>createHmac('sha256',secret).update(m).digest('hex');
-  let state={journal:{calls:[],spent:0},cache:[],runs:{}}, revision=0, selection={revision:0,restored:[]};
+  let state={journal:{calls:[],spent:0},cache:[],runs:{},renderBudget:newRenderBudget()}, revision=0, selection={revision:0,restored:[]};
+  let localSnapshot=existsSync(file)?readFileSync(file,'utf8'):null;
   async function request(path, options) {
     const response=await fetchImpl(site+path,{...options,signal:AbortSignal.timeout(20000)});
     const body=await response.json();if(!response.ok||!body.ok)throw Error('Publisher work could not be saved; the book is held for recovery');return body;
   }
   if(remote){const saved=await request(`/api/publisher-state?id=${id}&sig=${sign(`publisher-state:${id}`)}`);state=saved.state||state;revision=saved.revision;selection=saved.selection;}
-  else if(existsSync(file))state=JSON.parse(readFileSync(file,'utf8'));
+  else if(localSnapshot!=null)state=JSON.parse(localSnapshot);
   if(!Number.isSafeInteger(selection?.revision)||!Array.isArray(selection?.restored))throw Error('Your saved selection is unavailable.');
   if(env.PUBLISHER_SELECTION_REVISION!=null&&Number(env.PUBLISHER_SELECTION_REVISION)!==selection.revision)throw selectionChanged();
   const run=baseRun+(selection.revision?'.s'+selection.revision:'');
   const ensureSelection=async()=>{if(remote&&(await currentPublisherSelection({env,fetchImpl})).revision!==selection.revision)throw selectionChanged();};
   state.runs||={};state.runs[run]||={sequence:0,keys:{}};
   const save=async()=>{
-    writeFileSync(file+'.tmp',JSON.stringify(state));renameSync(file+'.tmp',file);
-    if(remote){const payload=JSON.stringify(state);const saved=await request('/api/publisher-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signup_id:id,revision,state,sig:sign(`publisher-state:${id}:${revision}:${payload}`)})});revision=saved.revision;}
+    const payload=JSON.stringify(state),temporary=file+'.'+randomUUID()+'.tmp';
+    if(remote){
+      // Remote CAS is authoritative. Never start work on a reservation whose
+      // acknowledgement was lost; its saved charge remains for reconciliation.
+      const saved=await request('/api/publisher-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signup_id:id,revision,state,sig:sign(`publisher-state:${id}:${revision}:${payload}`)})});revision=saved.revision;
+      try{writeFileSync(temporary,payload,{mode:0o600});renameSync(temporary,file);}finally{if(existsSync(temporary))unlinkSync(temporary);}
+      return;
+    }
+    // A stale rehearsal process must not overwrite another process's reserved
+    // model/render work. A crashed lock holds safely for explicit recovery.
+    let lock;
+    try{lock=openSync(file+'.lock','wx',0o600);}catch(error){if(error.code==='EEXIST')throw Error('Publisher journal is locked by another worker; saved work is retained.');throw error;}
+    try{
+      writeFileSync(lock,JSON.stringify({pid:process.pid,started:new Date().toISOString()}));
+      const current=existsSync(file)?readFileSync(file,'utf8'):null;
+      if(current!==localSnapshot)throw Error('Publisher journal changed in another worker; reopen the saved session.');
+      writeFileSync(temporary,payload,{mode:0o600});renameSync(temporary,file);localSnapshot=payload;
+    }finally{closeSync(lock);unlinkSync(file+'.lock');if(existsSync(temporary))unlinkSync(temporary);}
+  };
+  const reserveWork=async(volume,kind,settings)=>{
+    await ensureSelection();
+    const usage=reserveRenderWork(state,String(volume),kind,{id:randomUUID(),selection_revision:selection.revision,run_id:run,started:new Date().toISOString(),settings_hash:createHash('sha256').update(JSON.stringify(settings)).digest('hex')});
+    await save();return usage;
   };
   const emit=async event=>{
     await ensureSelection();
@@ -48,37 +89,96 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     // Public Actions logs contain stage/counts only, never private quotations or URLs.
     console.error(`[publisher] ${event.kind}${event.read!=null?` ${event.read}/${event.total}`:''}`);
   };
-  const vision = async ({model,images,text,maxTokens}) => {
+  const vision = async ({model,images,text,maxTokens,check}) => {
     await ensureSelection();
     const role = model === PUBLISHER_MODELS.reader.id ? 'reader' : model === PUBLISHER_MODELS.publisher.id ? 'publisher' : null;
     if (!role) throw Error('Page review model is outside the edition budget configuration');
     const buffers=images.map(path=>readFileSync(path));
-    const key=createHash('sha256').update(JSON.stringify([model,text,buffers.map(b=>createHash('sha256').update(b).digest('hex'))])).digest('hex');
+    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):check===2?BoundaryConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
+    const task=text+' Return only the requested JSON schema; notes must be under 200 characters.'+(role==='reader'?' Put the findings array in the findings field.':'');
+    const key=publisherReviewCacheKey({model,task,schema,maxTokens,imageHashes:buffers.map(b=>createHash('sha256').update(b).digest('hex'))});
     const cache=new Map(state.cache);
     if(cache.has(key))return {text:JSON.stringify(cache.get(key)),usage:{prompt_tokens:0,completion_tokens:0,cost:0}};
-    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
-    const answer=await ask({role,images:buffers,task:text+' Return only the requested JSON schema; notes must be under 200 characters.'+(role==='reader'?' Put the findings array in the findings field.':''),schema,maxOutput:maxTokens});
+    const request={role,images:buffers,task,schema,maxOutput:maxTokens};
+    let answer;
+    try{answer=await ask(request);}catch(error){
+      if(error.name!=='ZodError')throw error;
+      // A complete answer can still violate the output schema (the live page-39
+      // confirmation exceeded its note limit). Give it one bounded correction;
+      // retain the failed charge, and never cache or truncate the invalid verdict.
+      answer=await ask({...request,task:task+' The previous response failed schema validation: '+error.message+'. Recheck the specific defect and return a valid answer with a concise note under 200 characters.'});
+    }
     const result=role==='reader'?answer.findings:answer;cache.set(key,result);state.cache=[...cache];await save();
     return {text:JSON.stringify(result),usage:state.journal.calls.at(-1)?.usage};
   };
-  const layoutBatch=async input=>{
+  const layoutBatch=async (input,imagesByPage)=>{
     await ensureSelection();
     if(!input.pages.length)return {decisions:[]};
-    const key=createHash('sha256').update(JSON.stringify([LAYOUT_TASK,z.toJSONSchema(LayoutDecisions),input])).digest('hex'),cache=new Map(state.cache);
+    // With optional thinking disabled, reserve for the bounded decision schema.
+    // Six decisions in the live probe used 446 tokens; retain ample room for
+    // 200-character reasons without reserving a 5,000-token reasoning response.
+    const maxTokens=Math.max(600,400*Math.min(6,input.pages.length)+100);
+    const images=imagesByPage?input.pages.map(p=>{const file=imagesByPage.get(p.page);if(!file)throw Error('Layout review is missing a required page image');return readFileSync(file);}):[];
+    const imageHashes=images.map(b=>createHash('sha256').update(b).digest('hex'));
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,imageHashes,maxTokens}),cache=new Map(state.cache);
     if(cache.has(key))return validateLayout(cache.get(key),input);
+    // Reuse completed larger batches with this same policy, but keep new reasoning
+    // to six pages. A twelve-page review exhausted the completion ceiling before
+    // returning any verdict. Smaller calls share the same ledger and cache.
+    if(input.pages.length>6){
+      const decisions=[];
+      for(const batch of layoutBatches(input,6))decisions.push(...(await layoutBatch(batch,imagesByPage)).decisions);
+      const result=validateLayout({decisions},input);cache.clear();for(const pair of state.cache)cache.set(...pair);
+      cache.set(key,result);state.cache=[...cache];await save();return result;
+    }
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
-    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,task:LAYOUT_TASK};
+    // The cold annual and a numeric-cap probe exhausted all output on thinking.
+    // Disable optional thinking for this bounded, measured decision packet, as
+    // for short visual confirmations. Incomplete answers still hold and count.
+    const request={role:'publisher',schema:LayoutDecisions,data:input,images,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
     try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
     validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;
   };
-  const layout=async input=>{
+  const layout=async (input,{imagesByPage}={})=>{
     const decisions=[];
-    for(const batch of layoutBatches(input))decisions.push(...(await layoutBatch(batch)).decisions);
+    // Three neighbour sheets stay within the provider's four-image request cap.
+    for(const batch of layoutBatches(input,imagesByPage?3:6))decisions.push(...(await layoutBatch(batch,imagesByPage)).decisions);
     return validateLayout({decisions},input);
   };
-  return {emit,vision,layout,selection,read:async({posts,publication,identity,overrides,volume})=>{
+  const renderScope=volume=>{
+    renderUsage(state,String(volume));
+    const record=state.renderBudget.volumes[String(volume)];
+    return {volume:String(volume),selection_revision:selection.revision,render_ids:(record?.passes||[]).map(p=>p.id),repair_ids:(record?.repairs||[]).map(p=>p.id)};
+  };
+  const figureRole=async({image,figure_id,source_sha256})=>{
+    await ensureSelection();
+    const input={figure_id,source_sha256},imageHashes=[createHash('sha256').update(image).digest('hex')],maxTokens=250;
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:FIGURE_ROLE_TASK,schema:FigureRole,input,imageHashes,maxTokens}),cache=new Map(state.cache);
+    if(cache.has(key))return FigureRole.parse(cache.get(key));
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const result=await ask({role:'reader',task:FIGURE_ROLE_TASK,schema:FigureRole,data:input,images:[image],maxOutput:maxTokens});
+    cache.set(key,result);state.cache=[...cache];await save();return result;
+  };
+  return {emit,vision,layout,figureRole,selection,
+    renderScope,
+    loadRender:async(volume,identity)=>{
+      await ensureSelection();const reference=state.completedRenders?.[String(volume)];
+      if(!reference||reference.scope.selection_revision!==selection.revision)return null;
+      return restoreRenderCheckpoint({reference,directory:`${directory}/renders`,scope:renderScope(volume),identity,store:artifacts});
+    },
+    saveRender:async(volume,book,identity,expectedScope)=>{
+      await ensureSelection();const scope=renderScope(volume);
+      if(JSON.stringify(scope)!==JSON.stringify(expectedScope))throw Error('Another render started before this PDF could be saved; the book is held for recovery.');
+      if(!scope.render_ids.length)throw Error('An unreserved render cannot be checkpointed.');
+      const reference=await saveRenderCheckpoint({book,directory:`${directory}/renders`,scope,identity,store:artifacts});
+      await ensureSelection();state.completedRenders||={};state.completedRenders[String(volume)]=reference;await save();
+    },
+    renderUsage:volume=>renderUsage(state,String(volume)),
+    reserveRender:(volume,settings)=>reserveWork(volume,'render',settings),
+    reserveRepair:(volume,settings)=>reserveWork(volume,'repair',settings),
+    read:async({posts,publication,identity,overrides,volume})=>{
     await ensureSelection();
     const cache=new Map(state.cache);
     const inference=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});

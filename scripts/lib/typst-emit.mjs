@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from "node:fs";
 import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
 import { dirname, resolve } from "node:path";
+import {figureReadingSizes} from './figure-reading.mjs';
 
 const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
 const RUBRIC = "#7d6448", FAINT = "#6b6457", RULE = "#b9b19d", INK = "#1e1710";
@@ -63,12 +64,12 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], host = "", publisherWatermarks = true } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -124,6 +125,7 @@ export function emitTypst(html, opts = {}) {
   /* ---- blocks ---- */
   function figureOf(imgEl, caption) {
     const src = attr(imgEl, "src"); if (!src) return "";
+    const id = attr(imgEl, "data-fig") || src;
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
     const dim = imageSize(path); let size = `width: 100%`;
@@ -141,7 +143,7 @@ export function emitTypst(html, opts = {}) {
       const alt = (attr(imgEl, "alt") || "").toLowerCase();
       const aspect = dim.w / dim.h;
       const reading = /\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
-      const picture = /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
+      const picture = pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
       let pct;
       if (reading) pct = 100;
       else if (picture) pct = aspect >= 1.3 ? 75 : aspect >= 0.8 ? 62 : 50;
@@ -155,13 +157,24 @@ export function emitTypst(html, opts = {}) {
     }
     const capTxt = caption ? `, caption: [${caption}]` : "";
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
-    const id = attr(imgEl, "data-fig") || src;
+    const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
+    // Missing alt text does not establish that an image is decorative. Keep its
+    // detail at the bounded column reading size until its role is known.
+    const readingMode=readingFigures[id]||(attr(imgEl,'data-role')==='unknown'&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
+    if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
+    const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
+    const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
+    const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
-    const tagFor = extra => `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!fitH && !isLast && !inFlow.includes(id))}, page: here().page(), y: here().position().y.pt(), h: measure(image(${str(src)}, format: ${str(fmt)}, ${extra.replace(/width: (\d+)%/, (m, pct) => `width: sz.width * ${pct} / 100`)})).height.pt())) <fig>])]`;
+    const tagFor = extra => {
+      const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+    };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
+    if(reading)return `#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
     if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
@@ -231,10 +244,15 @@ export function emitTypst(html, opts = {}) {
         for (const im of imgs) s += figureOf(im, "");
         const exampleLead = textOf(n).trim().length <= 160 && /(?:^\s*Before:|\b(?:Before|After):\s*$)/i.test(textOf(n));
         const meaningful=kids(n).filter(k=>(k.type!=='text'||k.data.trim())&&!(isEl(k)&&k.name==='br'));
-        const boldHeading=meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
+        // Explicit template values can paginate instead of chaining as headings.
+        // A colon alone is also title punctuation ("Blake: A Prophet of Meaning")
+        // and must not detach a heading from the content it introduces.
+        const fieldValue=/[:：]\s*\{[\s\S]+\}\s*$/.test(textOf(n));
+        const boldHeading=!fieldValue&&meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
         if(t){
           const id=++paragraphN;
-          const point=label=>`#context [#metadata((id: ${id}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':'paragraph';
+          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
           t=point('parstart')+t+point('parend');
           s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
         }
@@ -287,7 +305,7 @@ export function emitTypst(html, opts = {}) {
 
   /* ---- an article: collect its footnotes first, then head, body, endnotes ---- */
   function article(sec, index, afterPart = false) {
-    fnMap = new Map(); endnotes = []; figN = 0;
+    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1;
     figTotal = findAll(find(sec, k => isEl(k) && has(k, "artbody")) || sec, k => isEl(k) && k.name === "img" && attr(k, "src")).length; /* body images only; the link note's QR is not a figure */
     for (const fn of findAll(sec, k => isEl(k) && k.name === "div" && has(k, "footnote"))) {
       const numEl = find(fn, k => isEl(k) && k.name === "a" && (attr(k, "id") || "").length);
@@ -421,14 +439,14 @@ export function emitTypst(html, opts = {}) {
   if n != none and not compact { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
   context [#metadata((n: index, page: here().page())) <artstart>] /* the opener page, measured here in the head */
-  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, title)])
+  block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
 }
 #let partpage(kind, title) = {
   place.flush()
   pagebreak(to: "odd", weak: true)
-  page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt)[#title]] ]
+  page(header: none, footer: none)[ #block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((title: title, page: here().page())) <partstart>]] #v(2.9in) #align(center)[#text(size: 8.5pt, tracking: 0.2em, fill: rubric)[#upper(kind)] #v(0.4em) #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 22pt, hyphenate: false)[#title]] ]
 }
 #let fmpage(body) = page(header: none, footer: none, body)
 `;
