@@ -7,6 +7,7 @@
 // records model failures. The publisher orchestrator holds delivery until review is complete.
 import { auditRunningMatter } from "./running-matter.mjs";
 import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
+import {glyphEvidence} from './glyph-evidence.mjs';
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -120,7 +121,9 @@ Printed source cards for videos and attachments, including their readable URLs, 
 
 Answer with a JSON array and nothing else. Each element: {"page": <number>, "check": <1-8>, "note": "<one sentence>", "confidence": <0 to 1>}. An empty array [] when nothing is wrong.`;
 
-export const pass2Prompt = (f,context,sources,neighbours) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+export const pass2Prompt = (f,context,sources,neighbours,glyphs=null) => `The first image is page ${f.page} of a typeset 6 by 9 inch book at full size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+
+${glyphs?'The final image contains labelled magnified crops of actual PDF glyphs, not reconstructed characters. Their actual PDF text/font records are '+JSON.stringify(glyphs)+'. Inspect the visible symbol and its surroundings. A nonzero glyph ID or Unicode value alone does not prove correct appearance. A legible monochrome emoji is valid; an absent, unreadable or wrong symbol still fails. If the flagged defect is elsewhere or the evidence is truncated, do not assume the crop resolves it.':''}
 
 When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
 
@@ -203,14 +206,18 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
       const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):[];
       const adjacent=neighbours.map(p=>rasterise(pdf,join(dir,'adjacent',String(p)),{scale:1800,first:p,last:p})[0]);
-      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours), maxTokens: 400,check:f.check });
+      // Retain all bounded source comparisons. Add a glyph sheet only when it
+      // fits the four-image request cap; unknown evidence never clears a defect.
+      const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;
+      const glyphRecord=glyphs?{characters:glyphs.characters,truncated:glyphs.truncated}:null;
+      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord), maxTokens: 400,check:f.check });
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); continue; }
       if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
       const sourcePreserved=j.origin==='source_content'&&comparisons.length>0&&[3,6].includes(f.check);
       const rec = { page: f.page, check: f.check, note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
-        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours };
+        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}) };
       if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }

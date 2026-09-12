@@ -1,7 +1,7 @@
 // Exercise the delivery gate with actual PDF rasterisation and controlled model results.
 // The renderer is represented by explicit measured before/after layouts; no paid calls.
 import assert from 'node:assert/strict';
-import {mkdtempSync,writeFileSync} from 'node:fs';
+import {mkdtempSync,writeFileSync,readFileSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {PDFDocument} from 'pdf-lib';
@@ -30,7 +30,7 @@ async function scenario({alwaysRepair=false,changeSource=false,visionFails=false
     return validateLayout(result,input);
   }};
   const run=()=>publishVolume({build,session:async()=>publisher,emit,volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
-  return{run,events,settings,previews,get builds(){return builds;}};
+  return{run,events,settings,previews,dir,get builds(){return builds;}};
 }
 await test('a validated repair reaches the builder and the changed PDF is reviewed again',async()=>{
   const s=await scenario(),book=await s.run();
@@ -43,6 +43,11 @@ await test('source mutation during a repair holds the complete edition',async()=
 });
 await test('unresolved layout stops without a ready event or extra render',async()=>{
   const s=await scenario({hold:true});await assert.rejects(s.run,/closer look/);assert.equal(s.builds,1);assert(!s.events.some(e=>e.kind==='review'));
+  const folder=join(s.dir,'review-0'),names=readdirSync(folder);
+  const input=JSON.parse(readFileSync(join(folder,names.find(n=>n.startsWith('layout-input-')))));
+  const result=JSON.parse(readFileSync(join(folder,names.find(n=>n.startsWith('layout-result-')))));
+  assert.equal(result.status,'completed-review');assert.equal(result.pdf_sha256,input.input.pdf_hash);assert.equal(result.decisions[0].decision,'needs_review');
+  assert.deepEqual(input.input.pages[0].visual_context.physical_pages,[1,2]);assert.equal(input.image_hashes.length,1);
 });
 await test('two unsuccessful model repair rounds are a finite hold',async()=>{
   const s=await scenario({alwaysRepair:true});await assert.rejects(s.run,/bounded layout repairs/);assert.equal(s.builds,3);

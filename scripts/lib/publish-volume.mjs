@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings} from './publisher-layout.mjs';
 import {reviewPdf,writerLine} from './page-review.mjs';
+import {prepareLayoutEvidence} from './layout-evidence.mjs';
+import {PUBLISHER_REVIEW_POLICY} from './publisher-session.mjs';
 import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions/lib/publisher-policy.js';
 
 // The same complete local pipeline is used by the press and by private rehearsals.
@@ -52,8 +54,13 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     if(review.skipped||review.errors.length||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
     review.measured_findings=readingOrderFindings(measurement);
     review.findings.push(...review.measured_findings);
-    const input=layoutInput({measurement,report:book.report,fit:book.report.fit,review,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
-    layout=await publisher.layout(input);
+    const measuredInput=layoutInput({measurement,report:book.report,fit:book.report.fit,review,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
+    const evidence=prepareLayoutEvidence(measuredInput,{directory:`${reviewDirectory}-${round}`,rasterDirectory:`${reviewDirectory}-${round}/pages`,pageCount:review.pages,policy:PUBLISHER_REVIEW_POLICY});
+    const input=evidence.input;
+    try{layout=await publisher.layout(input,{imagesByPage:evidence.imagesByPage});}
+    catch(error){evidence.saveResult({status:'incomplete'});throw error;}
+    // Save before events, repair exhaustion or quality holds can interrupt work.
+    evidence.saveResult({status:'completed-review',decisions:layout.decisions});
     await publisher.emit({kind:'layout',volume,pages:review.pages,passes:totalPasses,decisions:layout.decisions,message:layout.decisions.some(d=>d.decision==='repair')?'A few pages need a tighter setting. Their writing stays intact.':'Unused page space has been checked against the shape of each piece.'});
     // Apply available repairs before holding other findings: repagination can
     // resolve a neighbouring defect. Nothing clears until the new PDF is reviewed.

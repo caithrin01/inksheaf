@@ -197,7 +197,7 @@ await test('page-break confirmation requests its typed schema and retries an unt
 await test('layout reserves answer space and retains a truncated charge across restart without caching its partial verdict',async()=>{
   const dir=temporary();let calls=0;
   const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};
-  const decisions=input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.'}));
+  const decisions=input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.',space_basis:'single_piece'}));
   const session=()=>publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
     calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,2500);assert.deepEqual(request.reasoning,{enabled:false});
     // Preserve the live failure shape even if a provider ignores the requested

@@ -134,3 +134,26 @@ Layout requests keep thinking disabled and reserve 600–2,500 output tokens for
 one to six short schema-bound decisions. Incomplete output still holds and is
 charged. The local 158-page size diagnostic reuses the held selection and fit
 settings; it is not a new cold acceptance or a continuation of the spent journal.
+
+The next cold annual on ec5ea2a completed its requests but remained held: 158
+pages, 22 pieces, 141 calls, six renders, two repairs and $1.85020375. Independent
+source/title/bounds/folio/image-order checks passed. Its PDF and journal remain
+unchanged. This is not cold completion.
+
+A focused diagnosis exposed body pages misidentified as article endings, missing
+visual composition context, and a legible monochrome cake mistaken for a missing
+glyph. The follow-up gives layout review labelled previous/current/next PDF pages
+in three-target batches. Cache identity includes their bytes. Compiled spans and
+validated space-basis choices reject an article-end exception on a body page;
+all measured gaps still require a factual decision. Hash-bound private request
+and result files are written before quality holds or repair exhaustion, without
+publishing source text or local paths. The press retains the pending-spacing flag.
+
+Glyph confirmations can receive up to eight magnified crops from the actual PDF,
+along with its character/font records. A nonzero glyph never clears a finding by
+itself; source comparison images keep priority within the four-image limit.
+Actual emoji, missing-glyph and unresolved-symbol fixtures exercise this path.
+Two normal-packet requests ($0.059194 total) returned structurally consistent
+figure/end-matter decisions and dismissed the cake misidentification. These are
+focused diagnostics, not another annual or permission to overwrite a held verdict.
+See evidence/publisher-layout-evidence-2026-09-11/results.json.

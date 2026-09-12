@@ -5,7 +5,21 @@ import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
 export const LayoutDecisions=z.object({decisions:z.array(z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
   candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
+  space_basis:z.enum(['single_piece','article_end','structural_leaf','source_form','figure_sequence','composition']).nullable().default(null),
 }))});
+export function sparseProseEnding(page){
+  return page.position==='article ending'&&Number.isFinite(page.ink_rows)&&page.ink_rows<.25
+    &&!(page.figures||[]).length&&!['poem','recipe'].includes(page.kind);
+}
+export function allowedSpaceBases(page){
+  const allowed=['composition'];
+  if(page.position==='complete short piece')allowed.push('single_piece');
+  if(page.position==='article ending'&&!sparseProseEnding(page))allowed.push('article_end');
+  if(page.position&& !['body','article opening','article ending','complete short piece'].includes(page.position))allowed.push('structural_leaf');
+  if(['poem','recipe'].includes(page.kind))allowed.push('source_form');
+  if((page.figures||[]).length||['previous_page','next_page'].some(k=>page.adjacent_layout?.[k]?.same_article&&page.adjacent_layout[k].figures?.length))allowed.push('figure_sequence');
+  return allowed;
+}
 // A floating image between a source paragraph's actual start/end interrupts its
 // reading even when vision misses it. Positions come from the compiled document.
 export function readingOrderFindings(measurement){
@@ -128,14 +142,16 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
   return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{
     const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
-    return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
+    const packet={page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
+      compiled_article_span:a?{start:a.start,end:a.end}:null,
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
       figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode})=>({id,role,height_points:h,width_points:w,floating,reading_mode})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
       findings:(review.findings||[]).filter(f=>f.page===p.page)};
+    return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
 export function validateLayout(result,input){
@@ -146,8 +162,9 @@ export function validateLayout(result,input){
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
     if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
-    if(d.decision==='intentional_space'&&p.position==='article ending'&&Number.isFinite(p.ink_rows)&&p.ink_rows<.25
-      &&!(p.figures||[]).length&&!['poem','recipe'].includes(p.kind))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
+    if(d.decision==='intentional_space'&&sparseProseEnding(p))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
+    if(d.decision==='intentional_space'&&!allowedSpaceBases(p).includes(d.space_basis))throw invalid(`Page ${p.page}: space_basis must match the compiled position (${p.position}) and supplied figure evidence; allowed: ${allowedSpaceBases(p).join(', ')}. An article-end reason cannot explain a body-page gap.`);
+    if(d.decision!=='intentional_space'&&d.space_basis!==null)throw invalid('Only intentional space can carry a space_basis');
   }
   if(seen.size!==pages.size)throw invalid('Layout review omitted a measured page');
   return parsed;

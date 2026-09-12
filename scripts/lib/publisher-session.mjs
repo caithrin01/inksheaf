@@ -10,7 +10,7 @@ import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.
 import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['publisher-session.mjs','publisher-layout.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['publisher-session.mjs','publisher-layout.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -21,7 +21,9 @@ Use these structural facts and the complete printed_text:
 - A complete short piece starts and finishes on ONE page. This book starts each independent piece on a new page. Trailing space after its complete text is intentional separation, whatever its genre: essay, interview, recipe, poem or dispatch. Inspect for an internal gap or content defect rather than objecting to the length of the source.
 - Front and end matter have distinct jobs. A dedicated contents page or edition note does not need filler to reach a density target. Identify its actual purpose in the reason. Title leaves and binding versos also have a specific purpose.
 - An ending on a MULTI-page article is different: a stranded tail or excessive gap needs repair unless the actual content gives a specific reason. The absence of a candidate is never itself a design reason.
-Sparse prose endings with ink_rows below 0.25 and no figures cannot be marked intentional_space. Choose a supplied repair or needs_review. Source poems and recipes retain their distinct forms; do not reclassify prose to escape this check.
+The compiled position and compiled_article_span are authoritative; previous visual findings are fallible observations. sparse_prose_ending is the exact predicate for the quarter-page rule. When true, choose a supplied repair or needs_review. Never apply this ending rule to a body page before an image in the same article. Source poems and recipes retain their distinct forms; do not reclassify prose to escape this check.
+For intentional_space, choose space_basis from that page's allowed_space_bases and give a specific factual reason consistent with that basis. single_piece means a complete one-page work; article_end means the actual final compiled article page; structural_leaf names necessary front/end matter or a divider; source_form preserves a poem or recipe; figure_sequence explains the visible placement of identified figures; composition explains another visible design choice. Neither composition nor figure_sequence permits calling a body page an article ending. A final prose paragraph can precede a closing image within the same article: describe that actual image sequence. Other decisions require space_basis:null. A permitted basis is a structural possibility, never automatic approval of the gap.
+When images are supplied, there is one labelled contact sheet for each target page, in the same order as pages. visual_context identifies the target and its actual neighbours. Judge the actual printed composition and figure detail alongside the measurements. A full-page screenshot can have a specific reading purpose after its explanatory text; a photograph has different scaling needs. Do not invent a figure's role from its dimensions or assume a large gap is justified just because the following figure cannot fit.
 adjacent_layout supplies the previous page's ending, the current ending and the next page's opening: actual printed lines (including captions), image rectangles, source figure IDs/sizes and compiled paragraph anchors. All coordinates are physical PDF points. Compare trailing_space_points with the following image and surrounding text/spacing. An image taller than the gap cannot fit there at its current size, but that alone does not prove its size or the gap is well designed. Check the source sequence, caption and reading role; never shrink a chart merely to fill space. same_article distinguishes a continuation from the next independent piece. Paragraph anchors describe compiled positions and may lie on the next page at a boundary; consult the printed lines before claiming a paragraph actually continues. Missing geometry is unknown, never zero. Truncated context is explicitly marked. A specific intentional-space reason must name the actual content or structural constraint, not just a chapter ending or lack of repair candidates.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
@@ -107,21 +109,23 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const result=role==='reader'?answer.findings:answer;cache.set(key,result);state.cache=[...cache];await save();
     return {text:JSON.stringify(result),usage:state.journal.calls.at(-1)?.usage};
   };
-  const layoutBatch=async input=>{
+  const layoutBatch=async (input,imagesByPage)=>{
     await ensureSelection();
     if(!input.pages.length)return {decisions:[]};
     // With optional thinking disabled, reserve for the bounded decision schema.
     // Six decisions in the live probe used 446 tokens; retain ample room for
     // 200-character reasons without reserving a 5,000-token reasoning response.
     const maxTokens=Math.max(600,400*Math.min(6,input.pages.length)+100);
-    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,maxTokens}),cache=new Map(state.cache);
+    const images=imagesByPage?input.pages.map(p=>{const file=imagesByPage.get(p.page);if(!file)throw Error('Layout review is missing a required page image');return readFileSync(file);}):[];
+    const imageHashes=images.map(b=>createHash('sha256').update(b).digest('hex'));
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,imageHashes,maxTokens}),cache=new Map(state.cache);
     if(cache.has(key))return validateLayout(cache.get(key),input);
     // Reuse completed larger batches with this same policy, but keep new reasoning
     // to six pages. A twelve-page review exhausted the completion ceiling before
     // returning any verdict. Smaller calls share the same ledger and cache.
     if(input.pages.length>6){
       const decisions=[];
-      for(const batch of layoutBatches(input,6))decisions.push(...(await layoutBatch(batch)).decisions);
+      for(const batch of layoutBatches(input,6))decisions.push(...(await layoutBatch(batch,imagesByPage)).decisions);
       const result=validateLayout({decisions},input);cache.clear();for(const pair of state.cache)cache.set(...pair);
       cache.set(key,result);state.cache=[...cache];await save();return result;
     }
@@ -129,14 +133,15 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     // The cold annual and a numeric-cap probe exhausted all output on thinking.
     // Disable optional thinking for this bounded, measured decision packet, as
     // for short visual confirmations. Incomplete answers still hold and count.
-    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
+    const request={role:'publisher',schema:LayoutDecisions,data:input,images,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
     try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
     validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;
   };
-  const layout=async input=>{
+  const layout=async (input,{imagesByPage}={})=>{
     const decisions=[];
-    for(const batch of layoutBatches(input))decisions.push(...(await layoutBatch(batch)).decisions);
+    // Three neighbour sheets stay within the provider's four-image request cap.
+    for(const batch of layoutBatches(input,imagesByPage?3:6))decisions.push(...(await layoutBatch(batch,imagesByPage)).decisions);
     return validateLayout({decisions},input);
   };
   const renderScope=volume=>{

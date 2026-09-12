@@ -10,7 +10,7 @@ test('a blank-page justification cannot dismiss an overflow defect',()=>{const a
 test('applying a repair changes only bounded typesetter settings',()=>{const before=JSON.stringify(input),initial={fitFigs:{older:3},fitText:{1:.62}};const next=applyLayoutRepairs(initial,result,input);assert.deepEqual(next.fitFigs,{older:3,'figure-1':2.8});assert.equal(next.fitText[1],.58);assert.equal(initial.fitText[1],.62);assert.equal(JSON.stringify(input),before);});
 test('a complete short poem may retain intentional space with an explicit reason',()=>{
   const poem=layoutInput({measurement:{pages:[{page:1,blank:.8,ink_rows:.1}],articles:[{n:1,start:1,end:1}]},report:{postOrder:[{id:1}],publisher:{decisions:[{post_id:1,kind:'poem'}]}},fit:{},review:{findings:[]}});
-  const verdict={decisions:[{page:1,decision:'intentional_space',candidate_id:null,reason:'A complete short poem occupies its own page.'}]};
+  const verdict={decisions:[{page:1,decision:'intentional_space',candidate_id:null,reason:'A complete short poem occupies its own page.',space_basis:'single_piece'}]};
   assert.equal(validateLayout(verdict,poem).decisions.length,1);
 });
 test('front matter never inherits a nonexistent article design purpose',()=>{
@@ -66,11 +66,20 @@ test('source-position evidence requires actual following text in the same articl
 });
 test('a model cannot excuse a measured sparse prose tail as ordinary article separation',()=>{
   const input={pages:[{page:95,position:'article ending',kind:'essay',ink_rows:.04,figures:[],findings:[{check:1}]}],candidates:[{id:'leading:16',page:95}]};
-  const verdict={decisions:[{page:95,decision:'intentional_space',candidate_id:null,reason:'Only the final two lines remain; trailing space is normal article-end separation.'}]};
+  const verdict={decisions:[{page:95,decision:'intentional_space',candidate_id:null,reason:'Only the final two lines remain; trailing space is normal article-end separation.',space_basis:'article_end'}]};
   assert.throws(()=>validateLayout(verdict,input),/sparse prose tail/);
   assert.equal(validateLayout({decisions:[{page:95,decision:'repair',candidate_id:'leading:16',reason:'Bring the two stranded lines back.'}]},input).decisions[0].decision,'repair');
   assert.equal(validateLayout({decisions:[{page:95,decision:'needs_review',candidate_id:null,reason:'The sparse tail remains unresolved.'}]},input).decisions[0].decision,'needs_review');
   for(const kind of ['poem','recipe']){const special=structuredClone(input);special.pages[0].kind=kind;assert.equal(validateLayout(verdict,special).decisions.length,1);}
-  const complete=structuredClone(input);complete.pages[0].position='complete short piece';assert.equal(validateLayout(verdict,complete).decisions.length,1);
+  const complete=structuredClone(input);complete.pages[0].position='complete short piece';assert.equal(validateLayout({decisions:[{...verdict.decisions[0],space_basis:'single_piece'}]},complete).decisions.length,1);
+});
+test('body gaps cannot use an article-ending basis, even with final prose before an image',()=>{
+  const m={pages:[{page:1,blank:.7,ink_rows:.12},{page:2,blank:.15}],articles:[{n:1,start:1,end:2}],figures:[{id:'closing-photo',page:2,h:400,w:280}]};
+  const i=layoutInput({measurement:m,report:{},fit:{},review:{findings:[]}}),p=i.pages[0];
+  assert.deepEqual(p.compiled_article_span,{start:1,end:2});assert.equal(p.sparse_prose_ending,false);assert(p.allowed_space_bases.includes('figure_sequence'));assert(!p.allowed_space_bases.includes('article_end'));
+  const d={page:1,decision:'intentional_space',candidate_id:null,space_basis:'article_end',reason:'This is the final article page.'};
+  assert.throws(()=>validateLayout({decisions:[d]},i),/compiled position/);
+  assert.equal(validateLayout({decisions:[{...d,space_basis:'figure_sequence',reason:'Closing prose precedes the full-page photograph in the same article.'}]},i).decisions.length,1);
+  assert.throws(()=>validateLayout({decisions:[{...d,space_basis:null}]},i),/space_basis/);
 });
 console.log(`${n} bounded publisher layout checks passed`);
