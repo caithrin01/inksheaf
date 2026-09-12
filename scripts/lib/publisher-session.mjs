@@ -21,6 +21,7 @@ Use these structural facts and the complete printed_text:
 - A complete short piece starts and finishes on ONE page. This book starts each independent piece on a new page. Trailing space after its complete text is intentional separation, whatever its genre: essay, interview, recipe, poem or dispatch. Inspect for an internal gap or content defect rather than objecting to the length of the source.
 - Front and end matter have distinct jobs. A dedicated contents page or edition note does not need filler to reach a density target. Identify its actual purpose in the reason. Title leaves and binding versos also have a specific purpose.
 - An ending on a MULTI-page article is different: a stranded tail or excessive gap needs repair unless the actual content gives a specific reason. The absence of a candidate is never itself a design reason.
+Sparse prose endings with ink_rows below 0.25 and no figures cannot be marked intentional_space. Choose a supplied repair or needs_review. Source poems and recipes retain their distinct forms; do not reclassify prose to escape this check.
 adjacent_layout supplies the previous page's ending, the current ending and the next page's opening: actual printed lines (including captions), image rectangles, source figure IDs/sizes and compiled paragraph anchors. All coordinates are physical PDF points. Compare trailing_space_points with the following image and surrounding text/spacing. An image taller than the gap cannot fit there at its current size, but that alone does not prove its size or the gap is well designed. Check the source sequence, caption and reading role; never shrink a chart merely to fill space. same_article distinguishes a continuation from the next independent piece. Paragraph anchors describe compiled positions and may lie on the next page at a boundary; consult the printed lines before claiming a paragraph actually continues. Missing geometry is unknown, never zero. Truncated context is explicitly marked. A specific intentional-space reason must name the actual content or structural constraint, not just a chapter ending or lack of repair candidates.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
@@ -121,10 +122,10 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
       cache.set(key,result);state.cache=[...cache];await save();return result;
     }
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
-    // The cold annual's six-page batch consumed 4,695/5,000 tokens thinking and
-    // truncated its verdict. Keep the same total allowance and six-page batch,
-    // but request at most 2,048 thinking tokens; incomplete output still holds.
-    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,reasoningBudget:2048,task:LAYOUT_TASK};
+    // The cold annual and a numeric-cap probe exhausted all output on thinking.
+    // Disable optional thinking for this bounded, measured decision packet, as
+    // for short visual confirmations. Incomplete answers still hold and count.
+    const request={role:'publisher',schema:LayoutDecisions,data:input,maxOutput:5000,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
     try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
     validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;

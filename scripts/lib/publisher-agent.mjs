@@ -122,11 +122,11 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       // A short visual confirmation needs a structured verdict. In the owner
       // trial, adaptive thinking consumed 399/400 output tokens and returned no
       // verdict. Disable it for these bounded confirmations. Layout batches can
-      // request an explicit thinking budget to leave room for their JSON verdict.
+      // explicitly disable it too: a live probe ignored a numeric thinking cap.
       // Other editorial requests keep medium effort.
       // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
-      if(reasoningBudget!=null&&(role!=='publisher'||!Number.isInteger(reasoningBudget)||reasoningBudget<1024||reasoningBudget>=outputLimit))throw Error('Invalid publisher reasoning budget');
-      const reasoning=role==='publisher'?(reasoningBudget!=null?{max_tokens:reasoningBudget}:images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
+      if(reasoningBudget!=null&&(role!=='publisher'||!Number.isInteger(reasoningBudget)||(reasoningBudget!==0&&reasoningBudget<1024)||reasoningBudget>=outputLimit))throw Error('Invalid publisher reasoning budget');
+      const reasoning=role==='publisher'?(reasoningBudget===0?{enabled:false}:reasoningBudget!=null?{max_tokens:reasoningBudget}:images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
       for (const image of images) {
         if (!Buffer.isBuffer(image) || image.length < 24 || image.subarray(0,8).toString('hex') !== '89504e470d0a1a0a'
           || image.readUInt32BE(16)<1 || image.readUInt32BE(20)<1 || image.readUInt32BE(16)>4096 || image.readUInt32BE(20)>4096) throw Error('Publisher page images must be bounded PNG files');

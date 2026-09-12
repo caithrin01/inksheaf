@@ -14,6 +14,20 @@ export function readingOrderFindings(measurement){
   const findings=[];
   for(const figure of measurement.figures||[]){
     if(!figure.floating||!valid(figure))continue;
+    // A float can pass several complete sections without bisecting a paragraph.
+    // Compare its original following paragraph with actual printed lines, not an
+    // empty start marker carried across a page turn. Never cross article bounds.
+    const next=(measurement.paragraphs||[]).find(p=>p.id===figure.source_next_paragraph&&figure.article>0&&p.start?.article===figure.article&&p.end?.article===figure.article&&valid(p.start)&&valid(p.end));
+    if(next){
+      const line=(measurement.pages||[]).flatMap(p=>(p.layout_geometry?.blocks||[])
+        .filter(b=>b.kind==='text'&&b.text?.trim()&&b.bbox?.length===4&&b.bbox.every(Number.isFinite))
+        .map(b=>({page:p.page,y:(b.bbox[1]+b.bbox[3])/2})))
+        .filter(p=>!before(p,next.start)&&!before(next.end,p)).sort((a,b)=>a.page-b.page||a.y-b.y)[0];
+      if(line&&before(line,figure)){
+        findings.push({page:figure.page,check:8,figure_id:figure.id,paragraph_id:next.id,defect:'delayed_source_figure',confidence:1,origin:'measured_layout',note:`Floating figure ${figure.id} prints after text that followed it in the source. Keep it before source paragraph ${next.id}.`});
+        continue;
+      }
+    }
     const paragraph=(measurement.paragraphs||[]).find(p=>valid(p.start)&&valid(p.end)&&before(p.start,figure)&&before(figure,p.end));
     if(paragraph)findings.push({page:figure.page,check:8,figure_id:figure.id,paragraph_id:paragraph.id,confidence:1,origin:'measured_layout',note:`Floating figure ${figure.id} interrupts source paragraph ${paragraph.id} between its measured start and end.`});
   }
@@ -70,7 +84,7 @@ export function adjacentLayoutContext(measurement,page,pageText=[]){
       printed_blocks_truncated:blocks.length<all.length,
       figures:figures.slice(0,12).map(({id,role,page,y,h,w,floating,reading_mode})=>({id,role,page,y_points:y,height_points:h,width_points:w,floating,reading_mode})),
       figures_truncated:figures.length>12,
-      paragraph_anchors:anchors.map(({id,start,end})=>({id,start,end})),
+      paragraph_anchors:anchors.map(({id,start,end})=>({id,start:start?{page:start.page,y:start.y}:start,end:end?{page:end.page,y:end.y}:end})),
       paragraph_anchors_truncated:anchors.length<paragraphs.length};
   };
   return {previous_page:view(page-1,'end'),current_page:view(page,'end'),next_page:view(page+1,'start')};
@@ -131,6 +145,8 @@ export function validateLayout(result,input){
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
     if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
+    if(d.decision==='intentional_space'&&p.position==='article ending'&&Number.isFinite(p.ink_rows)&&p.ink_rows<.25
+      &&!(p.figures||[]).length&&!['poem','recipe'].includes(p.kind))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
   }
   if(seen.size!==pages.size)throw invalid('Layout review omitted a measured page');
   return parsed;

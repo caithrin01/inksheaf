@@ -12,6 +12,11 @@ export const BoundaryConfirmation=z.object({
 export function adjudicateBoundaryConfirmation(answer,context){
   const result=BoundaryConfirmation.parse(answer);
   if(result.defect==='uncertain')return {...result,confirmed:true,origin:'uncertain',model_confirmation:result};
+  const foot=context?.foot;
+  if(result.confirmed&&result.defect==='stranded_heading'&&result.edge==='foot'
+    &&['paragraph','template_field'].includes(foot?.source_kind)
+    &&foot.printed_complete_on_page&&foot.printed_source_end===true)return {...result,confirmed:false,origin:'measured_layout',model_confirmation:result,
+      note:'The page foot contains printed source body text, not an isolated heading. Figure placement and whitespace still require their own checks.'};
   if(!result.confirmed||result.defect!=='single_line_fragment'||result.edge==='uncertain')return result;
   const edges=result.edge==='both'?['top','foot']:[result.edge];
   const evidence=edges.map(edge=>context?.[edge]);
@@ -24,6 +29,7 @@ const before = (a,b) => a.page < b.page || (a.page === b.page && a.y <= b.y);
 const middle = b => (b.bbox[1]+b.bbox[3])/2;
 const validLine = b => b.kind === 'text' && typeof b.text === 'string' && b.text.trim()
   && Array.isArray(b.bbox) && b.bbox.length === 4 && b.bbox.every(Number.isFinite);
+const normalized=text=>String(text||'').normalize('NFKC').toLocaleLowerCase('en').replace(/[^\p{L}\p{N}]/gu,'');
 
 export function paragraphBoundaryContext(measurement, page) {
   const paragraphs=(measurement.paragraphs||[]).filter(p=>point(p.start)&&point(p.end)&&before(p.start,p.end));
@@ -51,7 +57,8 @@ export function paragraphBoundaryContext(measurement, page) {
     const complete=startsHere&&endsHere;
     const continuation=(previous?.line_count||0)>0||(next?.line_count||0)>0;
     return {status:ambiguous?'unknown':current.line_count>=2?'multiple_lines':complete?'complete_single_line_paragraph':continuation?'single_line_fragment':'unknown',
-      paragraph_id:p.id,anchors:{start:p.start,end:p.end},printed_complete_on_page:!ambiguous&&complete,current,previous,next};
+      paragraph_id:p.id,source_kind:!ambiguous?p.start.source_kind??'unknown':'unknown',anchors:{start:{page:p.start.page,y:p.start.y},end:{page:p.end.page,y:p.end.y}},printed_complete_on_page:!ambiguous&&complete,
+      printed_source_end:!ambiguous&&complete&&!!normalized(current.last_line)&&normalized(p.start.source_tail).endsWith(normalized(current.last_line)),current,previous,next};
   };
   const top=edge('top'),foot=edge('foot');
   // A complete paragraph can also act as a heading. Clear automatically only

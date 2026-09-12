@@ -74,6 +74,10 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
       if (!bad.length) throw e; /* a failure that is not the detector stays a failure */
       log(`pass ${pass}: ${bad.map(b => b.closer ? `${b.page} (closing page holds only a figure)` : `${b.page} (${Math.round(b.blank * 100)}%)`).join(", ")}`);
       if (pj.engine === "typst") {
+        // A whitespace failure still has usable source-position measurements.
+        // Share its next reserved render instead of postponing all float repairs
+        // until whitespace happens to pass and the allowance is nearly gone.
+        for(const f of readingOrderFindings(pj))if(!inFlow.includes(f.figure_id))inFlow.push(f.figure_id);
         /* Typst: scale the figure that fell after each short page to the height that was left */
         const fits = (pj.fit || []).filter(f => !readingFigures[f.id] && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1));
         if (!fits.length) throw new Error(`${bad.length} page(s) over the blank limit with no figure to fit: ${bad.map(b => b.page).join(", ")}`);

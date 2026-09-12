@@ -69,7 +69,7 @@ export function emitTypst(html, opts = {}) {
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -166,7 +166,7 @@ export function emitTypst(html, opts = {}) {
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
     const tagFor = extra => {
       const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
-      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
@@ -249,7 +249,8 @@ export function emitTypst(html, opts = {}) {
         const boldHeading=!fieldValue&&meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
         if(t){
           const id=++paragraphN;
-          const point=label=>`#context [#metadata((id: ${id}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':'paragraph';
+          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
           t=point('parstart')+t+point('parend');
           s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
         }
@@ -302,7 +303,7 @@ export function emitTypst(html, opts = {}) {
 
   /* ---- an article: collect its footnotes first, then head, body, endnotes ---- */
   function article(sec, index, afterPart = false) {
-    fnMap = new Map(); endnotes = []; figN = 0;
+    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1;
     figTotal = findAll(find(sec, k => isEl(k) && has(k, "artbody")) || sec, k => isEl(k) && k.name === "img" && attr(k, "src")).length; /* body images only; the link note's QR is not a figure */
     for (const fn of findAll(sec, k => isEl(k) && k.name === "div" && has(k, "footnote"))) {
       const numEl = find(fn, k => isEl(k) && k.name === "a" && (attr(k, "id") || "").length);

@@ -81,5 +81,18 @@ await test('contradictory or untyped verdicts fail validation; unmeasured edges 
   const uncertain=adjudicateBoundaryConfirmation({...claim,confirmed:false,defect:'uncertain'},context);
   assert.equal(uncertain.confirmed,true);assert.equal(uncertain.origin,'uncertain');
 });
+await test('a complete source body line contradicts an isolated-heading claim only when its printed ending matches',async()=>{
+  const m=structuredClone(measurement),last=m.pages[0].layout_geometry.blocks.filter(b=>b.kind==='text').at(-1);
+  m.paragraphs=[{id:1,start:{page:1,y:last.bbox[1],source_kind:'paragraph',source_tail:last.text},end:{page:2,y:55}}];
+  const claim={confirmed:true,origin:'rendered_layout',note:'A heading is stranded at the foot.',defect:'stranded_heading',edge:'foot'};
+  const b=paragraphBoundaryContext(m,1);assert(b.foot.printed_source_end&&b.foot.printed_complete_on_page);
+  const answer=adjudicateBoundaryConfirmation(claim,b);assert.equal(answer.confirmed,false);assert.deepEqual(answer.model_confirmation,claim);
+  m.paragraphs[0].start.source_tail='A different source ending before an empty carried marker.';
+  assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
+  m.paragraphs[0].start.source_tail=last.text;m.paragraphs[0].start.source_kind='heading';
+  assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
+  m.paragraphs[0].start.source_kind='paragraph';m.paragraphs[0].end.y=150;
+  assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
+});
 console.log(`${passed} paragraph-boundary checks passed`);
 }finally{rmSync(dir,{recursive:true,force:true});}

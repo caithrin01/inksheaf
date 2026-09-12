@@ -199,7 +199,7 @@ await test('layout reserves answer space and retains a truncated charge across r
   const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};
   const decisions=input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.'}));
   const session=()=>publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
-    calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,5000);assert.deepEqual(request.reasoning,{max_tokens:2048});
+    calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,5000);assert.deepEqual(request.reasoning,{enabled:false});
     // Preserve the live failure shape even if a provider ignores the requested
     // thinking budget: a partial JSON answer cannot become quality acceptance.
     return Response.json({choices:[{finish_reason:calls===1?'length':'stop',message:{content:calls===1?'{"decisions":[':JSON.stringify({decisions})}}],usage:calls===1?{cost:.107472,completion_tokens:5000,completion_tokens_details:{reasoning_tokens:4695}}:{cost:.001}});

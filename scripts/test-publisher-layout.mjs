@@ -8,7 +8,11 @@ test('repairs cannot name another page or invent a destructive operation',()=>{f
 test('every measured page needs a decision even when the renderer exempted it',()=>{assert.throws(()=>validateLayout({decisions:result.decisions.slice(0,1)},input),/omitted/);});
 test('a blank-page justification cannot dismiss an overflow defect',()=>{const altered=structuredClone(input);altered.pages[0].findings=[{check:4}];assert.throws(()=>validateLayout({decisions:[{page:1,decision:'intentional_space',candidate_id:null,reason:'A short poem.'},result.decisions[1]]},altered),/overflow/);});
 test('applying a repair changes only bounded typesetter settings',()=>{const before=JSON.stringify(input),initial={fitFigs:{older:3},fitText:{1:.62}};const next=applyLayoutRepairs(initial,result,input);assert.deepEqual(next.fitFigs,{older:3,'figure-1':2.8});assert.equal(next.fitText[1],.58);assert.equal(initial.fitText[1],.62);assert.equal(JSON.stringify(input),before);});
-test('a complete short poem may retain intentional space with an explicit reason',()=>{const verdict={decisions:input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'A complete short poem occupies its own page.'}))};assert.equal(validateLayout(verdict,input).decisions.length,2);});
+test('a complete short poem may retain intentional space with an explicit reason',()=>{
+  const poem=layoutInput({measurement:{pages:[{page:1,blank:.8,ink_rows:.1}],articles:[{n:1,start:1,end:1}]},report:{postOrder:[{id:1}],publisher:{decisions:[{post_id:1,kind:'poem'}]}},fit:{},review:{findings:[]}});
+  const verdict={decisions:[{page:1,decision:'intentional_space',candidate_id:null,reason:'A complete short poem occupies its own page.'}]};
+  assert.equal(validateLayout(verdict,poem).decisions.length,1);
+});
 test('front matter never inherits a nonexistent article design purpose',()=>{
   const i=layoutInput({measurement:{pages:[{page:1,blank:.8},{page:2,blank:.6}],articles:[{n:1,start:2,end:2}]},report:{postOrder:[{id:1}],publisher:{decisions:[]}},fit:{},review:{findings:[]},pageText:['CONTENTS','A complete piece.']});
   assert.equal(i.pages[0].position,'front matter');assert.equal(i.pages[0].design_purpose,null);
@@ -52,5 +56,21 @@ test('reading-order repairs only move measured nearby floats back to their sourc
 test('measured paragraph boundaries catch interruptions that vision misses',()=>{
   const m={paragraphs:[{id:7,start:{page:2,y:450},end:{page:3,y:240}}],figures:[{id:'interrupt',page:3,y:70,floating:true},{id:'before',page:2,y:100,floating:true},{id:'after',page:3,y:300,floating:true},{id:'inflow',page:3,y:70,floating:false}]};
   const findings=readingOrderFindings(m);assert.equal(findings.length,1);assert.equal(findings[0].figure_id,'interrupt');assert.equal(findings[0].check,8);assert.equal(findings[0].paragraph_id,7);
+});
+test('source-position evidence requires actual following text in the same article',()=>{
+  const m={paragraphs:[{id:7,start:{page:2,y:100,article:1},end:{page:2,y:140,article:1}}],figures:[{id:'delayed',page:2,y:400,floating:true,article:1,source_next_paragraph:7}],pages:[{page:2,layout_geometry:{blocks:[{kind:'text',text:'The paragraph after the source figure.',bbox:[50,110,300,125]}]}}]};
+  assert.equal(readingOrderFindings(m)[0].defect,'delayed_source_figure');
+  const missing=structuredClone(m);missing.pages=[];assert.equal(readingOrderFindings(missing).length,0);
+  const other=structuredClone(m);other.figures[0].article=2;assert.equal(readingOrderFindings(other).length,0);
+  const before=structuredClone(m);before.figures[0].y=70;assert.equal(readingOrderFindings(before).length,0);
+});
+test('a model cannot excuse a measured sparse prose tail as ordinary article separation',()=>{
+  const input={pages:[{page:95,position:'article ending',kind:'essay',ink_rows:.04,figures:[],findings:[{check:1}]}],candidates:[{id:'leading:16',page:95}]};
+  const verdict={decisions:[{page:95,decision:'intentional_space',candidate_id:null,reason:'Only the final two lines remain; trailing space is normal article-end separation.'}]};
+  assert.throws(()=>validateLayout(verdict,input),/sparse prose tail/);
+  assert.equal(validateLayout({decisions:[{page:95,decision:'repair',candidate_id:'leading:16',reason:'Bring the two stranded lines back.'}]},input).decisions[0].decision,'repair');
+  assert.equal(validateLayout({decisions:[{page:95,decision:'needs_review',candidate_id:null,reason:'The sparse tail remains unresolved.'}]},input).decisions[0].decision,'needs_review');
+  for(const kind of ['poem','recipe']){const special=structuredClone(input);special.pages[0].kind=kind;assert.equal(validateLayout(verdict,special).decisions.length,1);}
+  const complete=structuredClone(input);complete.pages[0].position='complete short piece';assert.equal(validateLayout(verdict,complete).decisions.length,1);
 });
 console.log(`${n} bounded publisher layout checks passed`);

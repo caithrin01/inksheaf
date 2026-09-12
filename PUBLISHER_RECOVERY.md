@@ -82,3 +82,28 @@ control. Local tests verify the request and preservation of a truncated charge
 across restart; live provider compliance and completed quality review remain open.
 Incomplete answers still hold without being accepted or cached. No new paid trial
 was started after these corrections.
+
+The subsequent source-position regression reproduces a first screenshot floating
+past later sections without intersecting a paragraph. Figures now retain the ID
+of the following source paragraph and its article. Printed line measurements
+detect delayed figures, which the fitter places in flow before paid review.
+Whitespace failures share that same next reserved render. A real two-render
+fixture preserves both images and every source marker.
+
+The live six-page probe **did not honor the numeric thinking limit**: it used all
+5,000 tokens for reasoning and held ($0.107472). Explicitly disabling optional
+reasoning returned all six decisions in 8.6 seconds with zero reasoning tokens
+($0.062192). Both calls remain in one journal, $0.169664 total. Layout now uses
+`reasoning.enabled: false`, still with six-page batches and 5,000 output tokens.
+That request success is not quality acceptance: a model's attempt to excuse a
+two-line prose tail exposed a missing validator check. Sparse multi-page prose
+endings with fewer than 25% ink rows and no figures now require repair or a hold;
+poems, recipes and complete single-page pieces retain their distinct treatment.
+
+Source paragraph types and endings also distinguish complete body text from
+isolated headings. A heading claim is contradicted only when the complete body
+paragraph's final printed line matches its source ending. Real headings,
+unmatched lines, uncertainty and missing evidence retain their hold. Private
+source tails are used locally for matching and omitted from model anchor packets.
+New cold acceptance results belong in the vault; all old trial results and costs
+remain retained.
