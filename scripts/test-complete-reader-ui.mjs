@@ -45,12 +45,12 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   assert.match(await page.locator('#draft-position').innerText(),/Leaf 1.*Leaf 1 of 18/s);
   await page.getByLabel('Go to page').selectOption('9');await settled();assert.match(await text(),/Volume 1, physical leaf 10/);assert.match(await page.locator('#draft-position').innerText(),/Page 7.*Leaf 10 of 18/s);
   assert(await page.locator('#draft-paper canvas').evaluate(canvas=>{const p=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let n=0;for(let i=0;i<p.length;i+=4)if(p[i]<180&&p[i+3])n++;return n>1000;}));
-  await page.screenshot({path:`${out}/${engine}-${width}-middle.png`,fullPage:true,animations:'disabled'});
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`${out}/${engine}-${width}-middle.png`,fullPage:true,animations:'disabled'});
   await page.getByRole('button',{name:'Read as text',exact:true}).click();await settled();
   await page.getByLabel('Go to page').selectOption('17');await settled();assert.match(await text(),/Volume 1, physical leaf 18/);assert.equal(await page.getByRole('button',{name:'Next page',exact:true}).isDisabled(),true);
   await page.getByRole('button',{name:'Previous page',exact:true}).focus();await page.keyboard.press('Enter');await settled();assert.match(await text(),/physical leaf 17/);
   await page.getByLabel('Volume',{exact:true}).selectOption('2');await settled();await page.getByLabel('Go to page').selectOption('9');await settled();assert.match(await text(),/Volume 2, physical leaf 10/);assert.match(await page.locator('#draft-position').innerText(),/Page 7.*Leaf 10 of 10/s);
-  await page.screenshot({path:`${out}/${engine}-${width}-last-text.png`,fullPage:true,animations:'disabled'});
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`${out}/${engine}-${width}-last-text.png`,fullPage:true,animations:'disabled'});
   await page.addScriptTag({content:axe});assert.deepEqual(await page.evaluate(async()=>(await window.axe.run({runOnly:{type:'tag',values:['wcag2a','wcag2aa']}})).violations.map(v=>v.id)),[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   for(const id of ['draft-volume','draft-jump'])assert((await page.locator('#'+id).boundingBox()).height>=44);

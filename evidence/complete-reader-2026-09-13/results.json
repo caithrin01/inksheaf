@@ -226,7 +226,83 @@
     "honesty_source_checks": 48,
     "project_validator_pass": 13,
     "frontend_model_review": "Prepared manifest and brief; not called, no critique or design approval claimed. Awaiting owner Mac readiness.",
-    "ci": "Not run before this commit."
+    "ci": {
+      "initial_run": 34738186153,
+      "head": "3181488bb869eedb60a31474152addf89630666c",
+      "conclusion": "failure",
+      "passed_before_failure": [
+        "unit suite",
+        "build",
+        "source honesty",
+        "earlier browser suites"
+      ],
+      "failure": "The publisher-journey fixture restored selection revision 1 but omitted selection_revision from its final ready/layout events. The reader correctly rejected the mismatched completion.",
+      "fix": "The synthetic events now carry the applied revision, matching publisherSession.emit. The same original PDF-link assertion remains. No product code changed.",
+      "followup": "Corrected publisher journey passes Chromium/WebKit at desktop and phone widths; new CI pending."
+    },
+    "browser_publisher_after_fixture_fix": [
+      {
+        "engine": "chromium",
+        "width": 1280,
+        "pass": true,
+        "states": [
+          "reading",
+          "contents",
+          "restore failure and retry",
+          "saved restore survives reload",
+          "corrected contents",
+          "PDF ready with email delayed",
+          "reload"
+        ],
+        "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+      },
+      {
+        "engine": "chromium",
+        "width": 390,
+        "pass": true,
+        "states": [
+          "reading",
+          "contents",
+          "restore failure and retry",
+          "saved restore survives reload",
+          "corrected contents",
+          "PDF ready with email delayed",
+          "reload"
+        ],
+        "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+      },
+      {
+        "engine": "webkit",
+        "width": 1280,
+        "pass": true,
+        "states": [
+          "reading",
+          "contents",
+          "restore failure and retry",
+          "saved restore survives reload",
+          "corrected contents",
+          "PDF ready with email delayed",
+          "reload"
+        ],
+        "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+      },
+      {
+        "engine": "webkit",
+        "width": 390,
+        "pass": true,
+        "states": [
+          "reading",
+          "contents",
+          "restore failure and retry",
+          "saved restore survives reload",
+          "corrected contents",
+          "PDF ready with email delayed",
+          "reload"
+        ],
+        "fixture": "synthetic source and recorded model events; 42 pages is a UI fixture, not a rendered PDF claim"
+      }
+    ],
+    "design_capture": "Phone screenshots now start at scroll top to avoid displaced sticky navigation in full-page captures. Same committed product; actual model review still not called."
   },
   "native_findings": "The native Workers test showed a downstream reader can see EOF despite a late stream error. The final 64 bytes are retained until digest/current-version checks pass; the browser verifies the entire SHA before decoding. Fragmented transfers across the retained-byte boundary are tested.",
   "cost": {
