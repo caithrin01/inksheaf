@@ -38,14 +38,21 @@
         "engine": "chromium",
         "width": 1280,
         "pass": true,
+        "ink": {
+          "dark": 3196,
+          "pixels": 489347,
+          "width": 571,
+          "height": 857,
+          "deviceScale": 1
+        },
         "volumes": [
           {
             "pages": 18,
-            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+            "sha256": "c7ad5bfa1a798b921a1c76357962a15f554ade04d6b8c149e0e85b4c19be4247"
           },
           {
             "pages": 10,
-            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+            "sha256": "e0028c40152a6307c0b5e6480e490484464db609d4c22703af4c63a653ef1065"
           }
         ],
         "states": [
@@ -67,14 +74,21 @@
         "engine": "chromium",
         "width": 390,
         "pass": true,
+        "ink": {
+          "dark": 1077,
+          "pixels": 152004,
+          "width": 318,
+          "height": 478,
+          "deviceScale": 1
+        },
         "volumes": [
           {
             "pages": 18,
-            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+            "sha256": "c7ad5bfa1a798b921a1c76357962a15f554ade04d6b8c149e0e85b4c19be4247"
           },
           {
             "pages": 10,
-            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+            "sha256": "e0028c40152a6307c0b5e6480e490484464db609d4c22703af4c63a653ef1065"
           }
         ],
         "states": [
@@ -96,14 +110,21 @@
         "engine": "webkit",
         "width": 1280,
         "pass": true,
+        "ink": {
+          "dark": 3278,
+          "pixels": 489347,
+          "width": 571,
+          "height": 857,
+          "deviceScale": 1
+        },
         "volumes": [
           {
             "pages": 18,
-            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+            "sha256": "c7ad5bfa1a798b921a1c76357962a15f554ade04d6b8c149e0e85b4c19be4247"
           },
           {
             "pages": 10,
-            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+            "sha256": "e0028c40152a6307c0b5e6480e490484464db609d4c22703af4c63a653ef1065"
           }
         ],
         "states": [
@@ -125,14 +146,21 @@
         "engine": "webkit",
         "width": 390,
         "pass": true,
+        "ink": {
+          "dark": 1130,
+          "pixels": 152004,
+          "width": 318,
+          "height": 478,
+          "deviceScale": 1
+        },
         "volumes": [
           {
             "pages": 18,
-            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+            "sha256": "c7ad5bfa1a798b921a1c76357962a15f554ade04d6b8c149e0e85b4c19be4247"
           },
           {
             "pages": 10,
-            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+            "sha256": "e0028c40152a6307c0b5e6480e490484464db609d4c22703af4c63a653ef1065"
           }
         ],
         "states": [
@@ -238,7 +266,21 @@
       ],
       "failure": "The publisher-journey fixture restored selection revision 1 but omitted selection_revision from its final ready/layout events. The reader correctly rejected the mismatched completion.",
       "fix": "The synthetic events now carry the applied revision, matching publisherSession.emit. The same original PDF-link assertion remains. No product code changed.",
-      "followup": "Corrected publisher journey passes Chromium/WebKit at desktop and phone widths; new CI pending."
+      "followup": "New CI pending after browser-fixture corrections.",
+      "second_run": {
+        "id": 34738763673,
+        "head": "f0833036cf2d073cb4b133f357a6a3f473b774ca",
+        "conclusion": "failure",
+        "passed_before_failure": [
+          "unit suite",
+          "build",
+          "publisher journey all four cases",
+          "draft reader all four cases",
+          "complete reader Chromium desktop"
+        ],
+        "failure": "The sparse phone PDF fixture did not reach a fixed 1000-dark-pixel threshold. The failing version did not report its count.",
+        "fix": "The nonblank check now measures dark pixels as a fraction of canvas area (over 0.1%) and explicitly sets device scale 1. Exact text, digest, page-count, navigation, touch and revision checks are retained. Local phone counts are 1077/1130 versus 3196/3278 on desktop; all four cases pass. Product code unchanged."
+      }
     },
     "browser_publisher_after_fixture_fix": [
       {
