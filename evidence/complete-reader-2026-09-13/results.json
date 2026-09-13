@@ -1,0 +1,239 @@
+{
+  "at": "2026-09-13T04:32:33.018498+00:00",
+  "base_commit": "74b9cb28dfc939a956202bda138efd29bbaeb3cb",
+  "scope": "Complete private browser reading for every volume, with original PDF bytes, printed labels, bounded streaming and immutable version/selection/digest/expiry access. Separate branch; frozen annual candidate unchanged.",
+  "source_sha256": {
+    "functions/api/edition-file.js": "efef3c803384d86d28523b04500dec3130b1746f7f7dfc4d9cf3c74fb5a68025",
+    "functions/lib/edition-reader.js": "c152ba5cf509f8a8d3bfebd866ad49ada890fd7e942a628b977fdb9d5d7492f0",
+    "functions/api/edition.js": "3d57e4d8406e9f646202d74fb50ba31914d7505fbe0b91bba346759f0bac92f0",
+    "functions/api/version.js": "b22a8d2b57f0b90cbdde4b4425bfa656411e4aa2c3ecda6fbcdf7f4aaf293fb2",
+    "scripts/lib/complete-reader.mjs": "eb2e337bbd907918071bcec829a265ae4b82e47a78a2f90729f2363393f585a9",
+    "scripts/press.mjs": "379476a8f3ce1476e181705ad9481043a25f49b493bb66ccf00cd09335d61a1f",
+    "src/scripts/edition-pages.ts": "83b71dd3f29bf0235fce6be7980465df42ef31bfef8480f1f29efae6690afc0a",
+    "src/components/EditionPages.astro": "902b8d6560627cf6f5f426f5a21f2b72abf5f97344dce530548f9c1485b5dfc5",
+    "src/pages/edition.astro": "505ef8909d9851f5f2517a334a5112b7ef32563d04c61fbd3640540c4aaf9feb"
+  },
+  "validation": {
+    "complete_reader_api_metadata_checks": 11,
+    "native_workers_checks": [
+      {
+        "mode": "valid",
+        "pass": true
+      },
+      {
+        "mode": "wrong digest",
+        "pass": true
+      },
+      {
+        "mode": "changed selection",
+        "pass": true
+      },
+      {
+        "mode": "truncated",
+        "pass": true
+      }
+    ],
+    "browser_complete": [
+      {
+        "engine": "chromium",
+        "width": 1280,
+        "pass": true,
+        "volumes": [
+          {
+            "pages": 18,
+            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+          },
+          {
+            "pages": 10,
+            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+          }
+        ],
+        "states": [
+          "complete without draft",
+          "load retry",
+          "arbitrary middle",
+          "last page each volume",
+          "printed labels",
+          "keyboard",
+          "text view",
+          "wrong digest refusal",
+          "reload",
+          "superseded version on return after delivery",
+          "revision during transfer"
+        ],
+        "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+      },
+      {
+        "engine": "chromium",
+        "width": 390,
+        "pass": true,
+        "volumes": [
+          {
+            "pages": 18,
+            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+          },
+          {
+            "pages": 10,
+            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+          }
+        ],
+        "states": [
+          "complete without draft",
+          "load retry",
+          "arbitrary middle",
+          "last page each volume",
+          "printed labels",
+          "keyboard",
+          "text view",
+          "wrong digest refusal",
+          "reload",
+          "superseded version on return after delivery",
+          "revision during transfer"
+        ],
+        "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+      },
+      {
+        "engine": "webkit",
+        "width": 1280,
+        "pass": true,
+        "volumes": [
+          {
+            "pages": 18,
+            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+          },
+          {
+            "pages": 10,
+            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+          }
+        ],
+        "states": [
+          "complete without draft",
+          "load retry",
+          "arbitrary middle",
+          "last page each volume",
+          "printed labels",
+          "keyboard",
+          "text view",
+          "wrong digest refusal",
+          "reload",
+          "superseded version on return after delivery",
+          "revision during transfer"
+        ],
+        "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+      },
+      {
+        "engine": "webkit",
+        "width": 390,
+        "pass": true,
+        "volumes": [
+          {
+            "pages": 18,
+            "sha256": "add9b5166ace747aac9ff43071ab4af6ea4ee68c08a33a5dd29e3692de3ad221"
+          },
+          {
+            "pages": 10,
+            "sha256": "71f8caef08c8d50ec9de713c3f362b56d95c5d70749c71d313c0aa8f515c8b44"
+          }
+        ],
+        "states": [
+          "complete without draft",
+          "load retry",
+          "arbitrary middle",
+          "last page each volume",
+          "printed labels",
+          "keyboard",
+          "text view",
+          "wrong digest refusal",
+          "reload",
+          "superseded version on return after delivery",
+          "revision during transfer"
+        ],
+        "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+      }
+    ],
+    "browser_draft": [
+      {
+        "engine": "chromium",
+        "width": 1280,
+        "pass": true,
+        "pdf_sha256": "f187f0b7b4b0e28d76c845ea69ca542724318dfc929bf3f7d9ce74c3967e5c43",
+        "states": [
+          "unavailable",
+          "load failure and retry",
+          "actual print pixels",
+          "page turn by keyboard",
+          "read as text",
+          "restored choice retires draft",
+          "revised pages",
+          "reload"
+        ],
+        "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+      },
+      {
+        "engine": "chromium",
+        "width": 390,
+        "pass": true,
+        "pdf_sha256": "f187f0b7b4b0e28d76c845ea69ca542724318dfc929bf3f7d9ce74c3967e5c43",
+        "states": [
+          "unavailable",
+          "load failure and retry",
+          "actual print pixels",
+          "page turn by keyboard",
+          "read as text",
+          "restored choice retires draft",
+          "revised pages",
+          "reload"
+        ],
+        "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+      },
+      {
+        "engine": "webkit",
+        "width": 1280,
+        "pass": true,
+        "pdf_sha256": "f187f0b7b4b0e28d76c845ea69ca542724318dfc929bf3f7d9ce74c3967e5c43",
+        "states": [
+          "unavailable",
+          "load failure and retry",
+          "actual print pixels",
+          "page turn by keyboard",
+          "read as text",
+          "restored choice retires draft",
+          "revised pages",
+          "reload"
+        ],
+        "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+      },
+      {
+        "engine": "webkit",
+        "width": 390,
+        "pass": true,
+        "pdf_sha256": "f187f0b7b4b0e28d76c845ea69ca542724318dfc929bf3f7d9ce74c3967e5c43",
+        "states": [
+          "unavailable",
+          "load failure and retry",
+          "actual print pixels",
+          "page turn by keyboard",
+          "read as text",
+          "restored choice retires draft",
+          "revised pages",
+          "reload"
+        ],
+        "fixture": "Synthetic Typst PDF; API snapshots intercepted; no paid model, upload, email or public URL"
+      }
+    ],
+    "local_unit_suite": "All sections completed: initial run reached fragmented-transfer regression; corrected case and every remaining suite passed. Earlier macOS sandbox HEIC failure and regression logs retained.",
+    "build": "passed",
+    "honesty_source_checks": 48,
+    "project_validator_pass": 13,
+    "frontend_model_review": "Prepared manifest and brief; not called, no critique or design approval claimed. Awaiting owner Mac readiness.",
+    "ci": "Not run before this commit."
+  },
+  "native_findings": "The native Workers test showed a downstream reader can see EOF despite a late stream error. The final 64 bytes are retained until digest/current-version checks pass; the browser verifies the entire SHA before decoding. Fragmented transfers across the retained-byte boundary are tested.",
+  "cost": {
+    "paid_model_calls": 0,
+    "new_campaign_allocation": false,
+    "campaign_committed_usd": 27.32019025
+  },
+  "release": "Not deployed. Annual quality, required actual external design critique, ordinary owner/browser/inbox and remaining launch gates stay open.",
+  "limits": "Synthetic multi-volume browser fixtures and local native runtime validate behavior; they do not establish production storage, a real accepted annual, inbox delivery or a physical proof."
+}
