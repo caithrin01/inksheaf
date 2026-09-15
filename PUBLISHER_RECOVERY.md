@@ -202,3 +202,31 @@ second-pass batches and invokes the injected provider for the five changed
 batches. New injected results deliberately hold. These are avoided duplicate
 requests in a test, not a completed live book or measured future dollar savings.
 See `evidence/layout-review-reuse-2026-09-15/results.json`.
+
+## Verify that a photograph fit actually worked
+
+The September 15 cold annual completed the normal pipeline in 8m56s: 162 pages,
+90 calls, five renders, one repair and $1.0835275, including three corrected,
+billed schema failures. Twelve of fourteen layout batches reused identical
+evidence. Independent visual inspection still rejected its closing photograph:
+the fit reduced the image but left it alone on a mostly empty page, and the model
+accepted that ineffective move. Pipeline completion did not establish quality.
+
+Closing-figure fitting now uses the preceding page's physical trailing space.
+The raster blank fraction had overstated that space by 14pt in the real book.
+A two-render synthetic regression fails on the old fitter and passes on this
+correction. A separate saved-HTML annual replay moves the photograph onto the
+preceding page and preserves all 22 normalized printed article bodies and all
+58 bitmap occurrences. It is offline diagnosis, not another cold acceptance.
+
+The layout packet also identifies a previously fitted photograph that remains
+alone on its closing leaf at less than a quarter of the usable body height.
+That result requires another measured repair or a hold; a model cannot excuse
+it as intentional article-ending space. Reading figures, unfitted source art,
+larger plates, pages with prose and complete single-page pieces are distinct.
+
+Renderer/review policy fingerprints change. Preserve the completed cold PDF,
+journal, prior failures and charges; do not rekey its answers or reuse its old
+checkpoint under this renderer. The screenshot-readability disposition and a
+corrected cold quality run remain open. See the vault's current launch execution
+entry and `evidence/photo-fit-2026-09-15/results.json`.

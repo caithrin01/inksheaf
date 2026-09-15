@@ -82,4 +82,21 @@ test('body gaps cannot use an article-ending basis, even with final prose before
   assert.equal(validateLayout({decisions:[{...d,space_basis:'figure_sequence',reason:'Closing prose precedes the full-page photograph in the same article.'}]},i).decisions.length,1);
   assert.throws(()=>validateLayout({decisions:[{...d,space_basis:null}]},i),/space_basis/);
 });
+test('a reduced photograph stranded on its closing leaf cannot pass as intentional space',()=>{
+  const measurement={pages:[{page:1,blank:.1},{page:2,blank:.3},{page:3,blank:.76,ink_rows:.236,
+    layout_geometry:{body_bounds_points:[44,56,387,592],blocks:[{kind:'image',bbox:[90,67,326,197]}]}}],
+    articles:[{n:1,start:1,end:3}],figures:[{id:'closing-photo',page:3,role:'picture',h:130,w:236}]};
+  const fit={fitFigs:{'closing-photo':1.81}};
+  const packet=(m=measurement,f=fit)=>layoutInput({measurement:m,fit:f,report:{},review:{findings:[]}});
+  const input=packet(),verdict={decisions:[{page:3,decision:'intentional_space',candidate_id:null,space_basis:'article_end',reason:'A closing photograph at natural size is intentional.'}]};
+  assert.equal(input.pages[0].stranded_picture_fit.figure_id,'closing-photo');
+  assert.throws(()=>validateLayout(verdict,input),/still stranded/);
+  assert.equal(validateLayout({decisions:[{page:3,decision:'repair',candidate_id:'leading:1',reason:'Bring the closing photograph back beside its prose.'}]},input).decisions[0].decision,'repair');
+  assert.equal(validateLayout({decisions:[{page:3,decision:'needs_review',candidate_id:null,reason:'The photograph did not move.'}]},input).decisions[0].decision,'needs_review');
+  assert.equal(packet(measurement,{}).pages[0].stranded_picture_fit,null,'A never-fitted source illustration is not a failed repair');
+  for(const change of [m=>m.figures[0].h=300,m=>m.figures[0].reading_mode='column',m=>m.figures[0].role='reading',
+    m=>m.pages[2].layout_geometry.blocks.push({kind:'text',text:'A source paragraph also occupies the page.'}),m=>m.articles[0].start=3]){
+    const other=structuredClone(measurement);change(other);assert.equal(packet(other).pages[0].stranded_picture_fit,null);
+  }
+});
 console.log(`${n} bounded publisher layout checks passed`);

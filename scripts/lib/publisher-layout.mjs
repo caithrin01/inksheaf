@@ -104,6 +104,20 @@ export function adjacentLayoutContext(measurement,page,pageText=[]){
   return {previous_page:view(page-1,'end'),current_page:view(page,'end'),next_page:view(page+1,'start')};
 }
 const unusedBody=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+// A fit can shrink a photograph without moving it off its otherwise empty
+// closing leaf. That failed outcome must not become an article-end exemption.
+export function strandedPictureFit(measurement,fit,page){
+  const article=(measurement.articles||[]).find(a=>a.end===page.page&&a.start<a.end);
+  const geometry=page.layout_geometry,figures=(measurement.figures||[]).filter(f=>f.page===page.page);
+  const body=geometry?.body_bounds_points,blocks=geometry?.blocks;
+  if(!article||figures.length!==1||!body?.every(Number.isFinite)||body.length!==4||!Array.isArray(blocks)
+    ||blocks.some(b=>b.kind==='text'&&b.text?.trim())||blocks.filter(b=>b.kind==='image').length!==1)return null;
+  const figure=figures[0],height=fit.fitFigs?.[figure.id],bodyHeight=body[3]-body[1];
+  if(figure.role!=='picture'||figure.reading_mode||fit.readingFigures?.[figure.id]
+    ||!Number.isFinite(height)||height<=0||!Number.isFinite(figure.h)||figure.h<=0||bodyHeight<=0||figure.h>=bodyHeight*.25)return null;
+  return {figure_id:figure.id,physical_page:figure.page,height_points:figure.h,body_height_points:bodyHeight,
+    reason:'The fitted photograph remains alone on the article closing leaf at less than a quarter of the usable page height. Its fit has not resolved the orphan.'};
+}
 // Potential dimensions are not available to the layout model until a separate
 // look at this exact source image establishes its picture role.
 export function unknownPictureFits({measurement,fit={},review={}}){
@@ -185,6 +199,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
+      stranded_picture_fit:strandedPictureFit(measurement,fit,p),
       figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode,visual_role})=>({id,role,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
       findings:(review.findings||[]).filter(f=>f.page===p.page)};
@@ -202,6 +217,7 @@ export function validateLayout(result,input){
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
     if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
     if(d.decision==='intentional_space'&&sparseProseEnding(p))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
+    if(d.decision==='intentional_space'&&p.stranded_picture_fit)throw invalid(`Page ${p.page}: the fitted photograph is still stranded on its own closing leaf. Choose a measured repair or needs_review; an article-end reason cannot accept an ineffective fit.`);
     if(d.decision==='intentional_space'&&!allowedSpaceBases(p).includes(d.space_basis))throw invalid(`Page ${p.page}: space_basis must match the compiled position (${p.position}) and supplied figure evidence; allowed: ${allowedSpaceBases(p).join(', ')}. An article-end reason cannot explain a body-page gap.`);
     if(d.decision!=='intentional_space'&&d.space_basis!==null)throw invalid('Only intentional space can carry a space_basis');
   }
