@@ -19,7 +19,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
       <div class="making-desk"><div id="edition-cover" class="cover-face" data-design="masthead" style={coverStyle('masthead',{},'Your publication')} set:html={coverMarkup({kind:'Collected writing',dates:'',foot:'6 × 9 · perfect bound'})}/></div>
       <p class="cover-caption" id="cover-caption">Your chosen cover. The complete print file follows below.</p>
       <button id="open-pages" class="return-link open-pages" hidden>Read the first pages →</button>
-      <div id="edition-downloads" class="edition-downloads" hidden><h2>Your complete PDF</h2><div id="download-links"></div><p id="download-expiry"></p><a id="print-options-link" class="return-link" href="#edition-next" hidden>Print options ↓</a></div>
+      <div id="edition-downloads" class="edition-downloads" hidden><h2 id="download-heading">Your complete PDF</h2><div id="download-links"></div><p id="download-expiry"></p><a id="print-options-link" class="return-link" href="#edition-next" hidden>Print options ↓</a></div><span id="downloads-home" hidden></span>
       <div id="edition-continuity" class="edition-continuity"><p class="email-companion" id="email-companion"></p><button id="retry-pdf-email" class="return-link email-retry" hidden>Retry PDF email</button><p id="email-retry-status" role="status" class="work-note"></p>
       <a class="return-link" id="return-link" href="#" hidden>Keep this private link to return</a></div><span id="continuity-home" hidden></span>
     </section>
@@ -27,7 +27,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
       <div class="work-tabs" role="group" aria-label="Explore your edition"><button id="show-reading" aria-pressed="true">The reading</button><button id="show-contents" aria-pressed="false" disabled>Contents</button><button id="show-pages" aria-pressed="false" disabled>Pages</button></div>
       <div id="reading-panel"><h2 id="reading-heading">First, your writing.</h2><p id="reading-intro">Your publication’s name, contributors and selected writing will appear here as they are read.</p><div id="identity-note" hidden></div><div id="reading-list"></div><div id="production-notes"></div></div>
       <div id="contents-panel" hidden><h2>The shape of your book.</h2><div id="contents-list"></div><p class="work-note">Page numbers appear in the typeset PDF.</p></div>
-      <EditionPages/><div id="continuity-reading" hidden></div>
+      <EditionPages/><div id="downloads-reading" hidden></div><div id="continuity-reading" hidden></div>
       <div id="edition-next" class="edition-next" hidden><h2>Make it yours.</h2><p>Review what’s included, restore a piece, or change your edition.</p><a id="change-edition">Adjust this edition <span aria-hidden="true">↗</span></a><p class="print-routes">For personal copies, Inksheaf can host the Lulu listing. To sell to subscribers, we’ll guide you through your own Lulu account and your “Get a print copy” button.</p><a href="mailto:caithrin@caithrin.com?subject=My%20Inksheaf%20print%20edition">Get help with printing</a></div>
       <p id="workspace-error" role="alert" hidden></p><button class="workspace-retry" id="workspace-retry" hidden>Refresh progress</button>
     </section>
@@ -56,11 +56,16 @@ function cover(){
 cover();
 const pageReader=editionPages(),phoneReader=matchMedia('(max-width:750px)');
 function placeContinuity(){
+  // Move the actual controls so keyboard order follows the phone's visual order.
+  const downloads=$('edition-downloads'),destination=phoneReader.matches?$('downloads-reading'):$('downloads-home').parentElement!;
+  $('downloads-reading').hidden=!phoneReader.matches;
+  if(downloads.parentElement!==destination){const focus=document.activeElement as HTMLElement|null,restore=focus&&downloads.contains(focus);if(phoneReader.matches)destination.append(downloads);else destination.insertBefore(downloads,$('downloads-home'));if(restore)focus!.focus({preventScroll:true});}
   const reading=phoneReader.matches&&document.body.dataset.readingPages==='true',node=$('edition-continuity'),target=reading?$('continuity-reading'):$('continuity-home').parentElement!;
   $('continuity-reading').hidden=!reading;
   if(node.parentElement!==target){const focus=document.activeElement as HTMLElement|null,restore=focus&&node.contains(focus);if(reading)target.append(node);else target.insertBefore(node,$('continuity-home'));if(restore)focus!.focus({preventScroll:true});}
 }
 phoneReader.addEventListener('change',placeContinuity);
+placeContinuity();
 
 function tabs(panel:string){
   for(const name of ['reading','contents','pages']){$(name+'-panel').hidden=name!==panel;$('show-'+name).setAttribute('aria-pressed',String(name===panel));}
@@ -69,10 +74,10 @@ function tabs(panel:string){
 $('draft-changes').onclick=()=>{tabs('reading');const details=$('production-notes').querySelector<HTMLDetailsElement>('.layout-reasons');if(details){details.open=true;details.querySelector<HTMLElement>('summary')?.focus();details.scrollIntoView({block:'nearest'});}};
 $('show-reading').onclick=()=>tabs('reading');$('show-contents').onclick=()=>tabs('contents');$('show-pages').onclick=()=>tabs('pages');
 $('open-pages').onclick=()=>{tabs('pages');$('show-pages').focus();$('show-pages').scrollIntoView({block:'nearest',behavior:'instant'});};
-function resetPages(){pageReader.reset();($('show-pages') as HTMLButtonElement).disabled=true;$('open-pages').hidden=true;}
+function resetPages(){pageReader.reset();($('show-pages') as HTMLButtonElement).disabled=true;$('open-pages').hidden=true;$('open-pages').textContent='Read the first pages';}
 
 function acceptSelection(value:any){
-  if(Number.isSafeInteger(value?.revision)&&value.revision>=selectionRevision){if(value.revision>selectionRevision)resetPages();selectionRevision=value.revision;restored=new Set(value.restored||[]);}
+  if(Number.isSafeInteger(value?.revision)&&value.revision>=selectionRevision){if(value.revision>selectionRevision){resetPages();ready=false;$('edition-downloads').hidden=true;$('edition-next').hidden=true;}selectionRevision=value.revision;restored=new Set(value.restored||[]);}
 }
 function updateChoices(){
   keptCount=0;asideCount=0;
@@ -146,15 +151,19 @@ function showEvent(e:any){
     const line=el('p',e.message,'production-note');if(e.kind==='layout')line.append(el('span',` ${e.pages} typeset pages.`));$('production-notes').append(line);
     if(e.kind==='layout'&&e.decisions?.length){const details=el('details','','layout-reasons');details.append(el('summary','How these pages are being set'));for(const d of e.decisions)details.append(el('p',`Page ${d.page}: ${d.reason}`));$('production-notes').append(details);}
   } else if(e.kind==='ready'){
+    if((e.selection_revision||0)!==selectionRevision||e.unavailable)return;
     ready=true;$('edition-title').textContent='Your writing, in print.';
-    statusText(`Your complete edition is ready${e.pages?' · '+e.pages+' pages':''}.`);
+    if(e.reader?.length){pageReader.finish(e.reader);($('show-pages') as HTMLButtonElement).disabled=false;$('open-pages').hidden=false;$('open-pages').textContent='Read your book';}
+    const volumes=e.files?.length||0;
+    statusText(`Your complete edition is ready${volumes>1?' · '+volumes+' volumes':''}${e.pages?' · '+e.pages+' pages in total':''}.`);
+    $('download-heading').textContent=volumes>1?'Your complete PDFs':'Your complete PDF';
     $('edition-downloads').hidden=false;
     const expired=Date.parse(e.expires_at)<Date.now();
     $('download-links').replaceChildren();
     for(const file of e.files||[]){
-      let url;try{url=new URL(file.url);}catch{continue;}
-      if(url.origin!=='https://caithrin--inksheaf-proof-store-web.modal.run'||url.pathname!=='/proof')continue;
-      if(!expired){const a=el('a',`Read ${e.files.length>1?file.label:'your complete PDF'} ↗`,'pdf-link') as HTMLAnchorElement;a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';$('download-links').append(a);}
+      let url;try{url=new URL(file.url,location.origin);}catch{continue;}
+      if(!(url.origin===location.origin&&url.pathname==='/api/edition-file')&&!(url.origin==='https://caithrin--inksheaf-proof-store-web.modal.run'&&url.pathname==='/proof'))continue;
+      if(!expired){const download=url.origin===location.origin;const a=el('a',`${download?'Download':'Read'} ${e.files.length>1?file.label:'your complete PDF'} ${download?'↓':'↗'}`,'pdf-link') as HTMLAnchorElement;a.href=url.href;if(!download)a.target='_blank';a.rel='noopener noreferrer';$('download-links').append(a);}
     }
     $('download-expiry').textContent=expired?'This download link has expired. Your edition is saved; contact us to recover the file.':'Save your PDF. These private download links work until '+new Date(e.expires_at).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+'.';
   }
@@ -166,6 +175,8 @@ async function refresh(){
     if(!response.ok||!data.ok)throw Error(data.error||'Progress is temporarily unavailable.');
     $('workspace-error').hidden=true;$('workspace-retry').hidden=true;
     acceptSelection(data.selection);restoreSig=data.restore_sig||null;
+    const latestReady=(data.events||[]).filter((e:any)=>e.kind==='ready').at(-1);
+    if(ready&&latestReady?.unavailable){ready=false;resetPages();$('edition-downloads').hidden=true;$('edition-next').hidden=true;}
     const openIds=[...pieces].filter(([,p])=>p.detail.open).map(([id])=>id);
     const focused=document.activeElement as HTMLElement|null,focusId=focused?.closest<HTMLElement>('[data-post-id]')?.dataset.postId;
     if(data.run_id!==run){run=data.run_id;lastSequence=0;ready=false;readCount=0;keptCount=0;asideCount=0;displayedRevision=0;pieces.clear();$('reading-list').replaceChildren();$('contents-list').replaceChildren();$('production-notes').replaceChildren();resetPages();$('edition-downloads').hidden=true;$('edition-next').hidden=true;($('show-contents') as HTMLButtonElement).disabled=true;tabs('reading');}
@@ -180,7 +191,7 @@ async function refresh(){
     pageReader.complete(ready);
     if(!ready){
       $('edition-title').textContent='Your book is taking shape.';
-      statusText(data.status==='failed'?'Your book needs a closer look. Your choices and the work so far are saved.':displayedRevision<selectionRevision?'Your choice is saved. We’re updating your book to include it.':lastSequence?'Reading, arranging and setting your writing for paper.':'Your book is in the press queue. This page will follow it as work begins.');
+      statusText(latestReady?.unavailable?'Your saved edition could not be opened just now. Please refresh.':data.status==='failed'?'Your book needs a closer look. Your choices and the work so far are saved.':displayedRevision<selectionRevision?'Your choice is saved. We’re updating your book to include it.':lastSequence?'Reading, arranging and setting your writing for paper.':'Your book is in the press queue. This page will follow it as work begins.');
     }
     $('email-companion').textContent=['accepted','delivered'].includes(data.email_status)?`We’ve also sent the PDF to ${data.email}.`:`We’ll also email your finished PDF to ${data.email}.`;
     const emailDelayed=ready&&['failed','uncertain','queued','reconcile','bounced','complained'].includes(data.email_status);
@@ -191,7 +202,7 @@ async function refresh(){
     $('return-link').hidden=false;($('return-link') as HTMLAnchorElement).href=location.href;
     $('print-options-link').hidden=!ready||!data.change_url;
     if(ready&&data.change_url){$('edition-next').hidden=false;($('change-edition') as HTMLAnchorElement).href=data.change_url;}
-    if(!ready||!['accepted','delivered'].includes(data.email_status))timer=setTimeout(refresh,4000);
+    timer=setTimeout(refresh,ready&&['accepted','delivered'].includes(data.email_status)?30000:4000);
   }catch(error){$('workspace-error').textContent=(error as Error).message;$('workspace-error').hidden=false;$('workspace-retry').hidden=false;timer=setTimeout(refresh,10000);}
   finally{busy=false;}
 }
