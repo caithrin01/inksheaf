@@ -1,3 +1,4 @@
+import {mapConcurrent} from './async-work.mjs';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {z} from 'zod';
@@ -14,14 +15,14 @@ Describe the visible subject in a short factual reason under 140 characters. Cla
 export async function inspectFigureRoles({measurement,fit,review,ask,directory,onResult=()=>{}}){
   const roles={};
   if(!ask)return roles;
-  for(const candidate of unknownPictureFits({measurement,fit,review})){
-    if(roles[candidate.figure])continue;
+  const candidates=[...new Map(unknownPictureFits({measurement,fit,review}).map(c=>[c.figure,c])).values()];
+  await mapConcurrent(candidates,async candidate=>{
     const figure=measurement.figures.find(f=>f.id===candidate.figure);
-    if(!figure.source)continue; // Missing source evidence cannot grant picture status.
+    if(!figure.source)return; // Missing source evidence cannot grant picture status.
     const source=readFileSync(figure.source),image_sha256=createHash('sha256').update(source).digest('hex');
     const [file]=sourceComparisons([figure],join(directory,image_sha256)),image=readFileSync(file);
     const answer=FigureRole.parse(await ask({image,figure_id:figure.id,source_sha256:image_sha256}));
     roles[figure.id]={...answer,image_sha256,review_image_sha256:createHash('sha256').update(image).digest('hex')};await onResult(roles);
-  }
+  });
   return roles;
 }

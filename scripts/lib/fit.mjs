@@ -28,8 +28,8 @@ export async function fitWithBudget({ beforePass, ...options }) {
 }
 
 function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false }) {
-  const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
-    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } };
+  const sh = (cmd, a) => { const started=Date.now(); try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
+    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } finally { log(`[timing] ${cmd==="node"?"build":"render"}: ${Date.now()-started}ms`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
   let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures}, pictureFigures=[...(initial.pictureFigures||[])];

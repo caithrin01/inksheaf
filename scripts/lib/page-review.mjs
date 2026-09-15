@@ -5,6 +5,7 @@
 // checklist with page numbers. Pass 2: each flagged page alone, at higher resolution, a stronger
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
 // records model failures. The publisher orchestrator holds delivery until review is complete.
+import {mapConcurrent,REVIEW_CONCURRENCY} from './async-work.mjs';
 import { auditRunningMatter } from "./running-matter.mjs";
 import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {glyphEvidence} from './glyph-evidence.mjs';
@@ -12,6 +13,7 @@ import {figurePrintEvidence,adjudicateFigureConfirmation} from './figure-confirm
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
+import {fileURLToPath} from "node:url";
 
 export const CHECKS = {
   1: "Blank space: more than 30% of the body-layout area unused without a clear design reason. Include sparse essay endings. A short poem, deliberate section opening or necessary end matter may justify space; identify the reason instead of exempting every last page.",
@@ -36,7 +38,8 @@ export function rasterise(pdf, dir, { scale = 900, first, last } = {}) {
   const args = ["-png", "-scale-to", String(scale)];
   if (first) args.push("-f", String(first));
   if (last) args.push("-l", String(last));
-  execFileSync("pdftoppm", [...args, pdf, join(dir, "p")], { stdio: ["ignore", "ignore", "pipe"] });
+  if (!first && !last) execFileSync('python3', [fileURLToPath(new URL('../raster-pages.py',import.meta.url)),pdf,join(dir,'p'),'--scale',String(scale)], {stdio:['ignore','ignore','pipe']});
+  else execFileSync("pdftoppm", [...args, pdf, join(dir, "p")], { stdio: ["ignore", "ignore", "pipe"] });
   return readdirSync(dir).filter(f => /^p-\d+\.png$/.test(f)).sort((a, b) => num(a) - num(b)).map(f => join(dir, f));
 }
 const num = f => Number(f.match(/(\d+)\.png$/)[1]);
@@ -147,7 +150,7 @@ ${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_hea
 Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':f.check===3?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
@@ -164,13 +167,12 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.sheets = sheets.length;
   const flagged = [];
-  for (const s of sheets) {
-    if(stopOnError&&out.errors.length)break;
+  await mapConcurrent(sheets, async s => {
     try {
       const r = await ask({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
       out.pass1.calls++; addUsage(out, r.usage);
       const arr = parseJson(r.text);
-      if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); continue; }
+      if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); return; }
       for (const f of arr) {
         const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
         if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') {
@@ -181,29 +183,29 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       }
     } catch (e) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: ${String(e.message).slice(0, 120)}`); }
     log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${flagged.length} flagged so far`);
-  }
+  }, {concurrency,shouldStop:()=>stopOnError&&out.errors.length>0});
   /* Confirm each distinct defect. Dismissing whitespace must not discard overflow on the same page. */
   const byPage = new Map();
   for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
-  for (const f of byPage.values()) {
+  await mapConcurrent(byPage.values(), async f => {
     const boundary=pageContext.find(p=>p.page===f.page)?.paragraph_boundaries;
     if(f.check===2&&boundary?.verified_no_single_line_fragment){
       out.dismissed.push({...f,origin:'measured_layout',paragraph_boundaries:boundary,note:'Both page edges contain multiple printed lines of their anchored paragraphs; neither is a stranded heading or single-line fragment.'});
-      continue;
+      return;
     }
     // Check 5 is about label identity/presence. Actual glyphs decide it when both
     // renderer maps are available; unknown layouts still receive model review.
     if(f.check===5&&verifiedHeads.has(f.page)){
       out.dismissed.push({...f,origin:'measured_layout',note:'Actual printed running head and folio match the compiled page map.'});
-      continue;
+      return;
     }
-    if(f.check===5&&wrongHeads.has(f.page))continue;
-    if(stopOnError&&out.errors.length)break;
+    if(f.check===5&&wrongHeads.has(f.page))return;
+    if(stopOnError&&out.errors.length)return;
     let single;
     /* one directory per page: pdftoppm names by page number and a shared directory once handed
        pass 2 the first page rasterised for every flag (found on the first real run, 2026-09-04) */
-    try { single = rasterise(pdf, join(dir, "single", String(f.page)), { scale: 1800, first: f.page, last: f.page }).find(x => pageOf(x) === f.page); if (!single) throw new Error("no raster"); } catch (e) { out.errors.push(`page ${f.page}: raster ${String(e.message).slice(0, 80)}`); continue; }
+    try { single = rasterise(pdf, join(dir, "single", String(f.page)), { scale: 1800, first: f.page, last: f.page }).find(x => pageOf(x) === f.page); if (!single) throw new Error("no raster"); } catch (e) { out.errors.push(`page ${f.page}: raster ${String(e.message).slice(0, 80)}`); return; }
     try {
       const originals=[3,6].includes(f.check)?sourceFigures.filter(s=>s.page===f.page&&s.source).slice(0,3):[];
       const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
@@ -216,7 +218,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord), maxTokens: 400,check:f.check });
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
-      if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); continue; }
+      if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); return; }
       if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
       if(f.check===3)j=adjudicateFigureConfirmation(j,originals);
       const sourcePreserved=comparisons.length>0&&(f.check===3?j.source_preserved===true:f.check===6&&j.origin==='source_content');
@@ -228,7 +230,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
         ...(j.model_confirmation?{model_confirmation:j.model_confirmation}:{}),print_evidence:figurePrintEvidence(originals)});
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
-  }
+  }, {concurrency,shouldStop:()=>stopOnError&&out.errors.length>0});
   out.findings.sort((a, b) => a.page - b.page);
   out.ms = Date.now() - started;
   try { writeFileSync(join(dir, "review.json"), JSON.stringify(out, null, 1)); out.dir = dir; } catch {}

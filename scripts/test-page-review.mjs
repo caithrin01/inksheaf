@@ -90,8 +90,8 @@ ok('normal page review retains a small-text finding despite the model fidelity d
 const untyped=await reviewPdf(pdf,{outDir:join(dir,'untyped-figure'),key:'stub',sourceFigures:[smallTextFigure],ask:async({text})=>/contact sheet/.test(text)?{text:text.includes('page 1,')?'[{"page":3,"check":3,"confidence":0.9,"note":"Small screenshot titles"}]':'[]'}:{text:'{"confirmed":false,"origin":"source_content","note":"Legacy untyped dismissal"}'}});
 ok('legacy untyped image dismissals leave review incomplete',untyped.errors.length===1&&untyped.dismissed.length===0);
 let failedRequests=0;
-const stopped=await reviewPdf(pdf,{outDir:join(dir,'outage'),key:'stub',stopOnError:true,ask:async()=>{failedRequests++;throw Error('fetch failed');}});
-ok('publisher outage stops the review before attempting later pages',failedRequests===1&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
+const stopped=await reviewPdf(pdf,{outDir:join(dir,'outage'),key:'stub',stopOnError:true,concurrency:1,ask:async()=>{failedRequests++;throw Error('fetch failed');}});
+ok('single-worker outage stops before later pages; concurrent draining is tested separately',failedRequests===1&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
 let adjacent=false;
 const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stub',ask:async({text,images})=>{
   if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":2,"confidence":0.9,"note":"word continues on the next page"}]':'[]'};

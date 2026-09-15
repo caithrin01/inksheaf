@@ -6,6 +6,7 @@
 # Prints one line: "BLANK ok pages=N worst=0.31" or "BLANK over 40%: 22 (65%), 48 (48%)" and exits 1.
 # Needs pdftoppm (poppler) and Pillow.
 import sys, subprocess, glob, tempfile, json
+from pathlib import Path
 from PIL import Image
 args = sys.argv[1:]; pdf = args[0]; limit = 0.40; skip = set(); out = None
 for i, a in enumerate(args):
@@ -13,7 +14,7 @@ for i, a in enumerate(args):
     if a == "--skip": skip = set(int(x) for x in args[i + 1].split(",") if x.strip())
     if a == "--json": out = args[i + 1]
 d = tempfile.mkdtemp()
-subprocess.run(["pdftoppm", "-r", "30", "-gray", "-png", pdf, f"{d}/p"], check=True)
+subprocess.run([sys.executable, str(Path(__file__).with_name("raster-pages.py")), pdf, f"{d}/p", "--dpi", "30", "--gray"], check=True)
 files = sorted(glob.glob(f"{d}/p-*.png"))
 pages = []
 for i, f in enumerate(files, 1):

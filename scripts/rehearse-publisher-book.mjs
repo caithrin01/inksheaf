@@ -21,7 +21,7 @@ for(const name of ['SIGNUP_ID','SITE_BASE','ARCHIVE_RELAY_TOKEN'])delete process
 mkdirSync(out,{recursive:true});const html=out+'/book.html',pdf=resolve(out+'/book.pdf'),directory=out+'/publisher';
 const session=()=>publisherSession({directory,env}),events=[];
 const emit=async e=>{events.push(e);writeFileSync(out+'/events.json',JSON.stringify(events,null,2));await(await session()).emit(e);};
-const result={status:'running',fixture,host,started:new Date().toISOString()};
+const result={status:'running',fixture,host,started:new Date().toISOString(),timing_scope:'Cached source fixture; normal PDF generation and reviews; excludes source retrieval, dispatch queue and delivery',rendered_checkpoints:[]};
 const saveResult=()=>{
   const saved=existsSync(directory+'/state.json')?JSON.parse(readFileSync(directory+'/state.json','utf8')):null;
   result.model_cost_usd=saved?.journal?.spent||0;
@@ -39,7 +39,7 @@ try{
     const fitted=await fitWithBudget({args,html,pdf,passes,initial,beforePass,allowMeasuredSpaceReview:true,log:console.error});
     const report=JSON.parse(readFileSync(html.replace(/\.html$/,'.report.json'),'utf8'));report.fit=fitted;
     return{html,pdf,report};
-  },session,emit,volume:'1',renderIdentity:renderIdentity({host,fixture:readFileSync(fixture,'utf8'),brand:brand?readFileSync(brand,'utf8'):null,design:'classic',printInterior:true}),reviewDirectory:out+'/review',log:console.error});
+  },session,emit,onRendered:async({book,round})=>{result.rendered_checkpoints.push({round,elapsed_ms:Date.now()-Date.parse(result.started),pages:book.report.pages??null});saveResult();},volume:'1',renderIdentity:renderIdentity({host,fixture:readFileSync(fixture,'utf8'),brand:brand?readFileSync(brand,'utf8'):null,design:'classic',printInterior:true}),reviewDirectory:out+'/review',log:console.error});
   result.status='completed';result.recovered=Boolean(book.recovered);result.included=book.report.postOrder;result.layout=book.report.layoutAgent;result.review=book.review;result.pdf=book.pdf;
 }catch(error){result.status='held';result.error=String(error.message).replaceAll(key,'[redacted]');process.exitCode=1;}
 finally{result.finished=new Date().toISOString();saveResult();console.log(JSON.stringify(result));}

@@ -13,9 +13,10 @@ const fetchImpl=async(url,opts)=>{
  return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem has ended.',space_basis:'single_piece'}))})}}],usage:{cost:.001}});
 };
 await assert.rejects((await publisherSession({directory,env,fetchImpl})).layout(input),/incomplete/);
-const first=JSON.parse(readFileSync(directory+'/state.json'));assert.equal(first.journal.calls.length,2);assert.equal(first.journal.calls[1].status,'failed');
+const first=JSON.parse(readFileSync(directory+'/state.json'));assert.equal(first.journal.calls.length,3);assert.equal(first.journal.calls[1].status,'failed');
+assert.equal(first.cache.length,2,'Both successful in-flight batches survive the failed middle batch');
 const result=await(await publisherSession({directory,env,fetchImpl})).layout(input);
-assert.equal(result.decisions.length,14);assert.deepEqual(counts,[6,6,6,2]);
+assert.equal(result.decisions.length,14);assert.deepEqual(counts,[6,6,2,6],'Recovery calls only the failed batch');
 assert.equal(JSON.parse(readFileSync(directory+'/state.json')).journal.calls.length,4);
 const replay=await(await publisherSession({directory,env,fetchImpl:()=>{throw Error('Cached review must not spend again');}})).layout(input);
 assert.deepEqual(replay,result);
