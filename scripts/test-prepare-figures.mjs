@@ -11,7 +11,7 @@ try{
 import sys
 for i in range(5):
  im=Image.new('RGB',(2400,1500),('white' if i%2 else 'blue'));ImageDraw.Draw(im).text((10,10),'Source label '+str(i),fill='black');im.save(sys.argv[1]+'/'+str(i)+'.png')`,dir]);
- const html='<html><body><span class="pubsrc">Fixture</span><section class="article"><header class="arthead"><h2 class="arttitle">Figures</h2></header><div class="artbody">'+Array.from({length:5},(_,i)=>`<p>BeforeMarker${i}.</p><figure><img src="${i}.png" data-fig="figure-${i}" alt=""></figure><p>AfterMarker${i}.</p>`).join('')+'</div></section></body></html>';
+ const html='<html><body><span class="pubsrc">Fixture</span><section class="article"><header class="arthead"><h2 class="arttitle">Figures</h2></header><div class="artbody">'+Array.from({length:5},(_,i)=>`<p>BeforeMarker${i}.</p>${i===1?'<h2>Montage heading</h2>':''}<figure><img src="${i}.png" data-fig="figure-${i}" alt=""></figure><p>AfterMarker${i}.</p>`).join('')+'</div></section></body></html>';
  const inventory=sourceFigureInventory(html,dir);assert.equal(inventory.length,5);
  let requests=0;
  const fetchImpl=async(url,options)=>{
@@ -43,6 +43,8 @@ assert ImageChops.difference(source,rebuilt).getbbox() is None`,join(dir,'1.png'
  assert.equal(screen.reading_mode,'landscape');assert(Math.abs(screen.image_width_points-485.28)<.01);
  assert(figures.every(f=>!f.floating),'prepared source figures remain between original paragraphs');
  const text=execFileSync('pdftotext',[pdf,'-'],{encoding:'utf8'});
+ const overviewText=execFileSync('pdftotext',['-f',String(screen.page),'-l',String(screen.page),pdf,'-'],{encoding:'utf8'});
+ assert(overviewText.includes('Montage heading'),'source heading stays on the overview page');
  for(let i=0;i<5;i++){assert.equal(text.split('BeforeMarker'+i).length-1,1);assert.equal(text.split('AfterMarker'+i).length-1,1);}
  assert.throws(()=>validateSourceFigureRoles({figures:[{...roles['figure-0'],figure_id:'wrong'}]},inventory),/unknown/);
  assert.throws(()=>validateSourceFigureRoles({figures:[roles['figure-0']]},inventory),/omitted/);
