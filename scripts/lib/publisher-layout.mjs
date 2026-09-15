@@ -152,8 +152,11 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
   const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
   for(const f of review.findings||[])concerns.add(f.page);
   for(const f of measurement.figures||[]){
-    if(!(review.findings||[]).some(v=>v.page===f.page&&v.check===3))continue;
+    const findings=(review.findings||[]).filter(v=>v.page===f.page&&v.check===3&&(!v.figure_id||v.figure_id===f.id));
+    if(!findings.length)continue;
+    const required=findings.find(v=>v.required_reading_mode)?.required_reading_mode;
     for(const size of f.reading_sizes||[]){
+      if(required&&size.mode!==required)continue;
       if(!['column','landscape'].includes(size.mode)||size.mode===fit.readingFigures?.[f.id]||![size.image_width_points,size.width_points,size.height_points].every(v=>Number.isFinite(v)&&v>0)||!Number.isFinite(f.image_width_points)||size.image_width_points<=f.image_width_points*1.12)continue;
       candidates.push({id:`reading:${f.id}:${size.mode}`,page:f.page,operation:'set_figure_reading_size',figure:f.id,...size});
     }
@@ -212,6 +215,10 @@ export function validateLayout(result,input){
   for(const d of parsed.decisions){
     const p=pages.get(d.page);if(!p||seen.has(d.page))throw invalid('Layout review must account for each supplied page exactly once');seen.add(d.page);
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
+    if(d.decision==='repair'&&p.findings.some(f=>f.required_reading_mode
+      &&(candidates.get(d.candidate_id)?.operation!=='set_figure_reading_size'
+        ||candidates.get(d.candidate_id)?.figure!==f.figure_id||candidates.get(d.candidate_id)?.mode!==f.required_reading_mode)))
+      throw invalid('Small-text reading size requires its matching measured enlargement or needs_review.');
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.requires_picture_confirmation
       &&!p.visual_context?.physical_pages?.includes(candidates.get(d.candidate_id).figure_page))throw invalid('Picture confirmation requires the actual figure page image');
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');

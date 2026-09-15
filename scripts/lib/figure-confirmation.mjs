@@ -1,0 +1,43 @@
+import {z} from 'zod';
+
+// Fidelity, reading scale and orientation are distinct observations. In
+// particular, an unchanged bitmap says nothing about the size of its labels.
+export const FigureConfirmation=z.object({
+  confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200),
+  figure_id:z.string().nullable(),
+  defect:z.enum(['reading_size','crop','caption','missing','orientation_only','none','uncertain']),
+  reading_detail:z.enum(['small_text','large_labels','picture','uncertain']),
+});
+
+export function figurePrintEvidence(figures){
+  return figures.map(f=>({id:f.id,width_points:f.w??null,height_points:f.h??null,
+    image_width_points:f.image_width_points??null,reading_mode:f.reading_mode??null,
+    reading_sizes:(f.reading_sizes||[]).map(({mode,image_width_points,width_points,height_points})=>({mode,image_width_points,width_points,height_points}))}));
+}
+
+export function adjudicateFigureConfirmation(answer,figures){
+  const result=FigureConfirmation.parse(answer),figure=figures.find(f=>f.id===result.figure_id);
+  const changed=(fields)=>({...result,...fields,model_confirmation:result});
+  if(!figure||result.defect==='uncertain'||result.reading_detail==='uncertain'||result.origin==='uncertain')
+    return changed({confirmed:true,origin:'uncertain'});
+  if(result.reading_detail==='small_text'&&['reading_size','orientation_only','none'].includes(result.defect)
+    &&(!Number.isFinite(figure.image_width_points)||figure.image_width_points<=0||!figure.reading_sizes?.length))
+    return changed({confirmed:true,origin:'uncertain'});
+  // Fine text needs the largest bounded reading setting, even when a zoomed
+  // raster makes it appear legible. This is a layout policy, not a readability
+  // certificate: the enlarged PDF must still pass visual review.
+  const larger=(figure.reading_sizes||[]).filter(s=>['column','landscape'].includes(s.mode)
+    &&[s.image_width_points,s.width_points,s.height_points,figure.image_width_points].every(v=>Number.isFinite(v)&&v>0)
+    &&s.image_width_points>figure.image_width_points*1.12).sort((a,b)=>b.image_width_points-a.image_width_points)[0];
+  if(result.reading_detail==='small_text'&&larger&&['reading_size','orientation_only','none'].includes(result.defect))
+    return changed({confirmed:true,origin:'measured_layout',defect:'reading_size',required_reading_mode:larger.mode,
+      note:'The image contains small text to read. Use its largest measured reading setting, then review the new PDF.'});
+  if(result.defect==='orientation_only')return figure.reading_mode==='landscape'
+    ?changed({confirmed:false,origin:'measured_layout',note:'The compiled figure intentionally uses landscape reading. Rotation alone is not a defect.'})
+    :changed({confirmed:true,origin:'uncertain'});
+  // Source crops can be intentional. Source fidelity cannot excuse an
+  // unreadable print size, detached caption, or missing figure.
+  if(result.defect==='crop'&&result.origin==='source_content')return changed({confirmed:false,source_preserved:true});
+  if(result.defect==='none')return result.confirmed?changed({confirmed:true,origin:'uncertain'}):result;
+  return changed({confirmed:true,origin:'rendered_layout'});
+}

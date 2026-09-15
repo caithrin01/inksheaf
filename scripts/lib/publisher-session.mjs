@@ -10,8 +10,9 @@ import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.
 import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
+import {FigureConfirmation} from './figure-confirmation.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -30,7 +31,7 @@ following_source_figure identifies the exact next image, its independently inspe
 A fit_figure candidate names the page with the gap in candidate.page and the image's current location in candidate.figure_page. It fits that image into the preceding gap; return the repair for candidate.page. picture_evidence records a separate inspection of that exact source image, identified by its image hash. Such candidates are supplied only for confirmed photographs/illustrations; unknown roles and images with text to read have no shrinking candidate. Judge whether the proposed picture size suits the page; do not reject it merely because the full-size image currently prints on the following page. Source order and pixels are preserved and the resulting PDF still receives full review.
 Use only candidate_id operations supplied for that exact page. Never remove writing or invent a repair. Choose needs_review for unexplained space or content/overflow defects without an applicable repair. Do not excuse defects simply because a page has a structural purpose.
 keep_figure_in_flow preserves the image at its original source position between paragraphs; use it when a floating image interrupts a paragraph continuation. collect_references moves the article's generated link list to the shared reference section, preserving every reference; it does not add filler to the flagged page.
-set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. Prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
+set_figure_reading_size enlarges an existing image without cropping or changing pixels. Use it for an image-too-small finding: column uses the full available width, landscape turns a wide chart a quarter turn inside the portrait book. A finding with required_reading_mode identifies the largest measured setting for small text: choose that matching repair or needs_review. Otherwise prefer column when adequate. Neither mode proves readability; the new PDF must be checked. Never treat unresolved illegibility as intentional space.
 printed_text_truncated tells you whether this request shortened the page text; do not infer missing print content from a shortened excerpt.
 Give a factual reason under 180 characters. For intentional_space and needs_review, candidate_id must be null.`;
 export async function publisherSession({directory, env=process.env, fetchImpl=fetch, checkpointStore}) {
@@ -94,7 +95,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const role = model === PUBLISHER_MODELS.reader.id ? 'reader' : model === PUBLISHER_MODELS.publisher.id ? 'publisher' : null;
     if (!role) throw Error('Page review model is outside the edition budget configuration');
     const buffers=images.map(path=>readFileSync(path));
-    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):check===2?BoundaryConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
+    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):check===2?BoundaryConfirmation:check===3?FigureConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
     const task=text+' Return only the requested JSON schema; notes must be under 200 characters.'+(role==='reader'?' Put the findings array in the findings field.':'');
     const key=publisherReviewCacheKey({model,task,schema,maxTokens,imageHashes:buffers.map(b=>createHash('sha256').update(b).digest('hex'))});
     const cache=new Map(state.cache);
