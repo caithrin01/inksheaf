@@ -1,0 +1,197 @@
+{
+  "as_of": "2026-09-15T15:17:04.907782+00:00",
+  "base_commit": "43523eeaa8bc8f337bcebdf22c0585c487ae5908",
+  "changes": "Prioritize phone in-page reading before downloads; clarify view grouping, volume totals and final leaf. Preserve reader security/expiry and normal volume reset.",
+  "source_sha256": {
+    "src/pages/edition.astro": "fde5723ccb42cf9424325aea6f087897b30aae4703dd059ae3009e713cd99d7d",
+    "src/components/EditionPages.astro": "b372f74d93e8d43361dcc147cde0664a11f4b40d6e2f4e121378ede862ac8952",
+    "src/scripts/edition-pages.ts": "0d50565f0a30652682ed0df7cf0af47cff41d38c01589f4e2993a64825f9b9b4",
+    "scripts/test-complete-reader-ui.mjs": "6f57d2e6470538eff4382e6c043adc4c07ddf2571b50ab1ab19fd6635d869e74"
+  },
+  "actual_frontend_reviews": [
+    {
+      "path": "evidence/frontend-review/2026-09-15-complete-reader",
+      "status": "failed",
+      "finish_reason": "length",
+      "cost_usd": 0.10182,
+      "request_id": "gen-1789484880-IhYZkBl8kuIkpPUAVmDI",
+      "git_head_reviewed": "43523eeaa8bc8f337bcebdf22c0585c487ae5908"
+    },
+    {
+      "path": "evidence/frontend-review/2026-09-15-complete-reader-concise",
+      "status": "completed",
+      "finish_reason": "stop",
+      "cost_usd": 0.0747,
+      "request_id": "gen-1789484987-DOUfHTylSxpwty6ZCiB8",
+      "git_head_reviewed": "43523eeaa8bc8f337bcebdf22c0585c487ae5908"
+    }
+  ],
+  "complete_browser": [
+    {
+      "engine": "chromium",
+      "width": 1280,
+      "pass": true,
+      "ink": {
+        "dark": 3196,
+        "pixels": 489347,
+        "width": 571,
+        "height": 857,
+        "deviceScale": 1
+      },
+      "volumes": [
+        {
+          "pages": 18,
+          "sha256": "90093b7af5147e0a870f0904db382b0e5f7548c8b6a92d67794c72b64f4611f7"
+        },
+        {
+          "pages": 10,
+          "sha256": "1395e5d179e00c882f246c0b4d079f386f3785e7a07d20ed0806d52e1604dd80"
+        }
+      ],
+      "states": [
+        "complete without draft",
+        "load retry",
+        "arbitrary middle",
+        "last page each volume",
+        "volume change resets leaf",
+        "phone reading before downloads",
+        "explicit last leaf",
+        "printed labels",
+        "keyboard",
+        "text view",
+        "wrong digest refusal",
+        "reload",
+        "superseded version on return after delivery",
+        "revision during transfer"
+      ],
+      "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+    },
+    {
+      "engine": "chromium",
+      "width": 390,
+      "pass": true,
+      "ink": {
+        "dark": 1077,
+        "pixels": 152004,
+        "width": 318,
+        "height": 478,
+        "deviceScale": 1
+      },
+      "volumes": [
+        {
+          "pages": 18,
+          "sha256": "90093b7af5147e0a870f0904db382b0e5f7548c8b6a92d67794c72b64f4611f7"
+        },
+        {
+          "pages": 10,
+          "sha256": "1395e5d179e00c882f246c0b4d079f386f3785e7a07d20ed0806d52e1604dd80"
+        }
+      ],
+      "states": [
+        "complete without draft",
+        "load retry",
+        "arbitrary middle",
+        "last page each volume",
+        "volume change resets leaf",
+        "phone reading before downloads",
+        "explicit last leaf",
+        "printed labels",
+        "keyboard",
+        "text view",
+        "wrong digest refusal",
+        "reload",
+        "superseded version on return after delivery",
+        "revision during transfer"
+      ],
+      "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+    },
+    {
+      "engine": "webkit",
+      "width": 1280,
+      "pass": true,
+      "ink": {
+        "dark": 3278,
+        "pixels": 489347,
+        "width": 571,
+        "height": 857,
+        "deviceScale": 1
+      },
+      "volumes": [
+        {
+          "pages": 18,
+          "sha256": "90093b7af5147e0a870f0904db382b0e5f7548c8b6a92d67794c72b64f4611f7"
+        },
+        {
+          "pages": 10,
+          "sha256": "1395e5d179e00c882f246c0b4d079f386f3785e7a07d20ed0806d52e1604dd80"
+        }
+      ],
+      "states": [
+        "complete without draft",
+        "load retry",
+        "arbitrary middle",
+        "last page each volume",
+        "volume change resets leaf",
+        "phone reading before downloads",
+        "explicit last leaf",
+        "printed labels",
+        "keyboard",
+        "text view",
+        "wrong digest refusal",
+        "reload",
+        "superseded version on return after delivery",
+        "revision during transfer"
+      ],
+      "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "pass": true,
+      "ink": {
+        "dark": 1130,
+        "pixels": 152004,
+        "width": 318,
+        "height": 478,
+        "deviceScale": 1
+      },
+      "volumes": [
+        {
+          "pages": 18,
+          "sha256": "90093b7af5147e0a870f0904db382b0e5f7548c8b6a92d67794c72b64f4611f7"
+        },
+        {
+          "pages": 10,
+          "sha256": "1395e5d179e00c882f246c0b4d079f386f3785e7a07d20ed0806d52e1604dd80"
+        }
+      ],
+      "states": [
+        "complete without draft",
+        "load retry",
+        "arbitrary middle",
+        "last page each volume",
+        "volume change resets leaf",
+        "phone reading before downloads",
+        "explicit last leaf",
+        "printed labels",
+        "keyboard",
+        "text view",
+        "wrong digest refusal",
+        "reload",
+        "superseded version on return after delivery",
+        "revision during transfer"
+      ],
+      "limits": "Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance."
+    }
+  ],
+  "validation": {
+    "build": "passed",
+    "validator": "13 passed, zero failures",
+    "honesty": "84 passed",
+    "draft_and_publisher_browser": "Eight passed: Chromium/WebKit at 1280/390 for drafts and publisher/delivery controls. All use intercepted local APIs.",
+    "initial_browser_sandbox": "macOS denied disposable Chromium MachPort registration; approved outside-sandbox run passed all four complete-reader cases."
+  },
+  "limits": "Synthetic local browser checks; annual remains held after HTTP 402. No accepted book, deployed checkpoint service, creator/inbox acceptance or site release.",
+  "campaign_known_usd": 26.366364,
+  "campaign_committed_usd": 29.1049495
+}

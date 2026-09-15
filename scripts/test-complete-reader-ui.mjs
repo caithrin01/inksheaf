@@ -39,7 +39,7 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   const settled=()=>page.waitForFunction(()=>document.getElementById('draft-surface').getAttribute('aria-busy')==='false');
   const text=()=>page.locator('#draft-prose').innerText();
   await page.goto(new URL('/edition?id=41&sig=fixture',base).href);
-  await page.getByRole('button',{name:'Read your book',exact:true}).waitFor();assert.equal(fetches,0);
+  await page.getByRole('button',{name:'Read your book',exact:true}).waitFor();assert.equal(fetches,0);assert.equal(await page.locator('#download-heading').innerText(),'Your complete PDFs');assert.match(await page.locator('#edition-status').innerText(),/2 volumes.*28 pages in total/);
   await page.getByRole('button',{name:'Read your book',exact:true}).click();await page.getByRole('button',{name:'Try these pages again'}).waitFor();
   await page.getByRole('button',{name:'Try these pages again'}).click();await page.locator('#draft-paper canvas').waitFor();await settled();
   assert.match(await page.locator('#draft-position').innerText(),/Leaf 1.*Leaf 1 of 18/s);
@@ -50,11 +50,12 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   await page.getByRole('button',{name:'Read as text',exact:true}).click();await settled();
   await page.getByLabel('Go to page').selectOption('17');await settled();assert.match(await text(),/Volume 1, physical leaf 18/);assert.equal(await page.getByRole('button',{name:'Next page',exact:true}).isDisabled(),true);
   await page.getByRole('button',{name:'Previous page',exact:true}).focus();await page.keyboard.press('Enter');await settled();assert.match(await text(),/physical leaf 17/);
-  await page.getByLabel('Volume',{exact:true}).selectOption('2');await settled();await page.getByLabel('Go to page').selectOption('9');await settled();assert.match(await text(),/Volume 2, physical leaf 10/);assert.match(await page.locator('#draft-position').innerText(),/Page 7.*Leaf 10 of 10/s);
+  await page.getByLabel('Volume',{exact:true}).selectOption('2');await settled();assert.match(await text(),/Volume 2, physical leaf 1\./);assert.equal(await page.getByLabel('Go to page').inputValue(),'0');await page.getByLabel('Go to page').selectOption('9');await settled();assert.match(await text(),/Volume 2, physical leaf 10/);assert.match(await page.locator('#draft-position').innerText(),/Page 7.*Leaf 10 of 10/s);assert.equal(await page.locator('#draft-status').innerText(),'Last leaf of Volume 2.');
+  if(width===390){const panel=await page.locator('#pages-panel').boundingBox(),downloads=await page.locator('#edition-downloads').boundingBox();assert(downloads.y>=panel.y+panel.height,'Phone reading precedes downloads');assert.equal(await page.locator('#edition-downloads').evaluate(node=>Boolean(document.getElementById('pages-panel').compareDocumentPosition(node)&Node.DOCUMENT_POSITION_FOLLOWING)),true);}
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`${out}/${engine}-${width}-last-text.png`,fullPage:true,animations:'disabled'});
   await page.addScriptTag({content:axe});assert.deepEqual(await page.evaluate(async()=>(await window.axe.run({runOnly:{type:'tag',values:['wcag2a','wcag2aa']}})).violations.map(v=>v.id)),[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  for(const id of ['draft-volume','draft-jump'])assert((await page.locator('#'+id).boundingBox()).height>=44);
+  for(const id of ['draft-volume','draft-jump','draft-print','draft-text','draft-prev','draft-next'])assert((await page.locator('#'+id).boundingBox()).height>=44);
   assert.equal(await page.locator('#download-links a').count(),2);
   assert((await page.locator('#download-links a').all()).length===2);
   // Switching volumes discards old bytes. A wrong PDF must not paint or expose text.
@@ -70,7 +71,7 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   let release;holdDownload=new Promise(r=>{release=r;});await page.getByLabel('Volume',{exact:true}).selectOption('2');revision=1;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForFunction(()=>document.getElementById('show-pages').disabled,{},{timeout:10000});release();holdDownload=null;await settled();assert.equal(await page.locator('#draft-paper canvas').count(),0);assert.equal(await text(),'');assert.equal(await page.locator('#edition-downloads').isVisible(),false);
   assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-  results.push({engine,width,pass:true,ink,volumes:books.map(b=>({pages:b.pages.length,sha256:b.sha256})),states:['complete without draft','load retry','arbitrary middle','last page each volume','printed labels','keyboard','text view','wrong digest refusal','reload','superseded version on return after delivery','revision during transfer'],limits:'Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance.'});
+  results.push({engine,width,pass:true,ink,volumes:books.map(b=>({pages:b.pages.length,sha256:b.sha256})),states:['complete without draft','load retry','arbitrary middle','last page each volume','volume change resets leaf','phone reading before downloads','explicit last leaf','printed labels','keyboard','text view','wrong digest refusal','reload','superseded version on return after delivery','revision during transfer'],limits:'Synthetic PDFs and intercepted APIs, not real creator/inbox acceptance.'});
   console.log('PASS complete reader',engine,width);await page.close();
  }}finally{await browser.close();}
 }

@@ -19,7 +19,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
       <div class="making-desk"><div id="edition-cover" class="cover-face" data-design="masthead" style={coverStyle('masthead',{},'Your publication')} set:html={coverMarkup({kind:'Collected writing',dates:'',foot:'6 × 9 · perfect bound'})}/></div>
       <p class="cover-caption" id="cover-caption">Your chosen cover. The complete print file follows below.</p>
       <button id="open-pages" class="return-link open-pages" hidden>Read the first pages →</button>
-      <div id="edition-downloads" class="edition-downloads" hidden><h2>Your complete PDF</h2><div id="download-links"></div><p id="download-expiry"></p><a id="print-options-link" class="return-link" href="#edition-next" hidden>Print options ↓</a></div>
+      <div id="edition-downloads" class="edition-downloads" hidden><h2 id="download-heading">Your complete PDF</h2><div id="download-links"></div><p id="download-expiry"></p><a id="print-options-link" class="return-link" href="#edition-next" hidden>Print options ↓</a></div><span id="downloads-home" hidden></span>
       <div id="edition-continuity" class="edition-continuity"><p class="email-companion" id="email-companion"></p><button id="retry-pdf-email" class="return-link email-retry" hidden>Retry PDF email</button><p id="email-retry-status" role="status" class="work-note"></p>
       <a class="return-link" id="return-link" href="#" hidden>Keep this private link to return</a></div><span id="continuity-home" hidden></span>
     </section>
@@ -27,7 +27,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
       <div class="work-tabs" role="group" aria-label="Explore your edition"><button id="show-reading" aria-pressed="true">The reading</button><button id="show-contents" aria-pressed="false" disabled>Contents</button><button id="show-pages" aria-pressed="false" disabled>Pages</button></div>
       <div id="reading-panel"><h2 id="reading-heading">First, your writing.</h2><p id="reading-intro">Your publication’s name, contributors and selected writing will appear here as they are read.</p><div id="identity-note" hidden></div><div id="reading-list"></div><div id="production-notes"></div></div>
       <div id="contents-panel" hidden><h2>The shape of your book.</h2><div id="contents-list"></div><p class="work-note">Page numbers appear in the typeset PDF.</p></div>
-      <EditionPages/><div id="continuity-reading" hidden></div>
+      <EditionPages/><div id="downloads-reading" hidden></div><div id="continuity-reading" hidden></div>
       <div id="edition-next" class="edition-next" hidden><h2>Make it yours.</h2><p>Review what’s included, restore a piece, or change your edition.</p><a id="change-edition">Adjust this edition <span aria-hidden="true">↗</span></a><p class="print-routes">For personal copies, Inksheaf can host the Lulu listing. To sell to subscribers, we’ll guide you through your own Lulu account and your “Get a print copy” button.</p><a href="mailto:caithrin@caithrin.com?subject=My%20Inksheaf%20print%20edition">Get help with printing</a></div>
       <p id="workspace-error" role="alert" hidden></p><button class="workspace-retry" id="workspace-retry" hidden>Refresh progress</button>
     </section>
@@ -56,11 +56,16 @@ function cover(){
 cover();
 const pageReader=editionPages(),phoneReader=matchMedia('(max-width:750px)');
 function placeContinuity(){
+  // Move the actual controls so keyboard order follows the phone's visual order.
+  const downloads=$('edition-downloads'),destination=phoneReader.matches?$('downloads-reading'):$('downloads-home').parentElement!;
+  $('downloads-reading').hidden=!phoneReader.matches;
+  if(downloads.parentElement!==destination){const focus=document.activeElement as HTMLElement|null,restore=focus&&downloads.contains(focus);if(phoneReader.matches)destination.append(downloads);else destination.insertBefore(downloads,$('downloads-home'));if(restore)focus!.focus({preventScroll:true});}
   const reading=phoneReader.matches&&document.body.dataset.readingPages==='true',node=$('edition-continuity'),target=reading?$('continuity-reading'):$('continuity-home').parentElement!;
   $('continuity-reading').hidden=!reading;
   if(node.parentElement!==target){const focus=document.activeElement as HTMLElement|null,restore=focus&&node.contains(focus);if(reading)target.append(node);else target.insertBefore(node,$('continuity-home'));if(restore)focus!.focus({preventScroll:true});}
 }
 phoneReader.addEventListener('change',placeContinuity);
+placeContinuity();
 
 function tabs(panel:string){
   for(const name of ['reading','contents','pages']){$(name+'-panel').hidden=name!==panel;$('show-'+name).setAttribute('aria-pressed',String(name===panel));}
@@ -149,7 +154,9 @@ function showEvent(e:any){
     if((e.selection_revision||0)!==selectionRevision||e.unavailable)return;
     ready=true;$('edition-title').textContent='Your writing, in print.';
     if(e.reader?.length){pageReader.finish(e.reader);($('show-pages') as HTMLButtonElement).disabled=false;$('open-pages').hidden=false;$('open-pages').textContent='Read your book';}
-    statusText(`Your complete edition is ready${e.pages?' · '+e.pages+' pages':''}.`);
+    const volumes=e.files?.length||0;
+    statusText(`Your complete edition is ready${volumes>1?' · '+volumes+' volumes':''}${e.pages?' · '+e.pages+' pages in total':''}.`);
+    $('download-heading').textContent=volumes>1?'Your complete PDFs':'Your complete PDF';
     $('edition-downloads').hidden=false;
     const expired=Date.parse(e.expires_at)<Date.now();
     $('download-links').replaceChildren();

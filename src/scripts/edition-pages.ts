@@ -75,7 +75,7 @@ export function editionPages(){
         render=page.render({canvasContext:canvas.getContext('2d'),viewport});await render.promise;if(turn!==serial)return;
         $('draft-paper').replaceChildren(canvas);$('draft-paper').style.aspectRatio=String(base.width/base.height);
       }
-      status(e.complete?'Your complete volume. Every page is available here.':complete?'The complete PDF is ready beside your cover. These are earlier preview pages.':e.round?'These pages include the latest layout adjustments. Checks continue.':'Typeset draft · Layout checks continue. We’ll email your complete PDF.');
+      status(e.complete?(index===e.pages.length-1?`Last leaf of ${e.label||'Volume '+volume}.`:`Every page of ${e.label||'Volume '+volume} is available here.`):complete?'The complete PDF is ready beside your cover. These are earlier preview pages.':e.round?'These pages include the latest layout adjustments. Checks continue.':'Typeset draft · Layout checks continue. We’ll email your complete PDF.');
       $('draft-surface').dataset.rendered=e.sha256;controls();
     }catch(error){
       if(turn!==serial)return;
