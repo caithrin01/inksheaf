@@ -181,3 +181,24 @@ approve whitespace or waive any content finding. Every measured gap still needs
 a repair or factual layout verdict. `evidence/publisher-source-role-2026-09-11`
 records the rejected combined-role probe, successful individual-image checks,
 two actual PDF photo moves, preservation audits and remaining annual acceptance.
+
+## Identical layout evidence after a later repair
+
+Layout requests retain the complete PDF digest in the provider request and saved
+request evidence. With actual neighbouring-page images, cache identity now uses
+all supplied page facts, source roles, candidates, image hashes, model, prompt,
+schema, token ceiling and review policy. A different enclosing PDF digest alone
+can reuse a validated verdict when every one of those inputs is identical. The
+cache records each full request/PDF binding. Missing provenance, changed evidence
+or an invalid cached verdict holds or requires a fresh check. Text-only requests
+retain their full PDF identity.
+
+This changes the review policy. Existing policy keys are not migrated or manually
+rekeyed, and existing calls/unknown charges/render limits remain intact. The held
+September 15 annual is preserved separately; this change does not accept it.
+
+The offline replay of that annual's before/after packets reuses nine of fourteen
+second-pass batches and invokes the injected provider for the five changed
+batches. New injected results deliberately hold. These are avoided duplicate
+requests in a test, not a completed live book or measured future dollar savings.
+See `evidence/layout-review-reuse-2026-09-15/results.json`.
