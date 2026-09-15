@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { validDesign } from "../functions/lib/book-design.js";
 import {publishPreview} from './lib/publisher-preview.mjs';
+import {completeReaderMap} from './lib/complete-reader.mjs';
 import {publishVolume} from "./lib/publish-volume.mjs";
 import {renderIdentity} from './lib/render-checkpoint.mjs';
 import { publisherSession } from "./lib/publisher-session.mjs";
@@ -157,7 +158,7 @@ if (EVENT === "press") {
         Object.assign(bodyHashes, b.report.bodyHashes || {});
         vols.push({ label: v.label, title: v.title || null, subtitle: v.subtitle || null, pages, key, sha256: sha, included: b.report.included, pubName: b.report.pubName || host, kind: plan?.kind || "essays", postOrder: b.report.postOrder || [],
           leftOut: [...(b.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({slug:d.slug,title:d.title,reason:d.reason,kind:"publisher"})), ...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })), ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))],
-          pdf: b.pdf, report: b.report, review: b.review });
+          reader_map:completeReaderMap(b,pages),pdf: b.pdf, report: b.report, review: b.review });
         log("press", `${v.label}: ${pages} pages, ${key}, sha256 ${sha.slice(0, 12)}`);
       }
       return {vols,postOrder,bodyHashes};
@@ -170,7 +171,7 @@ if (EVENT === "press") {
       const rendererSha = process.env.GITHUB_SHA || (() => { try { return sh("git", ["rev-parse", "HEAD"]).trim(); } catch { return "local"; } })();
       const vr = await fetch(`${SITE}/api/version`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
         signup_id: ID, sig: hmac(`version:${ID}`), plan_json: finalPlan, selection_revision:selection.revision, post_ids: postOrder, body_hashes: bodyHashes, renderer_sha: rendererSha, print_mode: interior,
-        volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
+        volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, reader_map:x.reader_map, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
         proof_key: vols[0].key, proof_sha256: vols[0].sha256, pages: totalPages, run_id: process.env.GITHUB_RUN_ID || "" }) });
       const vj = await vr.json().catch(() => ({}));
       if (!vr.ok || !vj.ok) throw new Error(`version not recorded: ${vr.status} ${JSON.stringify(vj).slice(0, 160)}`);
@@ -180,7 +181,7 @@ if (EVENT === "press") {
   plan=finalPlan;
   const versionId = vj.version_id, nonce = vj.nonce;
   const proofUrl = signedProofUrl(vols[0].key, 7 * 24 * 3600);
-  await emit({kind:"ready",files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
+  await emit({kind:"ready",version_id:versionId,files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
   const workspace = `${SITE}/edition?id=${ID}&sig=${hmac(`edition:${ID}`)}`;
   const approve = `${SITE}/api/approve?v=${versionId}&n=${nonce}`;
   const change = `${SITE}/change?id=${ID}&sig=${hmac(`change:${ID}`)}`;

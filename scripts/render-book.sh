@@ -96,7 +96,11 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
       const fig=[...figs].reverse().find(x=>x.page===e.page||x.page===e.page-1); if (!fig||d.fit.some(x=>x.id===fig.id)) continue;
       const figH=(fig.h||0)/72, onCloser=fig.page===e.page;
       if (pg.ink_rows>0.25 && !onCloser) continue; /* a substantial text ending is not a figure orphan */
-      const closerNeeds=pg.ink_rows*TEXT_H+0.3, prevFree=prev.blank*TEXT_H;
+      // Raster blank fractions include space outside the usable body. The
+      // actual PDF bounds must govern whether a reduced photograph will fit.
+      const prevFree=prev.layout_geometry.trailing_space_points/72;
+      if(!Number.isFinite(prevFree)||prevFree<0)throw Error("Missing physical space for figure fitting");
+      const closerNeeds=pg.ink_rows*TEXT_H+0.3;
       const need = onCloser ? closerNeeds - prevFree : closerNeeds - prevFree; /* what must be freed on the page before */
       if (need <= 0.05) continue; /* the tail already has room on the page before; scaling would change nothing */
       const newH = Math.round((figH - need - 0.15)*100)/100;

@@ -181,3 +181,52 @@ approve whitespace or waive any content finding. Every measured gap still needs
 a repair or factual layout verdict. `evidence/publisher-source-role-2026-09-11`
 records the rejected combined-role probe, successful individual-image checks,
 two actual PDF photo moves, preservation audits and remaining annual acceptance.
+
+## Identical layout evidence after a later repair
+
+Layout requests retain the complete PDF digest in the provider request and saved
+request evidence. With actual neighbouring-page images, cache identity now uses
+all supplied page facts, source roles, candidates, image hashes, model, prompt,
+schema, token ceiling and review policy. A different enclosing PDF digest alone
+can reuse a validated verdict when every one of those inputs is identical. The
+cache records each full request/PDF binding. Missing provenance, changed evidence
+or an invalid cached verdict holds or requires a fresh check. Text-only requests
+retain their full PDF identity.
+
+This changes the review policy. Existing policy keys are not migrated or manually
+rekeyed, and existing calls/unknown charges/render limits remain intact. The held
+September 15 annual is preserved separately; this change does not accept it.
+
+The offline replay of that annual's before/after packets reuses nine of fourteen
+second-pass batches and invokes the injected provider for the five changed
+batches. New injected results deliberately hold. These are avoided duplicate
+requests in a test, not a completed live book or measured future dollar savings.
+See `evidence/layout-review-reuse-2026-09-15/results.json`.
+
+## Verify that a photograph fit actually worked
+
+The September 15 cold annual completed the normal pipeline in 8m56s: 162 pages,
+90 calls, five renders, one repair and $1.0835275, including three corrected,
+billed schema failures. Twelve of fourteen layout batches reused identical
+evidence. Independent visual inspection still rejected its closing photograph:
+the fit reduced the image but left it alone on a mostly empty page, and the model
+accepted that ineffective move. Pipeline completion did not establish quality.
+
+Closing-figure fitting now uses the preceding page's physical trailing space.
+The raster blank fraction had overstated that space by 14pt in the real book.
+A two-render synthetic regression fails on the old fitter and passes on this
+correction. A separate saved-HTML annual replay moves the photograph onto the
+preceding page and preserves all 22 normalized printed article bodies and all
+58 bitmap occurrences. It is offline diagnosis, not another cold acceptance.
+
+The layout packet also identifies a previously fitted photograph that remains
+alone on its closing leaf at less than a quarter of the usable body height.
+That result requires another measured repair or a hold; a model cannot excuse
+it as intentional article-ending space. Reading figures, unfitted source art,
+larger plates, pages with prose and complete single-page pieces are distinct.
+
+Renderer/review policy fingerprints change. Preserve the completed cold PDF,
+journal, prior failures and charges; do not rekey its answers or reuse its old
+checkpoint under this renderer. The screenshot-readability disposition and a
+corrected cold quality run remain open. See the vault's current launch execution
+entry and `evidence/photo-fit-2026-09-15/results.json`.

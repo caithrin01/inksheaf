@@ -1,6 +1,7 @@
 // A read-only private workspace. Knowing a signup number or email cannot open it.
 import { hmacHex } from '../lib/press-dispatch.js';
 import {readPublisherSelection} from '../lib/publisher-selection.js';
+import {finishedVolumes,readerPages} from '../lib/edition-reader.js';
 const json=(value,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store','referrer-policy':'no-referrer','x-robots-tag':'noindex, nofollow'}});
 export async function onRequest({request,env}) {
   if(request.method!=='GET')return json({ok:false},405);
@@ -12,13 +13,24 @@ export async function onRequest({request,env}) {
     const press=await env.DB.prepare('SELECT status,updated_at FROM press WHERE signup_id=?').bind(id).first();
     const latest=await env.DB.prepare('SELECT run_id FROM publisher_events WHERE signup_id=? ORDER BY id DESC LIMIT 1').bind(id).first();
     const events=latest?(await env.DB.prepare('SELECT sequence,payload,created_at FROM publisher_events WHERE signup_id=? AND run_id=? ORDER BY sequence LIMIT 1000').bind(id,latest.run_id).all()).results:[];
-    const version=await env.DB.prepare('SELECT id,status FROM edition_versions WHERE signup_id=? ORDER BY id DESC LIMIT 1').bind(id).first();
+    const version=await env.DB.prepare('SELECT id,status,volumes,selection_revision FROM edition_versions WHERE signup_id=? ORDER BY id DESC LIMIT 1').bind(id).first();
     const selection=await readPublisherSelection(env.DB,id);
     const email=version?await env.DB.prepare("SELECT send_status AS status,delivery_status FROM email_outbox WHERE version_id=? AND kind='proof-ready' ORDER BY created_ms DESC LIMIT 1").bind(version.id).first():null;
     let plan;try{plan=JSON.parse(row.plan_json||'null');}catch{}
+    const visibleEvents=events.map(e=>{
+      const event=JSON.parse(e.payload);
+      if(event.kind==='pages'){delete event.file_url;event.url='/api/edition-pages?'+new URLSearchParams({id:String(id),sig:u.searchParams.get('sig'),run:latest.run_id,sequence:String(e.sequence)});}
+      if(event.kind==='ready'&&event.version_id!=null){
+        const volumes=finishedVolumes(version,event,selection.revision);
+        event.reader=volumes?.map(v=>({volume:v.volume,label:v.label,complete:true,round:0,sequence:e.sequence,selection_revision:selection.revision,version_id:version.id,sha256:v.sha256,total_pages:v.pages,pages:readerPages(v.reader_map,v.pages),expires_at:v.expires_at,url:'/api/edition-file?'+new URLSearchParams({id:String(id),sig:u.searchParams.get('sig'),run:latest.run_id,sequence:String(e.sequence),version:String(version.id),volume:v.volume})}))||[];
+        event.files=event.reader.map(v=>({label:v.label,pages:v.total_pages,url:v.url+'&download=1'}));
+        event.unavailable=!volumes;
+      }
+      return {...event,sequence:e.sequence,created_at:e.created_at};
+    });
     return json({ok:true,id,publication_url:row.publication_url,email:row.email,design:plan?.design||null,status:press?.status||row.dispatch_status||'queued',run_id:latest?.run_id||null,
       selection,restore_sig:version?null:await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-restore:${id}`),
-      events:events.map(e=>{const event=JSON.parse(e.payload);if(event.kind==='pages'){delete event.file_url;event.url='/api/edition-pages?'+new URLSearchParams({id:String(id),sig:u.searchParams.get('sig'),run:latest.run_id,sequence:String(e.sequence)});}return {...event,sequence:e.sequence,created_at:e.created_at};}),email_status:email?.delivery_status||email?.status||null, retry_email_sig:email?await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-email:${id}`):null,
+      events:visibleEvents,email_status:email?.delivery_status||email?.status||null, retry_email_sig:email?await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-email:${id}`):null,
       change_url:version?`/change?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`change:${id}`)}`:null});
   }catch{return json({ok:false,error:'Your book is saved. We could not refresh its progress just now.'},503);}
 }

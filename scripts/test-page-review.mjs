@@ -76,9 +76,19 @@ let compared=false;
 const sourceRun=await reviewPdf(pdf,{outDir:join(dir,'source-check'),key:'stub',pageContext:[{page:3,expected_printed_folio:1,folio_map_available:true,position:'article opening'}],sourceFigures:[{page:3,id:'original-figure',source:pages[0]}],ask:async({text,images})=>{
   if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":3,"confidence":0.9,"note":"cropped image"}]':'[]'};
   compared=images.length===2&&images[0].includes('/single/3/')&&images[1].endsWith('/source/3/source-1.png')&&text.includes('original-figure')&&text.includes('"expected_printed_folio":1');
-  return{text:'{"confirmed":true,"origin":"source_content","note":"The printed image preserves the original source crop."}'};
+  return{text:'{"confirmed":true,"origin":"source_content","figure_id":"original-figure","defect":"crop","reading_detail":"picture","note":"The printed image preserves the original source crop."}'};
 }});
 ok('figure confirmation sees the actual source image and physical/printed page map',compared&&sourceRun.dismissed.length===1&&sourceRun.dismissed[0].source_preserved&&sourceRun.errors.length===0);
+const smallTextFigure={id:'screenshot',page:3,source:pages[0],w:326.16,h:208.76,image_width_points:326.16,reading_mode:'column',reading_sizes:[{mode:'landscape',image_width_points:485.28,width_points:310.61,height_points:485.28}]};
+const smallTextAnswer={confirmed:false,origin:'source_content',figure_id:'screenshot',defect:'none',reading_detail:'small_text',note:'The source pixels are unchanged and labels look readable.'};
+const smallTextReview=await reviewPdf(pdf,{outDir:join(dir,'small-text'),key:'stub',sourceFigures:[smallTextFigure],ask:async({text})=>{
+  if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":3,"confidence":0.9,"note":"Small screenshot titles"}]':'[]'};
+  assert(text.includes('"image_width_points":326.16')&&text.includes('"image_width_points":485.28'));
+  return{text:JSON.stringify(smallTextAnswer)};
+}});
+ok('normal page review retains a small-text finding despite the model fidelity dismissal',smallTextReview.findings.length===1&&smallTextReview.dismissed.length===0&&smallTextReview.errors.length===0&&smallTextReview.findings[0].required_reading_mode==='landscape'&&smallTextReview.findings[0].model_confirmation.note===smallTextAnswer.note);
+const untyped=await reviewPdf(pdf,{outDir:join(dir,'untyped-figure'),key:'stub',sourceFigures:[smallTextFigure],ask:async({text})=>/contact sheet/.test(text)?{text:text.includes('page 1,')?'[{"page":3,"check":3,"confidence":0.9,"note":"Small screenshot titles"}]':'[]'}:{text:'{"confirmed":false,"origin":"source_content","note":"Legacy untyped dismissal"}'}});
+ok('legacy untyped image dismissals leave review incomplete',untyped.errors.length===1&&untyped.dismissed.length===0);
 let failedRequests=0;
 const stopped=await reviewPdf(pdf,{outDir:join(dir,'outage'),key:'stub',stopOnError:true,ask:async()=>{failedRequests++;throw Error('fetch failed');}});
 ok('publisher outage stops the review before attempting later pages',failedRequests===1&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
