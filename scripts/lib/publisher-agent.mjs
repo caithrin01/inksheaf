@@ -111,7 +111,9 @@ const ledgers = new WeakMap();
 function requestLedger(journal) {
   if (ledgers.has(journal)) return ledgers.get(journal);
   let tail = Promise.resolve(), active = 0;
-  const waiting = [], ledger = { failure: null };
+  const waiting = [], settled = [], ledger = { failure: null, inFlight: new Set() };
+  ledger.afterSettlement = () => new Promise(resolve => settled.push(resolve));
+  ledger.notifySettlement = () => { for (const resolve of settled.splice(0)) resolve(); };
   ledger.serial = work => {
     const result = tail.then(work);
     tail = result.catch(() => {});
@@ -159,13 +161,24 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
-      await ledger.serial(async () => {
-        if (ledger.failure) throw ledger.failure;
-        const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-        if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
-        call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
-        journal.calls.push(call); await save();
-      });
+      for (;;) {
+        const pending = await ledger.serial(async () => {
+          if (ledger.failure) throw ledger.failure;
+          const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
+          if (journal.calls.length >= PUBLISHER_MAX_CALLS) throw Error('Publisher model budget reached; saved work is retained');
+          if (committed + reserved > budget) {
+            // Current network work can settle below its conservative reservation.
+            // Wait outside the write lock; old unknown charges never trigger a wait.
+            if (ledger.inFlight.size) return { wait: ledger.afterSettlement() };
+            throw Error('Publisher model budget reached; saved work is retained');
+          }
+          call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
+          journal.calls.push(call); await save(); ledger.inFlight.add(call.id);
+          return null;
+        });
+        if (!pending) break;
+        await pending.wait;
+      }
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
@@ -211,7 +224,8 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
     } finally {
       if (call) await ledger.serial(async () => {
         journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
-        await save();
+        try { await save(); }
+        finally { ledger.inFlight.delete(call.id); ledger.notifySettlement(); }
       });
     }
   };

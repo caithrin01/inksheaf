@@ -50,6 +50,17 @@ await test('a lost reservation acknowledgement prevents all queued inference',as
   assert(results.every(r=>r.status==='rejected'));assert.equal(calls,0);assert.equal(ledger.calls.length,1);
   assert(ledger.calls[0].reserved>0&&ledger.calls[0].cost===undefined);
 });
+await test('affordable work waits for active reservations to settle instead of falsely exhausting the budget',async()=>{
+  const ledger=journal(),budget=.02;let calls=0,active=0,peak=0;
+  const ask=openRouterPublisher({key:'fixture',journal:ledger,budget,fetchImpl:async()=>{
+    calls++;peak=Math.max(peak,++active);
+    assert(ledger.calls.reduce((sum,c)=>sum+(c.cost??c.reserved),0)<=budget);
+    await pause(10);active--;return answer({id:1},{cost:.001});
+  }});
+  await Promise.all(Array.from({length:10},()=>ask({role:'reader',task:'Read',schema})));
+  assert.equal(calls,10);assert(peak>1&&peak<REVIEW_CONCURRENCY);assert.equal(active,0);
+  assert(ledger.calls.every(c=>c.status==='completed'));assert(Math.abs(ledger.spent-.01)<1e-9);
+});
 await test('a failed batch awaits active work and does not start the remaining tasks',async()=>{
   let active=0,started=0;
   await assert.rejects(mapConcurrent(Array.from({length:20},(_,i)=>i),async i=>{
