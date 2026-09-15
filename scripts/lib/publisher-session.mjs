@@ -121,25 +121,46 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const maxTokens=Math.max(600,400*Math.min(6,input.pages.length)+100);
     const images=imagesByPage?input.pages.map(p=>{const file=imagesByPage.get(p.page);if(!file)throw Error('Layout review is missing a required page image');return readFileSync(file);}):[];
     const imageHashes=images.map(b=>createHash('sha256').update(b).digest('hex'));
-    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,imageHashes,maxTokens}),cache=new Map(state.cache);
-    if(cache.has(key))return validateLayout(cache.get(key),input);
+    const request={model:PUBLISHER_MODELS.publisher.id,task:LAYOUT_TASK,schema:LayoutDecisions,input,imageHashes,maxTokens};
+    const requestKey=publisherReviewCacheKey(request);
+    // A repair elsewhere changes the enclosing PDF digest even when this exact
+    // page packet and all neighbour-sheet pixels are unchanged. Bind reuse to
+    // every supplied fact/candidate/image, and retain each full PDF binding.
+    // Text-only or unidentified artifacts keep their original request identity.
+    const {pdf_hash,...pageInput}=input;
+    const key=imagesByPage&&/^[a-f0-9]{64}$/.test(pdf_hash||'')
+      ?publisherReviewCacheKey({...request,input:pageInput}):requestKey;
+    const cache=new Map(state.cache),binding={pdf_sha256:pdf_hash??null,request_sha256:requestKey};
+    const saveLayout=async(result,bindings=[binding])=>{
+      // Recursive batches may have saved other entries while this map was open.
+      const latest=new Map(state.cache);
+      latest.set(key,{kind:'layout-page-evidence-v1',result,bindings});state.cache=[...latest];await save();
+    };
+    if(cache.has(key)){
+      const cached=cache.get(key);
+      if(cached?.kind!=='layout-page-evidence-v1'||!Array.isArray(cached.bindings)||!cached.bindings.length
+        ||cached.bindings.some(b=>!b||!/^[a-f0-9]{64}$/.test(b.request_sha256||'')||(b.pdf_sha256!==null&&typeof b.pdf_sha256!=='string')))
+        throw Error('Saved layout evidence is unavailable; the book is held for recovery');
+      const result=validateLayout(cached.result,input);
+      if(!cached.bindings.some(b=>b.pdf_sha256===binding.pdf_sha256&&b.request_sha256===binding.request_sha256))await saveLayout(result,[...cached.bindings,binding]);
+      return result;
+    }
     // Reuse completed larger batches with this same policy, but keep new reasoning
     // to six pages. A twelve-page review exhausted the completion ceiling before
     // returning any verdict. Smaller calls share the same ledger and cache.
     if(input.pages.length>6){
       const decisions=[];
       for(const batch of layoutBatches(input,6))decisions.push(...(await layoutBatch(batch,imagesByPage)).decisions);
-      const result=validateLayout({decisions},input);cache.clear();for(const pair of state.cache)cache.set(...pair);
-      cache.set(key,result);state.cache=[...cache];await save();return result;
+      const result=validateLayout({decisions},input);await saveLayout(result);return result;
     }
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
     // The cold annual and a numeric-cap probe exhausted all output on thinking.
     // Disable optional thinking for this bounded, measured decision packet, as
     // for short visual confirmations. Incomplete answers still hold and count.
-    const request={role:'publisher',schema:LayoutDecisions,data:input,images,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
+    const paidRequest={role:'publisher',schema:LayoutDecisions,data:input,images,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
-    try{result=await ask(request);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...request,task:request.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
-    validateLayout(result,input);cache.set(key,result);state.cache=[...cache];await save();return result;
+    try{result=await ask(paidRequest);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...paidRequest,task:paidRequest.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
+    validateLayout(result,input);await saveLayout(result);return result;
   };
   const layout=async (input,{imagesByPage}={})=>{
     const decisions=[];

@@ -1,0 +1,76 @@
+{
+  "as_of": "2026-09-15T15:25:58.306230+00:00",
+  "base_commit": "74b9cb28dfc939a956202bda138efd29bbaeb3cb",
+  "change": "Reuse layout verdicts only when the entire supplied page packet and actual neighbouring-page image hashes are identical; retain full PDF/request provenance for every reuse.",
+  "source_sha256": {
+    "scripts/lib/publisher-session.mjs": "6e4addf5d17b6798f059b6fe8b93a098dac6a11018b9eaa2346ed949f08e661f",
+    "scripts/test-layout-review-reuse.mjs": "d7128f55a2f2e32aa1a34e5e088cc0daca8e7b2619800d728ab1393718ffbb06",
+    "package.json": "84e6b0a6699b7b7de8d6d0f4627bcdc6f940b3339a27d8e7e75827d9927b0df7",
+    "PUBLISHER_RECOVERY.md": "2c482b7c61310d4b76889119cafb10e0d65d72ea5b6a42121c926b8ce29ff603"
+  },
+  "validation": {
+    "new_reuse_checks": 14,
+    "publisher_agent": 30,
+    "existing_partial_batch_recovery": "passed",
+    "durable_budget_cache": 17,
+    "bounded_layout": 18,
+    "layout_image_evidence": "passed",
+    "saved_render_recovery": 5,
+    "complete_orchestration": 13,
+    "validator": "13 passed; zero failures"
+  },
+  "real_packet_replay": {
+    "as_of": "2026-09-15T15:24:45.879Z",
+    "source_before_pdf": "409783fa65e12a5648ed1a90c66fc0f32784a64d41d07ddb7a48c229b4edd3d1",
+    "source_after_pdf": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+    "initial_injected_requests": 14,
+    "second_pass_injected_requests": 5,
+    "reused_exact_batches": 9,
+    "final_decision_count": 40,
+    "holds_retained": 15,
+    "subsequent_requests": [
+      {
+        "pdf_hash": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+        "pages": [
+          40,
+          52,
+          55
+        ]
+      },
+      {
+        "pdf_hash": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+        "pages": [
+          58,
+          60,
+          61
+        ]
+      },
+      {
+        "pdf_hash": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+        "pages": [
+          62,
+          65,
+          72
+        ]
+      },
+      {
+        "pdf_hash": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+        "pages": [
+          152,
+          160,
+          163
+        ]
+      },
+      {
+        "pdf_hash": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+        "pages": [
+          164
+        ]
+      }
+    ],
+    "scope": "Replay of actual saved inputs, candidates and SHA-verified neighbouring-page PNGs through new publisherSession in isolated temporary state. The provider is entirely injected; fresh decisions deliberately hold. No inference, acceptance, journal migration, charge removal or original artifact/state changes."
+  },
+  "live_inference": false,
+  "campaign_spend_added_usd": 0,
+  "limits": "Changed policy invalidates old policy keys; no manual migration/rekey, cap reset or charge removal. Original annual remains held. No cold completion, live savings, book acceptance, checkpoint deployment or public release is claimed."
+}

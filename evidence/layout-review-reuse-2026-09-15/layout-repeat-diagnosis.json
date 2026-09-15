@@ -1,0 +1,149 @@
+{
+  "as_of": "2026-09-15T15:17:49.977Z",
+  "before_pdf": "409783fa65e12a5648ed1a90c66fc0f32784a64d41d07ddb7a48c229b4edd3d1",
+  "after_pdf": "b69e8db8a25456ed3a6208d8ed8625475576df2c3239a3f43677cee7a1965900",
+  "total_batches": 14,
+  "byte_identical_batches_excluding_pdf_hash": 9,
+  "known_cost_of_matching_prior_successes": 0.41261,
+  "batches": [
+    {
+      "pages": [
+        1,
+        2,
+        3
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "45e49ce8-c6b4-4934-bfb6-49bc2f99496d",
+      "prior_known_cost_usd": 0.033288
+    },
+    {
+      "pages": [
+        4,
+        5,
+        6
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "ec28fe03-7906-4b4e-851b-d8208673035d",
+      "prior_known_cost_usd": 0.044684
+    },
+    {
+      "pages": [
+        7,
+        8,
+        9
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "464f91f1-f5f5-4b63-8df2-e77ea84c2622",
+      "prior_known_cost_usd": 0.041254
+    },
+    {
+      "pages": [
+        14,
+        19,
+        22
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "8b809c3c-95f1-4ea5-af11-1725fed896c4",
+      "prior_known_cost_usd": 0.057422
+    },
+    {
+      "pages": [
+        28,
+        29,
+        30
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "ac181016-3e9f-421f-98b5-7a841c4244fc",
+      "prior_known_cost_usd": 0.038484
+    },
+    {
+      "pages": [
+        40,
+        52,
+        55
+      ],
+      "identical_except_pdf_hash": false,
+      "prior_successful_call": null,
+      "prior_known_cost_usd": null
+    },
+    {
+      "pages": [
+        58,
+        60,
+        61
+      ],
+      "identical_except_pdf_hash": false,
+      "prior_successful_call": null,
+      "prior_known_cost_usd": null
+    },
+    {
+      "pages": [
+        62,
+        65,
+        72
+      ],
+      "identical_except_pdf_hash": false,
+      "prior_successful_call": null,
+      "prior_known_cost_usd": null
+    },
+    {
+      "pages": [
+        77,
+        78,
+        84
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "44b46df5-223c-4963-b630-dfaea51a3a7d",
+      "prior_known_cost_usd": 0.047114
+    },
+    {
+      "pages": [
+        99,
+        116,
+        117
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "7ffc1bc5-976d-4ba2-8592-bcad51e1d709",
+      "prior_known_cost_usd": 0.048712
+    },
+    {
+      "pages": [
+        118,
+        120,
+        121
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "526dd27b-4421-40f2-a2c0-a13cb4fa625d",
+      "prior_known_cost_usd": 0.05018
+    },
+    {
+      "pages": [
+        126,
+        128,
+        135
+      ],
+      "identical_except_pdf_hash": true,
+      "prior_successful_call": "571589a4-c4ff-4d2a-8228-ac6174229f05",
+      "prior_known_cost_usd": 0.051472
+    },
+    {
+      "pages": [
+        152,
+        160,
+        163
+      ],
+      "identical_except_pdf_hash": false,
+      "prior_successful_call": null,
+      "prior_known_cost_usd": null
+    },
+    {
+      "pages": [
+        164
+      ],
+      "identical_except_pdf_hash": false,
+      "prior_successful_call": null,
+      "prior_known_cost_usd": null
+    }
+  ],
+  "scope": "Read-only diagnosis: compare complete batch data, candidates, policy and actual neighbour-sheet hashes. Only the enclosing PDF digest is excluded. No cache keys/answers/journals changed, no inference and no acceptance. A future cache policy needs tests and new evidence; this analysis does not authorize rekeying the held annual."
+}
