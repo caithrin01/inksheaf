@@ -2,7 +2,7 @@
 // Unit gate for the page review plumbing: rasters, labelled contact sheets, pass-1 parsing,
 // pass-2 confirmation, tolerance of model failure, and the no-key skip. The model is a stub.
 import { strict as assert } from "node:assert";
-import { mkdtempSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, existsSync,readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -35,7 +35,8 @@ const r = await reviewPdf(pdf, { outDir: join(dir, "run"), ask, pass1Model: "stu
 ok("pass 1 ran once per sheet", r.pass1.calls === 2, JSON.stringify(calls));
 ok("only in-sheet flags over the threshold reach pass 2", r.pass1.flagged === 1 && r.pass2.calls === 1);
 ok("pass 2 got the single page at full size", calls[2].model === "stub-2" && calls[2].images === 1);
-ok("pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)", /\/3\/p-0?3\.png$/.test(calls[2].image));
+const expectedPage=rasterise(pdf,join(dir,'expected-page-3'),{scale:1800,first:3,last:3})[0];
+ok("pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)",readFileSync(calls[2].image).equals(readFileSync(expectedPage)));
 ok("confirmed finding reported with page, check and both notes", r.findings.length === 1 && r.findings[0].page === 3 && r.findings[0].check === 1 && r.findings[0].pass1 === "mostly empty");
 ok("usage summed", r.usage.prompt_tokens === 2300 && r.usage.completion_tokens === 100);
 ok("review.json written", existsSync(join(r.dir, "review.json")));
@@ -113,4 +114,10 @@ const headReview=await reviewPdf(pdf,{outDir:join(dir,'heads'),key:'stub',pageCo
   return{text:'{"confirmed":false,"origin":"rendered_layout","note":"The head matches the intended publication label."}'};
 }});
 ok('running-head confirmation receives the intended alternating label',checkedHeads&&headReview.findings.length===0&&headReview.errors.length===0);
+let deferredConfirmations=0;
+const deferred=await reviewPdf(pdf,{outDir:join(dir,'deferred-spacing'),deferSpacingToLayout:true,key:'stub',ask:async({text})=>{
+ if(/contact sheet/.test(text))return {text:text.includes('page 1,')?'[{"page":3,"check":1,"confidence":1,"note":"Sparse source ending"}]':'[]'};
+ deferredConfirmations++;throw Error('Whitespace must go to the mandatory neighbour-aware layout review');
+}});
+ok('publisher spacing stays unresolved for layout review without a duplicate confirmation',deferredConfirmations===0&&deferred.errors.length===0&&deferred.findings.length===1&&deferred.findings[0].deferred_to_layout===true&&deferred.findings[0].page===3);
 console.log(`page-review: ${n} pass, 0 fail`);

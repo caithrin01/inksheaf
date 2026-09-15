@@ -64,6 +64,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     d.linkStarts=meta.linkstart;
     d.parts=meta.partstart;
     d.folios=meta.folio;
+    for(const f of figs){const details=figs.filter(x=>x.parent_id===f.id);if(details.length)f.detail_pages=details.map(x=>x.page);if(f.parent_id)f.overview_page=figs.find(x=>x.id===f.parent_id)?.page;}
     d.figures=figs;d.publisher_marks=meta["publisher-page"];
     const ps=meta.parstart,pe=meta.parend;
     d.paragraphs=ps.map(s=>({id:s.id,start:s,end:pe.find(e=>e.id===s.id)}));

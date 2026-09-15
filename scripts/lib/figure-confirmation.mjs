@@ -12,6 +12,7 @@ export const FigureConfirmation=z.object({
 export function figurePrintEvidence(figures){
   return figures.map(f=>({id:f.id,width_points:f.w??null,height_points:f.h??null,
     image_width_points:f.image_width_points??null,reading_mode:f.reading_mode??null,
+    ...(f.detail_pages?{enlarged_detail_pages:f.detail_pages}:{}),...(f.parent_id?{overview_page:f.overview_page,detail_index:f.detail_index,detail_total:f.detail_total}:{}),
     reading_sizes:(f.reading_sizes||[]).map(({mode,image_width_points,width_points,height_points})=>({mode,image_width_points,width_points,height_points}))}));
 }
 

@@ -5,6 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {readingOrderFindings} from './publisher-layout.mjs';
+import {leadingForTail} from './copy-fit.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -70,7 +71,7 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
         for(const f of interruptions)if(!inFlow.includes(f.figure_id))inFlow.push(f.figure_id);
         for(const f of tails)fitFigs[f.id]=f.height;
         stranded.forEach(a=>backLinks.add(a.n));
-        for (const a of sparse) fitText[a.n] = Math.max(.54, +((fitText[a.n] || .66) - .04).toFixed(2));
+        for (const a of sparse) fitText[a.n] = leadingForTail(pj,a,fitText[a.n]||.66);
         log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
         continue;
       }

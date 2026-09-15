@@ -13,7 +13,7 @@ execFileSync('typst',['compile','--font-path','fonts','scripts/fixtures/publishe
 const bytes=await readFile(file),sha=createHash('sha256').update(bytes).digest('hex');
 const axe=await readFile('node_modules/axe-core/axe.min.js','utf8'),results=[];
 const pages=[{number:5,label:'Contents'},{number:9,label:'Page 1',text_mode:'prose'},{number:10,label:'Page 2',text_mode:'prose'}];
-const snapshot={kind:'pages',sequence:3,selection_revision:0,volume:'1',round:0,draft:true,pages,total_pages:42,sha256:sha,url:'/api/edition-pages?id=41&sig=fixture&run=fixture.1&sequence=3'};
+const snapshot={kind:'pages',sequence:4,selection_revision:0,volume:'1',round:0,draft:true,pages,total_pages:42,sha256:sha,url:'/api/edition-pages?id=41&sig=fixture&run=fixture.1&sequence=4'};
 for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await browserType.launch();
  try{for(const width of [1280,390]){
@@ -22,7 +22,7 @@ for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
   await page.route('**/*',async route=>{
    const u=new URL(route.request().url());if(u.origin!==new URL(base).origin){external.push(u.origin);return route.abort();}
    if(u.pathname==='/api/edition-pages'){fetches++;if(failOnce){failOnce=false;return route.fulfill({status:503,json:{ok:false}});}return route.fulfill({contentType:'application/pdf',body:bytes});}
-   if(u.pathname==='/api/edition')return route.fulfill({json:{ok:true,id:41,publication_url:'https://fixture.substack.com',email:'fixture@example.com',status:finished?'proofed':'building',run_id:revised?'fixture.1.s1':'fixture.1',design:{cover:'classic'},selection:{revision,restored:revision?['saved-piece']:[]},events:[{kind:'identity',sequence:1,selection_revision:revised?1:0,publication:'The things we keep',contributors:['A synthetic browser fixture']},{kind:'typesetting',sequence:2,selection_revision:revised?1:0,message:'Your writing and images have been set on the page.'},...(available?[{...snapshot,selection_revision:revised?1:0,round:revised?1:0,url:snapshot.url.replace('fixture.1',revised?'fixture.1.s1':'fixture.1')}]:[]),...(finished?[{kind:'ready',sequence:4,selection_revision:revised?1:0,pages:42,expires_at:'2030-01-01T00:00:00Z',files:[]}]:[])],email_status:finished?'accepted':null}});
+   if(u.pathname==='/api/edition')return route.fulfill({json:{ok:true,id:41,publication_url:'https://fixture.substack.com',email:'fixture@example.com',status:finished?'proofed':'building',run_id:revised?'fixture.1.s1':'fixture.1',design:{cover:'classic'},selection:{revision,restored:revision?['saved-piece']:[]},events:[{kind:'identity',sequence:1,selection_revision:revised?1:0,publication:'The things we keep',contributors:['A synthetic browser fixture']},{kind:'typesetting',sequence:2,selection_revision:revised?1:0,message:'Your writing and images have been set on the page.'},...(revised?[{kind:'layout',sequence:3,selection_revision:1,message:'One real fixture adjustment.',decisions:[{page:10,reason:'Kept the image with its original paragraph.'}]}]:[]),...(available?[{...snapshot,selection_revision:revised?1:0,round:revised?1:0,url:snapshot.url.replace('fixture.1',revised?'fixture.1.s1':'fixture.1')}]:[]),...(finished?[{kind:'ready',sequence:5,selection_revision:revised?1:0,pages:42,expires_at:'2030-01-01T00:00:00Z',files:[]}]:[])],email_status:finished?'accepted':null}});
    if(u.pathname.startsWith('/api/'))throw Error('Unexpected API action '+u.pathname);
    return route.continue();
   });
@@ -63,6 +63,7 @@ for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(await page.locator('#draft-paper canvas').count(),0);assert.equal(await page.locator('#draft-prose').textContent(),'');
   revised=true;await page.getByRole('button',{name:'Read the first pages'}).waitFor();await page.getByRole('button',{name:'Pages',exact:true}).click();await page.locator('#draft-paper canvas').waitFor();
   assert.match(await page.locator('#draft-status').textContent(),/latest layout adjustments/);
+  await page.locator('#draft-changes').click();assert.equal(await page.locator('#production-history').evaluate(n=>n.open),true);assert.equal(await page.locator('#production-notes .layout-reasons').evaluate(n=>n.open),true);assert.equal(await page.locator('#production-notes .layout-reasons summary').evaluate(n=>n===document.activeElement),true);await page.getByRole('button',{name:'Pages',exact:true}).click();
   // Reload reconstructs the private artifact; no generation/email/listing call.
   await page.reload();await page.getByRole('button',{name:'Read the first pages'}).waitFor();await page.getByRole('button',{name:'Pages',exact:true}).click();await page.locator('#draft-paper canvas').waitFor();
   finished=true;await page.waitForFunction(()=>document.querySelector('.pages-intro').textContent.includes('finished edition'));

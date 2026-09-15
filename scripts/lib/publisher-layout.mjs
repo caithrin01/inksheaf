@@ -2,6 +2,7 @@
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
 import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
+import {leadingForTail} from './copy-fit.mjs';
 export const LayoutDecisions=z.object({decisions:z.array(z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
   candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
@@ -64,6 +65,7 @@ export function pageContext(measurement,report) {
       expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
       article_title:title,publication:report.pubName||null,
       paragraph_boundaries:paragraphBoundaryContext(measurement,p.page),
+      figure_details:(measurement.figures||[]).filter(f=>f.page===p.page&&(f.detail_pages||f.parent_id)).map(f=>({id:f.id,...(f.detail_pages?{treatment:'Complete original overview; enlarged source details follow on the listed pages. Check the details for small-text readability.',detail_pages:f.detail_pages}:{treatment:'Labelled enlarged detail; full original preserved on the overview page.',overview_page:f.overview_page,detail_index:f.detail_index,detail_total:f.detail_total})})),
       ...((measurement.figures||[]).some(f=>f.page===p.page&&f.reading_mode==='landscape')?{figure_orientation:'A quarter-turn figure is intentional landscape reading. Check its actual readability, caption and bounds; rotation alone is not a defect.'}:{}),
       ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
   });
@@ -183,7 +185,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
   }
   for(const a of articles){
     const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
-    if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:Math.max(.54,+(current-.04).toFixed(2))});
+    if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:leadingForTail(measurement,a,current)});
     if(a.end>a.start&&page?.blank>.30&&!fit.backLinks?.includes(a.n)&&measurement.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1))candidates.push({id:`references:${a.n}`,page:a.end,operation:'collect_references',article:a.n});
   }
   return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{

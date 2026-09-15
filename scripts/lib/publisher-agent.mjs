@@ -248,7 +248,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 12) throw Error('Invalid publisher batch size');
   const sources = prepareSources(posts), byId = new Map(sources.map(p => [p.id, p]));
   for (const [id, choice] of Object.entries(overrides)) if (!byId.has(id) || !['keep', 'set_aside'].includes(choice)) throw Error('Invalid creator override');
-  const decisions = [];
+  const decisions = [];let readCount=0;
   await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))] });
   // Missing bodies are a hold, never an inferred empty/housekeeping post.
   if (sources.some(p => !p.text && !p.images)) throw Error('Complete source text is missing; publisher cannot finish the edition');
@@ -276,20 +276,20 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
       }
       reading = validateReading(result, readable);
     }
-    return reading;
-  });
-  for (let i=0;i<batches.length;i++) {
-    const batch=batches[i],reading=readings[i],offset=i*batchSize;
+    const batchDecisions=[];
     for (const source of batch) {
       const d = reading.decisions.find(x => x.post_id === source.id) || { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' };
       const override = overrides[source.id];
       const decision = { ...d, ...(override ? { decision: override, reason: override === 'keep' ? 'Kept by you.' : 'Left out by you.', author_override: true,
         original_decision:d.decision,original_reason:d.reason } : {}),
         title: source.title, date: source.date, authors: source.authors, body_hash: source.body_hash };
-      decisions.push(decision);
+      batchDecisions.push(decision);
     }
-    await emit({ kind: 'reading', decisions: decisions.slice(-batch.length), read: Math.min(offset + batchSize, sources.length), total: sources.length });
-  }
+    readCount+=batch.length;
+    await emit({ kind: 'reading', decisions: batchDecisions, read: readCount, total: sources.length });
+    return batchDecisions;
+  });
+  decisions.push(...readings.flat());
   const kept = sources.filter(p => decisions.find(d => d.post_id === p.id).decision !== 'set_aside');
   if (!kept.length) throw Error('Only housekeeping remains; there is no complete book to typeset');
   const input = kept.map(p => ({ id: p.id, title: p.title, date: p.date, authors: p.authors,

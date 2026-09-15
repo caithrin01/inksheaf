@@ -10,7 +10,8 @@ import { auditRunningMatter } from "./running-matter.mjs";
 import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {glyphEvidence} from './glyph-evidence.mjs';
 import {figurePrintEvidence,adjudicateFigureConfirmation} from './figure-confirmation.mjs';
-import { execFileSync } from "node:child_process";
+import { execFileSync,execFile } from "node:child_process";
+import {promisify} from 'node:util';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 import {fileURLToPath} from "node:url";
@@ -48,9 +49,13 @@ export const pageOf = f => num(basename(f));
 /* 2 x 2 contact sheets, each tile labelled with its page number in the corner (Pillow, present in
    the press workflow and the unit-gate image). Returns [{file, pages:[n,...]}]. */
 export function contactSheets(pages, dir, {format="jpeg"}={}) {
-  mkdirSync(dir, { recursive: true });
   const groups = [];
   for (let i = 0; i < pages.length; i += 4) groups.push(pages.slice(i, i + 4));
+  return contactSheetGroups(groups,dir,{format});
+}
+export function contactSheetGroups(groups,dir,{format='jpeg'}={}){
+  mkdirSync(dir,{recursive:true});
+  if(groups.some(g=>!g.length||g.length>4))throw Error('Invalid contact-sheet group');
   const spec = groups.map((g, i) => ({ out: join(dir, `sheet-${String(i + 1).padStart(3, "0")}.${format==="png"?"png":"jpg"}`), tiles: g.map(f => ({ file: f, page: pageOf(f) })) }));
   const py = `
 import json,sys
@@ -116,6 +121,8 @@ const pass1Prompt = (pages,context) => `You are checking typeset book pages for 
 
 Renderer page map: ${JSON.stringify(context)}. When folio_map_available is true, expected_printed_folio names the intended visible folio; null means this structural leaf has no printed folio. Use the supplied position to distinguish front-matter versos from blanks interrupting an article.
 
+For a montage with labelled enlarged details, the complete original is an overview. Inspect the supplied detail page at its measured print size before deciding whether its titles are readable. The existence of detail pages alone is not proof of legibility. Each detail is also independently covered by the whole-book review; never dismiss missing or unreadable labels on a detail.
+
 When running_head_map_available is true, compare the head with expected_running_head (case-insensitive); null means no head. This design alternates the publication on left pages and the current essay on right pages. Those different labels are intentional.
 
 Look for only these defects:
@@ -129,11 +136,13 @@ export const pass2Prompt = (f,context,sources,neighbours,glyphs=null) => `The fi
 
 ${glyphs?'The final image contains labelled magnified crops of actual PDF glyphs, not reconstructed characters. Their actual PDF text/font records are '+JSON.stringify(glyphs)+'. Inspect the visible symbol and its surroundings. A nonzero glyph ID or Unicode value alone does not prove correct appearance. A legible monochrome emoji is valid; an absent, unreadable or wrong symbol still fails. If the flagged defect is elsewhere or the evidence is truncated, do not assume the crop resolves it.':''}
 
+For a montage with labelled enlarged details, the complete original is an overview. Inspect the supplied detail page at its measured print size before deciding whether its titles are readable. The existence of detail pages alone is not proof of legibility. Each detail is also independently covered by the whole-book review; never dismiss missing or unreadable labels on a detail.
+
 When running_head_map_available is true, compare with expected_running_head, ignoring case and small-cap styling. Null means no running head. Alternating publication and essay heads are intended; do not demand the essay title on a publication-head page.
 
 For check 2, paragraph_boundaries contains actual printed first/last lines and line counts, grouped using compiled source-paragraph anchors. Count paragraph lines on each side of the turn, not words in the final line. A paragraph with several lines on both pages has no single-line fragment. A complete one-line source paragraph is different from a split paragraph; inspect whether it acts as a stranded heading. An end anchor on the next page with zero printed lines is not proof of continuation. Unknown evidence cannot clear a heading, caption or ambiguous boundary.
 
-${neighbours.length ? 'Additional images show neighbouring pages: '+neighbours.map((p,i)=>'image '+(i+2)+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
+${neighbours.length ? 'Additional images show related PDF pages: '+neighbours.map((p,i)=>'image '+(i+2+(sources?.length||0))+' = physical page '+p).join('; ')+'. Check the actual continuation across this boundary. A hyphenated word or mid-sentence page break is normal when the paragraph continues with several lines. A single paragraph line stranded alone is different. Two or more continuation lines are not a single-line widow. A figure interrupting the continuation is a reading-order defect. A labelled reference continuing from the preceding page is source apparatus, not raw markup; a stranded reference still needs a layout repair.' : ''}
 
 ${sources.length ? 'The first image is the printed page. Additional images are the actual source figures used on this page, in order: '+sources.map((s,i)=>'image '+(i+2)+' = '+s.id).join('; ')+'. Compare against those sources. Preserve deliberately cropped photos or screenshots of bad text: source content must not be reconstructed or rewritten. Loss introduced by the print layout, or essential detail made unreadable in print, is still a defect.' : 'No separate source-image comparison is available; do not assume source-image spelling was introduced by typesetting.'}
 
@@ -150,7 +159,7 @@ ${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_hea
 Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':f.check===3?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
@@ -188,7 +197,30 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   const byPage = new Map();
   for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
   out.pass1.flagged = byPage.size;
+  // Multiple defects can share a page or neighbour. Prepare each exact page once;
+  // asynchronous Poppler lets network replies settle while other pages render.
+  const singles=new Map(),runPage=promisify(execFile),rasterQueue=[];let rasterActive=0;
+  const drainRasters=()=>{
+    while(rasterActive<4&&rasterQueue.length){
+      const {work,resolve,reject}=rasterQueue.shift();rasterActive++;
+      Promise.resolve().then(work).then(resolve,reject).finally(()=>{rasterActive--;drainRasters();});
+    }
+  };
+  const rasterWork=work=>new Promise((resolve,reject)=>{rasterQueue.push({work,resolve,reject});drainRasters();});
+  const singlePage=p=>{
+    if(!singles.has(p))singles.set(p,(async()=>{
+      const folder=join(dir,'single',String(p));mkdirSync(folder,{recursive:true});
+      const file=join(folder,'page.png');
+      await rasterWork(()=>runPage('pdftoppm',['-png','-scale-to','1800','-f',String(p),'-l',String(p),'-singlefile',pdf,join(folder,'page')]));
+      return file;
+    })());
+    return singles.get(p);
+  };
   await mapConcurrent(byPage.values(), async f => {
+    // The publisher's mandatory visual layout review already decides whitespace
+    // using this page and its neighbours. Keep the concern open for that review,
+    // instead of buying an earlier isolated-page opinion on the same spacing.
+    if(f.check===1&&deferSpacingToLayout){out.findings.push({...f,origin:'screening',deferred_to_layout:true});return;}
     const boundary=pageContext.find(p=>p.page===f.page)?.paragraph_boundaries;
     if(f.check===2&&boundary?.verified_no_single_line_fragment){
       out.dismissed.push({...f,origin:'measured_layout',paragraph_boundaries:boundary,note:'Both page edges contain multiple printed lines of their anchored paragraphs; neither is a stranded heading or single-line fragment.'});
@@ -205,12 +237,13 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
     let single;
     /* one directory per page: pdftoppm names by page number and a shared directory once handed
        pass 2 the first page rasterised for every flag (found on the first real run, 2026-09-04) */
-    try { single = rasterise(pdf, join(dir, "single", String(f.page)), { scale: 1800, first: f.page, last: f.page }).find(x => pageOf(x) === f.page); if (!single) throw new Error("no raster"); } catch (e) { out.errors.push(`page ${f.page}: raster ${String(e.message).slice(0, 80)}`); return; }
+    try { single = await singlePage(f.page); } catch (e) { out.errors.push(`page ${f.page}: raster ${String(e.message).slice(0, 80)}`); return; }
     try {
       const originals=[3,6].includes(f.check)?sourceFigures.filter(s=>s.page===f.page&&s.source).slice(0,3):[];
       const comparisons=originals.length?sourceComparisons(originals,join(dir,'source',String(f.page))):[];
-      const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):[];
-      const adjacent=neighbours.map(p=>rasterise(pdf,join(dir,'adjacent',String(p)),{scale:1800,first:p,last:p})[0]);
+      const figurePage=f.check===3&&comparisons.length<3?originals.map(s=>s.detail_pages?.[0]??s.overview_page).find(p=>Number.isSafeInteger(p)&&p!==f.page&&p>=1&&p<=out.pages):null;
+      const neighbours=[2,7,8].includes(f.check)?[f.page-1,f.page+1].filter(p=>p>=1&&p<=out.pages):figurePage?[figurePage]:[];
+      const adjacent=await Promise.all(neighbours.map(singlePage));
       // Retain all bounded source comparisons. Add a glyph sheet only when it
       // fits the four-image request cap; unknown evidence never clears a defect.
       const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;

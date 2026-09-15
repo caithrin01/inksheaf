@@ -1,6 +1,7 @@
 // The protected Pages artifact selects compatible press code. A merge alone must
 // not enable callbacks/migrations that production has not received yet.
-import {appendFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {appendFileSync,mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {PRESS_IMAGE} from './run-prepared-press.mjs';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 export const LEGACY_PRESS_SHA='a560d91a6d4862989b9ea02769945fd9477c0ea8';
@@ -18,7 +19,14 @@ export async function deployedPress({fetchImpl=fetch,requiredProtocol=''}={}){
   if(body.repository!=='caithrin01/inksheaf'||!shaPattern.test(body.sha)||body.protocol!==PRESS_PROTOCOL)
     throw Error('Invalid deployed press release');
   if(requiredProtocol&&body.protocol!==requiredProtocol)throw Error('The deployed site does not support this press request');
-  return {sha:body.sha,protocol:body.protocol};
+  if(body.runtime_image!==undefined&&!PRESS_IMAGE.test(body.runtime_image))throw Error('Invalid prepared press image');
+  return {sha:body.sha,protocol:body.protocol,...(body.runtime_image?{runtime_image:body.runtime_image}:{})};
+}
+export function attachRuntimeImage(image,directory='dist'){
+  if(!PRESS_IMAGE.test(image))throw Error('Invalid prepared press image');
+  const file=directory+'/inksheaf-press.json',release=JSON.parse(readFileSync(file,'utf8'));
+  if(release.repository!=='caithrin01/inksheaf'||!shaPattern.test(release.sha)||release.protocol!==PRESS_PROTOCOL)throw Error('Invalid press release artifact');
+  writeFileSync(file,JSON.stringify({...release,runtime_image:image})+'\n');
 }
 export function writeRelease(sha,directory='dist'){
   if(!shaPattern.test(sha))throw Error('A full commit SHA is required for the press release');
@@ -28,10 +36,11 @@ export function writeRelease(sha,directory='dist'){
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   if(process.argv[2]==='write')writeRelease(process.env.GITHUB_SHA||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim());
+  else if(process.argv[2]==='runtime')attachRuntimeImage(process.argv[3]);
   else if(process.argv[2]==='select'){
     const release=await deployedPress({requiredProtocol:process.env.PRESS_PROTOCOL_REQUIRED||''});
     if(!process.env.GITHUB_OUTPUT)throw Error('This selector runs inside the press workflow');
-    appendFileSync(process.env.GITHUB_OUTPUT,`sha=${release.sha}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT,`sha=${release.sha}\nruntime_image=${release.runtime_image||''}\n`);
     console.log(`Deployed press: ${release.sha} (${release.protocol})`);
   }else throw Error('Use write or select');
 }

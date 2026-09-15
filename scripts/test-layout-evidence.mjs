@@ -3,7 +3,7 @@ import {mkdtempSync,writeFileSync,readFileSync,rmSync,unlinkSync} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {PDFDocument,StandardFonts} from 'pdf-lib';
-import {rasterise} from './lib/page-review.mjs';
+import {rasterise,contactSheets} from './lib/page-review.mjs';
 import {prepareLayoutEvidence} from './lib/layout-evidence.mjs';
 import {publisherSession} from './lib/publisher-session.mjs';
 const directory=mkdtempSync(join(tmpdir(),'layout-evidence-'));
@@ -16,6 +16,7 @@ try{
   const options={directory,rasterDirectory,pageCount:5,policy:'test-policy'};
   const evidence=prepareLayoutEvidence(input,options);
   assert.deepEqual(evidence.input.pages.map(p=>p.visual_context.physical_pages),[[1,2],[1,2,3],[3,4,5],[4,5]]);
+  for(const p of evidence.input.pages){const original=contactSheets(p.visual_context.physical_pages.map(n=>join(rasterDirectory,`p-${n}.png`)),join(directory,'individual-'+p.page),{format:'png'})[0];assert.deepEqual(readFileSync(evidence.imagesByPage.get(p.page)),readFileSync(original.file),'Batching must preserve the exact labelled neighbour pixels');}
   assert(!JSON.stringify(evidence.input).includes(directory),'Local paths must not enter the model packet');
   const counts=[];const env={OPENROUTER_API_KEY:'fixture'},journal=join(directory,'publisher');
   const fetchImpl=async(url,options)=>{

@@ -12,7 +12,7 @@ const axe=await readFile('node_modules/axe-core/axe.min.js','utf8'),results=[];
 for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
   const browser=await browserType.launch();
   try{for(const width of [1280,390]){
-    const page=await browser.newPage({viewport:{width,height:1000}});const errors=[],requests=[];let ready=false,emailAccepted=false,restored=false,applied=false,restoreFailure=true;
+    const page=await browser.newPage({viewport:{width,height:1000}});const errors=[],requests=[];let ready=false,emailAccepted=false,restored=false,applied=false,restoreFailure=true,partial=true;
     page.on('pageerror',e=>errors.push(e.message));
     const events=recorded.map(e=>({...e,volume:'1',...(e.kind==='identity'?{publication:"Don't worry about the vase — letters on art, life, and the things we keep"}:{} )}));
     await page.route('**/api/**',async route=>{
@@ -26,7 +26,7 @@ for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
         await new Promise(resolve=>setTimeout(resolve,500));restored=true;
         return route.fulfill({json:{ok:true,selection:{revision:1,restored:['102']}}});
       }
-      const shown=structuredClone(events);
+      const shown=structuredClone(partial?events.slice(0,2):events);
       if(applied){
         for(const e of shown){e.selection_revision=1;if(e.kind==='reading')for(const d of e.decisions)if(d.post_id==='102')Object.assign(d,{original_decision:d.decision,original_reason:d.reason,decision:'keep',reason:'Kept by you.',author_override:true});}
         const c=shown.find(e=>e.kind==='contents');c.sections[0].posts.push({id:'102',title:'Thank you for 1,000 subscribers'});
@@ -44,6 +44,12 @@ for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
     await page.getByRole('button',{name:'Make my book',exact:true}).click();
     await page.waitForURL('**/edition?**');
     await page.locator('.reading-piece').first().waitFor();
+    assert.match(await page.locator('#reading-heading').innerText(),/pieces read/);assert.match(await page.locator('#edition-status').innerText(),/keep making your book/);
+    assert.equal(await page.locator('#show-pages').isDisabled(),true);
+    const quote=await page.locator('#excerpt-words').innerText();assert(/[.!?…][”’"']?$/.test(quote));
+    if(width===390)assert((await page.locator('#excerpt-words').boundingBox()).y<800,'Actual writing must appear in the first phone viewport');
+    await page.screenshot({path:`${out}/${engine}-${width}-first-batch.png`,fullPage:true,animations:'disabled'});
+    partial=false;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await page.waitForFunction(()=>document.querySelectorAll('.reading-piece').length===8);
     assert.equal(await page.locator('.reading-piece').count(),8);
     assert.equal(await page.locator('.aside-summary').count(),2);
     assert.match(await page.locator('#edition-cover').textContent(),/Don't worry about the vase/);

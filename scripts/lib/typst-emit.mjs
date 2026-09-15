@@ -9,7 +9,7 @@ import { parseDocument } from "htmlparser2";
 import { readFileSync, existsSync } from "node:fs";
 import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve,relative } from "node:path";
 import {figureReadingSizes} from './figure-reading.mjs';
 
 const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
@@ -64,7 +64,7 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], host = "", publisherWatermarks = true } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], sourceFigureRoles = {}, host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
@@ -128,6 +128,8 @@ export function emitTypst(html, opts = {}) {
     const id = attr(imgEl, "data-fig") || src;
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
+    const sourceRole=sourceFigureRoles[id];
+    if(sourceRole&&sourceRole.image_sha256!==cryptoMod.createHash('sha256').update(readFileSync(path)).digest('hex'))throw Error(`Source figure evidence changed for ${id}`);
     const dim = imageSize(path); let size = `width: 100%`;
     if (dim && dim.w && dim.h) {
       /* Size by role, the way a book designer does (Caithrin, 2026-09-02: "graphs need to be
@@ -142,8 +144,8 @@ export function emitTypst(html, opts = {}) {
          nothing taller than 60% of the text block unless it is for reading (72%). */
       const alt = (attr(imgEl, "alt") || "").toLowerCase();
       const aspect = dim.w / dim.h;
-      const reading = /\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
-      const picture = pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
+      const reading = sourceRole?sourceRole.role==='reading':/\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
+      const picture = sourceRole?sourceRole.role==='picture':pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
       let pct;
       if (reading) pct = 100;
       else if (picture) pct = aspect >= 1.3 ? 75 : aspect >= 0.8 ? 62 : 50;
@@ -160,7 +162,8 @@ export function emitTypst(html, opts = {}) {
     const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
     // Missing alt text does not establish that an image is decorative. Keep its
     // detail at the bounded column reading size until its role is known.
-    const readingMode=readingFigures[id]||(attr(imgEl,'data-role')==='unknown'&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
+    const largest=readingSizes.reduce((best,s)=>!best||s.image_width_points>best.image_width_points?s:best,null);
+    const readingMode=sourceRole?.reading_detail==='small_text'?largest?.mode:readingFigures[id]||((sourceRole?.role==='reading'||attr(imgEl,'data-role')==='unknown')&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
     if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
     const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
@@ -168,15 +171,33 @@ export function emitTypst(html, opts = {}) {
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
     const tagFor = extra => {
       const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
-      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
-    if(reading)return `#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
+    if(reading){
+      const panels=sourceRole?.detail_panels||[];
+      let result=`${panels.length?'#pagebreak(weak: true)\n':''}#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
+      if(panels.length){
+        if(!sourceRole.grid||panels.length!==sourceRole.grid.rows*Math.ceil(sourceRole.grid.columns/2))throw Error('Incomplete source detail panels');
+        result+='#align(center, text(size: 8.5pt, fill: faint)[Full image. Enlarged details follow.])\n';
+        for(const panel of panels){
+          if(cryptoMod.createHash('sha256').update(readFileSync(panel.source)).digest('hex')!==panel.image_sha256)throw Error('Source detail evidence changed');
+          const sizes=figureReadingSizes(imageSize(panel.source),{textWidth,textHeight}),s=sizes.reduce((a,b)=>!a||b.image_width_points>a.image_width_points?b:a,null);
+          if(!s)throw Error('Source detail cannot be sized');
+          const file=relative(baseDir,panel.source),image=`image(${str(file)},width:${s.image_width_points}pt,height:auto)`,body=s.mode==='landscape'?`rotate(90deg,reflow:true,${image})`:image;
+          const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
+          const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:here().page(),y:here().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
+          result+=`#pagebreak(weak:true)\n#figure([${metadata}#${body}],caption:[${esc(label)}])\n\n`;
+        }
+        result+='#pagebreak(weak:true)\n';
+      }
+      return result;
+    }
     if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
+    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
   }

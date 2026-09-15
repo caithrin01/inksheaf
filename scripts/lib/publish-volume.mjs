@@ -64,12 +64,12 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
-    review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],outDir:`${reviewDirectory}-${round}`,log});
+    review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],outDir:`${reviewDirectory}-${round}`,log});
     if(review.skipped||review.errors.length||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
     review.measured_findings=readingOrderFindings(measurement);
     review.findings.push(...review.measured_findings);
-    const figureRoles=await inspectFigureRoles({measurement,fit:book.report.fit,review,ask:publisher.figureRole,directory:`${reviewDirectory}-${round}/figure-role-images`,
-      onResult:roles=>writeFileSync(`${reviewDirectory}-${round}/figure-roles.json`,JSON.stringify({policy:PUBLISHER_REVIEW_POLICY,roles},null,2)+'\n',{mode:0o600})});
+    const figureRoles={...book.report.sourceFigureRoles,...await inspectFigureRoles({measurement,fit:book.report.fit,review,ask:publisher.figureRole,directory:`${reviewDirectory}-${round}/figure-role-images`,
+      onResult:roles=>writeFileSync(`${reviewDirectory}-${round}/figure-roles.json`,JSON.stringify({policy:PUBLISHER_REVIEW_POLICY,roles},null,2)+'\n',{mode:0o600})})};
     const measuredInput=layoutInput({measurement,report:book.report,fit:book.report.fit,review,figureRoles,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
     const evidence=prepareLayoutEvidence(measuredInput,{directory:`${reviewDirectory}-${round}`,rasterDirectory:`${reviewDirectory}-${round}/pages`,pageCount:review.pages,policy:PUBLISHER_REVIEW_POLICY});
     const input=evidence.input;

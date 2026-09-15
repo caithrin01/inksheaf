@@ -10,7 +10,7 @@ const hash=b=>createHash('sha256').update(b).digest('hex');
 const digest=/^[a-f0-9]{64}$/;
 export const CHECKPOINT_MAX_BYTES=150_000_000;
 const renderer=createHash('sha256');
-for(const file of ['fit.mjs','typst-emit.mjs','../build-book.mjs','../render-book.sh','../pdf-whitespace-audit.py','../blank-measure.py'])renderer.update(readFileSync(new URL(file,import.meta.url)));
+for(const file of ['fit.mjs','copy-fit.mjs','figure-details.mjs','prepare-figures.mjs','typst-emit.mjs','../build-book.mjs','../render-book.sh','../pdf-whitespace-audit.py','../blank-measure.py'])renderer.update(readFileSync(new URL(file,import.meta.url)));
 export const RENDER_CHECKPOINT_POLICY=renderer.digest('hex');
 export const renderIdentity=input=>hash(JSON.stringify(input));
 const held=()=>Error('The saved render cannot be verified. Its PDF and spent allowances are retained for recovery.');

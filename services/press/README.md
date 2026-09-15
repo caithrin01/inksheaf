@@ -1,0 +1,7 @@
+The press runtime installs Node, Python/Pillow/PyMuPDF, Typst, Poppler, HEIC support and Chromium when the release image is built. Customer jobs pull that image and execute its existing press pipeline.
+
+`deploy.yml` builds it from `git archive`, runs renderer/image smoke checks inside it, and publishes it only during an explicitly requested release. The site artifact records its immutable GHCR digest. The existing production policy and protected approval still control publication of that artifact. `press.yml` reads the deployed manifest; `run-prepared-press.mjs` checks the image's source-commit label before executing it. An older deployed manifest retains its compatible installation path.
+
+The runtime receives an explicit environment allowlist. No secrets, local source fixtures, private proof caches or developer workspace are included in its build context. Only redacted result/timing JSON may enter public Actions artifacts; complete PDFs and checkpoints use the existing private store.
+
+This removes per-book installation, but it is not an always-running worker. Actions queue time and the cold image pull remain measurable costs. `press-runtime-timing.json` separates pull/run time, and `press-timing.json` records dispatch-to-worker, accepted volumes, upload, workspace-ready and mail-attempt milestones. Browser rendering and actual inbox receipt need separate observations; mail-attempt completion does not mean delivered mail.

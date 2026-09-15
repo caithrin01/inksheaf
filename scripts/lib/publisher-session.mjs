@@ -12,8 +12,9 @@ import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
 import {FigureConfirmation} from './figure-confirmation.mjs';
+import {SourceFigureRoles,SOURCE_FIGURE_TASK,validateSourceFigureRoles} from './prepare-figures.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','raster-pages.py','typst-metadata.mjs','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -80,7 +81,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const usage=reserveRenderWork(state,String(volume),kind,{id:randomUUID(),selection_revision:selection.revision,run_id:run,started:new Date().toISOString(),settings_hash:createHash('sha256').update(JSON.stringify(settings)).digest('hex')});
     await save();return usage;
   };
-  const emit=async event=>{
+  const emit=serialWrites(async event=>{
     await ensureSelection();
     if(remote)event={...event,selection_revision:selection.revision};
     const payload=JSON.stringify(event),key=createHash('sha256').update(payload).digest('hex'),record=state.runs[run];
@@ -90,7 +91,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     record.sequence=sequence;record.keys[key]=sequence;await save();
     // Public Actions logs contain stage/counts only, never private quotations or URLs.
     console.error(`[publisher] ${event.kind}${event.read!=null?` ${event.read}/${event.total}`:''}`);
-  };
+  });
   const vision = async ({model,images,text,maxTokens,check}) => {
     await ensureSelection();
     const role = model === PUBLISHER_MODELS.reader.id ? 'reader' : model === PUBLISHER_MODELS.publisher.id ? 'publisher' : null;
@@ -184,7 +185,18 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const result=await ask({role:'reader',task:FIGURE_ROLE_TASK,schema:FigureRole,data:input,images:[image],maxOutput:maxTokens});
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
   };
-  return {emit,vision,layout,figureRole,selection,
+  const sourceFigures=async({figures,images})=>{
+    await ensureSelection();
+    const maxTokens=800,input={figures},imageHashes=images.map(b=>createHash('sha256').update(b).digest('hex'));
+    if(!figures.length||figures.length>4||figures.length!==images.length)throw Error('Invalid source-figure batch');
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,input,imageHashes,maxTokens});
+    const cache=new Map(state.cache);
+    if(cache.has(key))return validateSourceFigureRoles(cache.get(key),figures);
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const result=validateSourceFigureRoles(await ask({role:'reader',task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,data:input,images,maxOutput:maxTokens}),figures);
+    const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
+  };
+  return {emit,vision,layout,figureRole,sourceFigures,selection,
     renderScope,
     loadRender:async(volume,identity)=>{
       await ensureSelection();const reference=state.completedRenders?.[String(volume)];
