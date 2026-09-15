@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { Parser } from 'htmlparser2';
+import { REVIEW_CONCURRENCY, mapConcurrent } from './async-work.mjs';
 import { z } from 'zod';
 import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
 
@@ -104,14 +105,38 @@ export function publisherImageTokenBound(modelId, width, height) {
     ? Math.max(4784, Math.ceil(width / 28) * Math.ceil(height / 28)) + 1024
     : 65536;
 }
+// Different request adapters in one session share both the in-flight limit and
+// reservation lock. Only the durable writes are serialized; inference overlaps.
+const ledgers = new WeakMap();
+function requestLedger(journal) {
+  if (ledgers.has(journal)) return ledgers.get(journal);
+  let tail = Promise.resolve(), active = 0;
+  const waiting = [], settled = [], ledger = { failure: null, inFlight: new Set() };
+  ledger.afterSettlement = () => new Promise(resolve => settled.push(resolve));
+  ledger.notifySettlement = () => { for (const resolve of settled.splice(0)) resolve(); };
+  ledger.serial = work => {
+    const result = tail.then(work);
+    tail = result.catch(() => {});
+    return result;
+  };
+  const drain = () => {
+    while (active < REVIEW_CONCURRENCY && waiting.length) {
+      const { work, resolve, reject } = waiting.shift(); active++;
+      Promise.resolve().then(work).then(resolve, reject).finally(() => { active--; drain(); });
+    }
+  };
+  ledger.run = work => new Promise((resolve, reject) => { waiting.push({ work, resolve, reject }); drain(); });
+  ledgers.set(journal, ledger);
+  return ledger;
+}
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
   journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
-  let busy = false;
+  const ledger = requestLedger(journal);
+  const save = async () => { try { await persist(journal); } catch (error) { ledger.failure ||= error; throw error; } };
   const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput, reasoningBudget }) {
-    if (busy) throw Error('Publisher requests share one serial spend ledger');
-    busy = true;
+    if (ledger.failure) throw ledger.failure;
     let call;
     try {
       const model = PUBLISHER_MODELS[role]; if (!model) throw Error('Unknown publisher role');
@@ -136,10 +161,24 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
-      const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-      if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
-      call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
-      journal.calls.push(call); await persist(journal);
+      for (;;) {
+        const pending = await ledger.serial(async () => {
+          if (ledger.failure) throw ledger.failure;
+          const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
+          if (journal.calls.length >= PUBLISHER_MAX_CALLS) throw Error('Publisher model budget reached; saved work is retained');
+          if (committed + reserved > budget) {
+            // Current network work can settle below its conservative reservation.
+            // Wait outside the write lock; old unknown charges never trigger a wait.
+            if (ledger.inFlight.size) return { wait: ledger.afterSettlement() };
+            throw Error('Publisher model budget reached; saved work is retained');
+          }
+          call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
+          journal.calls.push(call); await save(); ledger.inFlight.add(call.id);
+          return null;
+        });
+        if (!pending) break;
+        await pending.wait;
+      }
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
@@ -166,8 +205,11 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       call.answer = JSON.parse(text);
       const result = schema.parse(call.answer);
       call.status = 'completed';
-      if (call.cost != null && call.cost > reserved + 0.000001) throw Error('Publisher usage exceeded its reservation; review provider accounting');
-      return result;
+      if (call.cost != null && call.cost > reserved + 0.000001) {
+        const error=Error('Publisher usage exceeded its reservation; review provider accounting');
+        ledger.failure ||= error; throw error;
+      }
+      return { result, usage: call.usage };
     } catch (error) {
       // Native fetch aborts are DOMExceptions with a read-only numeric `code`.
       // Keep the original error as the cause; tagging it in place can itself
@@ -180,11 +222,14 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       }
       throw failure;
     } finally {
-      journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
-      try { await persist(journal); } finally { busy = false; }
+      if (call) await ledger.serial(async () => {
+        journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
+        try { await save(); }
+        finally { ledger.inFlight.delete(call.id); ledger.notifySettlement(); }
+      });
     }
   };
-  return async function ask(request) {
+  const withUsage = request => ledger.run(async () => {
     try { return await attempt(request); }
     catch (error) {
       if(error.code!=='PUBLISHER_TRANSIENT')throw error;
@@ -192,7 +237,10 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       // durable ledger, including any unknown first-request charge. No model swap.
       return attempt(request);
     }
-  };
+  });
+  const ask = async request => (await withUsage(request)).result;
+  ask.withUsage = withUsage;
+  return ask;
 }
 
 export async function publishSelection({ posts, publication, identity = {}, ask, emit = async () => {},
@@ -204,8 +252,8 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))] });
   // Missing bodies are a hold, never an inferred empty/housekeeping post.
   if (sources.some(p => !p.text && !p.images)) throw Error('Complete source text is missing; publisher cannot finish the edition');
-  for (let offset = 0; offset < sources.length; offset += batchSize) {
-    const batch = sources.slice(offset, offset + batchSize);
+  const batches=Array.from({length:Math.ceil(sources.length/batchSize)},(_,i)=>sources.slice(i*batchSize,(i+1)*batchSize));
+  const readings=await mapConcurrent(batches,async batch=>{
     // A text-only classifier cannot judge an image-only piece. Preserve it for the
     // visual review and make that limitation explicit in the decision.
     const readable = batch.filter(p => p.text);
@@ -228,6 +276,10 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
       }
       reading = validateReading(result, readable);
     }
+    return reading;
+  });
+  for (let i=0;i<batches.length;i++) {
+    const batch=batches[i],reading=readings[i],offset=i*batchSize;
     for (const source of batch) {
       const d = reading.decisions.find(x => x.post_id === source.id) || { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' };
       const override = overrides[source.id];
