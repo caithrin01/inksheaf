@@ -338,7 +338,9 @@ export function emitTypst(html, opts = {}) {
       s += `#v(0.8em)\n#line(length: 30%, stroke: 0.5pt + rgb("${RULE}"))\n#v(0.3em)\n#set text(size: 8.5pt)\n#set par(first-line-indent: 0em)\n`;
       s += endnotes.map(e => `#box(width: 1.4em)[#super[${esc(e.num)}]] ${e.note}\n\n`).join("");
     }
-    s += `#block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]]\n`;
+    // Metadata has no printed content. Wrapping it in a block forces the
+    // preceding figure's below-space to fit and can create an empty final leaf.
+    s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]\n`;
     return s + "\n";
   }
 
