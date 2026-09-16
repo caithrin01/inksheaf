@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
-import {join,resolve} from 'node:path';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {publisherSession} from './lib/publisher-session.mjs';
-const dir=mkdtempSync(resolve('proofs/publisher/source-notes-budget-'));
+const dir=mkdtempSync(join(tmpdir(),'source-notes-budget-'));
 try{
  let calls=0;
  const fetchImpl=async(url,options)=>{

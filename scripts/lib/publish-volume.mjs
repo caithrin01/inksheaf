@@ -5,6 +5,7 @@ import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings,unknownP
 import {reviewPdf,writerLine} from './page-review.mjs';
 import {prepareLayoutEvidence} from './layout-evidence.mjs';
 import {inspectFigureRoles} from './figure-role.mjs';
+import {PreparedTypesetting} from './prepared-typesetting.mjs';
 import {PUBLISHER_REVIEW_POLICY} from './publisher-session.mjs';
 import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions/lib/publisher-policy.js';
 
@@ -14,11 +15,12 @@ import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions
 export async function publishVolume({build,session,emit,volume,reviewDirectory,renderIdentity,log=()=>{},onRendered=async()=>{},onRestored=async()=>{}}){
   let usage=(await session()).renderUsage(volume),totalPasses=usage.passes,review,layout;
   let sourceHashes;
+  const prepared=new PreparedTypesetting();
   const boundedBuild=async options=>{
     const remaining=PUBLISHER_MAX_RENDERS-totalPasses;
     if(remaining<1)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
     let reservations=0,renderScope;
-    const book=await build({...options,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
+    const book=await build({...options,prepared,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
       const publisher=await session();usage=await publisher.reserveRender(volume,settings);totalPasses=usage.passes;reservations++;
       if(renderIdentity)renderScope=publisher.renderScope(volume);
     }});

@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {readingOrderFindings} from './publisher-layout.mjs';
 import {leadingForTail} from './copy-fit.mjs';
+import {PreparedTypesetting} from './prepared-typesetting.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -28,7 +29,7 @@ export async function fitWithBudget({ beforePass, ...options }) {
   } finally { steps.return(); }
 }
 
-function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false }) {
+function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false, prepared = new PreparedTypesetting() }) {
   const sh = (cmd, a) => { const started=Date.now(); try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
     catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } finally { log(`[timing] ${cmd==="node"?"build":"render"}: ${Date.now()-started}ms`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
@@ -41,7 +42,9 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
       ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...(pictureFigures.length?['--picture-figures',pictureFigures.join(',')]:[]), ...(Object.keys(readingFigures).length?['--reading-figures',Object.entries(readingFigures).map(([id,mode])=>`${id}=${mode}`).join(',')]:[]), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
-    sh("node", a);
+    const prepareStarted=Date.now();
+    if(prepared.render({args:a,html}))log(`[timing] prepared source reuse: ${Date.now()-prepareStarted}ms`);
+    else {sh("node", a);prepared.capture({args:a,html});}
     try {
       let out,spacePending=false;
       try{out=sh("bash", ["scripts/render-book.sh", html, pdf]);}
