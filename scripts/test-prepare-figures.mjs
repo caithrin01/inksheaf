@@ -18,19 +18,12 @@ for i in range(5):
   const body=JSON.parse(options.body),content=body.messages[1].content,data=JSON.parse(content[0].text.split('\n\nSource data:\n')[1]);
   assert.equal(content.length,data.figures.length+1);assert(content.length<=5);
   assert(!content[0].text.includes(dir));requests++;
-  return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({figures:data.figures.map(f=>({figure_id:f.id,role:f.id==='figure-1'?'reading':'picture',reading_detail:f.id==='figure-1'?'small_text':'picture',grid:f.id==='figure-1'?{columns:4,rows:3}:null,reason:'Synthetic role for this independently labelled fixture.'}))})}}],usage:{cost:.001}});
+  return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({figures:data.figures.map(f=>({figure_id:f.id,role:f.id==='figure-1'?'reading':'picture',reading_detail:f.id==='figure-1'?'small_text':'picture',reason:'Synthetic role for this independently labelled fixture.'}))})}}],usage:{cost:.001}});
  };
  const session=()=>publisherSession({directory:join(dir,'publisher'),env:{OPENROUTER_API_KEY:'fixture'},fetchImpl});
  const prepare=async()=>prepareSourceFigures({html,baseDir:dir,directory:join(dir,'images'),ask:(await session()).sourceFigures});
  const roles=await prepare();assert.equal(requests,2);assert.equal(Object.keys(roles).length,5);
- const panels=roles['figure-1'].detail_panels;
- execFileSync('python3',['-c',`from PIL import Image,ImageChops
-import json,sys
-source=Image.open(sys.argv[1]).convert('RGB');rebuilt=Image.new('RGB',source.size);area=0
-for p in json.loads(sys.argv[2]):
- r=p['source_rect'];im=Image.open(p['source']);assert im.size==(r[2]-r[0],r[3]-r[1]);rebuilt.paste(im,(r[0],r[1]));area+=im.width*im.height
-assert area==source.width*source.height
-assert ImageChops.difference(source,rebuilt).getbbox() is None`,join(dir,'1.png'),JSON.stringify(panels)]);
+ assert(Object.values(roles).every(r=>!r.detail_panels),'default preparation preserves complete originals without generating crops');
  await prepare();assert.equal(requests,2,'same source batches recover without model calls');
  const typ=emitTypst(html,{baseDir:dir,pubName:'Fixture',sourceFigureRoles:roles});
  const input=join(dir,'book.typ'),pdf=join(dir,'book.pdf');writeFileSync(input,typ);
@@ -38,8 +31,8 @@ assert ImageChops.difference(source,rebuilt).getbbox() is None`,join(dir,'1.png'
  const figures=JSON.parse(execFileSync('typst',['query','--ignore-system-fonts','--font-path','fonts',input,'<fig>','--field','value'],{encoding:'utf8'}));
  const photo=figures.find(f=>f.id==='figure-0'),screen=figures.find(f=>f.id==='figure-1');
  assert.equal(photo.role,'picture');assert.equal(photo.reading_mode,null);assert.equal(photo.floating,false);
- assert.equal(figures.filter(f=>f.parent_id==='figure-1').length,6);assert(roles['figure-1'].detail_panels.every(p=>p.source_rect.length===4));
- const details=figures.filter(f=>f.parent_id==='figure-1');assert(details.every(f=>f.page>screen.page&&f.image_width_points>=screen.image_width_points*.95));
+ assert.equal(figures.length,inventory.length,'each original is printed once with no synthetic detail pages');
+ assert(!figures.some(f=>f.parent_id));
  assert.equal(screen.reading_mode,'landscape');assert(Math.abs(screen.image_width_points-485.28)<.01);
  assert(figures.every(f=>!f.floating),'prepared source figures remain between original paragraphs');
  const text=execFileSync('pdftotext',[pdf,'-'],{encoding:'utf8'});
@@ -49,6 +42,7 @@ assert ImageChops.difference(source,rebuilt).getbbox() is None`,join(dir,'1.png'
  assert.throws(()=>validateSourceFigureRoles({figures:[{...roles['figure-0'],figure_id:'wrong'}]},inventory),/unknown/);
  assert.throws(()=>validateSourceFigureRoles({figures:[roles['figure-0']]},inventory),/omitted/);
  assert.throws(()=>validateSourceFigureRoles({figures:[{...roles['figure-0'],reading_detail:'small_text'}]},inventory.slice(0,1)),/conflicts/);
+
  writeFileSync(join(dir,'0.png'),readFileSync(join(dir,'1.png')));
  assert.throws(()=>emitTypst(html,{baseDir:dir,sourceFigureRoles:roles}),/evidence changed/);
  await prepare();assert.equal(requests,3,'changed bitmap invalidates only its batch');
