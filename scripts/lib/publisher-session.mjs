@@ -13,8 +13,9 @@ import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
 import {FigureConfirmation} from './figure-confirmation.mjs';
 import {SourceFigureRoles,SOURCE_FIGURE_TASK,validateSourceFigureRoles} from './prepare-figures.mjs';
+import {SOURCE_NOTES_TASK,sourceNotesInput} from './notes-detect.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','notes-detect.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','raster-pages.py','typst-metadata.mjs','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
@@ -196,7 +197,17 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const result=validateSourceFigureRoles(await ask({role:'reader',task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,data:input,images,maxOutput:maxTokens}),figures);
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
   };
-  return {emit,vision,layout,figureRole,sourceFigures,selection,
+  const sourceNotes=async({heading,tailHtml})=>{
+    await ensureSelection();
+    const schema=z.object({notes:z.boolean()}),maxTokens=40;
+    const input={...sourceNotesInput(heading,tailHtml),source_sha256:createHash('sha256').update(tailHtml).digest('hex')};
+    const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:SOURCE_NOTES_TASK,schema,input,maxTokens}),cache=new Map(state.cache);
+    if(cache.has(key))return schema.parse(cache.get(key)).notes;
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const result=await ask({role:'reader',task:SOURCE_NOTES_TASK,schema,data:input,maxOutput:maxTokens});
+    const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result.notes;
+  };
+  return {emit,vision,layout,figureRole,sourceFigures,sourceNotes,selection,
     renderScope,
     loadRender:async(volume,identity)=>{
       await ensureSelection();const reference=state.completedRenders?.[String(volume)];

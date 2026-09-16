@@ -602,9 +602,14 @@ const { detectNotes, askModel } = await import("./lib/notes-detect.mjs");
 const NOTES = new Map(); report.notesBlocks = [];
 const LINKS = new Map(); report.links = []; report.essayLinks = [];
 report.linkMode = DIRECT_LINKS ? 'direct' : 'redirect';
+const notesSession=PUBLISHER_DIR?await (await import('./lib/publisher-session.mjs')).publisherSession({directory:PUBLISHER_DIR}):null;
 for (const p of full) {
   let d = detectNotes(p.body_html || ""); let how = d ? d.method : null;
-  if (d && d.method === "ambiguous") { const m = await askModel(d.heading, (p.body_html || "").slice(d.start)); how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null; }
+  if (d && d.method === "ambiguous") {
+    const tailHtml=(p.body_html || "").slice(d.start);
+    const m=notesSession?await notesSession.sourceNotes({heading:d.heading,tailHtml}):await askModel(d.heading,tailHtml);
+    how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null;
+  }
   if (d) { NOTES.set(p.slug, d); report.notesBlocks.push({ slug: p.slug, heading: d.heading, score: d.score, method: how }); }
 }
 

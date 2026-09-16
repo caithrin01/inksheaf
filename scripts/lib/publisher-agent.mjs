@@ -161,6 +161,12 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
+      if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
+      const requestBody=JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
+        ...(reasoning ? { reasoning } : {}),
+        provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
+        response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } });
+      const requestHash=createHash('sha256').update(requestBody).digest('hex');
       for (;;) {
         const pending = await ledger.serial(async () => {
           if (ledger.failure) throw ledger.failure;
@@ -172,21 +178,17 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
             if (ledger.inFlight.size) return { wait: ledger.afterSettlement() };
             throw Error('Publisher model budget reached; saved work is retained');
           }
-          call = { id: crypto.randomUUID(), model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
+          call = { id: crypto.randomUUID(), request_sha256:requestHash, model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
           journal.calls.push(call); await save(); ledger.inFlight.add(call.id);
           return null;
         });
         if (!pending) break;
         await pending.wait;
       }
-      if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher' },
-        body: JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
-          ...(reasoning ? { reasoning } : {}),
-          provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
-          response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } }),
+        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher', 'X-Inksheaf-Request-Id':call.id },
+        body:requestBody,
       });
       const raw = await response.json();
       call.request_id = raw.id || null; call.model_returned = raw.model || null;
