@@ -859,7 +859,9 @@ window.__pagedDone = new Promise(res => {
 
 // image localization: download once into the cache, convert to grayscale for BW proofs,
 // rewrite to relative paths (renders become network-independent; dead images get honest boxes)
-const { execFileSync: execF } = await import("node:child_process");
+const {execFile}=await import("node:child_process");
+const {promisify}=await import("node:util");
+const convertImage=promisify(execFile);
 const crypto = await import("node:crypto");
 const IMGCACHE = "proofs/.cache/img";
 mkdirSync(IMGCACHE, { recursive: true });
@@ -877,16 +879,22 @@ async function worker() {
     const normalized = `${IMGCACHE}/${h}-print-v2-${BW ? 'gray' : 'color'}.jpg`;
     const want = normalized;
     try {
-      const { existsSync: ex, writeFileSync: wf } = await import("node:fs");
+      const {existsSync:ex,writeFileSync:wf,renameSync,unlinkSync}=await import("node:fs");
       if (!ex(base)) {
-        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] } });
+        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] },signal:AbortSignal.timeout(15000) });
         if (!r.ok) throw new Error(r.status);
         wf(base, Buffer.from(await r.arrayBuffer()));
       }
       // A guessed extension or grayscale profile does not convert HEIC into a format
       // Typst can print. Normalize explicitly, retaining the original cache file.
-      if (!ex(normalized)) execF("python3", ["scripts/normalize-print-image.py", base, normalized,
-        ...(BW ? ['--bw'] : []), '--max-width', MODE === 'print' ? '2700' : '5400'], { stdio: "pipe" });
+      if(!ex(normalized)){
+        const temporary=normalized+'.'+crypto.randomUUID()+'.tmp';
+        try{
+          await convertImage('python3',['scripts/normalize-print-image.py',base,temporary,
+            ...(BW?['--bw']:[]),'--max-width',MODE==='print'?'2700':'5400'],{timeout:70000,maxBuffer:1000000});
+          renameSync(temporary,normalized);
+        }finally{if(ex(temporary))unlinkSync(temporary);}
+      }
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${relPath(OUTDIR, want)}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
@@ -896,7 +904,7 @@ async function worker() {
     }
   }
 }
-await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+await Promise.all([worker(), worker(), worker(), worker()]);
 report.deadImages.sort();
 
 mkdirSync("proofs", { recursive: true });
