@@ -275,7 +275,7 @@ export function emitTypst(html, opts = {}) {
         if(t){
           const id=++paragraphN;
           const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':'paragraph';
-          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>];`;
           t=point('parstart')+t+point('parend');
           s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
         }

@@ -20,7 +20,7 @@ export function sourceJsonClient({fetchImpl=fetch,headers={},intervalMs=350,time
       const delay=retryDelay(r.headers.get('retry-after'),now())??1500*(attempt+1);
       // Keep the shared pause even when this reader has exhausted its attempts.
       next=Math.max(next,now()+Math.min(delay,maxWaitMs));
-      if(delay>maxWaitMs)failure=Error('Source asks for a longer retry delay; retrieval remains incomplete');
+      if(delay>maxWaitMs)failure=Object.assign(Error('Source asks for a longer retry delay; retrieval remains incomplete'),{code:'SOURCE_RETRY_LATER',retry_after_ms:delay});
       await r.body?.cancel();
       if(failure)throw failure;
       if(attempt===maxAttempts-1)throw Error(`Source HTTP ${r.status} after bounded retries`);

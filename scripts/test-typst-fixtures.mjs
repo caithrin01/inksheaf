@@ -18,11 +18,12 @@ const wrap = body => `<html><body><span class="pubsrc">Fixture</span><section cl
 const marks = [".", ",", ":", ";", "?", "!", ")", "]", "\"", "'", "a", "(x)", "[y]", ".he", "–", "…"];
 const inl = { em: "<em>word</em>", strong: "<strong>word</strong>", code: "<code>x()</code>", link: '<a href="https://example.com/p">word</a>', sup: "<sup>2</song>".replace("</song>", "</sup>"), footnote: '<a class="footnote-anchor" href="#footnote-1" id="footnote-anchor-1">1</a>' };
 const paras = []; for (const [k, h] of Object.entries(inl)) for (const m of marks) paras.push(`<p>${h}${m} after ${k}</p>`);
+for(const m of marks){paras.push(`<p>${m} ParagraphStartMarker.</p>`);paras.push(`<p>(<em>ParentheticalEmphasisMarker</em> continues.)</p>`);}
 paras.push(`<div class="footnote"><a id="footnote-1" href="#footnote-anchor-1" class="footnote-number">1</a><div class="footnote-content"><p>A note (with brackets) [and more].</p></div></div>`);
 let typ = emitTypst(wrap(paras.join("")), { baseDir: "proofs/fixtures", pubName: "Fixture", host: "example.com", notes: "footnotes" });
 let r = compile(typ, "boundaries");
 ok(r.ok, "boundary table compiles: " + (r.err || ""));
-if (r.ok) { const t = text(r.pdf); ok((t.match(/after em/g) || []).length === marks.length && (t.match(/after link/g) || []).length === marks.length, "every boundary line printed"); ok(!/#emph|#strong|#super|#raw|#footnote|#link/.test(t), "no Typst code leaked into the text"); }
+if (r.ok) { const t = text(r.pdf); ok((t.match(/after em/g) || []).length === marks.length && (t.match(/after link/g) || []).length === marks.length, "every boundary line printed"); ok((t.match(/ParagraphStartMarker/g)||[]).length===marks.length && (t.match(/ParentheticalEmphasisMarker/g)||[]).length===marks.length,"paragraph metadata cannot consume leading punctuation or emphasized parentheses"); ok(!/#emph|#strong|#super|#raw|#footnote|#link/.test(t), "no Typst code leaked into the text"); }
 
 /* 2. link-note torture */
 const rows = Array.from({ length: 15 }, (_, i) => `<a href="https://a-very-long-host-name-number-${i}.example-domain-for-testing.org/path/that/goes/on/and/on?x=${i}">${"A long anchor text that wraps across the column more than once ".repeat(2)}${i}</a>`);

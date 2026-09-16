@@ -198,6 +198,8 @@ else {
   for(const result of results)if(result.post)full.push(result.post);else report.skips.push(result.skip);
 }
 console.error(full.length, "bodies fetched");
+// Stop before optional homepage/brand reads when required writing is unavailable.
+if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error('Selected source text is missing; cannot finish the publisher edition');
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
