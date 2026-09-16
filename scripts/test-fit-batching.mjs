@@ -7,6 +7,24 @@ import {resolve,join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fitWithBudget} from './lib/fit.mjs';
 import {publisherSession} from './lib/publisher-session.mjs';
+import {preFigureTextTails} from './lib/copy-fit.mjs';
+const continuation={engine:'typst',articles:[{n:1,start:1,end:4}],
+ pages:[{page:1,layout_geometry:{blocks:Array.from({length:30},()=>({kind:'text',text:'source prose'})),trailing_space_points:5}},
+ {page:2,layout_geometry:{blocks:[{kind:'text',text:'two concluding'},{kind:'text',text:'lines.'}],body_bounds_points:[44,56,387,592],last_occupied_y_points:83}}, {page:3}],
+ figures:[{id:'chart',article:1,page:3,h:485,reading_mode:'landscape',floating:false,source_next_paragraph:8}],
+ paragraphs:[{id:7,start:{article:1,source_kind:'paragraph',page:1},end:{page:3}}]};
+assert.equal(preFigureTextTails(continuation)[0].article,1);
+assert(preFigureTextTails(continuation)[0].leading>=.54&&preFigureTextTails(continuation)[0].leading<=.62);
+assert.deepEqual(preFigureTextTails(continuation,{1:.54}),[]);
+for(const change of [
+ m=>m.figures=[],m=>m.figures[0].article=2,m=>m.figures[0].floating=true,
+ m=>m.figures[0].reading_mode=null,m=>m.paragraphs[0].start.page=2,
+ m=>m.paragraphs[0].start.source_kind='heading',m=>m.pages[1].layout_geometry=null,
+ m=>m.pages[1].layout_geometry.body_bounds_points=[],m=>m.pages[1].layout_geometry.last_occupied_y_points=400,
+ m=>m.pages[1].layout_geometry.blocks.push({kind:'image'}),
+ m=>m.pages[1].layout_geometry.blocks.push({kind:'text',text:'more'},{kind:'text',text:'prose'}),
+]){const m=structuredClone(continuation);change(m);assert.deepEqual(preFigureTextTails(m),[]);}
+console.log('PASS pre-figure copy fit requires a measured short prose continuation, adjacent source figure and bounded leading');
 mkdirSync('proofs',{recursive:true});
 const dir=mkdtempSync(resolve('proofs/fit-batching-')),oldEngine=process.env.BOOK_ENGINE;
 try{

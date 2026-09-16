@@ -2,7 +2,7 @@
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
 import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
-import {leadingForTail} from './copy-fit.mjs';
+import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
 export const LayoutDecisions=z.object({decisions:z.array(z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
   candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
@@ -183,6 +183,9 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
     const evidence=figureRoles[candidate.figure];
     if(evidence?.role==='picture'&&/^[a-f0-9]{64}$/.test(evidence.image_sha256||''))candidates.push({...candidate,picture_evidence:evidence});
   }
+  for(const tail of preFigureTextTails(measurement,fit.fitText)){
+    candidates.push({id:`prose-tail:${tail.article}:${tail.page}`,page:tail.page,operation:'tighten_leading',article:tail.article,leading:tail.leading});
+  }
   for(const a of articles){
     const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
     if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:leadingForTail(measurement,a,current)});
@@ -207,7 +210,11 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
       stranded_picture_fit:strandedPictureFit(measurement,fit,p),
       figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode,visual_role})=>({id,role,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
-      findings:(review.findings||[]).filter(f=>f.page===p.page)};
+      findings:(review.findings||[]).filter(f=>f.page===p.page),
+      // Source comparison explains only that specific observation. It never
+      // exempts the page's spacing, reading scale, or other content checks.
+      source_observations:(review.dismissed||[]).filter(f=>f.page===p.page&&f.check===6&&f.source_preserved===true&&f.source_comparisons>0&&f.origin==='source_content')
+        .map(({check,note,source_comparisons})=>({check,note,source_comparisons,scope:'The flagged lettering was compared with the actual source bitmap; spacing and print readability still require review.'}))};
     return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
@@ -244,7 +251,7 @@ export function applyLayoutRepairs(fit,result,input){
       next.fitFigs[c.figure]=c.height;
       if(c.requires_picture_confirmation)next.pictureFigures=[...new Set([...(next.pictureFigures||[]),c.figure])];
     }
-    else if(c.operation==='tighten_leading')next.fitText[c.article]=c.leading;
+    else if(c.operation==='tighten_leading')next.fitText[c.article]=Math.min(next.fitText[c.article]??.66,c.leading);
     else if(c.operation==='collect_references')next.backLinks.push(c.article);
     else if(c.operation==='keep_figure_in_flow'&&!next.inFlow.includes(c.figure))next.inFlow.push(c.figure);
     else if(c.operation==='set_figure_reading_size'){

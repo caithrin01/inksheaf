@@ -1,0 +1,76 @@
+{
+  "scope": "Offline correction of measured prose tail and review evidence. No fresh complete-book acceptance or latency result. No paid calls, delivery, publication or deployment from this correction.",
+  "reproduction_candidate": "27ced71b9e2c6adaa021a357c852326f465778e1",
+  "implementation_base": "9a657b242081c35eab8e0ca115439f399c6750f7",
+  "review_changes": [
+    "Typed reading-order confirmation distinguishes paragraph interruption, column order, reading size and rotation; intentional rotation can clear only against matching measured figure evidence.",
+    "Source glyph comparisons are carried into layout without clearing whitespace, unreadable images or other defects.",
+    "Measured short prose continuations before a reading figure share the bounded fit pass; multiple leading repairs are monotone."
+  ],
+  "offline_book": {
+    "before_pages": 194,
+    "after_pages": 192,
+    "before_pdf_sha256": "00f68347c4d20da1846d642f5c59a21023f89ac1a4be06911d4c679d615b1f8e",
+    "after_pdf_sha256": "2297b9fafbf504a4d1f67620db1c3c0751907d261b4b473fbabd95519d12f9c6",
+    "articles": 22,
+    "article_image_occurrences": 63,
+    "source_checks": {
+      "article_count": true,
+      "text_equal": true,
+      "images_equal": true,
+      "no_empty_article_pages": true
+    },
+    "font_size_reduced": false,
+    "offline_passes": 2,
+    "article_6_leading": 0.58,
+    "bounds": {
+      "pass": true,
+      "pages": 192,
+      "glyphs": 190322,
+      "images": 70
+    },
+    "missing_glyphs": false,
+    "quality_accepted": false
+  },
+  "local_checks": {
+    "renderer": {
+      "pass": 69,
+      "fail": 0
+    },
+    "page_review": {
+      "pass": 40,
+      "fail": 0
+    },
+    "figure_confirmation": {
+      "pass": 9,
+      "fail": 0
+    },
+    "layout": {
+      "pass": 21,
+      "fail": 0
+    },
+    "publisher_orchestration": {
+      "pass": 13,
+      "fail": 0
+    },
+    "budget_cache": {
+      "pass": 18,
+      "fail": 0
+    },
+    "render_restore": {
+      "pass": 5,
+      "fail": 0
+    },
+    "layout_reuse": {
+      "pass": 14,
+      "fail": 0
+    },
+    "fit_batching": "passed measured eligibility/negative cases and actual two-pass fixture",
+    "validator": {
+      "pass": 13,
+      "warn": 0,
+      "fail": 0
+    }
+  },
+  "remaining": "Other spacing findings and full cold annual/divided quality acceptance remain. The retained integrated attempt has a stale site manifest, source-adapter retries and legacy unjournaled source-note charges; it cannot establish release speed or complete spend."
+}

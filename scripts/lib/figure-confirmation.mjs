@@ -42,3 +42,17 @@ export function adjudicateFigureConfirmation(answer,figures){
   if(result.defect==='none')return result.confirmed?changed({confirmed:true,origin:'uncertain'}):result;
   return changed({confirmed:true,origin:'rendered_layout'});
 }
+
+// Check 8 can misclassify the intentional quarter-turn of a figure as reading
+// order. Keep the typed distinction and its measured identity across both checks.
+export const ReadingOrderConfirmation=FigureConfirmation.extend({
+  defect:z.enum(['paragraph_split','column_order','reading_size','orientation_only','none','uncertain']),
+});
+export function adjudicateReadingOrderConfirmation(answer,figures){
+  const result=ReadingOrderConfirmation.parse(answer);
+  if(['orientation_only','reading_size'].includes(result.defect))return adjudicateFigureConfirmation(result,figures);
+  if(result.origin==='uncertain'||result.defect==='uncertain'||result.defect==='none'&&result.confirmed)
+    return {...result,confirmed:true,origin:'uncertain',model_confirmation:result};
+  if(['paragraph_split','column_order'].includes(result.defect))return {...result,confirmed:true,origin:'rendered_layout'};
+  return result;
+}

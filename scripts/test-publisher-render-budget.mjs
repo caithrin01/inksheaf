@@ -194,6 +194,20 @@ await test('page-break confirmation requests its typed schema and retries an unt
   assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
 });
 
+await test('reading-order confirmation requests its typed schema and retries an untyped answer before caching',async()=>{
+  const dir=temporary(),image=join(dir,'page.png'),png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(10,16);png.writeUInt32BE(10,20);writeFileSync(image,png);
+  let calls=0;
+  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'orientation_only',figure_id:'table',reading_detail:'small_text'};
+  const s=await publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
+    calls++;const request=JSON.parse(options.body),schema=request.response_format.json_schema.schema;
+    assert(schema.required.includes('defect')&&schema.required.includes('figure_id')&&schema.required.includes('reading_detail'));assert.equal(request.max_tokens,400);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(calls===1?{confirmed:true,origin:'rendered_layout',note:'Untyped interpretation.'}:answer)}}],usage:{cost:.001}});
+  }});
+  const request={model:PUBLISHER_MODELS.publisher.id,images:[image],text:'Confirm the printed paragraph boundary.',maxTokens:400,check:8};
+  assert.deepEqual(JSON.parse((await s.vision(request)).text),answer);await s.vision(request);assert.equal(calls,2);
+  assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
+});
+
 await test('layout reserves answer space and retains a truncated charge across restart without caching its partial verdict',async()=>{
   const dir=temporary();let calls=0;
   const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};

@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {readingOrderFindings} from './publisher-layout.mjs';
-import {leadingForTail} from './copy-fit.mjs';
+import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -67,12 +67,14 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
         pj.pages[a.end-1]?.ink_rows < .25 && (fitText[a.n] || .66) > .54 &&
         !stranded.some(s=>s.n===a.n) && !tails.some(f=>f.page>=a.start&&f.page<=a.end) &&
         !interruptions.some(f=>f.page>=a.start&&f.page<=a.end)) : [];
-      if ((interruptions.length||tails.length||stranded.length||sparse.length) && pass < passes) {
+      const proseTails=pj.engine==='typst'?preFigureTextTails(pj,fitText):[];
+      if ((interruptions.length||tails.length||stranded.length||sparse.length||proseTails.length) && pass < passes) {
         for(const f of interruptions)if(!inFlow.includes(f.figure_id))inFlow.push(f.figure_id);
         for(const f of tails)fitFigs[f.id]=f.height;
         stranded.forEach(a=>backLinks.add(a.n));
         for (const a of sparse) fitText[a.n] = leadingForTail(pj,a,fitText[a.n]||.66);
-        log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
+        for (const tail of proseTails) fitText[tail.article]=Math.min(fitText[tail.article]||.66,tail.leading);
+        log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} ending and ${proseTails.length} pre-figure leading repairs together`);
         continue;
       }
       return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, pictureFigures, ...(spacePending?{spacing_requires_review:true}:{}), out: out.trim() };

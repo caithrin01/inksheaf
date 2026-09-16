@@ -120,4 +120,20 @@ const deferred=await reviewPdf(pdf,{outDir:join(dir,'deferred-spacing'),deferSpa
  deferredConfirmations++;throw Error('Whitespace must go to the mandatory neighbour-aware layout review');
 }});
 ok('publisher spacing stays unresolved for layout review without a duplicate confirmation',deferredConfirmations===0&&deferred.errors.length===0&&deferred.findings.length===1&&deferred.findings[0].deferred_to_layout===true&&deferred.findings[0].page===3);
+const rotated={...smallTextFigure,reading_mode:'landscape',image_width_points:485.28,w:310.61,h:485.28};
+for(const [label,figure,defect,expected] of [
+  ['rotation',rotated,'orientation_only','dismissed'],
+  ['interruption',rotated,'paragraph_split','findings'],
+  ['unreadable',rotated,'reading_size','findings'],
+  ['needs-enlargement',smallTextFigure,'orientation_only','findings'],
+]){
+  let supplied=false;
+  const result=await reviewPdf(pdf,{outDir:join(dir,'reading-order-'+label),key:'stub',sourceFigures:[figure],ask:async({text,images})=>{
+    if(/contact sheet/.test(text))return {text:text.includes('page 1,')?'[{"page":3,"check":8,"confidence":0.9,"note":"Rotated table affects reading"}]':'[]'};
+    supplied=images.length===4&&text.includes('image 2 = screenshot')&&text.includes('image 3 = physical page 2')&&text.includes('image 4 = physical page 4')&&text.includes('paragraph_split');
+    return {text:JSON.stringify({confirmed:true,origin:'rendered_layout',figure_id:'screenshot',defect,reading_detail:'small_text',note:'Typed observation of the specific concern.'})};
+  }});
+  ok('reading-order '+label+' receives source and both neighbours within four images',supplied&&result.errors.length===0&&result[expected].length===1);
+  if(['unreadable','needs-enlargement'].includes(label))ok('reading-order '+label+' reaches figure repair with the original check retained',result.findings[0].check===3&&result.findings[0].original_check===8);
+}
 console.log(`page-review: ${n} pass, 0 fail`);
