@@ -39,7 +39,7 @@ jobs:
           curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ
           sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && typst --version
           sudo apt-get install -y -q poppler-utils python3-pil libheif-examples libheif-plugin-libde265 > /dev/null
-          python3 -m pip install --quiet pymupdf
+          python3 -m pip install --quiet pymupdf==1.26.5
       - name: Authenticate the prepared runtime pull
         if: ${{ steps.deployed-press.outputs.runtime_image != '' }}
         env:

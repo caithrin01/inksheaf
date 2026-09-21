@@ -49,8 +49,9 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
     }
     for(const x of s){ const prev=x.page-1; if(prev>=1 && !e.some(y=>y.page===prev) && !s.some(y=>y.page===prev)) skip.add(prev); } /* part pages before an opener */
     console.log([...skip].sort((a,b)=>a-b).join(","));' "$META" "$PAGES")
-  BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
+  BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --metadata "$META" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
   echo "$BL"
+  if [ "$BRC" -ne 0 ] && [ "$BRC" -ne 1 ]; then echo "RENDER FAILED (blank measurement)"; exit 1; fi
   # Account for all unused vertical intervals, not only the largest/trailing gap.
   # This records every page, including structural leaves and article endings.
   python3 "$HERE/scripts/pdf-whitespace-audit.py" "$PDF" --out "${PDF%.pdf}.whitespace.json" >/dev/null || { echo "RENDER FAILED (whitespace measurement)"; exit 1; }
