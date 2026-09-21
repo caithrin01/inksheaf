@@ -3,11 +3,23 @@
 import {z} from 'zod';
 import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
 import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
-export const LayoutDecisions=z.object({decisions:z.array(z.object({
+const LayoutDecision=z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
   candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
   space_basis:z.enum(['single_piece','article_end','structural_leaf','source_form','figure_sequence','composition']).nullable().default(null),
-}))});
+  article_ends_here:z.boolean().nullable().optional(),
+});
+export const LayoutDecisions=z.object({decisions:z.array(LayoutDecision)});
+// Model reviews must explicitly acknowledge the compiled article boundary,
+// including when holding a page. Local measured repair callers need no echo.
+export const LayoutReviewDecisions=z.object({decisions:z.array(LayoutDecision.extend({article_ends_here:z.boolean().nullable()}))});
+export function articleEndsHere(page){
+  const span=page.compiled_article_span;
+  if(span&&Number.isInteger(span.start)&&Number.isInteger(span.end)&&span.start<=page.page&&page.page<=span.end)return page.page===span.end;
+  if(['article ending','complete short piece'].includes(page.position))return true;
+  if(['article opening','body'].includes(page.position))return false;
+  return null;
+}
 export function sparseProseEnding(page){
   return page.position==='article ending'&&Number.isFinite(page.ink_rows)&&page.ink_rows<.25
     &&!(page.figures||[]).length&&!['poem','recipe'].includes(page.kind);
@@ -195,12 +207,18 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
     const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
     const following=a&&p.page<a.end?(measurement.figures||[]).find(f=>f.page===p.page+1):null;
+    const gap=p.layout_geometry?.trailing_space_points;
+    const knownFit=Number.isFinite(gap)&&gap>=0&&Number.isFinite(following?.h)&&following.h>0;
     const packet={page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
       compiled_article_span:a?{start:a.start,end:a.end}:null,
+      article_ends_here:a?p.page===a.end:null,
       following_source_figure:following?{id:following.id,physical_page:following.page,
         source_role:following.visual_role??null,reading_mode:following.reading_mode??null,
         image_height_points:following.h,trailing_space_before_points:p.layout_geometry?.trailing_space_points??null,
+        image_alone_fits_in_gap:knownFit?following.h<=gap:null,
+        minimum_height_shortfall_points:knownFit?Math.max(0,following.h-gap):null,
+        minimum_linear_reduction_fraction_to_fit:knownFit?Math.max(0,1-gap/following.h):null,
         same_article:true,kept_in_source_order:following.floating===false,
         reading_size_protected:following.visual_role?.role==='reading'&&['column','landscape'].includes(following.reading_mode),
         measurement_note:'Image height excludes caption and figure spacing.'}:null,
@@ -223,6 +241,7 @@ export function validateLayout(result,input){
   const parsed=LayoutDecisions.parse(result),seen=new Set(),pages=new Map(input.pages.map(p=>[p.page,p])),candidates=new Map(input.candidates.map(c=>[c.id,c]));
   for(const d of parsed.decisions){
     const p=pages.get(d.page);if(!p||seen.has(d.page))throw invalid('Layout review must account for each supplied page exactly once');seen.add(d.page);
+    if(d.article_ends_here!==undefined&&d.article_ends_here!==articleEndsHere(p))throw invalid(`Page ${p.page}: article_ends_here must be ${articleEndsHere(p)} according to the compiled position (${p.position}) and article span ${JSON.stringify(p.compiled_article_span??null)}. Reassess the page using that boundary, including any following image. A hold must use correct source boundaries too.`);
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
     if(d.decision==='repair'&&p.findings.some(f=>f.required_reading_mode
       &&(candidates.get(d.candidate_id)?.operation!=='set_figure_reading_size'

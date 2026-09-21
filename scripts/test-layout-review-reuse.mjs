@@ -18,7 +18,7 @@ async function fixture(){
   calls++;const body=JSON.parse(options.body),content=body.messages[1].content;
   const data=JSON.parse((typeof content==='string'?content:content[0].text).split('\n\nSource data:\n')[1]);
   assert.equal(data.pdf_hash,input.pdf_hash,'The full PDF binding still reaches the provider');
-  return Response.json({id:'fixture-'+calls,choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,decision:p.findings.some(f=>f.check!==1)?'needs_review':'intentional_space',candidate_id:null,reason:p.findings.length?'The image needs closer review.':'The complete short poem ends here.',space_basis:p.findings.length?null:'single_piece'}))})}}],usage:{cost:.001}});
+  return Response.json({id:'fixture-'+calls,choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,article_ends_here:true,decision:p.findings.some(f=>f.check!==1)?'needs_review':'intentional_space',candidate_id:null,reason:p.findings.length?'The image needs closer review.':'The complete short poem ends here.',space_basis:p.findings.length?null:'single_piece'}))})}}],usage:{cost:.001}});
  };
  const open=()=>publisherSession({directory,env,fetchImpl});
  const review=async(withImages=true)=>(await open()).layout(input,withImages?{imagesByPage}:{});
