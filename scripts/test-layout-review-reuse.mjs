@@ -18,7 +18,7 @@ async function fixture(){
   calls++;const body=JSON.parse(options.body),content=body.messages[1].content;
   const data=JSON.parse((typeof content==='string'?content:content[0].text).split('\n\nSource data:\n')[1]);
   assert.equal(data.pdf_hash,input.pdf_hash,'The full PDF binding still reaches the provider');
-  return Response.json({id:'fixture-'+calls,choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,decision:p.findings.some(f=>f.check!==1)?'needs_review':'intentional_space',candidate_id:null,reason:p.findings.length?'The image needs closer review.':'The complete short poem ends here.',space_basis:p.findings.length?null:'single_piece'}))})}}],usage:{cost:.001}});
+  return Response.json({id:'fixture-'+calls,choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,article_ends_here:true,decision:p.findings.some(f=>f.check!==1)?'needs_review':'intentional_space',candidate_id:null,reason:p.findings.length?'The image needs closer review.':'The complete short poem ends here.',space_basis:p.findings.length?null:'single_piece'}))})}}],usage:{cost:.001}});
  };
  const open=()=>publisherSession({directory,env,fetchImpl});
  const review=async(withImages=true)=>(await open()).layout(input,withImages?{imagesByPage}:{});
@@ -62,6 +62,10 @@ await check('a cached verdict is revalidated before any reuse',async()=>{
 });
 await check('missing prior PDF provenance holds without silently adopting a verdict',async()=>{
  const f=await fixture();await f.review();const state=f.state();state.cache[0][1].bindings=[];writeFileSync(join(f.directory,'state.json'),JSON.stringify(state));f.input.pdf_hash='b'.repeat(64);await assert.rejects(f.review(),/Saved layout evidence is unavailable/);assert.equal(f.calls(),1);
+});
+await check('cached review cannot omit its mandatory article boundary echo',async()=>{
+ const f=await fixture();await f.review();const state=f.state();delete state.cache[0][1].result.decisions[0].article_ends_here;writeFileSync(join(f.directory,'state.json'),JSON.stringify(state));
+ await assert.rejects(f.review(),/article_ends_here/);assert.equal(f.calls(),1,'Invalid saved evidence does not silently start a new paid review');
 });
 console.log(`${passed} layout evidence reuse checks passed`);
 }finally{for(const dir of dirs)rmSync(dir,{recursive:true,force:true});}

@@ -10,7 +10,7 @@ const fetchImpl=async(url,opts)=>{
  const body=JSON.parse(opts.body),data=JSON.parse(body.messages[1].content.split('\n\nSource data:\n')[1]);
  counts.push(data.pages.length);assert(data.pages.length<=6);
  if(failSecond&&data.pages[0].page===7){failSecond=false;return Response.json({choices:[{finish_reason:'length'}],usage:{cost:.002}});}
- return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem has ended.',space_basis:'single_piece'}))})}}],usage:{cost:.001}});
+ return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,article_ends_here:true,decision:'intentional_space',candidate_id:null,reason:'The complete short poem has ended.',space_basis:'single_piece'}))})}}],usage:{cost:.001}});
 };
 await assert.rejects((await publisherSession({directory,env,fetchImpl})).layout(input),/incomplete/);
 const first=JSON.parse(readFileSync(directory+'/state.json'));assert.equal(first.journal.calls.length,3);assert.equal(first.journal.calls[1].status,'failed');

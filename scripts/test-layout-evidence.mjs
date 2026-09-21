@@ -26,7 +26,7 @@ try{
     assert.equal(body.max_tokens,Math.max(600,400*data.pages.length+100));
     for(let i=0;i<data.pages.length;i++)assert.equal(content[i+1].image_url.url,'data:image/png;base64,'+readFileSync(evidence.imagesByPage.get(data.pages[i].page)).toString('base64'));
     counts.push(data.pages.length);
-    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,decision:'intentional_space',space_basis:'single_piece',candidate_id:null,reason:'The complete one-page piece ends before the next independent work.'}))})}}],usage:{cost:.001}});
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:data.pages.map(p=>({page:p.page,article_ends_here:true,decision:'intentional_space',space_basis:'single_piece',candidate_id:null,reason:'The complete one-page piece ends before the next independent work.'}))})}}],usage:{cost:.001}});
   };
   const session=()=>publisherSession({directory:journal,env,fetchImpl});
   const result=await(await session()).layout(evidence.input,{imagesByPage:evidence.imagesByPage});
