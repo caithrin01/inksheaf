@@ -181,7 +181,7 @@ export function emitTypst(html, opts = {}) {
       const panels=sourceRole?.detail_panels||[];
       // Natural pagination keeps a source heading with the overview; a forced
       // break here defeats Typst's sticky headings and strands the introduction.
-      let result=`#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
+      let result=`#source-figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
       if(panels.length){
         if(!sourceRole.grid||panels.length!==sourceRole.grid.rows*Math.ceil(sourceRole.grid.columns/2))throw Error('Incomplete source detail panels');
         result+='#align(center, text(size: 8.5pt, fill: faint)[Full image. Enlarged details follow.])\n';
@@ -192,14 +192,14 @@ export function emitTypst(html, opts = {}) {
           const file=relative(baseDir,panel.source),image=`image(${str(file)},width:${s.image_width_points}pt,height:auto)`,body=s.mode==='landscape'?`rotate(90deg,reflow:true,${image})`:image;
           const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
           const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:here().page(),y:here().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
-          result+=`#pagebreak(weak:true)\n#figure([${metadata}#${body}],caption:[${esc(label)}])\n\n`;
+          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}],caption:[${esc(label)}])\n\n`;
         }
         result+='#pagebreak(weak:true)\n';
       }
       return result;
     }
-    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
+    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#source-figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
+    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#source-figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
   }
@@ -447,6 +447,14 @@ export function emitTypst(html, opts = {}) {
 #show heading.where(level: 3): it => block(sticky: true, above: 1em, below: 0.4em, text(size: 11pt, weight: 600, it.body))
 #show figure: set block(above: 1em, below: 1em)
 #show figure.caption: it => text(size: 8.5pt, fill: faint, it.body)
+// Keep a figure and its caption together when they fit a complete body page.
+// An oversized caption may continue on the next page; the image stays intact
+// at its selected reading size, and caption text cannot overprint the footer.
+#let source-figure(body, caption: none) = context {
+  let natural = measure(figure(body, caption: caption), width: ${textWidth}in).height
+  show figure: set block(breakable: natural > ${textHeight}in)
+  figure(body, caption: caption)
+}
 #show quote.where(block: true): set pad(x: 1.2em)
 #show quote.where(block: true): set text(size: 9.8pt)
 #show raw.where(block: true): it => block(width: 100%, fill: rgb("#f4efe4"), inset: 6pt, text(size: 8pt, it))
