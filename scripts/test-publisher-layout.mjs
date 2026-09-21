@@ -123,12 +123,14 @@ test('a reduced photograph stranded on its closing leaf cannot pass as intention
   }
 });
 
-test('source glyph comparisons survive into layout without clearing space or other defects',()=>{
- const source={page:1,check:6,note:'This broken lettering is present in the source screenshot.',origin:'source_content',source_preserved:true,source_comparisons:1};
+test('source glyph and markup comparisons survive into layout without clearing space or other defects',()=>{
+ for(const check of [6,7]){
+ const source={page:1,check,note:'This lettering or markup is present in the source screenshot.',origin:'source_content',source_preserved:true,source_comparisons:1};
  const args={measurement:{pages:[{page:1,blank:.8,ink_rows:.1}],articles:[{n:1,start:1,end:2}]},report:{},fit:{},review:{findings:[{page:1,check:4,note:'Clipped prose.'}],dismissed:[source,{...source,page:2},{...source,source_comparisons:0},{...source,check:3}]}};
  const input=layoutInput(args);assert.equal(input.pages[0].source_observations.length,1);assert.equal(input.pages[0].findings[0].check,4);
  assert.throws(()=>validateLayout({decisions:[{page:1,decision:'intentional_space',candidate_id:null,space_basis:'composition',reason:'Source spelling is preserved.'}]},input),/content or overflow/);
  assert.throws(()=>validateLayout({decisions:[]},input),/omitted/);
+ }
 });
 
 test('multiple leading repairs for one article keep the tightest bounded setting',()=>{
