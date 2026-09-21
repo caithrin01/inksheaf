@@ -160,6 +160,21 @@ ${f.check===8?'For reading order, name defect: paragraph_split when a figure int
 
 Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':[3,8].includes(f.check)?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
 
+function workQueue(limit){
+  if(!Number.isInteger(limit)||limit<1||limit>16)throw Error('Invalid review concurrency');
+  const waiting=[];let active=0;
+  const drain=()=>{
+    while(active<limit&&waiting.length){
+      const {work,resolve,reject}=waiting.shift();active++;
+      Promise.resolve().then(work).then(resolve,reject).finally(()=>{active--;drain();});
+    }
+  };
+  return work=>{
+    const result=new Promise((resolve,reject)=>{waiting.push({work,resolve,reject});drain();});
+    result.catch(()=>{});return result;
+  };
+}
+
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
 export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
@@ -177,28 +192,11 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   let sheets;
   try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
   out.sheets = sheets.length;
-  const flagged = [];
-  await mapConcurrent(sheets, async s => {
-    try {
-      const r = await ask({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
-      out.pass1.calls++; addUsage(out, r.usage);
-      const arr = parseJson(r.text);
-      if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); return; }
-      for (const f of arr) {
-        const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
-        if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') {
-          out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: invalid page/check finding`); continue;
-        }
-        if (conf < minConfidence) continue;
-        flagged.push({ page, check, note: String(f.note || "").slice(0, 200), confidence: Math.round(conf * 100) / 100 });
-      }
-    } catch (e) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: ${String(e.message).slice(0, 120)}`); }
-    log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${flagged.length} flagged so far`);
-  }, {concurrency,shouldStop:()=>stopOnError&&out.errors.length>0});
-  /* Confirm each distinct defect. Dismissing whitespace must not discard overflow on the same page. */
-  const byPage = new Map();
-  for (const f of flagged.sort((a, b) => b.confidence - a.confidence)) if (!byPage.has(`${f.page}:${f.check}`)) byPage.set(`${f.page}:${f.check}`, f);
-  out.pass1.flagged = byPage.size;
+  const shouldStop=()=>stopOnError&&out.errors.length>0;
+  // Screening and confirmations share one model-call ceiling. Each confirmation
+  // can start once its own sheet is complete, without waiting on distant pages.
+  const modelCalls=workQueue(concurrency),confirmations=workQueue(concurrency),pending=[];
+  const askBounded=request=>modelCalls(()=>shouldStop()?null:ask(request));
   // Multiple defects can share a page or neighbour. Prepare each exact page once;
   // asynchronous Poppler lets network replies settle while other pages render.
   const singles=new Map(),runPage=promisify(execFile),rasterQueue=[];let rasterActive=0;
@@ -218,7 +216,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
     })());
     return singles.get(p);
   };
-  await mapConcurrent(byPage.values(), async f => {
+  const confirm=async f => {
     // The publisher's mandatory visual layout review already decides whitespace
     // using this page and its neighbours. Keep the concern open for that review,
     // instead of buying an earlier isolated-page opinion on the same spacing.
@@ -250,7 +248,8 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       // fits the four-image request cap; unknown evidence never clears a defect.
       const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;
       const glyphRecord=glyphs?{characters:glyphs.characters,truncated:glyphs.truncated}:null;
-      const r = await ask({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord), maxTokens: 400,check:f.check });
+      const r = await askBounded({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord), maxTokens: 400,check:f.check });
+      if(!r)return;
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); return; }
@@ -266,7 +265,33 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
         ...(j.model_confirmation?{model_confirmation:j.model_confirmation}:{}),print_evidence:figurePrintEvidence(originals)});
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
-  }, {concurrency,shouldStop:()=>stopOnError&&out.errors.length>0});
+  };
+  await mapConcurrent(sheets, async s => {
+    const flagged=[];
+    try {
+      const r = await askBounded({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
+      if(!r)return;
+      out.pass1.calls++; addUsage(out, r.usage);
+      const arr = parseJson(r.text);
+      if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); return; }
+      for (const f of arr) {
+        const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
+        if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') {
+          out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: invalid page/check finding`); continue;
+        }
+        if (conf < minConfidence) continue;
+        flagged.push({ page, check, note: String(f.note || "").slice(0, 200), confidence: Math.round(conf * 100) / 100 });
+      }
+    } catch (e) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: ${String(e.message).slice(0, 120)}`); }
+    // A page belongs to exactly one contact sheet. Its highest-confidence
+    // observation for each check is final as soon as that sheet settles.
+    const unique=new Map();
+    for(const f of flagged.sort((a,b)=>b.confidence-a.confidence))if(!unique.has(`${f.page}:${f.check}`))unique.set(`${f.page}:${f.check}`,f);
+    out.pass1.flagged+=unique.size;
+    for(const f of unique.values())pending.push(confirmations(async()=>{if(!shouldStop())await confirm(f);}).catch(e=>{out.pass2.errors++;out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0,120)}`);}));
+    log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${out.pass1.flagged} distinct defects so far`);
+  }, {concurrency,shouldStop});
+  await Promise.all(pending);
   out.findings.sort((a, b) => a.page - b.page);
   out.ms = Date.now() - started;
   try { writeFileSync(join(dir, "review.json"), JSON.stringify(out, null, 1)); out.dir = dir; } catch {}

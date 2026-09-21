@@ -136,4 +136,46 @@ for(const [label,figure,defect,expected] of [
   ok('reading-order '+label+' receives source and both neighbours within four images',supplied&&result.errors.length===0&&result[expected].length===1);
   if(['unreadable','needs-enlargement'].includes(label))ok('reading-order '+label+' reaches figure repair with the original check retained',result.findings[0].check===3&&result.findings[0].original_check===8);
 }
+// Hold a distant sheet open until a confirmation begins. This checks causal
+// overlap, not machine timing, and caps screening plus confirmation together.
+let releaseSlow,active=0,peak=0,overlapped=false,slowFinished=false,totalCalls=0;
+const slow=new Promise(resolve=>{releaseSlow=resolve;});
+const overlapTimeout=setTimeout(releaseSlow,5000);
+const pipelined=await reviewPdf(pdf,{outDir:join(dir,'pipelined'),key:'stub',concurrency:2,ask:async({text})=>{
+ active++;peak=Math.max(peak,active);totalCalls++;
+ try{
+  if(/contact sheet/.test(text)){
+   if(text.includes('page 1,'))return {text:JSON.stringify([{page:3,check:4,confidence:.4,note:'Lower-confidence duplicate'},{page:3,check:4,confidence:.9,note:'Actual clipped content'},{page:3,check:7,confidence:.8,note:'Separate artefact'}])};
+   await slow;slowFinished=true;return {text:'[]'};
+  }
+  overlapped||=!slowFinished;releaseSlow();
+  if(text.includes('check 4:'))assert.ok(text.includes('Actual clipped content')&&!text.includes('Lower-confidence duplicate'));
+  return {text:JSON.stringify({confirmed:true,origin:'rendered_layout',note:'Specific defect retained.'})};
+ }finally{active--;}
+}});
+clearTimeout(overlapTimeout);
+ok('confirmation overlaps an unfinished sheet under one total model-call ceiling',overlapped&&peak===2&&active===0);
+ok('pipelining preserves distinct checks and the strongest duplicate without extra requests',pipelined.errors.length===0&&pipelined.pass1.flagged===2&&pipelined.pass2.calls===2&&totalCalls===4&&pipelined.findings.map(f=>f.check).sort().join()==='4,7');
+
+// A late screening failure must not let review return while a started
+// confirmation can still settle its result or spending reservation.
+let releaseFailure,finishConfirmation,confirmationStarted,settled=false;
+const failureReady=new Promise(resolve=>{releaseFailure=resolve;});
+const confirmationReady=new Promise(resolve=>{confirmationStarted=resolve;});
+const confirmationFinish=new Promise(resolve=>{finishConfirmation=resolve;});
+let drainTimeout;
+const drainDeadline=new Promise(resolve=>{drainTimeout=setTimeout(()=>{releaseFailure();finishConfirmation();resolve();},5000);});
+const draining=reviewPdf(pdf,{outDir:join(dir,'pipelined-failure'),key:'stub',stopOnError:true,concurrency:2,ask:async({text})=>{
+ if(/contact sheet/.test(text)){
+  if(text.includes('page 1,'))return{text:'[{"page":3,"check":4,"confidence":1,"note":"Clipped content"}]'};
+  await failureReady;throw Error('Late screening failure');
+ }
+ confirmationStarted();releaseFailure();await confirmationFinish;
+ return{text:'{"confirmed":true,"origin":"rendered_layout","note":"Started confirmation is retained."}'};
+}}).then(result=>{settled=true;return result;});
+await Promise.race([confirmationReady,drainDeadline]);
+await new Promise(resolve=>setImmediate(resolve));
+const waited=!settled;finishConfirmation();
+const drained=await draining;clearTimeout(drainTimeout);
+ok('late failure drains started confirmations and leaves review incomplete',waited&&drained.errors.length===1&&drained.pass2.calls===1&&drained.findings.length===1);
 console.log(`page-review: ${n} pass, 0 fail`);
