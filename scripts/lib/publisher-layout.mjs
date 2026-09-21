@@ -16,6 +16,7 @@ export const LayoutReviewDecisions=z.object({decisions:z.array(LayoutDecision.ex
 export function articleEndsHere(page){
   const span=page.compiled_article_span;
   if(span&&Number.isInteger(span.start)&&Number.isInteger(span.end)&&span.start<=page.page&&page.page<=span.end)return page.page===span.end;
+  if(Object.hasOwn(page,'compiled_article_span'))return null;
   if(['article ending','complete short piece'].includes(page.position))return true;
   if(['article opening','body'].includes(page.position))return false;
   return null;

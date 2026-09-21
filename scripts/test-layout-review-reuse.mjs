@@ -63,5 +63,9 @@ await check('a cached verdict is revalidated before any reuse',async()=>{
 await check('missing prior PDF provenance holds without silently adopting a verdict',async()=>{
  const f=await fixture();await f.review();const state=f.state();state.cache[0][1].bindings=[];writeFileSync(join(f.directory,'state.json'),JSON.stringify(state));f.input.pdf_hash='b'.repeat(64);await assert.rejects(f.review(),/Saved layout evidence is unavailable/);assert.equal(f.calls(),1);
 });
+await check('cached review cannot omit its mandatory article boundary echo',async()=>{
+ const f=await fixture();await f.review();const state=f.state();delete state.cache[0][1].result.decisions[0].article_ends_here;writeFileSync(join(f.directory,'state.json'),JSON.stringify(state));
+ await assert.rejects(f.review(),/article_ends_here/);assert.equal(f.calls(),1,'Invalid saved evidence does not silently start a new paid review');
+});
 console.log(`${passed} layout evidence reuse checks passed`);
 }finally{for(const dir of dirs)rmSync(dir,{recursive:true,force:true});}

@@ -90,6 +90,8 @@ test('a held body page cannot invent an article ending before its closing image'
   assert.equal(held.decisions[0].decision,'needs_review','Correct boundary evidence does not itself approve composition');
   assert.equal(articleEndsHere({...page,page:131}),true);
   assert.equal(articleEndsHere({page:1,position:'front matter',compiled_article_span:null}),null);
+  assert.equal(articleEndsHere({page:2,position:'body',compiled_article_span:null}),null,'A blank between articles does not inherit a boundary from the fallback position');
+  assert.equal(articleEndsHere({page:3,position:'body',compiled_article_span:{start:1,end:2}}),null,'An out-of-span page is unknown');
 });
 test('following-image fit evidence states lower bounds without waiving content defects',()=>{
   const measurement={pages:[{page:130,blank:.5,layout_geometry:{trailing_space_points:266.45}},{page:131,blank:.1}],articles:[{n:1,start:121,end:131}],figures:[{id:'reading-screenshot',page:131,h:485.28,reading_mode:'landscape',floating:false,visual_role:{role:'reading'}}]};

@@ -45,7 +45,9 @@
     "generated_reference_pages_and_folios_normalized": true,
     "source_image_hashes_and_dimensions_match": true,
     "model_requests": 0,
-    "known_visual_concern": "A title-only opening before an enlarged chart may need a real layout change; current reading size is not proof that a smaller measured setting is unreadable."
+    "known_visual_concern": "A title-only opening before an enlarged chart may need a real layout change; current reading size is not proof that a smaller measured setting is unreadable.",
+    "cache_boundary_required": true,
+    "outside_article_boundary_is_unknown": true
   },
   "local_checks": {
     "renderer": {
@@ -61,7 +63,7 @@
       "fail": 0
     },
     "layout_reuse": {
-      "pass": 14,
+      "pass": 15,
       "fail": 0
     },
     "layout_batching": "passed",

@@ -147,7 +147,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
       if(cached?.kind!=='layout-page-evidence-v1'||!Array.isArray(cached.bindings)||!cached.bindings.length
         ||cached.bindings.some(b=>!b||!/^[a-f0-9]{64}$/.test(b.request_sha256||'')||(b.pdf_sha256!==null&&typeof b.pdf_sha256!=='string')))
         throw Error('Saved layout evidence is unavailable; the book is held for recovery');
-      const result=validateLayout(cached.result,input);
+      const result=validateLayout(LayoutReviewDecisions.parse(cached.result),input);
       if(!cached.bindings.some(b=>b.pdf_sha256===binding.pdf_sha256&&b.request_sha256===binding.request_sha256))await saveLayout(result,[...cached.bindings,binding]);
       return result;
     }
