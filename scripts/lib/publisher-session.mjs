@@ -15,7 +15,7 @@ import {FigureConfirmation,ReadingOrderConfirmation} from './figure-confirmation
 import {SourceFigureRoles,SOURCE_FIGURE_TASK,validateSourceFigureRoles} from './prepare-figures.mjs';
 import {SOURCE_NOTES_TASK,sourceNotesInput} from './notes-detect.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
-for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','notes-detect.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','page-review.mjs','fit.mjs','prepared-typesetting.mjs','source-request.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
+for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','notes-detect.mjs','layout-evidence.mjs','glyph-evidence.mjs','paragraph-boundaries.mjs','running-matter.mjs','page-review.mjs','fit.mjs','prepared-typesetting.mjs','source-request.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
 for(const name of ['render-book.sh','raster-pages.py','typst-metadata.mjs','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')

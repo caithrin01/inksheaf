@@ -13,7 +13,9 @@ doc=fitz.open(sys.argv[1]);rows=[]
 for n,p in enumerate(doc,1):
     if abs(p.rect.width-432)>.1 or abs(p.rect.height-648)>.1:continue
     head=[];foot=[]
-    for block in p.get_text('dict',sort=True)['blocks']:
+    # Tracked small caps can make MuPDF invent spaces inside a printed word.
+    # Compare encoded glyphs: preserve real spaces, suppress inferred ones.
+    for block in p.get_text('dict',sort=True,flags=fitz.TEXTFLAGS_DICT|fitz.TEXT_INHIBIT_SPACES)['blocks']:
         for line in block.get('lines',[]):
             text=''.join(s['text'] for s in line['spans']).strip()
             if not text:continue
