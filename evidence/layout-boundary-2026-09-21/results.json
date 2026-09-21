@@ -1,0 +1,78 @@
+{
+  "scope": "Source-preserving montage fix and factual layout-review correction. No new full-book acceptance or latency result.",
+  "montage": {
+    "code_commit": "560b3d30603a54c10d37975d229147397bf1c30e",
+    "status": "passed-montage-readability",
+    "pdf_sha256": "cdc28bf69b406e9e7d42007e8483169329a43c5ce1ba54fe864db7dee436075a",
+    "retained_book_pages": 176,
+    "overview_page": 58,
+    "detail_pages": [
+      59,
+      60,
+      61,
+      62,
+      63,
+      64
+    ],
+    "lossless_details_scale": 2,
+    "preservation_checks": {
+      "article_texts": 22,
+      "source_images_and_dimensions_preserved": true,
+      "detail_pixels_cover_original_exactly_once": true
+    },
+    "provider_requests": 8,
+    "charged_usd": 0.14627125,
+    "failed_calls": 0,
+    "unknown_cost_calls": 0,
+    "physical_paper_acceptance": false
+  },
+  "layout": {
+    "status": "offline-checks-passed-live-review-pending",
+    "boundary_echo_required": true,
+    "fit_shortfall_lower_bounds": true,
+    "existing_defect_gates_preserved": true,
+    "retained_pages": [
+      14,
+      16,
+      21,
+      23,
+      31,
+      136,
+      138,
+      140
+    ],
+    "neighbour_comparisons": 24,
+    "generated_reference_pages_and_folios_normalized": true,
+    "source_image_hashes_and_dimensions_match": true,
+    "model_requests": 0,
+    "known_visual_concern": "A title-only opening before an enlarged chart may need a real layout change; current reading size is not proof that a smaller measured setting is unreadable."
+  },
+  "local_checks": {
+    "renderer": {
+      "pass": 69,
+      "fail": 0
+    },
+    "layout": {
+      "pass": 23,
+      "fail": 0
+    },
+    "budget_cache": {
+      "pass": 19,
+      "fail": 0
+    },
+    "layout_reuse": {
+      "pass": 14,
+      "fail": 0
+    },
+    "layout_batching": "passed",
+    "neighbour_evidence": "passed",
+    "validator": {
+      "pass": 13,
+      "warn": 0,
+      "fail": 0
+    }
+  },
+  "complete_book_accepted": false,
+  "one_minute_complete_book_proven": false,
+  "deployed": false
+}
