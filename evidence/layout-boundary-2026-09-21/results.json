@@ -27,7 +27,7 @@
     "physical_paper_acceptance": false
   },
   "layout": {
-    "status": "offline-checks-passed-live-review-pending",
+    "status": "targeted-model-review-completed",
     "boundary_echo_required": true,
     "fit_shortfall_lower_bounds": true,
     "existing_defect_gates_preserved": true,
@@ -44,10 +44,84 @@
     "neighbour_comparisons": 24,
     "generated_reference_pages_and_folios_normalized": true,
     "source_image_hashes_and_dimensions_match": true,
-    "model_requests": 0,
+    "model_requests": 3,
     "known_visual_concern": "A title-only opening before an enlarged chart may need a real layout change; current reading size is not proof that a smaller measured setting is unreadable.",
     "cache_boundary_required": true,
-    "outside_article_boundary_is_unknown": true
+    "outside_article_boundary_is_unknown": true,
+    "model_remaining_holds": [],
+    "model_decisions": [
+      {
+        "page": 14,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Prose section ends mid-article before a landscape diagram that requires its protected reading size on the next page; breaking here preserves that figure's legibility.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 16,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Article-opening page; prose section ends before a full-page promotional poster that needs its protected reading size on the following page.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 21,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Paragraph closes on a flyer reference just before that flyer image, which requires its protected landscape reading size on the next page.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 23,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Title/opening leaf; body text is protected at a large reading size on the next page, which the landscape chart requires.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 31,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Prose ends the paragraph naturally; next page's chart requires its full protected reading size, precluding fit here.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 136,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Article text concludes its thought; following data-manifest image requires its protected reading size and cannot fit in this gap.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 138,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Following image needs its protected reading size and cannot be shrunk to fit the gap; break preserves source order and readability.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      },
+      {
+        "page": 140,
+        "decision": "intentional_space",
+        "candidate_id": null,
+        "reason": "Next figure (settings screenshot) requires its protected reading size, so the gap before it is a necessary break, not a defect.",
+        "space_basis": "figure_sequence",
+        "article_ends_here": false
+      }
+    ],
+    "charged_usd": 0.144986,
+    "failed_calls": 0,
+    "unknown_cost_calls": 0,
+    "review_candidate": "1cc4dd9728ba9f5699a4b1fa491fd68c7af433d3",
+    "review_policy": "0d80967b09c39222fbf272d287018b134c90fb7e1f79300b08d852370be29a43",
+    "completed_at": "2026-09-21T23:06:42.390Z",
+    "editorial_follow_up": "The title-only opening remains a design concern; the column-size specimen has smaller annotations and has not passed reading acceptance."
   },
   "local_checks": {
     "renderer": {
