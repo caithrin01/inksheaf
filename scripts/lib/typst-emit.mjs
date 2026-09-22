@@ -32,6 +32,10 @@ export function esc(s) {
   return t;
 }
 const str = s => JSON.stringify(String(s ?? "")); /* a Typst string literal */
+// A fallback font can cover only the gender symbol of a joined emoji and
+// silently lose its person/action. Shape the complete source sequence together;
+// standalone symbols, CJK and ordinary text keep their existing font fallback.
+const JOINED_EMOJI_PATTERN = String.raw`\p{Extended_Pictographic}[\p{Emoji_Modifier}\x{FE0F}]*(?:\x{200D}\p{Extended_Pictographic}[\p{Emoji_Modifier}\x{FE0F}]*)+`;
 
 /* image dimensions from the file header (JPEG SOF, PNG IHDR); null when unknown */
 /* the image format from the bytes, since the cache names files by a guessed extension */
@@ -442,6 +446,7 @@ export function emitTypst(html, opts = {}) {
       if calc.even(counter(page).get().first()) [#smallcaps[${esc(pubName.toLowerCase())}]] else if before.len() > 0 [#h(1fr) #emph(text(tracking: 0em, size: 8pt)[#before.last().body])] } } },
   footer: context { if inbody.get() and not part-verso() [ #metadata((page: here().page(), folio: counter(page).get().first())) <folio> #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
 #set text(font: ("Source Serif 4", "Noto Serif SC", "Noto Emoji"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
+#show regex(${str(JOINED_EMOJI_PATTERN)}): set text(font: "Noto Emoji")
 #set par(justify: true, leading: 0.66em, first-line-indent: 1.35em, spacing: 0.66em)
 #set heading(numbering: none, outlined: false)
 #show heading.where(level: 1): it => { }
