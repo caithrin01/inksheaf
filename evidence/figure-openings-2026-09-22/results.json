@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-22",
+  "scope": "Offline retained-book opening comparison, not fresh application/full-book quality acceptance.",
+  "baseline_commit": "f8f5da7",
+  "change": "Measured landscape heading and full-height opening image share a leaf without shrinking. Following prose starts on the next leaf; layouts that do not fit fall back.",
+  "baseline_pages": 176,
+  "candidate_pages": 172,
+  "candidate_pdf_sha256": "e444c736cec62e733ab910e0ff37f3a785a0f98ae2aee1322b59cb4de3509f81",
+  "combined_openings": [
+    {
+      "article": 3,
+      "physical_page": 23
+    },
+    {
+      "article": 12,
+      "physical_page": 78
+    },
+    {
+      "article": 21,
+      "physical_page": 151
+    }
+  ],
+  "preservation": {
+    "all_ordered_article_texts_match": true,
+    "all_printed_image_pixels_sizes_and_order_match": true,
+    "image_occurrences": 64,
+    "measured_figures": 53,
+    "preserved_montage_detail_leaves": 6,
+    "bounds": {
+      "baseline": true,
+      "candidate": true
+    },
+    "context_audit": {
+      "baseline": {
+        "running_matter_pages": 176,
+        "running_matter_mismatches": [],
+        "reading_order_findings": []
+      },
+      "candidate": {
+        "running_matter_pages": 172,
+        "running_matter_mismatches": [],
+        "reading_order_findings": []
+      }
+    }
+  },
+  "tests": {
+    "compiled_opening_controls": 14,
+    "renderer_pass": 69,
+    "renderer_fail": 0,
+    "validator_pass": 13,
+    "validator_warn": 0,
+    "validator_fail": 0,
+    "figure_reading": 10,
+    "source_order": "pass",
+    "article_end": "pass",
+    "running_matter": "pass",
+    "prepare_figures": "pass",
+    "prepared_typesetting": "pass"
+  },
+  "inherited_issue": {
+    "normal_figure_metadata_y_error_points": 10.5,
+    "unchanged_figures_affected": 50,
+    "new_opening_positions_exact": true,
+    "resolved_by_this_change": false
+  },
+  "fresh_model_review": false,
+  "new_provider_requests": 0,
+  "whole_book_accepted": false,
+  "deployed": false,
+  "private_evidence_directory": "output/private-acceptance/figure-openings-2026-09-22/"
+}
