@@ -19,8 +19,8 @@ try{
     const serial=join(dir,gray?'serial-gray':'serial'),parallel=join(dir,gray?'parallel-gray':'parallel');mkdirSync(serial);mkdirSync(parallel);
     execFileSync('pdftoppm',['-png',...(gray?['-gray','-r','30']:['-scale-to','900']),pdf,join(serial,'p')],{stdio:'pipe'});
     execFileSync('python3',['scripts/raster-pages.py',pdf,join(parallel,'p'),...(gray?['--gray','--dpi','30']:['--scale','900']),'--workers','4'],{stdio:'pipe'});
-    const pages=readdirSync(serial).sort();assert.equal(pages.length,9);assert.deepEqual(readdirSync(parallel).sort(),pages);
+    const pages=readdirSync(serial).sort();assert.equal(pages.length,METADATA_LABELS.length);assert.deepEqual(readdirSync(parallel).sort(),pages);
     for(const page of pages)assert.deepEqual(readFileSync(join(parallel,page)),readFileSync(join(serial,page)));
-    console.log(`PASS all nine ${gray?'measurement':'review'} rasters are byte-identical across four workers`);
+    console.log(`PASS all ${pages.length} ${gray?'measurement':'review'} rasters are byte-identical across four workers`);
   }
 }finally{rmSync(dir,{recursive:true,force:true});}

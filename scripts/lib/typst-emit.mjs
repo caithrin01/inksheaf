@@ -70,6 +70,8 @@ export function emitTypst(html, opts = {}) {
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
   let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
+  // Record intentional print text at its compiled position without adding ink.
+  const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),y:here().position().y.pt()))<print-element>]`;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -101,7 +103,7 @@ export function emitTypst(html, opts = {}) {
       case "code": return `#raw(${str(textOf(n))});`;
       case "br": return " \\\n";
       case "a": {
-        if (attr(n, "data-link")) return `${inner()}#super[${esc(attr(n, "data-link"))}];`;
+        if (attr(n, "data-link")) return `${inner()}${printMark('reference_marker',attr(n,'data-link'),textOf(n).trim())}#super[${esc(attr(n, "data-link"))}];`;
         if (has(n, "fn") || has(n, "footnote-anchor")) {
           const num = textOf(n).trim(); const key = (attr(n, "href") || "").replace(/^#/, "");
           const note = fnMap.get(key);
@@ -192,7 +194,7 @@ export function emitTypst(html, opts = {}) {
           const file=relative(baseDir,panel.source),image=`image(${str(file)},width:${s.image_width_points}pt,height:auto)`,body=s.mode==='landscape'?`rotate(90deg,reflow:true,${image})`:image;
           const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
           const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:here().page(),y:here().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
-          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}],caption:[${esc(label)}])\n\n`;
+          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
         }
         result+='#pagebreak(weak:true)\n';
       }
@@ -239,7 +241,7 @@ export function emitTypst(html, opts = {}) {
         if (/^https?:\/\//.test(raw)) t = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0]; /* a URL as link text shows its host */
         else if (!/[\p{L}\p{N}]/u.test(raw)) t = (target || u).replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0] || raw; /* punctuation-only text shows the host */
         if (t.length > 60) t = t.slice(0, 57).replace(/\s+\S*$/, "") + "…";
-        return `[#super[${esc(L)}]], [${esc(t)}], [#text(fill: faint, size: 7pt, hyphenate: false)[${esc(u)}]]`; }).join(", ");
+        return `[${printMark('reference_entry',L,t)}#super[${esc(L)}]], [${esc(t)}], [#text(fill: faint, size: 7pt, hyphenate: false)[${esc(u)}]]`; }).join(", ");
       /* three columns (Codex audit P1-1): letter, wrapping text, the short URL in its own column,
          so a long title never runs under its URL; leading a reader can follow; the QR with its
          label in one unbreakable cell; the note may continue across pages */

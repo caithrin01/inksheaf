@@ -230,6 +230,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
       figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode,visual_role})=>({id,role,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
       findings:(review.findings||[]).filter(f=>f.page===p.page),
+      text_evidence:[...(review.findings||[]),...(review.dismissed||[])].find(f=>f.page===p.page&&[6,7].includes(f.check)&&f.text_evidence)?.text_evidence??null,
       // Source comparison explains only that specific observation. It never
       // exempts the page's spacing, reading scale, or other content checks.
       source_observations:(review.dismissed||[]).filter(f=>f.page===p.page&&[6,7].includes(f.check)&&f.source_preserved===true&&f.source_comparisons>0&&f.origin==='source_content')

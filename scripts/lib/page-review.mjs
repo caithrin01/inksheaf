@@ -10,6 +10,7 @@ import { auditRunningMatter } from "./running-matter.mjs";
 import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {glyphEvidence} from './glyph-evidence.mjs';
 import {artifactEvidence} from './artifact-evidence.mjs';
+import {TEXT_EVIDENCE_TASK} from './page-text-evidence.mjs';
 import {figurePrintEvidence,adjudicateFigureConfirmation,adjudicateReadingOrderConfirmation} from './figure-confirmation.mjs';
 import { execFileSync,execFile } from "node:child_process";
 import {promisify} from 'node:util';
@@ -133,7 +134,7 @@ Printed source cards for videos and attachments, including their readable URLs, 
 
 Answer with a JSON array and nothing else. Each element: {"page": <number>, "check": <1-8>, "note": "<one sentence>", "confidence": <0 to 1>}. An empty array [] when nothing is wrong.`;
 
-export const pass2Prompt = (f,context,sources,neighbours,glyphs=null,artifacts=null) => `The first image is a magnified raster of page ${f.page} of a typeset 6 by 9 inch book. Screen pixels do not represent physical print size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
+export const pass2Prompt = (f,context,sources,neighbours,glyphs=null,artifacts=null,textEvidence=null) => `The first image is a magnified raster of page ${f.page} of a typeset 6 by 9 inch book. Screen pixels do not represent physical print size. This is a PHYSICAL PDF page number, not its printed folio. Renderer page map: ${JSON.stringify(context)}. Use the intended folio and structural position when supplied; do not assume folio equals physical page number. A first reader flagged it under check ${f.check}: "${CHECKS[f.check] || ""}" with the note: "${f.note}".
 
 ${glyphs?'The final image contains labelled magnified crops of actual PDF glyphs, not reconstructed characters. Their actual PDF text/font records are '+JSON.stringify(glyphs)+'. Inspect the visible symbol and its surroundings. A nonzero glyph ID or Unicode value alone does not prove correct appearance. A legible monochrome emoji is valid; an absent, unreadable or wrong symbol still fails. If the flagged defect is elsewhere or the evidence is truncated, do not assume the crop resolves it.':''}
 
@@ -159,7 +160,7 @@ Classify origin as rendered_layout, source_content or uncertain. source_content 
 
 ${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_heading, none or uncertain) and edge (top, foot, both or uncertain). A whole source paragraph is not a split fragment even when its empty end marker lands on the following page. A heading followed by body text is not alone at the foot. Whitespace and an image positioned after a complete introductory paragraph are separate layout questions; do not relabel them as a single-line widow. Do not confirm when defect is none.':''}
 
-${f.check===8?'For reading order, name defect: paragraph_split when a figure interrupts source prose mid-sentence; column_order when columns scramble prose; orientation_only when the sole complaint is turning an intentionally landscape figure; reading_size for unreadable figure detail; none or uncertain otherwise. Identify figure_id only from supplied source figures, null for prose-only issues. Include reading_detail (small_text, large_labels, picture or uncertain). A portrait page containing a quarter-turn table is not a two-column text layout. Still inspect adjacent pages for actual interrupted prose.':''}
+${f.check===8?'For reading order, name defect: paragraph_split when a figure interrupts source prose mid-sentence; column_order when columns scramble prose; orientation_only when the sole complaint is turning an intentionally landscape figure; reading_size for unreadable figure detail; none or uncertain otherwise. Identify figure_id only from supplied source figures, null for prose-only issues. Include reading_detail (small_text, large_labels, picture or uncertain). A portrait page containing a quarter-turn table is not a two-column text layout. Still inspect adjacent pages for actual interrupted prose.':''}${textEvidence?'\n\ntext_evidence: '+JSON.stringify(textEvidence)+'. '+TEXT_EVIDENCE_TASK:''}
 
 Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':[3,8].includes(f.check)?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
 
@@ -179,7 +180,7 @@ function workQueue(limit){
 }
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], textEvidence = null, stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
@@ -252,7 +253,8 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;
       const glyphRecord=glyphs?{characters:glyphs.characters,truncated:glyphs.truncated}:null;
       const artifacts=f.check===7&&originals.length?artifactEvidence(pdf,f.page,originals):null;
-      const r = await askBounded({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord,artifacts), maxTokens: 400,check:f.check });
+      const provenance=[6,7].includes(f.check)&&textEvidence?textEvidence(f.page):null;
+      const r = await askBounded({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord,artifacts,provenance), maxTokens: 400,check:f.check });
       if(!r)return;
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
@@ -262,7 +264,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       if(f.check===8)j=adjudicateReadingOrderConfirmation(j,originals);
       const sourcePreserved=comparisons.length>0&&(f.check===3?j.source_preserved===true:(f.check===6||f.check===7&&!j.confirmed)&&j.origin==='source_content');
       const rec = { page: f.page, check: f.check===8&&j.defect==='reading_size'?3:f.check, ...(f.check===8&&j.defect==='reading_size'?{original_check:8}:{}), note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
-        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}),...(artifacts?{artifact_evidence:artifacts}:{}) };
+        ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}),...(artifacts?{artifact_evidence:artifacts}:{}),...(provenance?{text_evidence:provenance}:{}) };
       if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
       if([3,8].includes(f.check))Object.assign(rec,{figure_id:j.figure_id,defect:j.defect,reading_detail:j.reading_detail,
         ...(j.required_reading_mode?{required_reading_mode:j.required_reading_mode}:{}),
