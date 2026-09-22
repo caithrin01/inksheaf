@@ -233,7 +233,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
       // Source comparison explains only that specific observation. It never
       // exempts the page's spacing, reading scale, or other content checks.
       source_observations:(review.dismissed||[]).filter(f=>f.page===p.page&&[6,7].includes(f.check)&&f.source_preserved===true&&f.source_comparisons>0&&f.origin==='source_content')
-        .map(({check,note,source_comparisons})=>({check,note,source_comparisons,scope:'The flagged content was compared with the actual source bitmap; spacing and print readability still require review.'}))};
+        .map(({check,note,source_comparisons,artifact_evidence})=>({check,note,source_comparisons,...(artifact_evidence?{artifact_evidence}:{}),scope:'The flagged content was compared with the actual source bitmap; spacing and print readability still require review.'}))};
     return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
