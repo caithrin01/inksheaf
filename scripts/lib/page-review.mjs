@@ -5,7 +5,8 @@
 // checklist with page numbers. Pass 2: each flagged page alone, at higher resolution, a stronger
 // model confirms or dismisses. Only confirmed findings are reported. The review annotates; it
 // records model failures. The publisher orchestrator holds delivery until review is complete.
-import {mapConcurrent,REVIEW_CONCURRENCY} from './async-work.mjs';
+import {REVIEW_CONCURRENCY} from './async-work.mjs';
+import {streamReviewSheets} from './review-raster.mjs';
 import { auditRunningMatter } from "./running-matter.mjs";
 import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {glyphEvidence} from './glyph-evidence.mjs';
@@ -60,24 +61,7 @@ export function contactSheetGroups(groups,dir,{format='jpeg'}={}){
   mkdirSync(dir,{recursive:true});
   if(groups.some(g=>!g.length||g.length>4))throw Error('Invalid contact-sheet group');
   const spec = groups.map((g, i) => ({ out: join(dir, `sheet-${String(i + 1).padStart(3, "0")}.${format==="png"?"png":"jpg"}`), tiles: g.map(f => ({ file: f, page: pageOf(f) })) }));
-  const py = `
-import json,sys
-from PIL import Image, ImageDraw
-spec=json.load(sys.stdin)
-for s in spec:
-    tiles=[Image.open(t["file"]).convert("RGB") for t in s["tiles"]]
-    w=max(im.width for im in tiles); h=max(im.height for im in tiles)
-    sheet=Image.new("RGB",(w*2+30,h*2+30),(120,120,120))
-    d=ImageDraw.Draw(sheet)
-    for i,(im,t) in enumerate(zip(tiles,s["tiles"])):
-        x=(i%2)*(w+10)+10; y=(i//2)*(h+10)+10
-        sheet.paste(im,(x,y))
-        label="page %d"%t["page"]
-        d.rectangle([x,y,x+90,y+22],fill=(200,30,30)); d.text((x+6,y+5),label,fill=(255,255,255))
-    sheet.save(s["out"],"PNG" if s["out"].endswith(".png") else "JPEG",quality=82)
-print(len(spec))
-`;
-  execFileSync("python3", ["-c", py], { input: JSON.stringify(spec), stdio: ["pipe", "ignore", "pipe"] });
+  execFileSync("python3", [fileURLToPath(new URL('../contact_sheets.py',import.meta.url))], { input: JSON.stringify(spec), stdio: ["pipe", "ignore", "pipe"] });
   return spec.map(s => ({ file: s.out, pages: s.tiles.map(t => t.page) }));
 }
 
@@ -181,26 +165,23 @@ function workQueue(limit){
 }
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], textEvidence = null, stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], textEvidence = null, stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, prepareSheets = streamReviewSheets, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
   const dir = outDir || join(process.env.TMPDIR || "/tmp", `page-review-${basename(pdf).replace(/\.pdf$/, "")}-${Date.now()}`);
-  let pages;
-  try { pages = rasterise(pdf, join(dir, "pages")); } catch (e) { out.errors.push(`rasterise: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
-  out.pages = pages.length;
+  out.preparation={running_matter_ms:null,first_sheet_ms:null,all_sheets_ms:null};
   try { out.running_matter = auditRunningMatter(pdf,pageContext); }
   catch(e) { out.errors.push(`running matter: ${String(e.message).slice(0,120)}`); out.ms=Date.now()-started; return out; }
+  out.preparation.running_matter_ms=Date.now()-started;
   const verifiedHeads=new Set(out.running_matter.filter(p=>p.verified).map(p=>p.page));
   const wrongHeads=new Set(out.running_matter.filter(p=>!p.verified).map(p=>p.page));
   for(const p of out.running_matter.filter(p=>!p.verified))out.findings.push({page:p.page,check:5,confidence:1,origin:'measured_layout',note:`Printed ${[!p.head_matches&&'running head',!p.folio_matches&&'folio'].filter(Boolean).join(' and ')} differs from the compiled page map.`});
-  let sheets;
-  try { sheets = contactSheets(pages, join(dir, "sheets"), {format:imageFormat}); } catch (e) { out.errors.push(`contact sheets: ${String(e.message).slice(0, 120)}`); out.ms = Date.now() - started; return out; }
-  out.sheets = sheets.length;
-  const shouldStop=()=>stopOnError&&out.errors.length>0;
+  let preparationFailed=false;
+  const shouldStop=()=>preparationFailed||stopOnError&&out.errors.length>0;
   // Screening and confirmations share one model-call ceiling. Each confirmation
   // can start once its own sheet is complete, without waiting on distant pages.
-  const modelCalls=workQueue(concurrency),confirmations=workQueue(concurrency),pending=[];
+  const modelCalls=workQueue(concurrency),screenings=workQueue(concurrency),confirmations=workQueue(concurrency),pending=[],pendingScreens=[];
   const askBounded=request=>modelCalls(()=>shouldStop()?null:ask(request));
   // Multiple defects can share a page or neighbour. Prepare each exact page once;
   // asynchronous Poppler lets network replies settle while other pages render.
@@ -277,7 +258,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   };
-  await mapConcurrent(sheets, async s => {
+  const screen=async s => {
     const flagged=[];
     try {
       const r = await askBounded({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
@@ -301,7 +282,19 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
     out.pass1.flagged+=unique.size;
     for(const f of unique.values())pending.push(confirmations(async()=>{if(!shouldStop())await confirm(f);}).catch(e=>{out.pass2.errors++;out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0,120)}`);}));
     log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${out.pass1.flagged} distinct defects so far`);
-  }, {concurrency,shouldStop});
+  };
+  const preparationError=error=>{
+    if(!preparationFailed)out.errors.push(`rasterise: ${String(error.message).slice(0,120)}`);
+    preparationFailed=true;
+  };
+  try{
+    await prepareSheets(pdf,dir,{format:imageFormat,
+      onReady:header=>{out.pages=header.pages;out.sheets=header.sheets;},
+      onSheet:sheet=>{out.preparation.first_sheet_ms??=Date.now()-started;pendingScreens.push(screenings(async()=>{if(!shouldStop())await screen(sheet);}).catch(error=>{out.pass1.errors++;out.errors.push(`pass1: ${String(error.message).slice(0,120)}`);}));},
+      onError:preparationError});
+    out.preparation.all_sheets_ms=Date.now()-started;
+  }catch(error){preparationError(error);}
+  await Promise.all(pendingScreens);
   await Promise.all(pending);
   out.findings.sort((a, b) => a.page - b.page);
   out.ms = Date.now() - started;

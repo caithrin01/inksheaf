@@ -1,0 +1,49 @@
+{
+  "scope": "Single local batch then stream replay per retained PDF under process-bound idle-sleep assertion. Warm filesystem effects and order are not controlled. Excludes running-matter audit, source retrieval, generation, model review and delivery; not complete-book or customer-path acceptance.",
+  "power_before": "Now drawing from 'Battery Power'",
+  "power_after": "Now drawing from 'Battery Power'",
+  "results": [
+    {
+      "book": "annual",
+      "pdf_sha256": "6b5a607c4a404dd463970739bedde1a5e7b7142a5f39e331f12bf1b9cfedce48",
+      "pages": 181,
+      "sheets": 46,
+      "all_rasters_and_sheets_byte_identical": true,
+      "baseline": {
+        "raster_ms": 7799.68175,
+        "all_sheets_ms": 10827.974875
+      },
+      "stream": {
+        "first_sheet_ms": 287.6959160000006,
+        "all_sheets_ms": 7801.073541000002
+      }
+    },
+    {
+      "book": "cooking",
+      "pdf_sha256": "d697e837e391bedcfad465ecc03e31be6d94689d71fdd5252b5a9126ef6af3ea",
+      "pages": 121,
+      "sheets": 31,
+      "all_rasters_and_sheets_byte_identical": true,
+      "baseline": {
+        "raster_ms": 4439.499625,
+        "all_sheets_ms": 6386.533124999998
+      },
+      "stream": {
+        "first_sheet_ms": 295.6680830000005,
+        "all_sheets_ms": 4548.3892080000005
+      }
+    }
+  ],
+  "quality_checks": [
+    "JPEG and PNG contact sheets and page rasters byte-identical",
+    "Every physical page covered exactly once",
+    "First sheet available before a deliberately blocked later Poppler range completes",
+    "Shorter repaired PDF removes obsolete rasters and sheets",
+    "Raster failure drains every child and started confirmation; partial review remains incomplete",
+    "Screening and confirmation retain the existing shared concurrency and spending ceilings"
+  ],
+  "discarded_timing": "Earlier prototype baseline took an unexplained 245.5 seconds and had no verified continuous power state. That raw result is retained privately and excluded from the comparison.",
+  "model_requests": 0,
+  "quality_accepted_book": false,
+  "production_changed": false
+}

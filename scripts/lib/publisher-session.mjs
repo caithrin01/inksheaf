@@ -17,7 +17,7 @@ import {SOURCE_NOTES_TASK,sourceNotesInput} from './notes-detect.mjs';
 import {TEXT_EVIDENCE_TASK} from './page-text-evidence.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
 for(const name of ['async-work.mjs','publisher-session.mjs','publisher-layout.mjs','publish-volume.mjs','figure-role.mjs','figure-confirmation.mjs','prepare-figures.mjs','figure-details.mjs','notes-detect.mjs','layout-evidence.mjs','glyph-evidence.mjs','artifact-evidence.mjs','page-text-evidence.mjs','reference-identity.mjs','paragraph-boundaries.mjs','running-matter.mjs','page-review.mjs','fit.mjs','prepared-typesetting.mjs','source-request.mjs','copy-fit.mjs','typst-emit.mjs'])REVIEW_POLICY.update(readFileSync(new URL(name,import.meta.url)));
-for(const name of ['render-book.sh','raster-pages.py','typst-metadata.mjs','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
+for(const name of ['render-book.sh','raster-pages.py','contact_sheets.py','lib/review-raster.mjs','typst-metadata.mjs','pdf-whitespace-audit.py','blank-measure.py'])REVIEW_POLICY.update(readFileSync(new URL('../'+name,import.meta.url)));
 export const PUBLISHER_REVIEW_POLICY=REVIEW_POLICY.digest('hex');
 export const publisherReviewCacheKey=({model,task,schema,input={},imageHashes=[],maxTokens,policy=PUBLISHER_REVIEW_POLICY})=>createHash('sha256')
   .update(JSON.stringify({policy,model,task,schema:z.toJSONSchema(schema),input,imageHashes,maxTokens})).digest('hex');

@@ -34,9 +34,9 @@ const ask = async ({ model, images, text }) => {
 const r = await reviewPdf(pdf, { outDir: join(dir, "run"), ask, pass1Model: "stub-1", pass2Model: "stub-2", key: "stub" });
 ok("pass 1 ran once per sheet", r.pass1.calls === 2, JSON.stringify(calls));
 ok("only in-sheet flags over the threshold reach pass 2", r.pass1.flagged === 1 && r.pass2.calls === 1);
-ok("pass 2 got the single page at full size", calls[2].model === "stub-2" && calls[2].images === 1);
+ok("pass 2 got the single page at full size", calls.find(c=>c.model === "stub-2")?.images === 1);
 const expectedPage=rasterise(pdf,join(dir,'expected-page-3'),{scale:1800,first:3,last:3})[0];
-ok("pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)",readFileSync(calls[2].image).equals(readFileSync(expectedPage)));
+ok("pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)",readFileSync(calls.find(c=>c.model === "stub-2").image).equals(readFileSync(expectedPage)));
 ok("confirmed finding reported with page, check and both notes", r.findings.length === 1 && r.findings[0].page === 3 && r.findings[0].check === 1 && r.findings[0].pass1 === "mostly empty");
 ok("usage summed", r.usage.prompt_tokens === 2300 && r.usage.completion_tokens === 100);
 ok("review.json written", existsSync(join(r.dir, "review.json")));
