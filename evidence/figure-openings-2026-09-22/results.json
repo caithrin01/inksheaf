@@ -5,7 +5,7 @@
   "change": "Measured landscape heading and full-height opening image share a leaf without shrinking. Following prose starts on the next leaf; layouts that do not fit fall back.",
   "baseline_pages": 176,
   "candidate_pages": 172,
-  "candidate_pdf_sha256": "e444c736cec62e733ab910e0ff37f3a785a0f98ae2aee1322b59cb4de3509f81",
+  "candidate_pdf_sha256": "a13b2ea85748a4b571b14b690c8dbe5d0200e5c45be34f606dcb655fdf13b4e7",
   "combined_openings": [
     {
       "article": 3,
@@ -44,7 +44,7 @@
     }
   },
   "tests": {
-    "compiled_opening_controls": 14,
+    "compiled_opening_controls": 18,
     "renderer_pass": 69,
     "renderer_fail": 0,
     "validator_pass": 13,
@@ -55,17 +55,27 @@
     "article_end": "pass",
     "running_matter": "pass",
     "prepare_figures": "pass",
-    "prepared_typesetting": "pass"
-  },
-  "inherited_issue": {
-    "normal_figure_metadata_y_error_points": 10.5,
-    "unchanged_figures_affected": 50,
-    "new_opening_positions_exact": true,
-    "resolved_by_this_change": false
+    "prepared_typesetting": "pass",
+    "layout_evidence": "pass",
+    "raster_metadata": "pass",
+    "position_negative_control": "old emitter rejected; current emitter passes"
   },
   "fresh_model_review": false,
   "new_provider_requests": 0,
   "whole_book_accepted": false,
   "deployed": false,
-  "private_evidence_directory": "output/private-acceptance/figure-openings-2026-09-22/"
+  "private_evidence_directory": "output/private-acceptance/figure-openings-2026-09-22/",
+  "position_correction": {
+    "previous_error_points": 10.5,
+    "ordinary_figures_corrected": 50,
+    "all_53_figure_positions_match_print": true,
+    "all_172_page_pixels_unchanged_by_position_fix": true,
+    "negative_control": {
+      "baseline_commit": "69233db",
+      "old_emitter_rejected": true,
+      "reason": "Figure metadata differs from printed image top",
+      "current_controls": 18,
+      "current_emitter_passes": true
+    }
+  }
 }
