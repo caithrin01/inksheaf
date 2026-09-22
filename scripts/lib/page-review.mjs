@@ -11,6 +11,7 @@ import {adjudicateBoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {glyphEvidence} from './glyph-evidence.mjs';
 import {artifactEvidence} from './artifact-evidence.mjs';
 import {TEXT_EVIDENCE_TASK} from './page-text-evidence.mjs';
+import {referenceIdentity,adjudicateReferenceIdentity} from './reference-identity.mjs';
 import {figurePrintEvidence,adjudicateFigureConfirmation,adjudicateReadingOrderConfirmation} from './figure-confirmation.mjs';
 import { execFileSync,execFile } from "node:child_process";
 import {promisify} from 'node:util';
@@ -253,7 +254,9 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       const glyphs=f.check===6&&comparisons.length<3?glyphEvidence(pdf,f.page,join(dir,'glyphs',String(f.page))):null;
       const glyphRecord=glyphs?{characters:glyphs.characters,truncated:glyphs.truncated}:null;
       const artifacts=f.check===7&&originals.length?artifactEvidence(pdf,f.page,originals):null;
-      const provenance=[6,7].includes(f.check)&&textEvidence?textEvidence(f.page):null;
+      let provenance=[6,7].includes(f.check)&&textEvidence?textEvidence(f.page):null;
+      if(f.check===6&&provenance?.reference_markers?.length)
+        provenance={...provenance,printed_reference_identity:referenceIdentity(pdf,f.page,provenance.reference_markers)};
       const r = await askBounded({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord,artifacts,provenance), maxTokens: 400,check:f.check });
       if(!r)return;
       out.pass2.calls++; addUsage(out, r.usage);
@@ -262,10 +265,12 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
       if(f.check===3)j=adjudicateFigureConfirmation(j,originals);
       if(f.check===8)j=adjudicateReadingOrderConfirmation(j,originals);
+      if(f.check===6)j=adjudicateReferenceIdentity(j,provenance?.printed_reference_identity);
       const sourcePreserved=comparisons.length>0&&(f.check===3?j.source_preserved===true:(f.check===6||f.check===7&&!j.confirmed)&&j.origin==='source_content');
       const rec = { page: f.page, check: f.check===8&&j.defect==='reading_size'?3:f.check, ...(f.check===8&&j.defect==='reading_size'?{original_check:8}:{}), note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
         ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}),...(artifacts?{artifact_evidence:artifacts}:{}),...(provenance?{text_evidence:provenance}:{}) };
       if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
+      if(f.check===6&&j.model_confirmation)Object.assign(rec,{defect:j.defect,model_confirmation:j.model_confirmation});
       if([3,8].includes(f.check))Object.assign(rec,{figure_id:j.figure_id,defect:j.defect,reading_detail:j.reading_detail,
         ...(j.required_reading_mode?{required_reading_mode:j.required_reading_mode}:{}),
         ...(j.model_confirmation?{model_confirmation:j.model_confirmation}:{}),print_evidence:figurePrintEvidence(originals)});

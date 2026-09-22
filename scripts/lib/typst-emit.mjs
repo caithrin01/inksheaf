@@ -75,7 +75,7 @@ export function emitTypst(html, opts = {}) {
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
   let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
   // Record intentional print text at its compiled position without adding ink.
-  const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),y:here().position().y.pt()))<print-element>]`;
+  const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),x:here().position().x.pt(),y:here().position().y.pt()))<print-element>]`;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
