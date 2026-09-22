@@ -191,6 +191,13 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
         body:requestBody,
       });
       const raw = await response.json();
+      call.http_status = response.status;
+      if (raw.error) {
+        // Keep bounded diagnostics in the private journal, without copying
+        // upstream request bodies or exposing provider text to the creator.
+        const clean=value=>String(value??'').replaceAll(key,'[redacted]').replace(/[\r\n]+/g,' ');
+        call.provider_error = {code:clean(raw.error.code).slice(0,64),message:clean(raw.error.message).slice(0,500)};
+      }
       call.request_id = raw.id || null; call.model_returned = raw.model || null;
       call.usage = raw.usage || null; call.finish_reason = raw.choices?.[0]?.finish_reason || null;
       const cost = raw.usage?.cost;
@@ -198,6 +205,9 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       call.elapsed_ms = Date.now() - Date.parse(call.started);
       if (!response.ok || raw.error || call.finish_reason === 'error') {
         const error=Error(`Publisher provider did not complete the request (HTTP ${response.status}, ${call.finish_reason || 'no completion'})`);
+        // Access/credit refusals cannot recover by buying more calls in this
+        // session. Already-started requests still settle in their own records.
+        if([401,402,403].includes(response.status)){error.code='PUBLISHER_ACCESS_DENIED';ledger.failure ||= error;}
         if(response.status===429||response.status>=500||call.finish_reason==='error')error.code='PUBLISHER_TRANSIENT';
         throw error;
       }

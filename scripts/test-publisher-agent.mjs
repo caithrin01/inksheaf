@@ -40,6 +40,31 @@ await test('annual review can pass 96 calls while the 256-call and $2 limits rem
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
 });
 await test('provider timeout retains its reservation and private errors are not shown as success', async () => { const journal={calls:[],spent:0};const call=openRouterPublisher({key:'fixture-secret',journal,fetchImpl:async()=>{throw Error('network fixture-secret');}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading})); assert.equal(journal.calls[0].status,'failed');assert(journal.calls[0].reserved>0);assert(!journal.calls[0].error.includes('fixture-secret')); });
+await test('access refusals retain bounded private diagnostics and stop later calls in the session',async()=>{
+  for(const status of [401,402,403]){
+    let calls=0;const journal={calls:[],spent:0};
+    const fetchImpl=async()=>{calls++;return Response.json({error:{code:status,message:'Key fixture-secret exhausted\n'+'.'.repeat(600),metadata:{raw:'Do not copy upstream bodies'}}},{status});};
+    const ask=openRouterPublisher({key:'fixture-secret',journal,fetchImpl});
+    await assert.rejects(ask({role:'reader',task:'Read',schema:Reading}),e=>e.code==='PUBLISHER_ACCESS_DENIED');
+    await assert.rejects(openRouterPublisher({key:'fixture-secret',journal,fetchImpl})({role:'publisher',task:'Read',schema:Reading}),e=>e.code==='PUBLISHER_ACCESS_DENIED');
+    assert.equal(calls,1);assert.equal(journal.calls.length,1);const call=journal.calls[0];
+    assert.equal(call.http_status,status);assert.equal(call.status,'failed');assert(call.reserved>0);assert.equal(call.cost,undefined);
+    assert.equal(call.provider_error.code,String(status));assert.equal(call.provider_error.message.length,500);
+    assert(!call.provider_error.message.includes('fixture-secret'));assert(!call.provider_error.message.includes('\n'));assert.equal(call.provider_error.metadata,undefined);
+  }
+});
+await test('an access refusal drains existing calls without sending queued requests',async()=>{
+  let network=0;const journal={calls:[],spent:0},responses=[];
+  const ask=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{
+    const index=network++;const response=new Promise(resolve=>responses.push(resolve));
+    if(network===8){responses[0](Response.json({error:{code:403,message:'Key allowance exhausted'}},{status:403}));for(const done of responses.slice(1))done(Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}}));}
+    return response;
+  }});
+  const results=await Promise.allSettled(Array.from({length:9},()=>ask({role:'reader',task:'Read',schema:Reading})));
+  assert.equal(network,8);assert.equal(journal.calls.length,8);assert.equal(results.filter(r=>r.status==='fulfilled').length,7);
+  assert.equal(journal.calls.filter(c=>c.status==='completed').length,7);assert.equal(journal.calls.filter(c=>c.status==='failed').length,1);
+  assert(journal.calls[0].reserved>0);assert.equal(journal.calls[0].cost,undefined);
+});
 await test('truncated model results are never accepted', async () => { const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>Response.json({choices:[{finish_reason:'length',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}})});await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/incomplete/); });
 await test('the provider must honour schemas, privacy and price ceilings', async () => { let body;const call=openRouterPublisher({key:'fixture',fetchImpl:async(url,opts)=>{body=JSON.parse(opts.body);return Response.json({model:body.model,choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});await call({role:'reader',task:'Read',data:sources,schema:Reading});assert.equal(body.provider.require_parameters,true);assert.equal(body.provider.data_collection,'deny');assert.equal(body.response_format.json_schema.strict,true);assert.equal(body.provider.max_price.prompt,.25); });
 await test('contents reject reversed dates inside a section', () => { assert.throws(()=>validateStructure({description:'Test',sections:[{title:'Test',post_ids:sources.map(p=>p.id).reverse(),reason:'Test'}]},sources),/chronological/); });

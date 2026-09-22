@@ -1,0 +1,60 @@
+{
+  "date": "2026-09-22",
+  "candidate": "f8f5da7c38ff796786200f0dd9118c18f6a01acd",
+  "scope": "Five normal publisher confirmations over retained real-PDF controls; screening is seeded. This evaluation exposed a reference-identity false negative and did not accept a complete book.",
+  "cases": [
+    {
+      "name": "reference",
+      "expected_held": false,
+      "expected_result_observed": true,
+      "findings": 0,
+      "dismissed": 1,
+      "errors": 0
+    },
+    {
+      "name": "authored-copy",
+      "expected_held": false,
+      "expected_result_observed": true,
+      "findings": 0,
+      "dismissed": 1,
+      "errors": 0
+    },
+    {
+      "name": "detail-caption",
+      "expected_held": false,
+      "expected_result_observed": true,
+      "findings": 0,
+      "dismissed": 1,
+      "errors": 0
+    },
+    {
+      "name": "introduced-markup",
+      "expected_held": true,
+      "expected_result_observed": true,
+      "findings": 1,
+      "dismissed": 0,
+      "errors": 0
+    },
+    {
+      "name": "wrong-reference",
+      "expected_held": true,
+      "expected_result_observed": false,
+      "findings": 0,
+      "dismissed": 1,
+      "errors": 0
+    }
+  ],
+  "provider_requests": 5,
+  "spent_usd": 0.10798200000000001,
+  "known_charges_reconciled": true,
+  "preceding_provider_failure": {
+    "requests": 5,
+    "http_status": 403,
+    "model_answers": 0,
+    "cause": "Account credit was available but the API key spending limit was exhausted. Owner fixed the key allowance before this new evaluation.",
+    "unknown_charges_retained_usd": 0.381668
+  },
+  "remaining_issue": "The model read a deliberately changed reference label but incorrectly claimed it matched the recorded entry. Actual printed label identity must be verified.",
+  "quality_accepted_book": false,
+  "private_content_included": false
+}
