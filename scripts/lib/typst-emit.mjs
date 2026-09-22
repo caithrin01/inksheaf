@@ -73,7 +73,7 @@ export function emitTypst(html, opts = {}) {
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0, openingFigure = null;
   // Record intentional print text at its compiled position without adding ink.
   const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),y:here().position().y.pt()))<print-element>]`;
 
@@ -132,6 +132,7 @@ export function emitTypst(html, opts = {}) {
   function figureOf(imgEl, caption) {
     const src = attr(imgEl, "src"); if (!src) return "";
     const id = attr(imgEl, "data-fig") || src;
+    const imageAnchor = `source-figure-image-${articleN}-${figN+1}`;
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
     const sourceRole=sourceFigureRoles[id];
@@ -174,10 +175,12 @@ export function emitTypst(html, opts = {}) {
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
     const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
     const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
-    /* measure() has no container, so a percentage width is turned into a share of the layout width */
+    /* measure() has no container, so a percentage width is turned into a share of the layout width.
+       Position comes from the printed image's label: the zero-height metadata block can sit
+       above the inline image's paragraph spacing, or before its page turn. */
     const tagFor = extra => {
       const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
-      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: query(label(${str(imageAnchor)})).first().location().page(), y: query(label(${str(imageAnchor)})).first().location().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
@@ -187,7 +190,12 @@ export function emitTypst(html, opts = {}) {
       const panels=sourceRole?.detail_panels||[];
       // Natural pagination keeps a source heading with the overview; a forced
       // break here defeats Typst's sticky headings and strands the introduction.
-      let result=`#source-figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
+      let result=`#source-figure([${tagFor(size)}#${readingBody}#label(${str(imageAnchor)})]${capTxt})\n\n`;
+      // A full-height landscape image cannot share the normal opener's vertical
+      // heading space. A measured sideways heading may fit alongside it without
+      // changing any source pixel, caption, reading scale or source order.
+      if(isFirst&&!caption&&!panels.length&&readingMode==='landscape'&&reading.height_points>=(textHeight-.7)*72-.1)
+        openingFigure={original:result,tag:tagFor(size),anchor:imageAnchor,image:readingImage,width:reading.image_width_points,height:reading.image_height_points};
       if(panels.length){
         if(!sourceRole.grid||panels.length!==sourceRole.grid.rows*Math.ceil(sourceRole.grid.columns/2))throw Error('Incomplete source detail panels');
         result+='#align(center, text(size: 8.5pt, fill: faint)[Full image. Enlarged details follow.])\n';
@@ -197,17 +205,18 @@ export function emitTypst(html, opts = {}) {
           if(!s)throw Error('Source detail cannot be sized');
           const file=relative(baseDir,panel.source),image=`image(${str(file)},width:${s.image_width_points}pt,height:auto)`,body=s.mode==='landscape'?`rotate(90deg,reflow:true,${image})`:image;
           const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
-          const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:here().page(),y:here().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
-          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
+          const panelAnchor=imageAnchor+'-detail-'+panel.index;
+          const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:query(label(${str(panelAnchor)})).first().location().page(),y:query(label(${str(panelAnchor)})).first().location().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
+          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}#label(${str(panelAnchor)})],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
         }
         result+='#pagebreak(weak:true)\n';
       }
       return result;
     }
-    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#source-figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#source-figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
+    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#source-figure([${tagFor(sz)}#${img(sz)}#label(${str(imageAnchor)})]${capTxt})\n\n`; }
+    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#source-figure([${tagFor(size)}#${img(size)}#label(${str(imageAnchor)})]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
-    return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
+    return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}#label(${str(imageAnchor)})]${capTxt})\n\n`;
   }
   /* images inside list items are hoisted after the list: a float cannot live inside an item */
   let hoisted = [];
@@ -334,7 +343,7 @@ export function emitTypst(html, opts = {}) {
 
   /* ---- an article: collect its footnotes first, then head, body, endnotes ---- */
   function article(sec, index, afterPart = false) {
-    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1;
+    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1; openingFigure = null;
     figTotal = findAll(find(sec, k => isEl(k) && has(k, "artbody")) || sec, k => isEl(k) && k.name === "img" && attr(k, "src")).length; /* body images only; the link note's QR is not a figure */
     for (const fn of findAll(sec, k => isEl(k) && k.name === "div" && has(k, "footnote"))) {
       const numEl = find(fn, k => isEl(k) && k.name === "a" && (attr(k, "id") || "").length);
@@ -357,10 +366,15 @@ export function emitTypst(html, opts = {}) {
     // At the tightest fit this is -15 units per em, a small copy-fitting adjustment.
     const tracking = (-(.66 - Number(leading)) / 8).toFixed(3);
     const compact = Number(leading) <= .58 && textOf(bodyEl).trim().split(/\s+/).length < 600;
-    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, after-part: ${afterPart}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact})\n`;
-    s += kids(bodyEl).map(block).join("");
-    /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
+    const bodyTyp=kids(bodyEl).map(block).join("");
+    const opening=openingFigure&&bodyTyp.trimStart().startsWith(openingFigure.original)?openingFigure:null;
+    const remainingBody=opening?bodyTyp.trimStart().slice(opening.original.length):bodyTyp;
     const linkBlocks = kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join('');
+    const continued=Boolean(remainingBody.trim()||(!linksAtBack.has(index+1)&&linkBlocks)||endnotes.length);
+    const openingArg=opening?`, opening: (tag: [${opening.tag}], anchor: ${str(opening.anchor)}, image: [#${opening.image}], width: ${opening.width}pt, height: ${opening.height}pt, continued: ${continued}, fallback: [${opening.original}])`:'';
+    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, after-part: ${afterPart}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact}${openingArg})\n`;
+    s += remainingBody;
+    /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
     if (linkBlocks && linksAtBack.has(index + 1)) collectedLinks.push({n:index + 1,title:T,body:linkBlocks});
     else if (linkBlocks) s += `#context [#metadata((n: ${index + 1}, page: here().page())) <linkstart>]\n${linkBlocks}`;
     if (endnotes.length) {
@@ -470,11 +484,12 @@ export function emitTypst(html, opts = {}) {
 #set enum(indent: 1em, spacing: 0.5em)
 #set footnote.entry(separator: line(length: 30%, stroke: 0.5pt + rgb("${RULE}")), indent: 0em, gap: 0.5em)
 #show footnote.entry: set text(size: 8.5pt)
-#let arthead(n, title, sub, meta, first: false, after-part: false, index: 0, headspace: 0.55in, compact: false) = {
+#let arthead(n, title, sub, meta, first: false, after-part: false, index: 0, headspace: 0.55in, compact: false, opening: none) = {
   if not first { place.flush() } /* no float from the previous essay crosses into this one */
   if first or after-part { pagebreak(to: "odd", weak: true) } else { pagebreak(weak: true) }
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
   arttitle.update(title)
+  let normal() = {
   v(headspace)
   if n != none and not compact { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
@@ -482,6 +497,23 @@ export function emitTypst(html, opts = {}) {
   block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
+  }
+  if opening == none { normal() } else { context {
+    let rows = (block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)],)
+    if sub != "" { rows.push(block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
+    rows.push(block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(size: 8pt, tracking: 0.14em, fill: faint)[#if n != none { [#n · ] }#upper(meta)]])
+    let head = stack(dir: ttb, spacing: 6pt, ..rows)
+    // Reject the composition before printing if the whole heading and unchanged
+    // image do not fit. Measurement adds no duplicate heading/figure metadata.
+    if not compact and measure(head, width: opening.width).height + 6pt + opening.height <= ${textWidth}in {
+      heading(level: 1, title)
+      [#metadata((n: index, page: here().page(), opening: "landscape-figure")) <artstart>]
+      source-figure(opening.tag + [#block(above: 0pt, below: 0pt, rotate(90deg, reflow: true, stack(dir: ttb, spacing: 6pt, head, opening.image)))#label(opening.anchor)])
+      // Read the whole opening in one orientation; start portrait prose on the
+      // next leaf instead of leaving two sideways lines beside a large chart.
+      if opening.continued { pagebreak(weak: true) }
+    } else { normal(); opening.fallback }
+  } }
 }
 #let partpage(kind, title) = {
   place.flush()
