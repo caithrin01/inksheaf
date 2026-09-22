@@ -30,11 +30,15 @@ const cases = [
   {id: 'portrait', mode: 'column', image: 'portrait'},
   {id: 'small', image: 'small'},
   {id: 'details', details: true},
+  {id: 'ordinary', mode: 'normal'},
+  {id: 'floating', mode: 'normal', extraImage: true},
+  {id: 'fitted', mode: 'normal', fitHeight: 1.2},
+  {id: 'picture', mode: 'normal', picture: true},
   {id: 'image-only', opening: true, noProse: true},
   {id: 'unnumbered', opening: true, number: false, sub: '', meta: ''},
   {id: 'last-image-only', opening: true, noProse: true},
 ];
-const readingFigures = {}, sourceFigureRoles = {}, fitText = {}, backLinks = [];
+const readingFigures = {}, sourceFigureRoles = {}, fitText = {}, fitFigs = {}, backLinks = [];
 const digest = file => createHash('sha256').update(readFileSync(file)).digest('hex');
 const chart = resolve(out, 'chart.png');
 const articles = cases.map((c, i) => {
@@ -43,7 +47,9 @@ const articles = cases.map((c, i) => {
   c.sub ??= 'A readable chart at its original scale';
   c.meta ??= 'September 22, 2026';
   c.body = c.noProse ? '' : `AfterMarker${c.n}. The complete source text remains after its illustration.`;
-  readingFigures[c.id] = c.mode || 'landscape';
+  if (c.mode !== 'normal') readingFigures[c.id] = c.mode || 'landscape';
+  if (c.fitHeight) fitFigs[c.id] = c.fitHeight;
+  if (c.picture) sourceFigureRoles[c.id] = {role: 'picture', image_sha256: digest(chart)};
   if (c.compact) fitText[c.n] = .54;
   if (c.backLinks) backLinks.push(c.n);
   if (c.details) sourceFigureRoles[c.id] = {
@@ -51,17 +57,17 @@ const articles = cases.map((c, i) => {
     grid: {rows: 1, columns: 2},
     detail_panels: [{source: chart, image_sha256: digest(chart), index: 1, row: 1, first_column: 1, last_column: 2}],
   };
-  return `<section class="article"><div class="arthead">${c.number === false ? '' : `<div class="artnum">${c.n}</div>`}<h2 class="arttitle">${c.title}</h2><div class="artsub">${c.sub}</div><div class="artmeta">${c.meta}</div></div><div class="artbody">${c.before ? `<p>${c.before}</p>` : ''}${c.noImage ? '' : `<figure><img src="${c.image || 'chart'}.png" data-fig="${c.id}" alt="chart">${c.caption ? `<figcaption>${c.caption}</figcaption>` : ''}</figure>`}<p>${c.body}</p></div>${c.backLinks ? '<div class="linknote"><p>ReferenceMarker. Original source.</p></div>' : ''}</section>`;
+  return `<section class="article"><div class="arthead">${c.number === false ? '' : `<div class="artnum">${c.n}</div>`}<h2 class="arttitle">${c.title}</h2><div class="artsub">${c.sub}</div><div class="artmeta">${c.meta}</div></div><div class="artbody">${c.before ? `<p>${c.before}</p>` : ''}${c.noImage ? '' : `<figure><img src="${c.image || 'chart'}.png" data-fig="${c.id}" alt="chart">${c.caption ? `<figcaption>${c.caption}</figcaption>` : ''}</figure>`}<p>${c.body}</p>${c.extraImage ? `<figure><img src="chart.png" data-fig="${c.id}-last" alt="chart"></figure>` : ''}</div>${c.backLinks ? '<div class="linknote"><p>ReferenceMarker. Original source.</p></div>' : ''}</section>`;
 });
 const typ = resolve(out, 'openings.typ'), pdf = resolve(out, 'openings.pdf');
-writeFileSync(typ, emitTypst(`<html><body><section class="titlepage"><div class="t">Opening controls</div></section>${articles.join('')}</body></html>`, {baseDir: out, readingFigures, sourceFigureRoles, fitText, backLinks}));
+writeFileSync(typ, emitTypst(`<html><body><section class="titlepage"><div class="t">Opening controls</div></section>${articles.join('')}</body></html>`, {baseDir: out, readingFigures, sourceFigureRoles, fitText, fitFigs, backLinks}));
 execFileSync('typst', ['compile', '--font-path', 'fonts', '--ignore-system-fonts', typ, pdf]);
 const metadata = queryMetadata(typ);
 const headings = JSON.parse(execFileSync('typst', ['query', '--font-path', 'fonts', '--ignore-system-fonts', typ, 'heading.where(level: 1)'], {encoding: 'utf8'}));
 assert.equal(headings.length, cases.length, 'contents heading appears exactly once per article');
 assert.equal(metadata.artstart.length, cases.length);
 assert.equal(metadata.artend.length, cases.length);
-assert.equal(metadata.fig.length, cases.filter(c => !c.noImage).length + 1, 'overview and detail appear exactly once');
+assert.equal(metadata.fig.length, cases.filter(c => !c.noImage).length + 2, 'overview, detail and extra floating control appear exactly once');
 for (const c of cases) {
   const start = metadata.artstart.find(a => a.n === c.n);
   assert.equal(Boolean(start.opening), Boolean(c.opening), `${c.id}: measured opening/fallback`);
@@ -69,11 +75,11 @@ for (const c of cases) {
   if (c.noImage) { assert.equal(f, undefined); continue; }
   const dim = c.image === 'small' ? {w: 800, h: 400} : c.image === 'portrait' ? {w: 1000, h: 1600} : {w: 3000, h: 1600};
   const expected = figureReadingSizes(dim).find(s => s.mode === (c.mode || 'landscape'));
-  for (const [actual, wanted] of [[f.w, expected.width_points], [f.h, expected.height_points], [f.image_width_points, expected.image_width_points]]) assert(Math.abs(actual - wanted) < .01, `${c.id}: reading dimensions unchanged`);
+  if (expected) for (const [actual, wanted] of [[f.w, expected.width_points], [f.h, expected.height_points], [f.image_width_points, expected.image_width_points]]) assert(Math.abs(actual - wanted) < .01, `${c.id}: reading dimensions unchanged`);
   if (c.opening) assert.equal(f.page, start.page, `${c.id}: title and image share their leaf`);
   if (c.noProse) assert.equal(metadata.artend.find(a => a.n === c.n).page, start.page, `${c.id}: no phantom final leaf`);
   if (c.id === 'long') assert(f.page > start.page, 'oversized heading safely falls back');
-  assert.equal(f.floating, false);
+  assert.equal(f.floating, Boolean(c.extraImage));
 }
 assert.equal(metadata.folio.find(f => f.page === metadata.artstart[0].page).folio, 1);
 writeFileSync(resolve(out, 'expected.json'), JSON.stringify({cases, metadata}));
@@ -82,6 +88,13 @@ from pathlib import Path
 import pymupdf as fitz
 p=Path(${JSON.stringify(out)});expected=json.loads((p/'expected.json').read_text());m=expected['metadata'];doc=fitz.open(p/'openings.pdf')
 norm=lambda s: re.sub(r'\\s+', '', unicodedata.normalize('NFKC',s).replace('\\u00ad',''))
+used=set()
+for f in m['fig']:
+ source=fitz.Pixmap(f['source']).digest
+ matches=[(i,im) for i,im in enumerate(doc[f['page']-1].get_image_info(hashes=True)) if im['digest']==source and (f['page'],i) not in used]
+ assert matches,(f['id'],'missing source image on the recorded page')
+ i,im=min(matches,key=lambda pair:abs(pair[1]['bbox'][1]-f['y']));r=fitz.Rect(im['bbox']);used.add((f['page'],i))
+ for a,b in [(r.y0,f['y']),(r.width,f['w']),(r.height,f['h'])]: assert abs(a-b)<.02,(f['id'],'figure metadata differs from print',a,b)
 for c in expected['cases']:
  start=next(a for a in m['artstart'] if a['n']==c['n']);end=next(a for a in m['artend'] if a['n']==c['n'])
  body=''.join(page.get_text(clip=fitz.Rect(0,40,432,604)) for page in list(doc)[start['page']-1:end['page']])
@@ -102,6 +115,7 @@ for c in expected['cases']:
  if c.get('backLinks'):
   assert re.search(r'LINKSONPAGE[0-9]+',norm(body)), 'resolved back-reference missing from landscape heading'
 print('PASS printed source content, figure scale/pixels, heading separation, folios and measured image positions')
+print('PASS every figure records its actual printed page/top/size: ordinary, floated, fitted, picture, column, landscape and detail')
 `], {encoding: 'utf8'});
 console.log(result.trim());
 execFileSync('python3', ['scripts/pdf-bounds-audit.py', pdf, '--out', resolve(out, 'bounds.json')], {stdio: 'pipe'});
