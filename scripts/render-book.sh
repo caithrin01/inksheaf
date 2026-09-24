@@ -33,44 +33,41 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
   TOFU=$(python3 "$HERE/scripts/tofu-check.py" "$PDF" 2>&1); TRC=$?
   if [ "$TRC" -ne 0 ]; then echo "RENDER FAILED (tofu)"; echo "$TOFU" | tail -4; exit 1; fi
   PAGES=$(node -e 'const {PDFDocument}=require("pdf-lib");PDFDocument.load(require("fs").readFileSync(process.argv[1])).then(d=>console.log(d.getPageCount()))' "$PDF")
-  MAP=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artstart>" --field value 2>/dev/null); ENDS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<artend>" --field value 2>/dev/null)
-  PARTS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<partstart>" --field value 2>/dev/null)
-  MARKS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<publisher-page>" --field value 2>/dev/null)
-  FOLIOS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<folio>" --field value 2>/dev/null)
+  META="${PDF%.pdf}.metadata.json"
+  node "$HERE/scripts/typst-metadata.mjs" "$TYP" "$META" || { echo "RENDER FAILED (page metadata)"; exit 1; }
   SKIP=$(node -e '
-    const s=JSON.parse(process.argv[1]||"[]"), e=JSON.parse(process.argv[2]||"[]"), n=+process.argv[3];
+    const meta=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
+    const s=meta.artstart, e=meta.artend, n=+process.argv[2];
     const skip=new Set(); const first=s.length?Math.min(...s.map(x=>x.page)):1; const last=e.length?Math.max(...e.map(x=>x.page)):n;
     for(let p=1;p<first;p++) skip.add(p); for(let p=last+1;p<=n;p++) skip.add(p);
     for(const x of e) skip.add(x.page);            /* closers */
     for(const x of s) skip.add(x.page);            /* openers: chapter number, title and subtitle sit low by design, so a short article ends its opener airy (this is typography, not a dropped image; mid-article figure gaps are not openers and stay caught) */
-    for(const x of JSON.parse(process.argv[4]||"[]")) {
+    for(const x of meta.partstart) {
       skip.add(x.page); /* measured section-divider leaves */
       const prev=x.page-1;
       if(prev>=1&&!s.some(a=>a.page<=prev&&(e.find(b=>b.n===a.n)?.page??a.page)>=prev))skip.add(prev); /* blank verso before a recto divider */
     }
     for(const x of s){ const prev=x.page-1; if(prev>=1 && !e.some(y=>y.page===prev) && !s.some(y=>y.page===prev)) skip.add(prev); } /* part pages before an opener */
-    console.log([...skip].sort((a,b)=>a-b).join(","));' "$MAP" "$ENDS" "$PAGES" "$PARTS")
-  BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
+    console.log([...skip].sort((a,b)=>a-b).join(","));' "$META" "$PAGES")
+  BL=$(python3 "$HERE/scripts/blank-measure.py" "$PDF" --limit "${BLANK_MAX:-0.40}" --skip "$SKIP" --metadata "$META" --json "${PDF%.pdf}.pages.json" 2>&1); BRC=$?
   echo "$BL"
+  if [ "$BRC" -ne 0 ] && [ "$BRC" -ne 1 ]; then echo "RENDER FAILED (blank measurement)"; exit 1; fi
   # Account for all unused vertical intervals, not only the largest/trailing gap.
   # This records every page, including structural leaves and article endings.
   python3 "$HERE/scripts/pdf-whitespace-audit.py" "$PDF" --out "${PDF%.pdf}.whitespace.json" >/dev/null || { echo "RENDER FAILED (whitespace measurement)"; exit 1; }
   # for each short page, the first figure on the next page and the height that was left: the fit
   # loop rebuilds with --fit-figs so that figure sits in flow at that height (engine: typst)
-  FIGS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<fig>" --field value 2>/dev/null)
-  LINKS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<linkstart>" --field value 2>/dev/null)
-  PAR_STARTS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<parstart>" --field value 2>/dev/null)
-  PAR_ENDS=$(typst query --root "$HERE" --font-path "$HERE/fonts" "$TYP" "<parend>" --field value 2>/dev/null)
   node -e '
-    const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const figs=JSON.parse(process.argv[2]||"[]"); const ends=JSON.parse(process.argv[3]||"[]");
+    const fs=require("fs"); const f=process.argv[1]; const d=JSON.parse(fs.readFileSync(f,"utf8")); const meta=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); const figs=meta.fig; const ends=meta.artend;
     const TEXT_H=7.44; d.engine="typst"; d.fit=[]; d.tail=[];
-    const starts=JSON.parse(process.argv[4]||"[]");
+    const starts=meta.artstart;
     d.articles=starts.map(s=>({n:s.n,start:s.page,end:ends.find(e=>e.n===s.n)?.page||s.page}));
-    d.linkStarts=JSON.parse(process.argv[5]||"[]");
-    d.parts=JSON.parse(process.argv[6]||"[]");
-    d.folios=JSON.parse(process.argv[7]||"[]");
-    d.figures=figs;d.publisher_marks=JSON.parse(process.argv[10]||"[]");
-    const ps=JSON.parse(process.argv[8]||"[]"),pe=JSON.parse(process.argv[9]||"[]");
+    d.linkStarts=meta.linkstart;
+    d.parts=meta.partstart;
+    d.folios=meta.folio;
+    for(const f of figs){const details=figs.filter(x=>x.parent_id===f.id);if(details.length)f.detail_pages=details.map(x=>x.page);if(f.parent_id)f.overview_page=figs.find(x=>x.id===f.parent_id)?.page;}
+    d.figures=figs;d.publisher_marks=meta["publisher-page"];d.print_elements=meta["print-element"]||[];
+    const ps=meta.parstart,pe=meta.parend;
     d.paragraphs=ps.map(s=>({id:s.id,start:s,end:pe.find(e=>e.id===s.id)}));
     const spacing=JSON.parse(fs.readFileSync(f.replace(/\.pages\.json$/,".whitespace.json"),"utf8"));
     if(spacing.pages.length!==d.pages.length)throw Error("Whitespace measurement omitted pages");
@@ -117,7 +114,7 @@ if [ "${BOOK_ENGINE:-paged}" = "typst" ] && [ -f "$TYP" ]; then
       const height=Math.round(Math.max(2,fig.h/72-needed)*100)/100;
       if(height<fig.h/72-.1)d.fit.push({page:fig.page,id:fig.id,height,closer:true});}
     if (d.tail.length) console.log("TAIL " + d.tail.map(t=>`p${t.page} ${t.id} ${t.figH}in ${t.newH>=1.4?"-> "+t.newH+"in":"kept"}`).join("; "));
-    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$FIGS" "$ENDS" "$MAP" "$LINKS" "$PARTS" "$FOLIOS" "$PAR_STARTS" "$PAR_ENDS" "$MARKS"
+    fs.writeFileSync(f, JSON.stringify(d));' "${PDF%.pdf}.pages.json" "$META"
   # tails are recorded for the fit loop, never a failure here: only the blank gate fails a render
   if [ "$BRC" -ne 0 ] && [ "${BLANK_PAGES:-fail}" != "warn" ]; then echo "RENDER FAILED (blank pages)"; exit 4; fi
   SIZE=$(wc -c < "$PDF" | tr -d ' ')

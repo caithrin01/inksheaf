@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {deployedPress,writeRelease,LEGACY_PRESS_SHA,PRESS_PROTOCOL} from './press-release.mjs';
+import {deployedPress,writeRelease,attachRuntimeImage,LEGACY_PRESS_SHA,PRESS_PROTOCOL} from './press-release.mjs';
 let passed=0;const test=async(name,fn)=>{await fn();console.log('PASS',name);passed++;};
 const valid={repository:'caithrin01/inksheaf',sha:'b'.repeat(40),protocol:PRESS_PROTOCOL};
 await test('the press selects the deployed commit instead of merged main',async()=>{
@@ -23,5 +23,11 @@ await test('artifact contains the exact commit and disables manifest caching',as
   assert.deepEqual(JSON.parse(readFileSync(dir+'/inksheaf-press.json')),valid);
   assert.match(readFileSync(dir+'/_headers','utf8'),/Cache-Control: no-store/);
   assert.throws(()=>writeRelease('main',dir));
+});
+await test('only the protected artifact selects an immutable prepared runtime',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'inksheaf-runtime-')),image='ghcr.io/caithrin01/inksheaf-press@sha256:'+'c'.repeat(64);writeRelease(valid.sha,dir);attachRuntimeImage(image,dir);
+  const manifest=JSON.parse(readFileSync(dir+'/inksheaf-press.json'));assert.equal(manifest.sha,valid.sha);
+  const selected=await deployedPress({fetchImpl:async()=>Response.json(manifest)});assert.equal(selected.runtime_image,image);
+  for(const bad of [image.replace('caithrin01','someone'),image.replace('@sha256:',':'),image+'\n']){assert.throws(()=>attachRuntimeImage(bad,dir));await assert.rejects(deployedPress({fetchImpl:async()=>Response.json({...valid,runtime_image:bad})}));}
 });
 console.log(`${passed} press release compatibility checks passed`);

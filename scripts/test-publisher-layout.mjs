@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {layoutInput,validateLayout,applyLayoutRepairs,pageContext,layoutBatches,readingOrderFindings} from './lib/publisher-layout.mjs';
+import {layoutInput,validateLayout,applyLayoutRepairs,pageContext,layoutBatches,readingOrderFindings,articleEndsHere} from './lib/publisher-layout.mjs';
 const input=layoutInput({measurement:{pages:[{page:1,blank:.6,ink_rows:.2},{page:2,blank:.7,ink_rows:.2}],articles:[{n:1,start:1,end:2}],figures:[{id:'figure-1',page:1,role:'picture'}],fit:[{id:'figure-1',page:1,height:2.8}],linkStarts:[{n:1,page:2}]},report:{postOrder:[{id:1}],publisher:{decisions:[{post_id:1,title:'An essay',kind:'essay',reason:'Substantial writing.'}]}},fit:{fitText:{1:.62}},review:{findings:[]},pdfHash:'fixture'});
 let n=0;const test=(name,fn)=>{fn();n++;console.log('PASS',name);};
 const result={decisions:[{page:1,decision:'repair',candidate_id:'figure:figure-1',reason:'Fit the measured figure.'},{page:2,decision:'repair',candidate_id:'leading:1',reason:'Bring a sparse ending back.'}]};
@@ -82,6 +82,29 @@ test('body gaps cannot use an article-ending basis, even with final prose before
   assert.equal(validateLayout({decisions:[{...d,space_basis:'figure_sequence',reason:'Closing prose precedes the full-page photograph in the same article.'}]},i).decisions.length,1);
   assert.throws(()=>validateLayout({decisions:[{...d,space_basis:null}]},i),/space_basis/);
 });
+test('a held body page cannot invent an article ending before its closing image',()=>{
+  const page={page:130,position:'body',compiled_article_span:{start:121,end:131},findings:[],following_source_figure:{id:'closing-screenshot',physical_page:131}};
+  const input={pages:[page],candidates:[]},decision={page:130,decision:'needs_review',candidate_id:null,space_basis:null,article_ends_here:true,reason:'The final article page leaves a gap.'};
+  assert.throws(()=>validateLayout({decisions:[decision]},input),/article_ends_here must be false/);
+  const held=validateLayout({decisions:[{...decision,article_ends_here:false,reason:'The composition before the closing screenshot remains unresolved.'}]},input);
+  assert.equal(held.decisions[0].decision,'needs_review','Correct boundary evidence does not itself approve composition');
+  assert.equal(articleEndsHere({...page,page:131}),true);
+  assert.equal(articleEndsHere({page:1,position:'front matter',compiled_article_span:null}),null);
+  assert.equal(articleEndsHere({page:2,position:'body',compiled_article_span:null}),null,'A blank between articles does not inherit a boundary from the fallback position');
+  assert.equal(articleEndsHere({page:3,position:'body',compiled_article_span:{start:1,end:2}}),null,'An out-of-span page is unknown');
+});
+test('following-image fit evidence states lower bounds without waiving content defects',()=>{
+  const measurement={pages:[{page:130,blank:.5,layout_geometry:{trailing_space_points:266.45}},{page:131,blank:.1}],articles:[{n:1,start:121,end:131}],figures:[{id:'reading-screenshot',page:131,h:485.28,reading_mode:'landscape',floating:false,visual_role:{role:'reading'}}]};
+  const make=m=>layoutInput({measurement:m,report:{},fit:{},review:{findings:[{page:130,check:3,note:'Unreadable image detail.'}]}});
+  const input=make(measurement),page=input.pages[0],figure=page.following_source_figure;
+  assert.equal(page.article_ends_here,false);assert.equal(figure.reading_size_protected,true);assert.equal(figure.image_alone_fits_in_gap,false);
+  assert(Math.abs(figure.minimum_height_shortfall_points-218.83)<1e-9);
+  assert(Math.abs(figure.minimum_linear_reduction_fraction_to_fit-(1-266.45/485.28))<1e-9);
+  const decision={page:130,decision:'intentional_space',article_ends_here:false,candidate_id:null,space_basis:'figure_sequence',reason:'The reading-sized screenshot must follow its source prose.'};
+  assert.throws(()=>validateLayout({decisions:[decision]},input),/content or overflow/);
+  for(const gap of [undefined,-1,NaN]){const other=structuredClone(measurement);other.pages[0].layout_geometry.trailing_space_points=gap;const f=make(other).pages[0].following_source_figure;assert.equal(f.image_alone_fits_in_gap,null);assert.equal(f.minimum_height_shortfall_points,null);assert.equal(f.minimum_linear_reduction_fraction_to_fit,null);}
+  const fits=structuredClone(measurement);fits.pages[0].layout_geometry.trailing_space_points=500;const f=make(fits).pages[0].following_source_figure;assert.equal(f.image_alone_fits_in_gap,true);assert.equal(f.minimum_height_shortfall_points,0);assert.equal(f.minimum_linear_reduction_fraction_to_fit,0);
+});
 test('a reduced photograph stranded on its closing leaf cannot pass as intentional space',()=>{
   const measurement={pages:[{page:1,blank:.1},{page:2,blank:.3},{page:3,blank:.76,ink_rows:.236,
     layout_geometry:{body_bounds_points:[44,56,387,592],blocks:[{kind:'image',bbox:[90,67,326,197]}]}}],
@@ -98,5 +121,23 @@ test('a reduced photograph stranded on its closing leaf cannot pass as intention
     m=>m.pages[2].layout_geometry.blocks.push({kind:'text',text:'A source paragraph also occupies the page.'}),m=>m.articles[0].start=3]){
     const other=structuredClone(measurement);change(other);assert.equal(packet(other).pages[0].stranded_picture_fit,null);
   }
+});
+
+test('source glyph and markup comparisons survive into layout without clearing space or other defects',()=>{
+ for(const check of [6,7]){
+ const source={page:1,check,note:'This lettering or markup is present in the source screenshot.',origin:'source_content',source_preserved:true,source_comparisons:1};
+ if(check===7)source.artifact_evidence={typeset_body_characters:0,source_bitmaps:[{figure_id:'original',embedded_bytes_match:true}]};
+ const args={measurement:{pages:[{page:1,blank:.8,ink_rows:.1}],articles:[{n:1,start:1,end:2}]},report:{},fit:{},review:{findings:[{page:1,check:4,note:'Clipped prose.'}],dismissed:[source,{...source,page:2},{...source,source_comparisons:0},{...source,check:3}]}};
+ const input=layoutInput(args);assert.equal(input.pages[0].source_observations.length,1);assert.equal(input.pages[0].findings[0].check,4);
+ assert.deepEqual(input.pages[0].source_observations[0].artifact_evidence,source.artifact_evidence);
+ assert.throws(()=>validateLayout({decisions:[{page:1,decision:'intentional_space',candidate_id:null,space_basis:'composition',reason:'Source spelling is preserved.'}]},input),/content or overflow/);
+ assert.throws(()=>validateLayout({decisions:[]},input),/omitted/);
+ }
+});
+
+test('multiple leading repairs for one article keep the tightest bounded setting',()=>{
+ const input={pages:[{page:2,findings:[]},{page:4,findings:[]}],candidates:[{id:'before-image',page:2,operation:'tighten_leading',article:1,leading:.54},{id:'ending',page:4,operation:'tighten_leading',article:1,leading:.62}]};
+ const result={decisions:input.candidates.map(c=>({page:c.page,decision:'repair',candidate_id:c.id,reason:'Fit the measured prose tail.'}))};
+ assert.equal(applyLayoutRepairs({fitText:{1:.66}},result,input).fitText[1],.54);
 });
 console.log(`${n} bounded publisher layout checks passed`);

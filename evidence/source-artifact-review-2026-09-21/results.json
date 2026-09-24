@@ -1,0 +1,75 @@
+{
+  "date": "2026-09-21",
+  "scope": "Targeted artifact-confirmation evaluation with a faithful source screenshot and a controlled, newly typeset HTML line. Screening findings were seeded; this does not establish whole-book acceptance or customer latency. Private source images and PDF content are excluded.",
+  "quality_accepted_book": false,
+  "evaluation_base_commit": "acc51cd726cb7c7cbd9a68e110bf7db2a9d4457a",
+  "evaluations": [
+    {
+      "method": "source comparison only",
+      "provider_requests": 1,
+      "spent_usd": 0.025492,
+      "outcomes": [
+        {
+          "case": "faithful-source",
+          "expected_result_observed": false
+        }
+      ]
+    },
+    {
+      "method": "source comparison with explicit preservation wording",
+      "provider_requests": 2,
+      "spent_usd": 0.050542,
+      "outcomes": [
+        {
+          "case": "faithful-source",
+          "expected_result_observed": false
+        },
+        {
+          "case": "introduced-markup",
+          "expected_result_observed": true
+        }
+      ]
+    },
+    {
+      "method": "source comparison, preservation wording and actual PDF evidence",
+      "provider_requests": 2,
+      "spent_usd": 0.051586,
+      "outcomes": [
+        {
+          "case": "faithful-source",
+          "expected_result_observed": true
+        },
+        {
+          "case": "introduced-markup",
+          "expected_result_observed": true
+        }
+      ]
+    }
+  ],
+  "implementation_parity": [
+    {
+      "case": "faithful-source",
+      "actual_pdf_evidence_matches": true,
+      "shipping_prompt_sha256": "54900a68822992cf3af416ab58cc074b7218a49f27b1f993739b9c65d0824ab0",
+      "matches_evaluated_prompt": true
+    },
+    {
+      "case": "introduced-markup",
+      "actual_pdf_evidence_matches": true,
+      "shipping_prompt_sha256": "124eebdc8cdda3ed955439307694469f4c65d75194977c2b09e319958f1180bd",
+      "matches_evaluated_prompt": true
+    }
+  ],
+  "regression_coverage": [
+    "Actual PDF text objects distinguish source bitmap lettering from newly typeset HTML.",
+    "Exact embedded source bytes and printed geometry are reported; unmatched images and unknown page geometry do not imply preservation.",
+    "Normal confirmation packets retain the four-image bound and carry PDF evidence into review records.",
+    "Introduced markup remains held; source observations retain spacing, clipping and reading-size review.",
+    "Review-policy hashing includes the PDF evidence helper."
+  ],
+  "limits": [
+    "One positive and one negative live model control; broader corpus acceptance remains unproved.",
+    "The original complete-book result remains held; targeted evidence does not rewrite prior acceptance.",
+    "No deterministic artifact dismissal, source rewrite, quality-gate relaxation, email or deployment."
+  ]
+}

@@ -5,6 +5,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {readingOrderFindings} from './publisher-layout.mjs';
+import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
+import {PreparedTypesetting} from './prepared-typesetting.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -27,9 +29,9 @@ export async function fitWithBudget({ beforePass, ...options }) {
   } finally { steps.return(); }
 }
 
-function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false }) {
-  const sh = (cmd, a) => { try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
-    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } };
+function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}, allowMeasuredSpaceReview = false, prepared = new PreparedTypesetting() }) {
+  const sh = (cmd, a) => { const started=Date.now(); try { return execFileSync(cmd, a, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
+    catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-8).join("\n")); throw Object.assign(new Error(`${cmd} ${a.slice(0, 2).join(" ")} failed (exit ${e.status})`),{exitStatus:e.status,output:out}); } finally { log(`[timing] ${cmd==="node"?"build":"render"}: ${Date.now()-started}ms`); } };
   const pagesFile = pdf.replace(/\.pdf$/, ".pages.json");
   const defer = new Set(initial.defer || []), backLinks = new Set(initial.backLinks || []), inFlow = [...(initial.inFlow || [])];
   let extra = []; const fitFigs = {...initial.fitFigs}, fitText = {...initial.fitText}, readingFigures={...initial.readingFigures}, pictureFigures=[...(initial.pictureFigures||[])];
@@ -40,7 +42,9 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
     const a = [...args, ...(defer.size ? ["--defer", [...defer].join(",")] : []), ...figArg, ...textArg,
       ...(backLinks.size ? ['--back-links', [...backLinks].join(',')] : []), ...(inFlow.length ? ['--in-flow', inFlow.join(',')] : []), ...(pictureFigures.length?['--picture-figures',pictureFigures.join(',')]:[]), ...(Object.keys(readingFigures).length?['--reading-figures',Object.entries(readingFigures).map(([id,mode])=>`${id}=${mode}`).join(',')]:[]), ...extra];
     log(`pass ${pass}: ${a.filter(x => !x.startsWith("--out") && !/\.html$/.test(x)).slice(1).join(" ")}`);
-    sh("node", a);
+    const prepareStarted=Date.now();
+    if(prepared.render({args:a,html}))log(`[timing] prepared source reuse: ${Date.now()-prepareStarted}ms`);
+    else {sh("node", a);prepared.capture({args:a,html});}
     try {
       let out,spacePending=false;
       try{out=sh("bash", ["scripts/render-book.sh", html, pdf]);}
@@ -66,12 +70,14 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
         pj.pages[a.end-1]?.ink_rows < .25 && (fitText[a.n] || .66) > .54 &&
         !stranded.some(s=>s.n===a.n) && !tails.some(f=>f.page>=a.start&&f.page<=a.end) &&
         !interruptions.some(f=>f.page>=a.start&&f.page<=a.end)) : [];
-      if ((interruptions.length||tails.length||stranded.length||sparse.length) && pass < passes) {
+      const proseTails=pj.engine==='typst'?preFigureTextTails(pj,fitText):[];
+      if ((interruptions.length||tails.length||stranded.length||sparse.length||proseTails.length) && pass < passes) {
         for(const f of interruptions)if(!inFlow.includes(f.figure_id))inFlow.push(f.figure_id);
         for(const f of tails)fitFigs[f.id]=f.height;
         stranded.forEach(a=>backLinks.add(a.n));
-        for (const a of sparse) fitText[a.n] = Math.max(.54, +((fitText[a.n] || .66) - .04).toFixed(2));
-        log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} leading repairs together`);
+        for (const a of sparse) fitText[a.n] = leadingForTail(pj,a,fitText[a.n]||.66);
+        for (const tail of proseTails) fitText[tail.article]=Math.min(fitText[tail.article]||.66,tail.leading);
+        log(`pass ${pass}: preparing ${interruptions.length} source-position, ${tails.length} figure, ${stranded.length} reference and ${sparse.length} ending and ${proseTails.length} pre-figure leading repairs together`);
         continue;
       }
       return { ok: true, pass, defer: [...defer], fitFigs: { ...fitFigs }, fitText: {...fitText}, backLinks:[...backLinks], inFlow, readingFigures, pictureFigures, ...(spacePending?{spacing_requires_review:true}:{}), out: out.trim() };

@@ -29,6 +29,7 @@ import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 import { makeClient } from "./lulu-client.mjs";
 import prices from "../functions/lib/print-prices.json" with { type: "json" };
 import { chromium } from "playwright";
+import {pressTiming} from './lib/press-timing.mjs';
 import { luluUsesProduction, pressEventType, runtimeMode } from "../functions/lib/runtime.js";
 
 const EVENT = process.env.PRESS_EVENT || "press";
@@ -46,6 +47,7 @@ if (plan?.design && !validDesign(plan.design)) throw new Error("Unsupported rese
 const slug = host.replace(/\W+/g, "-");
 const DIR = `proofs/press/${ID}`; mkdirSync(DIR, { recursive: true });
 const log = (s, m) => console.error(`[${s}] ${m}`);
+const timing=pressTiming('output/press-timing.json',{requestedAt:process.env.PRESS_REQUESTED_AT});timing.mark('worker_started');
 /* a failing command must leave its own words in the log, not just node's stack */
 const sh = (cmd, args) => { try { return execFileSync(cmd, args, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
   catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-12).join("\n")); throw new Error(`${cmd} ${args.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
@@ -54,6 +56,7 @@ const hmac = m => createHmac("sha256", SECRET).update(m).digest("hex");
 let STAGE = "start";
 /* a crash anywhere becomes a truthful "failed" row with the stage and run id, never "building" */
 for (const ev of ["uncaughtException", "unhandledRejection"]) process.on(ev, async (err) => {
+  timing.mark('stopped');
   const msg = String((err && err.message) || err).replace(/[\r\n]+/g, " ").slice(0, 200);
   console.error(`PRESS FAILED at ${STAGE}: ${msg}`);
   try { await status("failed", { message: `failed at ${STAGE}: ${msg}`, error: msg, run: process.env.GITHUB_RUN_ID || "local", version_id: Number(process.env.VERSION_ID) || undefined, version_status: process.env.VERSION_ID ? "failed" : undefined }); } catch {}
@@ -80,7 +83,9 @@ const POD_ID = prices.pods[interior].pod_package_id; // 6x9 perfect bound, black
 
 /* the publication's own palette for the cover and the title page */
 const brandPath = `${DIR}/brand.json`;
+timing.mark('publication_identity_started');
 if (!existsSync(brandPath)) { try { sh("node", ["scripts/brand-lift.mjs", host, "--out", brandPath]); } catch (e) { log("brand", "lift failed, default brand: " + String(e.message).slice(0, 80)); } }
+timing.mark('publication_identity_finished');
 
 
 /* the short links a volume prints go to the site's links table so inksheaf.com/l/<code> answers;
@@ -101,7 +106,7 @@ async function dispatchOrLog(payload) {
   try { const eventType = pressEventType(process.env, payload.event); const r = await fetch("https://api.github.com/repos/caithrin01/inksheaf/dispatches", { method: "POST", headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "content-type": "application/json", "user-agent": "inksheaf-press/1.0" }, body: JSON.stringify({ event_type: eventType, client_payload: { ...payload, environment: MODE } }) }); log("dispatch", `${eventType} -> ${r.status}`); }
   catch (e) { log("dispatch", `failed: ${String(e.message).slice(0, 80)}`); }
 }
-async function buildVolume(v, i, { proof, initial = {}, passes = 4, beforePass }) {
+async function buildVolume(v, i, { proof, initial = {}, passes = 4, beforePass, prepared }) {
   const base = `${slug}-${ID}-v${i + 1}`;
   const html = `proofs/${base}.html`, pdf = `${DIR}/${base}.pdf`;
   const args = ["scripts/build-book.mjs", host, "--out", html, "--publisher-dir", `${DIR}/publisher`, "--publisher-volume", String(i+1), "--direct-links"];
@@ -118,7 +123,7 @@ async function buildVolume(v, i, { proof, initial = {}, passes = 4, beforePass }
   if (Array.isArray(plan?.include) && plan.include.length) args.push("--include", plan.include.map(x => String(x).replace(/[^a-z0-9-]/gi, "")).filter(Boolean).join(","));
   if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
-  const fitted = await fitWithBudget({ args, html, initial, passes, beforePass, allowMeasuredSpaceReview:true, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
+  const fitted = await fitWithBudget({ args, html, initial, passes, beforePass, prepared, allowMeasuredSpaceReview:true, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   for (const line of String(fitted.out || "").split("\n").filter(l => /^(BLANK|TAIL|OK )/.test(l))) log("render", `${v.label}: ${line}`); /* the measure lines belong in the run log */
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
   report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow, readingFigures:fitted.readingFigures, pictureFigures:fitted.pictureFigures, ...(fitted.spacing_requires_review?{spacing_requires_review:true}:{}) };
@@ -133,7 +138,7 @@ if (EVENT === "press") {
      resolution, uploaded, hashed, and recorded as one edition version. The writer reads the
      exact bytes that will print; approval names the version and its digest. */
   await status("building");
-  const emit = async event => (await publisherSession({directory:`${DIR}/publisher`})).emit(event);
+  const emit = async event => {await(await publisherSession({directory:`${DIR}/publisher`})).emit(event);if(event.kind==='pages')timing.mark('draft_available',{volume:Number(event.volume),round:event.round});};
   const {vols,totalPages,rendererSha,finalPlan,vj}=await withPublisherSelection({
     load:()=>currentPublisherSelection(),
     onChange:async()=>log('publisher','Picking up the creator’s saved correction.'),
@@ -143,6 +148,7 @@ if (EVENT === "press") {
       const postOrder = [], bodyHashes = {};
       for (let i = 0; i < volumes.length; i++) {
         const v = volumes[i];
+        timing.mark('volume_started',{volume:i+1});
         const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
           renderIdentity:renderIdentity({host,plan,volume:v,index:i,interior}),
           // Preserve the saved edition's scraped palette before any repair or
@@ -152,6 +158,7 @@ if (EVENT === "press") {
           onRendered:({book,round,volume})=>publishPreview({book,round,volume,emit,upload:uploadProof,url:k=>signedProofUrl(k,7*24*3600),key:file=>proofKey(`${slug}-${ID}`,'preview',file),log:m=>log('preview',m)}),
           reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});
         const pages=await b.pages;
+        timing.mark('volume_accepted',{volume:i+1,pages});
         const key=proofKey(`${slug}-${ID}`,`interior-v${i+1}`,b.pdf);
         const sha=createHash('sha256').update(readFileSync(b.pdf)).digest('hex');
         for (const o of (b.report.postOrder || [])) postOrder.push(o);
@@ -164,7 +171,9 @@ if (EVENT === "press") {
       return {vols,postOrder,bodyHashes};
     },
     commit:async({vols,postOrder,bodyHashes},selection)=>{
+      timing.mark('upload_started',{volumes:vols.length});
       for(const v of vols)await uploadProof(v.pdf,v.key);
+      timing.mark('upload_finished',{volumes:vols.length});
       const finalPlan = {...(plan||{}),volumes:volumes.map((v,i)=>({...v,post_ids:vols[i].postOrder.map(p=>p.id),posts:vols[i].included})),
         publisher:{version:2,selection_revision:selection.revision,excluded:vols.flatMap((v,i)=>(v.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({...d,volume:i+1})))}};
       const totalPages = vols.reduce((n, x) => n + x.pages, 0);
@@ -175,6 +184,7 @@ if (EVENT === "press") {
         proof_key: vols[0].key, proof_sha256: vols[0].sha256, pages: totalPages, run_id: process.env.GITHUB_RUN_ID || "" }) });
       const vj = await vr.json().catch(() => ({}));
       if (!vr.ok || !vj.ok) throw new Error(`version not recorded: ${vr.status} ${JSON.stringify(vj).slice(0, 160)}`);
+      timing.mark('version_saved',{volumes:vols.length,pages:totalPages});
       return {vols,totalPages,rendererSha,finalPlan,vj};
     }
   });
@@ -182,6 +192,7 @@ if (EVENT === "press") {
   const versionId = vj.version_id, nonce = vj.nonce;
   const proofUrl = signedProofUrl(vols[0].key, 7 * 24 * 3600);
   await emit({kind:"ready",version_id:versionId,files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
+  timing.mark('workspace_ready',{volumes:vols.length,pages:totalPages});
   const workspace = `${SITE}/edition?id=${ID}&sig=${hmac(`edition:${ID}`)}`;
   const approve = `${SITE}/api/approve?v=${versionId}&n=${nonce}`;
   const change = `${SITE}/change?id=${ID}&sig=${hmac(`change:${ID}`)}`;
@@ -215,6 +226,7 @@ Inksheaf`;
     text: `Reservation #${ID}\n${URL_}\nWriter: ${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n\n` + vols.map(x => `${x.label}, SHA-256 ${x.sha256}\n${operatorBlock(x.review)}`).join("\n\n"),
     assets: vols.map(x => ({ label: x.label, pages: x.pages, key: x.key, pdf: x.pdf })) },
     { log: m => log("operator-pdf", m) });
+  timing.mark('operator_mail_finished');
   const leftOut = vols.flatMap(x => x.leftOut);
   /* the estimate against the typeset book (Codex audit P0-2): recorded, and over 15% it is said */
   const est = Number(plan?.est_pages) || vols.reduce((t, x, i) => t + (Number(volumes[i]?.est_pages) || 0), 0);
@@ -229,6 +241,7 @@ Inksheaf`;
     delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId,
       subject: `Your complete PDF: ${vols[0].pubName || host}`, text });
   } catch (e) { log("creator-email", String(e.message || e).slice(0, 160)); }
+  timing.mark('creator_mail_finished');
   await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
   log("creator-email", `version ${versionId}: ${delivery.status}; provider accepted ${delivery.accepted === true}`);
   if (!delivery.accepted) {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {adjudicateFigureConfirmation,figurePrintEvidence,FigureConfirmation} from './lib/figure-confirmation.mjs';
+import {adjudicateFigureConfirmation,adjudicateReadingOrderConfirmation,figurePrintEvidence,FigureConfirmation} from './lib/figure-confirmation.mjs';
 import {layoutInput,validateLayout,applyLayoutRepairs} from './lib/publisher-layout.mjs';
 
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS',name);};
@@ -57,5 +57,14 @@ test('layout cannot evade the reading requirement with whitespace or an unrelate
   const another={...input,candidates:[...input.candidates,{id:'another',page:1,operation:'tighten_leading',article:1,leading:.6}]};
   assert.throws(()=>validateLayout({decisions:[{...decision,candidate_id:'another'}]},another),/matching measured enlargement/);
   validateLayout({decisions:[{...decision,decision:'needs_review',candidate_id:null}]},input);
+});
+test('reading-order screening cannot turn a measured landscape figure into a column-order defect',()=>{
+  const typed={...answer,confirmed:true,origin:'rendered_layout',defect:'orientation_only'};
+  assert.equal(adjudicateReadingOrderConfirmation(typed,[landscape]).confirmed,false);
+  for(const defect of ['paragraph_split','column_order','reading_size'])assert.equal(adjudicateReadingOrderConfirmation({...typed,defect},[landscape]).confirmed,true);
+  for(const change of [{figure_id:'missing'},{reading_detail:'uncertain'},{origin:'uncertain'}])assert.equal(adjudicateReadingOrderConfirmation({...typed,...change},[landscape]).origin,'uncertain');
+  assert.equal(adjudicateReadingOrderConfirmation(typed,[figure]).required_reading_mode,'landscape');
+  assert.equal(adjudicateReadingOrderConfirmation(typed,[{...landscape,reading_mode:'column'}]).confirmed,true);
+  assert.throws(()=>adjudicateReadingOrderConfirmation({confirmed:false,note:'Looks fine'},[landscape]));
 });
 console.log(`${count} figure confirmation checks passed`);

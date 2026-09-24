@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-21",
+  "scope": "Offline preservation and regression evidence for compiled reference/caption metadata and targeted source-text context. Live semantic confirmation and complete-book acceptance are not established by these checks.",
+  "retained_books": [
+    {
+      "case": "annual",
+      "original_pages": 182,
+      "compiled_pages": 181,
+      "postcompile_blank_binding_pages": 1,
+      "all_page_pixels_identical": true,
+      "all_page_text_identical": true,
+      "embedded_image_bytes_identical": true,
+      "changed_pixel_pages": [],
+      "changed_text_pages": []
+    },
+    {
+      "case": "cooking",
+      "original_pages": 122,
+      "compiled_pages": 121,
+      "postcompile_blank_binding_pages": 1,
+      "all_page_pixels_identical": true,
+      "all_page_text_identical": true,
+      "embedded_image_bytes_identical": true,
+      "changed_pixel_pages": [],
+      "changed_text_pages": []
+    }
+  ],
+  "checks": [
+    "Renderer 69 pass, 0 fail",
+    "Typst fixtures 46 pass, 0 fail",
+    "Combined metadata query and all 10 raster pages match individual queries/serial rendering",
+    "Controlled fixture retains every page pixel and extracted text while adding compiled metadata",
+    "References match only an entry in the same article; absent or unrelated entries remain unknown",
+    "Evidence is omitted from screening, attached to checks 6/7, retained in saved review and passed to layout",
+    "An existing extra-markup hold cannot be overridden by intentional-caption evidence",
+    "Page review 47, layout 23, publisher agent 31, durable budget/cache 19, layout reuse 15 and validator 13 pass"
+  ],
+  "quality_accepted_book": false,
+  "model_requests_in_these_checks": 0,
+  "private_content_included": false
+}

@@ -125,6 +125,42 @@ for name,mode in [('feed','column'),('chart','landscape')]:
 print(json.dumps(results))
 `],{encoding:'utf8'}));
 test('rendered PDFs preserve bitmap pixels, source markers, caption adjacency and trim bounds',()=>assert.equal(checks.length,2));
+test('long source captions paginate without shrinking images, clipping text or touching folios',()=>{
+ const words=Array.from({length:150},(_,i)=>`Captionword${String(i).padStart(3,'0')}`);
+ for(const [name,mode] of [['feed','column'],['chart','landscape']]){
+  const file=out+'/long-caption-'+mode;
+  const source=html(name).replace('CaptionMarker. These labels belong to this image.',words.join(' '));
+  writeFileSync(file+'.typ',emitTypst(source,{baseDir:out,readingFigures:{example:mode}}));
+  execFileSync('typst',['compile','--font-path','fonts','--ignore-system-fonts',file+'.typ',file+'.pdf']);
+  const figures=JSON.parse(execFileSync('typst',['query','--font-path','fonts','--ignore-system-fonts',file+'.typ','<fig>','--field','value'],{encoding:'utf8'}));
+  assert.equal(figures.length,1,'Measuring a caption must not duplicate figure metadata');
+  assert.equal(figures[0].image_width_points,compiled[name+'-'+mode].figure.image_width_points);
+  execFileSync('python3',['-c',`import pymupdf as fitz,sys,re
+from PIL import Image
+doc=fitz.open(sys.argv[1]);source=Image.open(sys.argv[2]).convert('RGB')
+text=''.join(p.get_text(flags=fitz.TEXTFLAGS_TEXT|fitz.TEXT_INHIBIT_SPACES) for p in doc)
+joined=re.sub(r'[\\s\\u00ad-]','',text)
+words=['Captionword'+str(i).zfill(3) for i in range(150)]
+assert all(joined.count(w)==1 for w in words),'Caption text was lost or duplicated'
+assert joined.index('BeforeMarker')<joined.index(words[0])<joined.index(words[-1])<joined.index('AfterMarker')
+images=[];caption_pages=set()
+for page in doc:
+ for item in page.get_images(full=True):
+  if item[2:4]!=(source.width,source.height):continue
+  assert fitz.Pixmap(doc,item[0]).samples==source.tobytes()
+  images.append(page.number)
+ for b in page.get_text('dict')['blocks']:
+  for line in b.get('lines',[]):
+   for span in line['spans']:
+    if 'Captionword' not in span['text']:continue
+    caption_pages.add(page.number)
+    assert span['bbox'][1]>=50 and span['bbox'][3]<596,span
+    assert abs(span['size']-8.5)<.01,'Caption font must not shrink to fit'
+assert len(images)==1 and images[0]==min(caption_pages),'Image must stay whole and begin beside its caption'
+assert len(caption_pages)>1,'This fixture must exercise a caption page turn'
+`,file+'.pdf',out+'/'+name+'.png']);
+ }
+});
 const base={measurement:{pages:[{page:1,blank:.1}],figures:[{...compiled['chart-normal'].figure,id:'example',page:1}],fit:[{id:'example',page:1,height:1.8}]},report:{},fit:{fitFigs:{example:2}},review:{findings:[{page:1,check:3,note:'Labels too small'}]}};
 const input=layoutInput(base),candidate=input.candidates.find(c=>c.operation==='set_figure_reading_size'&&c.mode==='landscape');
 const decision={decisions:[{page:1,decision:'repair',candidate_id:candidate.id,reason:'Give the wide chart a larger reading size.'}]};

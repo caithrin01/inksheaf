@@ -31,7 +31,7 @@ await test('a real one-line continuation remains a finding and reaches neighbour
   let confirmed=false;
   const r=await reviewPdf(pdf,{outDir:join(dir,'widow'),pageContext:pageContext(m,{}),ask:async({text,images})=>{
     if(text.includes('contact sheet'))return{text:'[{"page":2,"check":2,"confidence":0.9,"note":"A single paragraph line at the top."}]'};
-    confirmed=images.length===3&&text.includes('"line_count":1');return{text:'{"confirmed":true,"origin":"rendered_layout","note":"One continuation line.","defect":"single_line_fragment","edge":"top"}'};
+    confirmed=images.length===3&&text.includes('"line_count":1');return{text:'{"confirmed":true,"origin":"rendered_layout","note":"One continuation line.","defect":"single_line_fragment","edge":"top","physical_page":2}'};
   }});
   assert(confirmed);assert.equal(r.findings.length,1);assert.equal(r.errors.length,0);
 });
@@ -39,7 +39,7 @@ await test('multi-line boundary evidence accompanies confirmation without cleari
   let grounded=false;
   const r=await reviewPdf(pdf,{outDir:join(dir,'multi'),pageContext:pageContext(measurement,{}),ask:async({text})=>{
     if(text.includes('contact sheet'))return{text:'[{"page":1,"check":2,"confidence":0.9,"note":"Last word is alone."},{"page":1,"check":4,"confidence":0.8,"note":"Overflow."}]'};
-    if(text.includes('check 2:')){grounded=text.includes('"line_count":8')&&text.includes('"line_count":5')&&text.includes('1.8 has several words.');return{text:'{"confirmed":true,"origin":"rendered_layout","note":"The last word is a widow.","defect":"single_line_fragment","edge":"foot"}'};}
+    if(text.includes('check 2:')){grounded=text.includes('"line_count":8')&&text.includes('"line_count":5')&&text.includes('1.8 has several words.');return{text:'{"confirmed":true,"origin":"rendered_layout","note":"The last word is a widow.","defect":"single_line_fragment","edge":"foot","physical_page":1}'};}
     return{text:'{"confirmed":true,"note":"Overflow still needs inspection."}'};
   }});
   assert(grounded);assert.deepEqual(r.findings.map(f=>f.check),[4]);assert.equal(r.dismissed.length,1);
@@ -58,7 +58,7 @@ await test('headings, whole short paragraphs, missing geometry and overlapping a
 });
 await test('two-line headings cannot be cleared as ordinary multi-line paragraphs',async()=>{
   const b=paragraphBoundaryContext(measurement,3);assert.equal(b.top.current.line_count,2);assert.equal(b.verified_no_single_line_fragment,false);
-  const heading={confirmed:true,origin:'rendered_layout',note:'A heading needs inspection.',defect:'stranded_heading',edge:'foot'};
+  const heading={confirmed:true,origin:'rendered_layout',note:'A heading needs inspection.',defect:'stranded_heading',edge:'foot',physical_page:3};
   assert.deepEqual(adjudicateBoundaryConfirmation(heading,b),heading);
 });
 await test('a complete single-line paragraph with an empty next-page end marker is not a split fragment',async()=>{
@@ -66,14 +66,14 @@ await test('a complete single-line paragraph with an empty next-page end marker 
   m.paragraphs=[{id:1,start:{page:1,y:last.bbox[1]},end:{page:2,y:55}}];
   const b=paragraphBoundaryContext(m,1);assert.equal(b.foot.current.line_count,1);assert.equal(b.foot.next.line_count,0);
   assert.equal(b.foot.printed_complete_on_page,true);assert.equal(b.foot.status,'complete_single_line_paragraph');
-  const claim={confirmed:true,origin:'rendered_layout',note:'One-line orphan.',defect:'single_line_fragment',edge:'foot'};
+  const claim={confirmed:true,origin:'rendered_layout',note:'One-line orphan.',defect:'single_line_fragment',edge:'foot',physical_page:1};
   assert.equal(adjudicateBoundaryConfirmation(claim,b).confirmed,false);
   delete m.pages[1].layout_geometry;
   assert.equal(paragraphBoundaryContext(m,1).foot.status,'unknown');
   assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
 });
 await test('contradictory or untyped verdicts fail validation; unmeasured edges are not waived',async()=>{
-  const claim={confirmed:true,origin:'rendered_layout',note:'Single-line defect.',defect:'single_line_fragment',edge:'both'};
+  const claim={confirmed:true,origin:'rendered_layout',note:'Single-line defect.',defect:'single_line_fragment',edge:'both',physical_page:1};
   const context=paragraphBoundaryContext(measurement,1);
   assert.equal(adjudicateBoundaryConfirmation(claim,{foot:context.foot}).confirmed,true);
   assert.throws(()=>adjudicateBoundaryConfirmation({...claim,defect:'none'},context),/no defect/);
@@ -84,7 +84,7 @@ await test('contradictory or untyped verdicts fail validation; unmeasured edges 
 await test('a complete source body line contradicts an isolated-heading claim only when its printed ending matches',async()=>{
   const m=structuredClone(measurement),last=m.pages[0].layout_geometry.blocks.filter(b=>b.kind==='text').at(-1);
   m.paragraphs=[{id:1,start:{page:1,y:last.bbox[1],source_kind:'paragraph',source_tail:last.text},end:{page:2,y:55}}];
-  const claim={confirmed:true,origin:'rendered_layout',note:'A heading is stranded at the foot.',defect:'stranded_heading',edge:'foot'};
+  const claim={confirmed:true,origin:'rendered_layout',note:'A heading is stranded at the foot.',defect:'stranded_heading',edge:'foot',physical_page:1};
   const b=paragraphBoundaryContext(m,1);assert(b.foot.printed_source_end&&b.foot.printed_complete_on_page);
   const answer=adjudicateBoundaryConfirmation(claim,b);assert.equal(answer.confirmed,false);assert.deepEqual(answer.model_confirmation,claim);
   m.paragraphs[0].start.source_tail='A different source ending before an empty carried marker.';
@@ -93,6 +93,24 @@ await test('a complete source body line contradicts an isolated-heading claim on
   assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
   m.paragraphs[0].start.source_kind='paragraph';m.paragraphs[0].end.y=150;
   assert.equal(adjudicateBoundaryConfirmation(claim,paragraphBoundaryContext(m,1)).confirmed,true);
+});
+await test('a neighbouring-page claim cannot be cleared using another page boundary',async()=>{
+  const context=paragraphBoundaryContext(measurement,1);
+  const claim={confirmed:true,origin:'rendered_layout',note:'One line on the next leaf.',defect:'single_line_fragment',edge:'top',physical_page:2};
+  const answer=adjudicateBoundaryConfirmation(claim,context);
+  assert.equal(answer.confirmed,true);assert.equal(answer.origin,'uncertain');assert.deepEqual(answer.model_confirmation,claim);
+  assert.equal(adjudicateBoundaryConfirmation({...claim,confirmed:false,defect:'none'},context).confirmed,true);
+  const {physical_page,...unlocated}=claim;
+  assert.throws(()=>adjudicateBoundaryConfirmation(unlocated,context));
+});
+await test('separate source paragraphs do not waive a split quotation group',async()=>{
+  const m=structuredClone(measurement),last=m.pages[0].layout_geometry.blocks.filter(b=>b.kind==='text').at(-1);
+  m.paragraphs=[{id:1,start:{page:1,y:last.bbox[1],source_kind:'quote_paragraph',source_tail:last.text},end:{page:2,y:55}}];
+  const b=paragraphBoundaryContext(m,1);
+  for(const defect of ['single_line_fragment','stranded_heading','stranded_group']){
+    const claim={confirmed:true,origin:'rendered_layout',note:'The explanation is separated from its example.',defect,edge:'foot',physical_page:1};
+    assert.equal(adjudicateBoundaryConfirmation(claim,b).confirmed,true);
+  }
 });
 console.log(`${passed} paragraph-boundary checks passed`);
 }finally{rmSync(dir,{recursive:true,force:true});}

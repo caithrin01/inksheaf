@@ -3,8 +3,10 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings,unknownPictureFits} from './publisher-layout.mjs';
 import {reviewPdf,writerLine} from './page-review.mjs';
+import {pageTextEvidence} from './page-text-evidence.mjs';
 import {prepareLayoutEvidence} from './layout-evidence.mjs';
 import {inspectFigureRoles} from './figure-role.mjs';
+import {PreparedTypesetting} from './prepared-typesetting.mjs';
 import {PUBLISHER_REVIEW_POLICY} from './publisher-session.mjs';
 import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions/lib/publisher-policy.js';
 
@@ -14,11 +16,12 @@ import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions
 export async function publishVolume({build,session,emit,volume,reviewDirectory,renderIdentity,log=()=>{},onRendered=async()=>{},onRestored=async()=>{}}){
   let usage=(await session()).renderUsage(volume),totalPasses=usage.passes,review,layout;
   let sourceHashes;
+  const prepared=new PreparedTypesetting();
   const boundedBuild=async options=>{
     const remaining=PUBLISHER_MAX_RENDERS-totalPasses;
     if(remaining<1)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
     let reservations=0,renderScope;
-    const book=await build({...options,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
+    const book=await build({...options,prepared,passes:Math.min(options.passes,remaining),beforePass:async settings=>{
       const publisher=await session();usage=await publisher.reserveRender(volume,settings);totalPasses=usage.passes;reservations++;
       if(renderIdentity)renderScope=publisher.renderScope(volume);
     }});
@@ -64,12 +67,12 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
-    review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],outDir:`${reviewDirectory}-${round}`,log});
+    review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],textEvidence:page=>pageTextEvidence(measurement,page),outDir:`${reviewDirectory}-${round}`,log});
     if(review.skipped||review.errors.length||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
     review.measured_findings=readingOrderFindings(measurement);
     review.findings.push(...review.measured_findings);
-    const figureRoles=await inspectFigureRoles({measurement,fit:book.report.fit,review,ask:publisher.figureRole,directory:`${reviewDirectory}-${round}/figure-role-images`,
-      onResult:roles=>writeFileSync(`${reviewDirectory}-${round}/figure-roles.json`,JSON.stringify({policy:PUBLISHER_REVIEW_POLICY,roles},null,2)+'\n',{mode:0o600})});
+    const figureRoles={...book.report.sourceFigureRoles,...await inspectFigureRoles({measurement,fit:book.report.fit,review,ask:publisher.figureRole,directory:`${reviewDirectory}-${round}/figure-role-images`,
+      onResult:roles=>writeFileSync(`${reviewDirectory}-${round}/figure-roles.json`,JSON.stringify({policy:PUBLISHER_REVIEW_POLICY,roles},null,2)+'\n',{mode:0o600})})};
     const measuredInput=layoutInput({measurement,report:book.report,fit:book.report.fit,review,figureRoles,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
     const evidence=prepareLayoutEvidence(measuredInput,{directory:`${reviewDirectory}-${round}`,rasterDirectory:`${reviewDirectory}-${round}/pages`,pageCount:review.pages,policy:PUBLISHER_REVIEW_POLICY});
     const input=evidence.input;

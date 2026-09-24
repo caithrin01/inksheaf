@@ -7,6 +7,8 @@
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import QRCode from "qrcode";
+import {mapConcurrent} from "./lib/async-work.mjs";
+import {sourceJsonClient} from "./lib/source-request.mjs";
 import { printCoverLogo } from "./lib/print-logo.mjs";
 import { printFonts } from "./lib/print-assets.mjs";
 import { interiorCss } from "../functions/lib/book-interior.js";
@@ -58,15 +60,7 @@ const BRAND_FILE = process.argv.includes("--brand-file")
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
 
 /* ---------------- fetch ---------------- */
-async function j(url) {
-  for (let a = 0; a < 5; a++) {
-    const r = await fetch(url, { headers: UA, redirect: "follow" });
-    if (r.status === 429 || r.status >= 500) { await new Promise(z => setTimeout(z, 1500 * (a + 1))); continue; }
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return r.json();
-  }
-  throw new Error(`429/5xx after retries ${url}`);
-}
+const j=sourceJsonClient({headers:UA});
 async function text(url) {
   const r = await fetch(url, { headers: { ...UA, accept: "text/html" }, redirect: "follow" });
   return r.ok ? r.text() : "";
@@ -190,17 +184,22 @@ const cachePath = p2 => `${CACHE}/${p2.slug}--${Date.parse(p2.updated_at || p2.p
 const full = [];
 if (FIXTURE) full.push(...deduped.filter(p => p.body_html && p.body_html.length <= 2_000_000 ||
   (report.skips.push({ slug: p.slug, reason: p.body_html ? "body over 2MB" : "empty body" }), false)));
-else for (const p of deduped) {
-  const cp = cachePath(p);
-  if (exf(cp)) { full.push(JSON.parse(rdf(cp, "utf-8"))); continue; }
-  try {
-    const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
-    if (d.body_html && d.body_html.length <= 2_000_000) { full.push(d); wrf(cp, JSON.stringify(d)); }
-    else report.skips.push({ slug: p.slug, reason: d.body_html ? "body over 2MB" : "empty body" });
-  } catch (e) { report.skips.push({ slug: p.slug, reason: String(e.message) }); }
-  await new Promise(r => setTimeout(r, 350));
+else {
+  const results=await mapConcurrent(deduped,async p=>{
+    const cp=cachePath(p);
+    if(exf(cp))return {post:JSON.parse(rdf(cp,"utf-8"))};
+    try {
+      const d=await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
+      if(d.body_html&&d.body_html.length<=2_000_000){wrf(cp,JSON.stringify(d));return {post:d};}
+      return {skip:{slug:p.slug,reason:d.body_html?"body over 2MB":"empty body"}};
+    } catch(e){return {skip:{slug:p.slug,reason:String(e.message)}};}
+  },{concurrency:4});
+  // Completion order must never change the creator's selected reading order.
+  for(const result of results)if(result.post)full.push(result.post);else report.skips.push(result.skip);
 }
 console.error(full.length, "bodies fetched");
+// Stop before optional homepage/brand reads when required writing is unavailable.
+if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error('Selected source text is missing; cannot finish the publisher edition');
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
@@ -519,9 +518,14 @@ function clean(html, slug) {
 let homeLinks = [];
 if (!FIXTURE) {
   try {
-    const hl = await j(`https://${host}/api/v1/homepage_links`);
+    // Curated footer links are optional. Their outage must not occupy the
+    // article-fetch retry budget or delay every layout adjustment.
+    const response=await fetch(`https://${host}/api/v1/homepage_links`,{headers:UA,redirect:'follow',signal:AbortSignal.timeout(1500)});
+    if(!response.ok)throw Error('Optional homepage links unavailable');
+    const hl=await response.json();
     if (Array.isArray(hl)) homeLinks = hl.sort((a, b) => (a.rank || 0) - (b.rank || 0)).slice(0, 8);
-  } catch {}
+    report.homepageLinks={status:"read",count:homeLinks.length};
+  } catch {report.homepageLinks={status:"unavailable",optional:true};}
 }
 let commentPicks = [];
 if (COMMENTS_N > 0 && !FIXTURE) {
@@ -602,9 +606,14 @@ const { detectNotes, askModel } = await import("./lib/notes-detect.mjs");
 const NOTES = new Map(); report.notesBlocks = [];
 const LINKS = new Map(); report.links = []; report.essayLinks = [];
 report.linkMode = DIRECT_LINKS ? 'direct' : 'redirect';
+const notesSession=PUBLISHER_DIR?await (await import('./lib/publisher-session.mjs')).publisherSession({directory:PUBLISHER_DIR}):null;
 for (const p of full) {
   let d = detectNotes(p.body_html || ""); let how = d ? d.method : null;
-  if (d && d.method === "ambiguous") { const m = await askModel(d.heading, (p.body_html || "").slice(d.start)); how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null; }
+  if (d && d.method === "ambiguous") {
+    const tailHtml=(p.body_html || "").slice(d.start);
+    const m=notesSession?await notesSession.sourceNotes({heading:d.heading,tailHtml}):await askModel(d.heading,tailHtml);
+    how = m == null ? "ambiguous-unresolved" : m ? "model" : "model-no"; if (m !== true) d = null;
+  }
   if (d) { NOTES.set(p.slug, d); report.notesBlocks.push({ slug: p.slug, heading: d.heading, score: d.score, method: how }); }
 }
 
@@ -798,7 +807,7 @@ ${PRINT_INTERIOR ? `<div class="pubsrc" style="height:0;overflow:hidden">${esc(p
   ${report.publisher?.excluded_ids.length ? `<p>Set aside from this edition: ${report.publisher.decisions.filter(d=>d.decision==='set_aside').map(d=>`“${esc(d.title)}” (${esc(d.reason)})`).join('; ')}.</p>` : ""}
   ${report.guestCuts.length ? `<p>${report.guestCuts.length === 1 ? "One guest post is" : report.guestCuts.length + " guest posts are"} not included, because a guest owns their piece: ${report.guestCuts.map(g => `“${esc(g.title)}” by ${esc(g.by)}`).join("; ")}.</p>` : ""}
   <p>Everything here was written for the screen and is reset for paper. Linked words carry a
-  small letter. ${DIRECT_LINKS ? 'Source names' : 'Short addresses'} and a code opening the original essay appear after the essay${argOf('--back-links') ? ' or in the Links section; the article heading gives the page when references are collected there' : ''}.
+  small letter. ${DIRECT_LINKS ? 'Source names' : 'Short addresses'} and a code opening the original essay accompany each piece.
   Source notes the author wrote into an essay stay with it. Web-only embeds become
   printed source notes; media-only pieces remain in the online edition.</p>
   <div class="colophon">${ISBN ? `ISBN ${esc(ISBN)} · ` : ""}Set in ${esc(B.bodyFont)} · 6 × 9 in, 60# uncoated${BW ? ", black-ink interior (images shown as they print)" : ""} ·
@@ -850,7 +859,9 @@ window.__pagedDone = new Promise(res => {
 
 // image localization: download once into the cache, convert to grayscale for BW proofs,
 // rewrite to relative paths (renders become network-independent; dead images get honest boxes)
-const { execFileSync: execF } = await import("node:child_process");
+const {execFile}=await import("node:child_process");
+const {promisify}=await import("node:util");
+const convertImage=promisify(execFile);
 const crypto = await import("node:crypto");
 const IMGCACHE = "proofs/.cache/img";
 mkdirSync(IMGCACHE, { recursive: true });
@@ -868,16 +879,22 @@ async function worker() {
     const normalized = `${IMGCACHE}/${h}-print-v2-${BW ? 'gray' : 'color'}.jpg`;
     const want = normalized;
     try {
-      const { existsSync: ex, writeFileSync: wf } = await import("node:fs");
+      const {existsSync:ex,writeFileSync:wf,renameSync,unlinkSync}=await import("node:fs");
       if (!ex(base)) {
-        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] } });
+        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] },signal:AbortSignal.timeout(15000) });
         if (!r.ok) throw new Error(r.status);
         wf(base, Buffer.from(await r.arrayBuffer()));
       }
       // A guessed extension or grayscale profile does not convert HEIC into a format
       // Typst can print. Normalize explicitly, retaining the original cache file.
-      if (!ex(normalized)) execF("python3", ["scripts/normalize-print-image.py", base, normalized,
-        ...(BW ? ['--bw'] : []), '--max-width', MODE === 'print' ? '2700' : '5400'], { stdio: "pipe" });
+      if(!ex(normalized)){
+        const temporary=normalized+'.'+crypto.randomUUID()+'.tmp';
+        try{
+          await convertImage('python3',['scripts/normalize-print-image.py',base,temporary,
+            ...(BW?['--bw']:[]),'--max-width',MODE==='print'?'2700':'5400'],{timeout:70000,maxBuffer:1000000});
+          renameSync(temporary,normalized);
+        }finally{if(ex(temporary))unlinkSync(temporary);}
+      }
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${relPath(OUTDIR, want)}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
@@ -887,7 +904,7 @@ async function worker() {
     }
   }
 }
-await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+await Promise.all([worker(), worker(), worker(), worker()]);
 report.deadImages.sort();
 
 mkdirSync("proofs", { recursive: true });
@@ -898,15 +915,18 @@ const ENGINE = argOf("--engine") || process.env.BOOK_ENGINE || "paged";
 if (ENGINE === "typst") {
   const { emitTypst } = await import("./lib/typst-emit.mjs");
   const { dirname } = await import("node:path");
-  /* --fit-figs slug:3=2.1,other:1=3.4 : figures the fit loop asks to scale to a height (inches) */
-  const fitFigs = Object.fromEntries(String(argOf("--fit-figs") || "").split(",").filter(Boolean).map(x => { const i = x.lastIndexOf("="); return [x.slice(0, i), Number(x.slice(i + 1))]; }).filter(([k, v]) => k && v > 0));
-  const fitText = Object.fromEntries(String(argOf('--fit-text') || '').split(',').filter(Boolean).map(x=>x.split('='))
-    .filter(([n, v])=>/^\d+$/.test(n)&&Number(v)>=.54&&Number(v)<=.66).map(([n,v])=>[n,Number(v)]));
-  const backLinks = String(argOf('--back-links') || '').split(',').map(Number).filter(n=>Number.isInteger(n)&&n>0);
-  const inFlow = String(argOf('--in-flow') || '').split(',').filter(Boolean);
-  const readingFigures=Object.fromEntries(String(argOf('--reading-figures')||'').split(',').filter(Boolean).map(x=>{const i=x.lastIndexOf('=');if(i<1||!['column','landscape'].includes(x.slice(i+1)))throw Error('Invalid reading figure mode');return [x.slice(0,i),x.slice(i+1)];}));
-  const pictureFigures=String(argOf('--picture-figures')||'').split(',').filter(Boolean);
-  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, inFlow, readingFigures, pictureFigures, host: host.replace(/^www\./, "") });
+  const {typstAdjustments}=await import('./lib/prepared-typesetting.mjs');
+  const {fitFigs,fitText,backLinks,inFlow,readingFigures,pictureFigures}=typstAdjustments(process.argv.slice(2));
+  let sourceFigureRoles={};
+  if(PUBLISHER_DIR){
+    const {prepareSourceFigures}=await import('./lib/prepare-figures.mjs');
+    const {publisherSession}=await import('./lib/publisher-session.mjs');
+    const publisher=await publisherSession({directory:PUBLISHER_DIR});
+    sourceFigureRoles=await prepareSourceFigures({html:htmlOut,baseDir:dirname(OUT),directory:OUT.replace(/\.html$/,'.figure-review'),ask:publisher.sourceFigures});
+    report.sourceFigureRoles=sourceFigureRoles;
+  }
+  report.preparedTypesetting={notes:argOf("--notes")||"endnotes_per_article",pubName,host:host.replace(/^www\./, "")};
+  const typ = emitTypst(htmlOut, { baseDir: dirname(OUT), notes: argOf("--notes") || "endnotes_per_article", pubName, fitFigs, fitText, backLinks, inFlow, readingFigures, pictureFigures, sourceFigureRoles, host: host.replace(/^www\./, "") });
   if (Object.keys(fitFigs).length) report.fitFigs = fitFigs;
   if (Object.keys(fitText).length) report.fitText = fitText;
   if (backLinks.length) report.backLinkArticles = backLinks;

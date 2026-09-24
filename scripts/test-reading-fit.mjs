@@ -34,11 +34,19 @@ AfterFigureMarker.
  assert.equal(measured.figures[0].w,300);assert(!packet.candidates.some(c=>c.operation==='fit_figure'));
  const text=execFileSync('pdftotext',['-layout',pdf,'-'],{encoding:'utf8'});for(const marker of ['OpeningMarker','BeforeFigureMarker','AfterFigureMarker'])assert(text.includes(marker));
  assert.equal((await session()).renderUsage('1').passes,1);
+ // Failed measurement must not be admitted as a spacing-only hold using the
+ // previous pages.json. The new fast path still requires all ending evidence.
+ const bin=join(dir,'bin'),priorPath=process.env.PATH;mkdirSync(bin);
+ writeFileSync(join(bin,'pdftoppm'),'#!/bin/sh\nexit 1\n',{mode:0o755});
+ try{
+  process.env.PATH=bin+':'+priorPath;
+  await assert.rejects(fitWithBudget({args:[builder],html,pdf,passes:1,allowMeasuredSpaceReview:true,beforePass:async settings=>await(await session()).reserveRender('1',settings)}));
+ }finally{process.env.PATH=priorPath;}
  // Keep the preceding measurement present to prove stale spacing data cannot
  // turn a different renderer failure into successful review admission.
  writeFileSync(builder,`import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(html.replace('.html','.typ'))},'#this-function-does-not-exist()');`);
  await assert.rejects(fitWithBudget({args:[builder],html,pdf,passes:1,allowMeasuredSpaceReview:true,beforePass:async settings=>await(await session()).reserveRender('1',settings)}));
- console.log('PASS spacing-only failure retains image scale and all source markers for review; actual compile failure remains held');
+ console.log('PASS spacing-only failure retains image scale and source markers; measurement and compile failures remain held with stale prior evidence present');
 }finally{
  if(previous==null)delete process.env.BOOK_ENGINE;else process.env.BOOK_ENGINE=previous;
  rmSync(dir,{recursive:true,force:true});

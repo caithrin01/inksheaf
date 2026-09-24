@@ -1,0 +1,45 @@
+{
+  "scope": "Offline renderer correction; live model confirmation and whole-book acceptance remain open. Original PDF bytes are retained.",
+  "books": [
+    {
+      "case": "annual",
+      "compiled_pages": 181,
+      "changed_pixel_pages": [],
+      "changed_text_pages": [],
+      "complete_extracted_text_identical": true,
+      "complete_text_ignoring_whitespace_and_discretionary_hyphens_identical": true,
+      "embedded_image_bytes_identical": true,
+      "out_of_paper_bounds": []
+    },
+    {
+      "case": "cooking",
+      "compiled_pages": 121,
+      "changed_pixel_pages": [
+        67
+      ],
+      "changed_text_pages": [
+        67
+      ],
+      "complete_extracted_text_identical": false,
+      "complete_text_ignoring_whitespace_and_discretionary_hyphens_identical": true,
+      "embedded_image_bytes_identical": true,
+      "out_of_paper_bounds": []
+    }
+  ],
+  "model_requests": 0,
+  "date": "2026-09-21",
+  "problem": "A joined person-and-gender emoji could silently render only its gender symbol when the CJK fallback partially covered the sequence.",
+  "change": "Shape joined pictographic sequences together in the bundled emoji font. Ordinary symbols and CJK retain their existing fallback.",
+  "checks": [
+    "Renderer 69/0",
+    "Typst 46/0",
+    "Joined-emoji fixture reproduces the old partial fallback and preserves complete sequences in body and titles",
+    "Unchanged symbol/CJK control page is pixel-identical",
+    "Glyph evidence and compiled text provenance regressions pass",
+    "Prepared-versus-fresh typesetting and source/hash guards pass",
+    "Publisher agent 31/0",
+    "Validator 13/0/0"
+  ],
+  "quality_accepted_book": false,
+  "private_content_included": false
+}

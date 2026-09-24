@@ -183,10 +183,10 @@ for(const mode of ['corrected','invalid-again','call-cap'])await test(`schema co
 await test('page-break confirmation requests its typed schema and retries an untyped answer before caching',async()=>{
   const dir=temporary(),image=join(dir,'page.png'),png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(10,16);png.writeUInt32BE(10,20);writeFileSync(image,png);
   let calls=0;
-  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'none',edge:'top'};
+  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'none',edge:'top',physical_page:1};
   const s=await publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
     calls++;const request=JSON.parse(options.body),schema=request.response_format.json_schema.schema;
-    assert(schema.required.includes('defect')&&schema.required.includes('edge'));assert.equal(request.max_tokens,400);
+    assert(schema.required.includes('defect')&&schema.required.includes('edge')&&schema.required.includes('physical_page'));assert.equal(request.max_tokens,400);
     return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(calls===1?{confirmed:true,origin:'rendered_layout',note:'Untyped interpretation.'}:answer)}}],usage:{cost:.001}});
   }});
   const request={model:PUBLISHER_MODELS.publisher.id,images:[image],text:'Confirm the printed paragraph boundary.',maxTokens:400,check:2};
@@ -194,10 +194,24 @@ await test('page-break confirmation requests its typed schema and retries an unt
   assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
 });
 
+await test('reading-order confirmation requests its typed schema and retries an untyped answer before caching',async()=>{
+  const dir=temporary(),image=join(dir,'page.png'),png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(10,16);png.writeUInt32BE(10,20);writeFileSync(image,png);
+  let calls=0;
+  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'orientation_only',figure_id:'table',reading_detail:'small_text'};
+  const s=await publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
+    calls++;const request=JSON.parse(options.body),schema=request.response_format.json_schema.schema;
+    assert(schema.required.includes('defect')&&schema.required.includes('figure_id')&&schema.required.includes('reading_detail'));assert.equal(request.max_tokens,400);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(calls===1?{confirmed:true,origin:'rendered_layout',note:'Untyped interpretation.'}:answer)}}],usage:{cost:.001}});
+  }});
+  const request={model:PUBLISHER_MODELS.publisher.id,images:[image],text:'Confirm the printed paragraph boundary.',maxTokens:400,check:8};
+  assert.deepEqual(JSON.parse((await s.vision(request)).text),answer);await s.vision(request);assert.equal(calls,2);
+  assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
+});
+
 await test('layout reserves answer space and retains a truncated charge across restart without caching its partial verdict',async()=>{
   const dir=temporary();let calls=0;
   const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};
-  const decisions=input.pages.map(p=>({page:p.page,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.',space_basis:'single_piece'}));
+  const decisions=input.pages.map(p=>({page:p.page,article_ends_here:true,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.',space_basis:'single_piece'}));
   const session=()=>publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
     calls++;const request=JSON.parse(options.body);assert.equal(request.max_tokens,2500);assert.deepEqual(request.reasoning,{enabled:false});
     // Preserve the live failure shape even if a provider ignores the requested
@@ -210,6 +224,21 @@ await test('layout reserves answer space and retains a truncated charge across r
   await(await session()).layout(input);assert.equal(calls,2);
   assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);
   assert(Math.abs(read(dir).journal.spent-.108472)<1e-12);
+});
+
+await test('layout corrects a false article boundary once, retains both charges and caches only the corrected hold',async()=>{
+  const dir=temporary();let calls=0;
+  const input={pdf_hash:'fixture',pages:[{page:130,position:'body',compiled_article_span:{start:121,end:131},article_ends_here:false,findings:[]}],candidates:[]};
+  const session=()=>publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(_url,options)=>{
+    calls++;const request=JSON.parse(options.body);
+    assert(request.response_format.json_schema.schema.properties.decisions.items.required.includes('article_ends_here'));
+    if(calls===2)assert(JSON.stringify(request.messages).includes('article_ends_here must be false'));
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decisions:[{page:130,decision:'needs_review',candidate_id:null,space_basis:null,article_ends_here:calls===1,reason:calls===1?'The article ends here.':'The composition before the closing image remains uncertain.'}]})}}],usage:{cost:.001}});
+  }});
+  const result=await(await session()).layout(input);
+  assert.equal(calls,2);assert.equal(result.decisions[0].article_ends_here,false);assert.equal(result.decisions[0].decision,'needs_review');
+  assert.equal(read(dir).journal.calls.length,2);assert.equal(read(dir).journal.spent,.002);assert.equal(read(dir).cache.length,1);
+  assert.deepEqual(await(await session()).layout(input),result);assert.equal(calls,2);
 });
 
 await test('the real fitter saves before its builder, renders a PDF, and retains the count on restart',async()=>{

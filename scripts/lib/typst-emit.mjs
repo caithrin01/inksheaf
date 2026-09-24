@@ -9,7 +9,7 @@ import { parseDocument } from "htmlparser2";
 import { readFileSync, existsSync } from "node:fs";
 import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve,relative } from "node:path";
 import {figureReadingSizes} from './figure-reading.mjs';
 
 const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
@@ -32,6 +32,10 @@ export function esc(s) {
   return t;
 }
 const str = s => JSON.stringify(String(s ?? "")); /* a Typst string literal */
+// A fallback font can cover only the gender symbol of a joined emoji and
+// silently lose its person/action. Shape the complete source sequence together;
+// standalone symbols, CJK and ordinary text keep their existing font fallback.
+const JOINED_EMOJI_PATTERN = String.raw`\p{Extended_Pictographic}[\p{Emoji_Modifier}\x{FE0F}]*(?:\x{200D}\p{Extended_Pictographic}[\p{Emoji_Modifier}\x{FE0F}]*)+`;
 
 /* image dimensions from the file header (JPEG SOF, PNG IHDR); null when unknown */
 /* the image format from the bytes, since the cache names files by a guessed extension */
@@ -64,12 +68,14 @@ export function imageSize(path) {
 }
 
 export function emitTypst(html, opts = {}) {
-  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], host = "", publisherWatermarks = true } = opts;
+  const { baseDir = "proofs", notes = "endnotes_per_article", textWidth = 4.53, textHeight = 7.44, fitFigs = {}, fitText = {}, backLinks = [], inFlow = [], readingFigures = {}, pictureFigures = [], sourceFigureRoles = {}, host = "", publisherWatermarks = true } = opts;
   const linksAtBack = new Set(backLinks.map(Number)), collectedLinks = [];
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0, quoteDepth = 0, openingFigure = null;
+  // Record intentional print text at its compiled position without adding ink.
+  const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),x:here().position().x.pt(),y:here().position().y.pt()))<print-element>]`;
 
   /* a data: URI (the QR codes) becomes a file in the image cache; a relative path passes when it exists */
   function localImage(src) {
@@ -101,7 +107,7 @@ export function emitTypst(html, opts = {}) {
       case "code": return `#raw(${str(textOf(n))});`;
       case "br": return " \\\n";
       case "a": {
-        if (attr(n, "data-link")) return `${inner()}#super[${esc(attr(n, "data-link"))}];`;
+        if (attr(n, "data-link")) return `${inner()}${printMark('reference_marker',attr(n,'data-link'),textOf(n).trim())}#super[${esc(attr(n, "data-link"))}];`;
         if (has(n, "fn") || has(n, "footnote-anchor")) {
           const num = textOf(n).trim(); const key = (attr(n, "href") || "").replace(/^#/, "");
           const note = fnMap.get(key);
@@ -126,8 +132,11 @@ export function emitTypst(html, opts = {}) {
   function figureOf(imgEl, caption) {
     const src = attr(imgEl, "src"); if (!src) return "";
     const id = attr(imgEl, "data-fig") || src;
+    const imageAnchor = `source-figure-image-${articleN}-${figN+1}`;
     const path = resolve(baseDir, src); if (!existsSync(path)) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image could not be retrieved for this proof.])\n\n`;
     const fmt = imageFormat(path); if (!fmt) return `#block(stroke: (dash: "dashed", paint: rgb("${RUBRIC}")), inset: 8pt, width: 100%, text(size: 8.5pt, fill: rgb("${FAINT}"))[An image in a format print cannot use was left out.])\n\n`;
+    const sourceRole=sourceFigureRoles[id];
+    if(sourceRole&&sourceRole.image_sha256!==cryptoMod.createHash('sha256').update(readFileSync(path)).digest('hex'))throw Error(`Source figure evidence changed for ${id}`);
     const dim = imageSize(path); let size = `width: 100%`;
     if (dim && dim.w && dim.h) {
       /* Size by role, the way a book designer does (Caithrin, 2026-09-02: "graphs need to be
@@ -142,8 +151,8 @@ export function emitTypst(html, opts = {}) {
          nothing taller than 60% of the text block unless it is for reading (72%). */
       const alt = (attr(imgEl, "alt") || "").toLowerCase();
       const aspect = dim.w / dim.h;
-      const reading = /\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
-      const picture = pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
+      const reading = sourceRole?sourceRole.role==='reading':/\b(chart|graph|plot|table|screenshot|screen shot|diagram|map|infographic|code|slide|spreadsheet|dashboard|figure|timeline|schematic|histogram|bar|line graph|scatter|matrix|grid|list of|text|tweet|post by|excerpt|document|page of|form|receipt|email|message)\b/.test(alt);
+      const picture = sourceRole?sourceRole.role==='picture':pictureFigures.includes(id) || /\b(photo|photograph|picture|portrait|painting|drawing|illustration|poster|cover|logo|meme|cartoon|artwork|sketch|statue|sculpture|selfie|headshot|man|woman|person|people|boy|girl|child|dog|cat|animal|landscape|building|room|street|city|sky|beach|mountain|face|hand|book cover|album|film|movie)\b/.test(alt);
       let pct;
       if (reading) pct = 100;
       else if (picture) pct = aspect >= 1.3 ? 75 : aspect >= 0.8 ? 62 : 50;
@@ -160,25 +169,63 @@ export function emitTypst(html, opts = {}) {
     const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
     // Missing alt text does not establish that an image is decorative. Keep its
     // detail at the bounded column reading size until its role is known.
-    const readingMode=readingFigures[id]||(attr(imgEl,'data-role')==='unknown'&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
+    const largest=readingSizes.reduce((best,s)=>!best||s.image_width_points>best.image_width_points?s:best,null);
+    const readingMode=sourceRole?.reading_detail==='small_text'?largest?.mode:readingFigures[id]||((sourceRole?.role==='reading'||attr(imgEl,'data-role')==='unknown')&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
     if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
     const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
     const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
-    /* measure() has no container, so a percentage width is turned into a share of the layout width */
+    /* measure() has no container, so a percentage width is turned into a share of the layout width.
+       Position comes from the printed image's label: the zero-height metadata block can sit
+       above the inline image's paragraph spacing, or before its page turn. */
     const tagFor = extra => {
-      const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
-      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+      const measured=readingBody||img(extra.replace(/width: (\d+(?:\.\d+)?)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: query(label(${str(imageAnchor)})).first().location().page(), y: query(label(${str(imageAnchor)})).first().location().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */
     const isFirst = figN === 0, isLast = figN === figTotal - 1; figN++;
     const fitH = fitFigs[id];
-    if(reading)return `#figure([${tagFor(size)}#${readingBody}]${capTxt})\n\n`;
-    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
-    if ((isLast && figTotal > 0) || inFlow.includes(id)) return `#figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
+    if(reading){
+      const panels=sourceRole?.detail_panels||[];
+      // Natural pagination keeps a source heading with the overview; a forced
+      // break here defeats Typst's sticky headings and strands the introduction.
+      let result=`#source-figure([${tagFor(size)}#${readingBody}#label(${str(imageAnchor)})]${capTxt})\n\n`;
+      // A full-height landscape image cannot share the normal opener's vertical
+      // heading space. A measured sideways heading may fit alongside it without
+      // changing any source pixel, caption, reading scale or source order.
+      if(isFirst&&!caption&&!panels.length&&readingMode==='landscape'&&reading.height_points>=(textHeight-.7)*72-.1)
+        openingFigure={original:result,tag:tagFor(size),anchor:imageAnchor,image:readingImage,width:reading.image_width_points,height:reading.image_height_points};
+      if(panels.length){
+        if(!sourceRole.grid||panels.length!==sourceRole.grid.rows*Math.ceil(sourceRole.grid.columns/2))throw Error('Incomplete source detail panels');
+        result+='#align(center, text(size: 8.5pt, fill: faint)[Full image. Enlarged details follow.])\n';
+        for(const panel of panels){
+          if(cryptoMod.createHash('sha256').update(readFileSync(panel.source)).digest('hex')!==panel.image_sha256)throw Error('Source detail evidence changed');
+          const sizes=figureReadingSizes(imageSize(panel.source),{textWidth,textHeight}),s=sizes.reduce((a,b)=>!a||b.image_width_points>a.image_width_points?b:a,null);
+          if(!s)throw Error('Source detail cannot be sized');
+          const file=relative(baseDir,panel.source),image=`image(${str(file)},width:${s.image_width_points}pt,height:auto)`,body=s.mode==='landscape'?`rotate(90deg,reflow:true,${image})`:image;
+          const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
+          const panelAnchor=imageAnchor+'-detail-'+panel.index;
+          const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:query(label(${str(panelAnchor)})).first().location().page(),y:query(label(${str(panelAnchor)})).first().location().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
+          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}#label(${str(panelAnchor)})],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
+        }
+        result+='#pagebreak(weak:true)\n';
+      }
+      return result;
+    }
+    if (fitH) {
+      // A requested height is a ceiling, not permission to crop a wide strip.
+      // Typst can otherwise clip an oversized image to its containing figure
+      // while leaving every original bitmap byte embedded in the PDF.
+      const height=Number(fitH);
+      if(!Number.isFinite(height)||height<=0)throw Error(`Invalid figure fit height for ${id}`);
+      const sz=dim?`width: ${Math.min(height*dim.w/dim.h,textWidth,dim.w/150)/textWidth*100}%, height: auto`
+        :`width: 100%, height: ${height.toFixed(2)}in, fit: "contain"`;
+      return `#source-figure([${tagFor(sz)}#${img(sz)}#label(${str(imageAnchor)})]${capTxt})\n\n`;
+    }
+    if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#source-figure([${tagFor(size)}#${img(size)}#label(${str(imageAnchor)})]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
-    return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
+    return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}#label(${str(imageAnchor)})]${capTxt})\n\n`;
   }
   /* images inside list items are hoisted after the list: a float cannot live inside an item */
   let hoisted = [];
@@ -216,7 +263,7 @@ export function emitTypst(html, opts = {}) {
         if (/^https?:\/\//.test(raw)) t = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0]; /* a URL as link text shows its host */
         else if (!/[\p{L}\p{N}]/u.test(raw)) t = (target || u).replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0] || raw; /* punctuation-only text shows the host */
         if (t.length > 60) t = t.slice(0, 57).replace(/\s+\S*$/, "") + "…";
-        return `[#super[${esc(L)}]], [${esc(t)}], [#text(fill: faint, size: 7pt, hyphenate: false)[${esc(u)}]]`; }).join(", ");
+        return `[${printMark('reference_entry',L,t)}#super[${esc(L)}]], [${esc(t)}], [#text(fill: faint, size: 7pt, hyphenate: false)[${esc(u)}]]`; }).join(", ");
       /* three columns (Codex audit P1-1): letter, wrapping text, the short URL in its own column,
          so a long title never runs under its URL; leading a reader can follow; the QR with its
          label in one unbreakable cell; the note may continue across pages */
@@ -251,8 +298,8 @@ export function emitTypst(html, opts = {}) {
         const boldHeading=!fieldValue&&meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
         if(t){
           const id=++paragraphN;
-          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':'paragraph';
-          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>]`;
+          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':quoteDepth?'quote_paragraph':'paragraph';
+          const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>];`;
           t=point('parstart')+t+point('parend');
           s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
         }
@@ -268,7 +315,11 @@ export function emitTypst(html, opts = {}) {
         return `=== ${content}\n\n`;
       }
       case "ul": case "ol": { hoisted = []; const l = list(n, n.name === "ol"); const h = hoisted.join(""); hoisted = []; return l + "\n" + h; }
-      case "blockquote": return `#quote(block: true)[\n${kids(n).map(block).join("").trim()}\n]\n\n`;
+      case "blockquote": {
+        quoteDepth++;
+        let content;try{content=kids(n).map(block).join("").trim();}finally{quoteDepth--;}
+        return `#source-quote[\n${content}\n]\n\n`;
+      }
       case "pre": {
         if (!has(n, 'preformatted-text')) return `#raw(block: true, ${str(textOf(n).replace(/\n$/, ""))})\n\n`;
         // Preserve verse lineation and keep a normal stanza together at a page turn.
@@ -305,7 +356,7 @@ export function emitTypst(html, opts = {}) {
 
   /* ---- an article: collect its footnotes first, then head, body, endnotes ---- */
   function article(sec, index, afterPart = false) {
-    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1;
+    fnMap = new Map(); endnotes = []; figN = 0; articleN = index + 1; openingFigure = null;
     figTotal = findAll(find(sec, k => isEl(k) && has(k, "artbody")) || sec, k => isEl(k) && k.name === "img" && attr(k, "src")).length; /* body images only; the link note's QR is not a figure */
     for (const fn of findAll(sec, k => isEl(k) && k.name === "div" && has(k, "footnote"))) {
       const numEl = find(fn, k => isEl(k) && k.name === "a" && (attr(k, "id") || "").length);
@@ -328,17 +379,24 @@ export function emitTypst(html, opts = {}) {
     // At the tightest fit this is -15 units per em, a small copy-fitting adjustment.
     const tracking = (-(.66 - Number(leading)) / 8).toFixed(3);
     const compact = Number(leading) <= .58 && textOf(bodyEl).trim().split(/\s+/).length < 600;
-    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, after-part: ${afterPart}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact})\n`;
-    s += kids(bodyEl).map(block).join("");
-    /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
+    const bodyTyp=kids(bodyEl).map(block).join("");
+    const opening=openingFigure&&bodyTyp.trimStart().startsWith(openingFigure.original)?openingFigure:null;
+    const remainingBody=opening?bodyTyp.trimStart().slice(opening.original.length):bodyTyp;
     const linkBlocks = kids(sec).filter(k => isEl(k) && has(k, "linknote")).map(block).join('');
+    const continued=Boolean(remainingBody.trim()||(!linksAtBack.has(index+1)&&linkBlocks)||endnotes.length);
+    const openingArg=opening?`, opening: (tag: [${opening.tag}], anchor: ${str(opening.anchor)}, image: [#${opening.image}], width: ${opening.width}pt, height: ${opening.height}pt, continued: ${continued}, fallback: [${opening.original}])`:'';
+    let s = `#set list(spacing: ${blockSpace}em)\n#set enum(spacing: ${blockSpace}em)\n#set text(size: 10.5pt, tracking: ${tracking}em, fill: rgb("${INK}"))\n#set par(justify: true, leading: ${leading}em, first-line-indent: 1.35em, spacing: ${leading}em)\n#arthead(${num ? str(textOf(num).trim()) : "none"}, ${str(T)}, ${str(sub ? textOf(sub).trim() : "")}, ${metaArg}${index === 0 ? ", first: true" : ""}, after-part: ${afterPart}, index: ${index + 1}, headspace: ${headSpace}in, compact: ${compact}${openingArg})\n`;
+    s += remainingBody;
+    /* the link note that sits after the body (the essay's last figure is in flow, so it reads before this) */
     if (linkBlocks && linksAtBack.has(index + 1)) collectedLinks.push({n:index + 1,title:T,body:linkBlocks});
     else if (linkBlocks) s += `#context [#metadata((n: ${index + 1}, page: here().page())) <linkstart>]\n${linkBlocks}`;
     if (endnotes.length) {
       s += `#v(0.8em)\n#line(length: 30%, stroke: 0.5pt + rgb("${RULE}"))\n#v(0.3em)\n#set text(size: 8.5pt)\n#set par(first-line-indent: 0em)\n`;
       s += endnotes.map(e => `#box(width: 1.4em)[#super[${esc(e.num)}]] ${e.note}\n\n`).join("");
     }
-    s += `#block(height: 0pt, above: 0pt, below: 0pt)[#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]]\n`;
+    // Metadata has no printed content. Wrapping it in a block forces the
+    // preceding figure's below-space to fit and can create an empty final leaf.
+    s += `#context [#metadata((n: ${index + 1}, page: here().page())) <artend>]\n`;
     return s + "\n";
   }
 
@@ -415,6 +473,7 @@ export function emitTypst(html, opts = {}) {
       if calc.even(counter(page).get().first()) [#smallcaps[${esc(pubName.toLowerCase())}]] else if before.len() > 0 [#h(1fr) #emph(text(tracking: 0em, size: 8pt)[#before.last().body])] } } },
   footer: context { if inbody.get() and not part-verso() [ #metadata((page: here().page(), folio: counter(page).get().first())) <folio> #align(center, text(size: 8.5pt, fill: faint)[#counter(page).display()]) ] })
 #set text(font: ("Source Serif 4", "Noto Serif SC", "Noto Emoji"), size: 10.5pt, lang: "en", hyphenate: true, fill: rgb("${INK}"))
+#show regex(${str(JOINED_EMOJI_PATTERN)}): set text(font: "Noto Emoji")
 #set par(justify: true, leading: 0.66em, first-line-indent: 1.35em, spacing: 0.66em)
 #set heading(numbering: none, outlined: false)
 #show heading.where(level: 1): it => { }
@@ -422,19 +481,36 @@ export function emitTypst(html, opts = {}) {
 #show heading.where(level: 3): it => block(sticky: true, above: 1em, below: 0.4em, text(size: 11pt, weight: 600, it.body))
 #show figure: set block(above: 1em, below: 1em)
 #show figure.caption: it => text(size: 8.5pt, fill: faint, it.body)
+// Keep a figure and its caption together when they fit a complete body page.
+// An oversized caption may continue on the next page; the image stays intact
+// at its selected reading size, and caption text cannot overprint the footer.
+#let source-figure(body, caption: none) = context {
+  let natural = measure(figure(body, caption: caption), width: ${textWidth}in).height
+  show figure: set block(breakable: natural > ${textHeight}in)
+  figure(body, caption: caption)
+}
 #show quote.where(block: true): set pad(x: 1.2em)
 #show quote.where(block: true): set text(size: 9.8pt)
+// A short source quotation can contain an example and its explanation in
+// separate paragraphs. Keep that source group together; longer quotations
+// still paginate so they cannot force a large gap or overflow a body page.
+#let source-quote(body) = layout(sz => context {
+  let natural = measure(quote(block: true, body), width: sz.width).height
+  show quote.where(block: true): set block(breakable: natural > ${textHeight / 3}in)
+  quote(block: true, body)
+})
 #show raw.where(block: true): it => block(width: 100%, fill: rgb("#f4efe4"), inset: 6pt, text(size: 8pt, it))
 #show raw.where(block: false): set text(size: 8.5pt)
 #set list(indent: 1em, spacing: 0.5em)
 #set enum(indent: 1em, spacing: 0.5em)
 #set footnote.entry(separator: line(length: 30%, stroke: 0.5pt + rgb("${RULE}")), indent: 0em, gap: 0.5em)
 #show footnote.entry: set text(size: 8.5pt)
-#let arthead(n, title, sub, meta, first: false, after-part: false, index: 0, headspace: 0.55in, compact: false) = {
+#let arthead(n, title, sub, meta, first: false, after-part: false, index: 0, headspace: 0.55in, compact: false, opening: none) = {
   if not first { place.flush() } /* no float from the previous essay crosses into this one */
   if first or after-part { pagebreak(to: "odd", weak: true) } else { pagebreak(weak: true) }
   if first { counter(page).update(1); inbody.update(true) } /* the body opens here, on a recto */
   arttitle.update(title)
+  let normal() = {
   v(headspace)
   if n != none and not compact { text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 30pt, fill: rubric)[#n]; v(0.15em) }
   heading(level: 1, title)
@@ -442,6 +518,23 @@ export function emitTypst(html, opts = {}) {
   block(below: 0.55em, [#set par(leading: 0.42em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)])
   if sub != "" { block(above: 0.55em, [#set par(leading: 0.5em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
   block(above: 0.7em, below: 1.1em, [#text(size: 8pt, tracking: 0.14em, fill: faint)[#if compact and n != none { [#n · ] }#upper(meta)] #v(0.45em) #line(length: 100%, stroke: 0.5pt + rgb("${RULE}"))])
+  }
+  if opening == none { normal() } else { context {
+    let rows = (block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(font: ("EB Garamond 12", "Noto Serif SC", "Noto Emoji"), size: 18pt, weight: 500, hyphenate: false, title)],)
+    if sub != "" { rows.push(block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(size: 10.5pt, style: "italic", fill: faint, sub)]) }
+    rows.push(block(width: opening.width)[#set par(justify: false, first-line-indent: 0pt, leading: 0.3em); #text(size: 8pt, tracking: 0.14em, fill: faint)[#if n != none { [#n · ] }#upper(meta)]])
+    let head = stack(dir: ttb, spacing: 6pt, ..rows)
+    // Reject the composition before printing if the whole heading and unchanged
+    // image do not fit. Measurement adds no duplicate heading/figure metadata.
+    if not compact and measure(head, width: opening.width).height + 6pt + opening.height <= ${textWidth}in {
+      heading(level: 1, title)
+      [#metadata((n: index, page: here().page(), opening: "landscape-figure")) <artstart>]
+      source-figure(opening.tag + [#block(above: 0pt, below: 0pt, rotate(90deg, reflow: true, stack(dir: ttb, spacing: 6pt, head, opening.image)))#label(opening.anchor)])
+      // Read the whole opening in one orientation; start portrait prose on the
+      // next leaf instead of leaving two sideways lines beside a large chart.
+      if opening.continued { pagebreak(weak: true) }
+    } else { normal(); opening.fallback }
+  } }
 }
 #let partpage(kind, title) = {
   place.flush()

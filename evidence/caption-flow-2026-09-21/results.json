@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-21",
+  "scope": "Offline retained-input caption re-emission and deterministic checks. No fresh model acceptance or customer completion claim.",
+  "problem": "An unbreakable full-page figure and long caption can extend into the footer and past the physical paper edge.",
+  "change": "Measure the complete in-flow figure at the body width. Keep it unbroken when it fits a body page; otherwise allow the caption to continue across a page turn without changing the source image, its selected reading size or caption font.",
+  "fixtures": [
+    {
+      "fixed_draw": 1,
+      "before_pages": 50,
+      "after_pages": 50,
+      "source_image_pixels_and_sizes_unchanged": true,
+      "body_text_sequence_unchanged": true,
+      "caption_footer_intrusions": [],
+      "glyphs_outside_paper": [],
+      "all_page_pixels_unchanged": true
+    },
+    {
+      "fixed_draw": 2,
+      "before_pages": 68,
+      "after_pages": 69,
+      "source_image_pixels_and_sizes_unchanged": true,
+      "body_text_sequence_unchanged": false,
+      "caption_footer_intrusions": [],
+      "glyphs_outside_paper": [],
+      "all_page_pixels_unchanged": false,
+      "generated_reference_changes": {
+        "before": [
+          "LINKSONPAGE61",
+          "LINKSONPAGE61"
+        ],
+        "after": [
+          "LINKSONPAGE62",
+          "LINKSONPAGE62"
+        ]
+      },
+      "source_text_sequence_unchanged_excluding_generated_page_references": true,
+      "running_matter": {
+        "pages_checked": 69,
+        "failures_before": 5,
+        "failures_after": 0
+      },
+      "glyphs_outside_paper_before": 5
+    }
+  ],
+  "focused_tests": {
+    "figure_reading": 10,
+    "renderer_pass": 69,
+    "renderer_fail": 0,
+    "typst_fixtures_pass": 46,
+    "typst_fixtures_fail": 0,
+    "validator_pass": 13,
+    "validator_warn": 0,
+    "validator_fail": 0
+  }
+}

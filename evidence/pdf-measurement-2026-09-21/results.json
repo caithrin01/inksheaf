@@ -1,0 +1,33 @@
+{
+  "scope": "Offline renderer-change acceptance on the fixed corpus. Retained typesetting/source files; no model inference, customer-path latency or final quality acceptance. Private source bodies and PDFs excluded.",
+  "measurement": {
+    "pdfs": 15,
+    "pages": 1978,
+    "article_endings_with_identical_legacy_measurements": 395,
+    "old_blank_flags_lost": 0,
+    "additional_blank_flags": 1,
+    "previous_mandatory_layout_reviews": 595,
+    "current_mandatory_layout_reviews": 597,
+    "previous_mandatory_layout_reviews_lost": 0,
+    "total_seconds": 19.114480752000002
+  },
+  "retained_334_page_book": {
+    "previous_poppler_measurement_seconds": 57.900940541,
+    "current_measurement_seconds": 4.704757333000001,
+    "current_compile_and_measure_seconds": 18.224359958,
+    "comparison_caveat": "Previous measurement is from September 16; current local component measurements are September 21 and not a controlled cold end-to-end comparison.",
+    "page_text_geometry_unchanged": true,
+    "embedded_image_bytes_unchanged": true,
+    "all_rendered_pages_identical_at_72dpi": true,
+    "pdf_metadata_dates_changed": true,
+    "unresolved_spacing_hold_retained": true
+  },
+  "validation": {
+    "renderer": "69 passed, zero failed",
+    "blank_controls": "blank, sparse, internal gap, transparent image, rotated page, exemptions, metadata and failure exit",
+    "fit_controls": "existing photo, reading-image, batched source/reference repair and article-boundary regressions pass unchanged; added stale-measurement failure regression",
+    "full_unit": "running at commit preparation"
+  },
+  "quality_accepted_book": false,
+  "one_minute_complete_customer_path_proven": false
+}
