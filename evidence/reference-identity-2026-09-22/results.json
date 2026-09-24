@@ -28,7 +28,16 @@
       "images": 82
     }
   ],
-  "live_candidate_controls": "pending green candidate CI",
+  "live_candidate_controls": {
+    "date": "2026-09-24",
+    "code": "a710f0b",
+    "passed": 5,
+    "total": 5,
+    "requests": 5,
+    "cost_usd": 0.110438,
+    "wrong_reference": "The actual model confirmation and measured identity both held the mismatch.",
+    "evidence": "evidence/source-preservation-2026-09-24/results.json"
+  },
   "production_changed": false,
   "quality_accepted_book": false
 }

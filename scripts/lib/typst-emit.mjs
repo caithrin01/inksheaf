@@ -73,7 +73,7 @@ export function emitTypst(html, opts = {}) {
   const doc = parseDocument(html);
   const body = find(doc, n => isEl(n) && n.name === "body") || doc;
   const pubSrc = find(body, n => has(n, "pubsrc")); const pubName = pubSrc ? textOf(pubSrc).trim() : (opts.pubName || "");
-  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0;
+  let fnMap = new Map(), fnPolicy = notes, endnotes = [], out = [], backNotes = [], curTitle = "", figN = 0, figTotal = 0, paragraphN = 0, articleN = 0, quoteDepth = 0;
   // Record intentional print text at its compiled position without adding ink.
   const printMark=(kind,text,anchor='')=>`#context [#metadata((kind:${str(kind)},text:${str(text)},anchor:${str(anchor.slice(0,200))},article:${articleN},page:here().page(),x:here().position().x.pt(),y:here().position().y.pt()))<print-element>]`;
 
@@ -176,7 +176,7 @@ export function emitTypst(html, opts = {}) {
     const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
     /* measure() has no container, so a percentage width is turned into a share of the layout width */
     const tagFor = extra => {
-      const measured=readingBody||img(extra.replace(/width: (\d+)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
+      const measured=readingBody||img(extra.replace(/width: (\d+(?:\.\d+)?)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
       return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: here().page(), y: here().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
@@ -204,7 +204,16 @@ export function emitTypst(html, opts = {}) {
       }
       return result;
     }
-    if (fitH) { const sz = `height: ${Number(fitH).toFixed(2)}in, width: auto`; return `#source-figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`; }
+    if (fitH) {
+      // A requested height is a ceiling, not permission to crop a wide strip.
+      // Typst can otherwise clip an oversized image to its containing figure
+      // while leaving every original bitmap byte embedded in the PDF.
+      const height=Number(fitH);
+      if(!Number.isFinite(height)||height<=0)throw Error(`Invalid figure fit height for ${id}`);
+      const sz=dim?`width: ${Math.min(height*dim.w/dim.h,textWidth,dim.w/150)/textWidth*100}%, height: auto`
+        :`width: 100%, height: ${height.toFixed(2)}in, fit: "contain"`;
+      return `#source-figure([${tagFor(sz)}#${img(sz)}]${capTxt})\n\n`;
+    }
     if (sourceRole || (isLast && figTotal > 0) || inFlow.includes(id)) return `#source-figure([${tagFor(size)}#${img(size)}]${capTxt})\n\n`; /* preserve source position when a float interrupted the reading */
     const placement = isFirst ? "bottom" : "auto"; /* the first figure never floats above its own head */
     return `#figure(placement: ${placement}, [${tagFor(size)}#${img(size)}]${capTxt})\n\n`;
@@ -280,7 +289,7 @@ export function emitTypst(html, opts = {}) {
         const boldHeading=!fieldValue&&meaningful.length===1&&['strong','b'].includes(meaningful[0].name)&&textOf(n).trim().length<=160&&!/[.!?]$/.test(textOf(n).trim());
         if(t){
           const id=++paragraphN;
-          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':'paragraph';
+          const sourceKind=exampleLead||boldHeading?'heading':fieldValue?'template_field':quoteDepth?'quote_paragraph':'paragraph';
           const point=label=>`#context [#metadata((id: ${id}, article: ${articleN}, source_kind: ${str(sourceKind)}, source_tail: ${str(textOf(n).trim().slice(-200))}, page: here().page(), y: here().position().y.pt())) <${label}>];`;
           t=point('parstart')+t+point('parend');
           s += (exampleLead||boldHeading ? `#block(sticky: true)[${t}]\n\n` : has(n, "verse") ? `#block(text(hyphenate: false)[${t}])\n\n` : t + "\n\n");
@@ -297,7 +306,11 @@ export function emitTypst(html, opts = {}) {
         return `=== ${content}\n\n`;
       }
       case "ul": case "ol": { hoisted = []; const l = list(n, n.name === "ol"); const h = hoisted.join(""); hoisted = []; return l + "\n" + h; }
-      case "blockquote": return `#quote(block: true)[\n${kids(n).map(block).join("").trim()}\n]\n\n`;
+      case "blockquote": {
+        quoteDepth++;
+        let content;try{content=kids(n).map(block).join("").trim();}finally{quoteDepth--;}
+        return `#source-quote[\n${content}\n]\n\n`;
+      }
       case "pre": {
         if (!has(n, 'preformatted-text')) return `#raw(block: true, ${str(textOf(n).replace(/\n$/, ""))})\n\n`;
         // Preserve verse lineation and keep a normal stanza together at a page turn.
@@ -464,6 +477,14 @@ export function emitTypst(html, opts = {}) {
 }
 #show quote.where(block: true): set pad(x: 1.2em)
 #show quote.where(block: true): set text(size: 9.8pt)
+// A short source quotation can contain an example and its explanation in
+// separate paragraphs. Keep that source group together; longer quotations
+// still paginate so they cannot force a large gap or overflow a body page.
+#let source-quote(body) = layout(sz => context {
+  let natural = measure(quote(block: true, body), width: sz.width).height
+  show quote.where(block: true): set block(breakable: natural > ${textHeight / 3}in)
+  quote(block: true, body)
+})
 #show raw.where(block: true): it => block(width: 100%, fill: rgb("#f4efe4"), inset: 6pt, text(size: 8pt, it))
 #show raw.where(block: false): set text(size: 8.5pt)
 #set list(indent: 1em, spacing: 0.5em)

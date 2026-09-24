@@ -183,10 +183,10 @@ for(const mode of ['corrected','invalid-again','call-cap'])await test(`schema co
 await test('page-break confirmation requests its typed schema and retries an untyped answer before caching',async()=>{
   const dir=temporary(),image=join(dir,'page.png'),png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(10,16);png.writeUInt32BE(10,20);writeFileSync(image,png);
   let calls=0;
-  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'none',edge:'top'};
+  const answer={confirmed:false,origin:'rendered_layout',note:'Two lines continue normally.',defect:'none',edge:'top',physical_page:1};
   const s=await publisherSession({directory:dir,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl:async(url,options)=>{
     calls++;const request=JSON.parse(options.body),schema=request.response_format.json_schema.schema;
-    assert(schema.required.includes('defect')&&schema.required.includes('edge'));assert.equal(request.max_tokens,400);
+    assert(schema.required.includes('defect')&&schema.required.includes('edge')&&schema.required.includes('physical_page'));assert.equal(request.max_tokens,400);
     return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(calls===1?{confirmed:true,origin:'rendered_layout',note:'Untyped interpretation.'}:answer)}}],usage:{cost:.001}});
   }});
   const request={model:PUBLISHER_MODELS.publisher.id,images:[image],text:'Confirm the printed paragraph boundary.',maxTokens:400,check:2};

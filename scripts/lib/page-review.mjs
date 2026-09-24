@@ -143,11 +143,11 @@ Look at the page carefully and decide whether the SPECIFIC flagged defect is pre
 
 Classify origin as rendered_layout, source_content or uncertain. source_content means the finding is entirely explained by faithfully preserved source material, with no additional print loss. An intentionally broken screenshot or original photo crop can qualify. Essential detail made unreadable by print scaling is rendered_layout. When intent/readability cannot be established, use uncertain.
 
-${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_heading, none or uncertain) and edge (top, foot, both or uncertain). A whole source paragraph is not a split fragment even when its empty end marker lands on the following page. A heading followed by body text is not alone at the foot. Whitespace and an image positioned after a complete introductory paragraph are separate layout questions; do not relabel them as a single-line widow. Do not confirm when defect is none.':''}
+${f.check===2?'For check 2, also name defect (single_line_fragment, stranded_heading, stranded_group, none or uncertain), edge (top, foot, both or uncertain), and physical_page where that defect actually appears. Use the first image and its physical-page label for the target; neighbouring images have their own physical numbers. If there is no defect, report the target physical_page. A whole source paragraph is not a split fragment even when its empty end marker lands on the following page. Separate paragraphs in one short source quotation can still form a single example/explanation: use stranded_group when the page break separates them. A heading followed by body text is not alone at the foot. Whitespace and an image positioned after a complete introductory paragraph are separate layout questions; do not relabel them as a single-line widow. Do not confirm when defect is none.':''}
 
 ${f.check===8?'For reading order, name defect: paragraph_split when a figure interrupts source prose mid-sentence; column_order when columns scramble prose; orientation_only when the sole complaint is turning an intentionally landscape figure; reading_size for unreadable figure detail; none or uncertain otherwise. Identify figure_id only from supplied source figures, null for prose-only issues. Include reading_detail (small_text, large_labels, picture or uncertain). A portrait page containing a quarter-turn table is not a two-column text layout. Still inspect adjacent pages for actual interrupted prose.':''}${textEvidence?'\n\ntext_evidence: '+JSON.stringify(textEvidence)+'. '+TEXT_EVIDENCE_TASK:''}
 
-Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>"':[3,8].includes(f.check)?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
+Answer with one JSON object and nothing else, the note under 25 words: {"confirmed": true or false, "origin": "rendered_layout" or "source_content" or "uncertain", "note": "<what you see>"${f.check===2?', "defect": "<type above>", "edge": "<edge above>", "physical_page": <integer>':[3,8].includes(f.check)?', "figure_id": "<source id>" or null, "defect": "<type above>", "reading_detail": "<type above>"':''}}.`;
 
 function workQueue(limit){
   if(!Number.isInteger(limit)||limit<1||limit>16)throw Error('Invalid review concurrency');
@@ -243,14 +243,14 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
       if (!j || typeof j.confirmed !== "boolean") { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: unparseable answer: ${String(r.text || "").replace(/\s+/g, " ").slice(0, 90)}`); return; }
-      if(f.check===2)j=adjudicateBoundaryConfirmation(j,boundary);
+      if(f.check===2)j=adjudicateBoundaryConfirmation(j,{...boundary,physical_page:f.page});
       if(f.check===3)j=adjudicateFigureConfirmation(j,originals);
       if(f.check===8)j=adjudicateReadingOrderConfirmation(j,originals);
       if(f.check===6)j=adjudicateReferenceIdentity(j,provenance?.printed_reference_identity);
       const sourcePreserved=comparisons.length>0&&(f.check===3?j.source_preserved===true:(f.check===6||f.check===7&&!j.confirmed)&&j.origin==='source_content');
       const rec = { page: f.page, check: f.check===8&&j.defect==='reading_size'?3:f.check, ...(f.check===8&&j.defect==='reading_size'?{original_check:8}:{}), note: String(j.note || f.note).slice(0, 200), pass1: f.note, confidence: f.confidence,
         ...(j.origin?{origin:j.origin}:{}),...(sourcePreserved?{source_preserved:true}:{}), source_comparisons:comparisons.length, neighbouring_pages:neighbours,...(glyphRecord?{glyph_evidence:glyphRecord}:{}),...(artifacts?{artifact_evidence:artifacts}:{}),...(provenance?{text_evidence:provenance}:{}) };
-      if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
+      if(f.check===2)Object.assign(rec,{defect:j.defect,edge:j.edge,physical_page:j.physical_page,...(j.model_confirmation?{model_confirmation:j.model_confirmation,paragraph_boundaries:boundary}:{})});
       if(f.check===6&&j.model_confirmation)Object.assign(rec,{defect:j.defect,model_confirmation:j.model_confirmation});
       if([3,8].includes(f.check))Object.assign(rec,{figure_id:j.figure_id,defect:j.defect,reading_detail:j.reading_detail,
         ...(j.required_reading_mode?{required_reading_mode:j.required_reading_mode}:{}),

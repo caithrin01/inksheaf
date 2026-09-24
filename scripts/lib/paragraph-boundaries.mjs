@@ -3,7 +3,8 @@
 import {z} from 'zod';
 export const BoundaryConfirmation=z.object({
   confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200),
-  defect:z.enum(['single_line_fragment','stranded_heading','none','uncertain']),edge:z.enum(['top','foot','both','uncertain']),
+  defect:z.enum(['single_line_fragment','stranded_heading','stranded_group','none','uncertain']),edge:z.enum(['top','foot','both','uncertain']),
+  physical_page:z.number().int().min(1),
 }).refine(r=>!(r.confirmed&&r.defect==='none'),{message:'A confirmation cannot claim there is no defect.'});
 
 // A typed single-line claim can be contradicted by actual lines. Keep the
@@ -11,6 +12,10 @@ export const BoundaryConfirmation=z.object({
 // never cleared by paragraph counts alone.
 export function adjudicateBoundaryConfirmation(answer,context){
   const result=BoundaryConfirmation.parse(answer);
+  // Neighbour images can reveal another defect. Evidence from the target page
+  // cannot contradict a claim about a different leaf, or dismiss that target.
+  if(result.physical_page!==context?.physical_page)return {...result,confirmed:true,origin:'uncertain',model_confirmation:result,
+    note:'The confirmation names a different physical page from the measured boundary. This finding still needs review.'};
   if(result.defect==='uncertain')return {...result,confirmed:true,origin:'uncertain',model_confirmation:result};
   const foot=context?.foot;
   if(result.confirmed&&result.defect==='stranded_heading'&&result.edge==='foot'
@@ -21,6 +26,7 @@ export function adjudicateBoundaryConfirmation(answer,context){
   const edges=result.edge==='both'?['top','foot']:[result.edge];
   const evidence=edges.map(edge=>context?.[edge]);
   if(!evidence.every(e=>e&&['multiple_lines','complete_single_line_paragraph'].includes(e.status)))return result;
+  if(evidence.some(e=>e.source_kind==='quote_paragraph'&&e.status==='complete_single_line_paragraph'))return result;
   return {...result,confirmed:false,origin:'measured_layout',model_confirmation:result,
     note:'Printed paragraph lines contradict this single-line-fragment claim. Complete source paragraphs and multi-line continuations are not split one-line fragments.'};
 }
@@ -63,6 +69,6 @@ export function paragraphBoundaryContext(measurement, page) {
   const top=edge('top'),foot=edge('foot');
   // A complete paragraph can also act as a heading. Clear automatically only
   // when both edges are proven multi-line continuations across their page turns.
-  return {top,foot,verified_no_single_line_fragment:top.status==='multiple_lines'&&top.previous?.line_count>=2
+  return {physical_page:page,top,foot,verified_no_single_line_fragment:top.status==='multiple_lines'&&top.previous?.line_count>=2
     &&foot.status==='multiple_lines'&&foot.next?.line_count>=2};
 }
