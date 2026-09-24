@@ -36,7 +36,8 @@
       }
     ],
     "source_screenshot_check": "faithful source markup cleared",
-    "scope": "Cached sources; actual complete PDF generation and reviews. Excludes retrieval, queue/startup, signup, upload, browser delivery and email. Not an accepted book or one-minute customer-path proof."
+    "scope": "Cached sources; actual complete PDF generation and reviews. Excludes retrieval, queue/startup, signup, upload, browser delivery and email. Not an accepted book or one-minute customer-path proof.",
+    "all_expected_source_ids_and_body_hashes_match": true
   },
   "subsequent_offline_fixes": [
     "Short source block quotations stay together when their measured height is at most one third of a body page; longer quotations paginate.",
@@ -44,7 +45,13 @@
     "Boundary confirmations identify the actual physical page; another page cannot supply dismissal evidence.",
     "Fitted photo height cannot enlarge its width beyond the text block or its 150ppi source limit; unsupported dimensions use contain."
   ],
-  "offline_preservation": {
+  "known_gap_in_prior_audits": "Checking embedded image bytes or clipped extraction bounds missed two wide photo strips whose draw rectangles extended beyond the page. Their sides were cropped. Actual image bounds and rendered outer-edge controls now catch this.",
+  "local_validation": "All local unit commands passed after two boundary mocks were updated for the required physical-page field. Integrated affected checks pass: 18 opening/position controls, source quotes, rendered photo edges (including a nested quotation), Typst 46, figure reading/order, raster metadata, prepared typesetting, paragraph boundaries 11, page review 47, renderer 69. Validator 13 passed. Full integrated CI still required.",
+  "quality_accepted_book": false,
+  "one_minute_customer_path_proved": false,
+  "production_changed": false,
+  "new_paid_work_after_retest": false,
+  "offline_preservation_before_landscape_integration": {
     "scope": "Offline comparison of the same retained source HTML and figure settings with a710f0b and the quotation candidate. No model calls or quality acceptance. Article text normalized for line wrapping, hyphenation and generated opening reference page numbers (which change with pagination); decoded image occurrences and physical bounds checked separately.",
     "results": [
       {
@@ -111,10 +118,127 @@
       }
     ]
   },
-  "known_gap_in_prior_audits": "Checking embedded image bytes or clipped extraction bounds missed two wide photo strips whose draw rectangles extended beyond the page. Their sides were cropped. Actual image bounds and rendered outer-edge controls now catch this.",
-  "local_validation": "Renderer 69 passed; all local unit commands passed after updating two stale mocks for the required physical-page field. New rendered-edge and short/long quote controls pass; validator 13 passed. Full integrated CI still required.",
-  "quality_accepted_book": false,
-  "one_minute_customer_path_proved": false,
-  "production_changed": false,
-  "new_paid_work_after_retest": false
+  "offline_preservation": {
+    "scope": "Offline comparison of the same retained source HTML and figure settings with a710f0b and the quotation candidate. No model calls or quality acceptance. Article text normalized for line wrapping, hyphenation and generated article numbers (moved into the landscape opening metadata line) and reference page numbers (which change with pagination); decoded image occurrences and physical bounds checked separately.",
+    "results": [
+      {
+        "case": "annual",
+        "old_pages": 181,
+        "new_pages": 179,
+        "articles": 22,
+        "normalized_article_text_equal": true,
+        "decoded_image_occurrences_equal": true,
+        "new_image_occurrences": 73,
+        "new_glyphs": 226064,
+        "physical_bounds_violations": [],
+        "previous_bounds_findings": []
+      },
+      {
+        "case": "cooking",
+        "old_pages": 121,
+        "new_pages": 121,
+        "articles": 16,
+        "normalized_article_text_equal": true,
+        "decoded_image_occurrences_equal": true,
+        "new_image_occurrences": 82,
+        "new_glyphs": 80848,
+        "physical_bounds_violations": [],
+        "previous_bounds_findings": [
+          {
+            "page": 21,
+            "kind": "image"
+          },
+          {
+            "page": 28,
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "case": "third-corpus",
+        "old_pages": 75,
+        "new_pages": 70,
+        "articles": 2,
+        "normalized_article_text_equal": true,
+        "decoded_image_occurrences_equal": true,
+        "new_image_occurrences": 8,
+        "new_glyphs": 104530,
+        "physical_bounds_violations": [],
+        "previous_bounds_findings": [],
+        "example_pages_before": [
+          [
+            51
+          ],
+          [
+            52
+          ]
+        ],
+        "example_pages_after": [
+          [
+            50
+          ],
+          [
+            50
+          ]
+        ],
+        "example_group_repaired": true
+      }
+    ]
+  },
+  "integrated_renderer_commit": "d447b73",
+  "landscape_opening_handoff": {
+    "source_pr": 18,
+    "source_commits": [
+      "69233db",
+      "429b76f"
+    ],
+    "integrated_commits": [
+      "f2b0f96",
+      "d447b73"
+    ],
+    "local_controls": 18
+  },
+  "running_heads_and_folios": [
+    {
+      "case": "annual",
+      "pages": 179,
+      "passed": 179,
+      "failures": []
+    },
+    {
+      "case": "cooking",
+      "pages": 121,
+      "passed": 121,
+      "failures": []
+    },
+    {
+      "case": "third-corpus",
+      "pages": 70,
+      "passed": 70,
+      "failures": []
+    }
+  ],
+  "compiled_figure_positions": [
+    {
+      "case": "annual",
+      "figures": 62,
+      "mismatches": []
+    },
+    {
+      "case": "cooking",
+      "figures": 68,
+      "mismatches": []
+    },
+    {
+      "case": "third-corpus",
+      "figures": 5,
+      "mismatches": []
+    }
+  ],
+  "cloudflare_public_read_journeys": {
+    "date": "2026-09-24",
+    "passed": 12,
+    "total": 12,
+    "all_signup_and_event_writes_intercepted": true
+  }
 }
