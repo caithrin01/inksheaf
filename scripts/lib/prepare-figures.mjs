@@ -8,6 +8,7 @@ import {z} from 'zod';
 import {prepareFigureDetails} from './figure-details.mjs';
 import {mapConcurrent} from './async-work.mjs';
 import {sourceComparisons} from './page-review.mjs';
+import {measureFigureLettering} from './figure-lettering.mjs';
 
 export const SourceFigureRoles=z.object({figures:z.array(z.object({
   figure_id:z.string().min(1),role:z.enum(['picture','reading','uncertain']),
@@ -53,6 +54,9 @@ export async function prepareSourceFigures({html,baseDir,directory,ask,onResult=
   if(!inventory.length)return roles;
   if(typeof ask!=='function')throw Error('Source-image inspection is unavailable');
   const batches=[];for(let i=0;i<inventory.length;i+=4)batches.push(inventory.slice(i,i+4));
+  // Local lettering measurement overlaps the model inspection; only fine-text
+  // figures keep it. A failed measurement is null, never a size.
+  const lettering=mapConcurrent(inventory,f=>measureFigureLettering(f.source),{concurrency:4}).catch(()=>[]);
   await mapConcurrent(batches,async(batch,index)=>{
     const files=sourceComparisons(batch,join(directory,String(index))),images=files.map(f=>readFileSync(f));
     const result=validateSourceFigureRoles(await ask({figures:batch.map(f=>({id:f.id,image_sha256:f.image_sha256})),images}),batch);
@@ -63,5 +67,7 @@ export async function prepareSourceFigures({html,baseDir,directory,ask,onResult=
     }
     await onResult(roles);
   });
+  const measured=await lettering;
+  inventory.forEach((f,i)=>{if(roles[f.id]?.reading_detail==='small_text')roles[f.id].lettering=measured[i]??null;});
   return roles;
 }

@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
 
 // Fidelity, reading scale and orientation are distinct observations. In
 // particular, an unchanged bitmap says nothing about the size of its labels.
@@ -11,9 +12,9 @@ export const FigureConfirmation=z.object({
 
 export function figurePrintEvidence(figures){
   return figures.map(f=>({id:f.id,width_points:f.w??null,height_points:f.h??null,
-    image_width_points:f.image_width_points??null,reading_mode:f.reading_mode??null,
+    image_width_points:f.image_width_points??null,reading_mode:f.reading_mode??null,...(Number.isFinite(f.letter_points)?{letter_points:f.letter_points}:{}),
     ...(f.detail_pages?{enlarged_detail_pages:f.detail_pages}:{}),...(f.parent_id?{overview_page:f.overview_page,detail_index:f.detail_index,detail_total:f.detail_total}:{}),
-    reading_sizes:(f.reading_sizes||[]).map(({mode,image_width_points,width_points,height_points})=>({mode,image_width_points,width_points,height_points}))}));
+    reading_sizes:(f.reading_sizes||[]).map(({mode,image_width_points,width_points,height_points,letter_points})=>({mode,image_width_points,width_points,height_points,...(Number.isFinite(letter_points)?{letter_points}:{})}))}));
 }
 
 export function adjudicateFigureConfirmation(answer,figures){
@@ -30,6 +31,12 @@ export function adjudicateFigureConfirmation(answer,figures){
   const larger=(figure.reading_sizes||[]).filter(s=>['column','landscape'].includes(s.mode)
     &&[s.image_width_points,s.width_points,s.height_points,figure.image_width_points].every(v=>Number.isFinite(v)&&v>0)
     &&s.image_width_points>figure.image_width_points*1.12).sort((a,b)=>b.image_width_points-a.image_width_points)[0];
+  // Measured source lettering is physical evidence the raster cannot give:
+  // once the printed letters meet the floor, fine text alone does not require
+  // a larger setting. A reported reading-size defect still takes the larger one.
+  if(result.reading_detail==='small_text'&&Number.isFinite(figure.letter_points)&&figure.letter_points>=MIN_LETTER_POINTS&&['orientation_only','none'].includes(result.defect))
+    return changed({confirmed:false,origin:'measured_layout',
+      note:`Measured smallest printed lettering is ${figure.letter_points}pt, meeting the ${MIN_LETTER_POINTS}pt floor.`});
   if(result.reading_detail==='small_text'&&larger&&['reading_size','orientation_only','none'].includes(result.defect))
     return changed({confirmed:true,origin:'measured_layout',defect:'reading_size',required_reading_mode:larger.mode,
       note:'The image contains small text to read. Use its largest measured reading setting, then review the new PDF.'});
