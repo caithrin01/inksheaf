@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {letteringFromGray,letterPoints,legibleReadingSize,MIN_LETTER_POINTS} from './lib/figure-lettering.mjs';
 import {adjudicateFigureConfirmation,figurePrintEvidence} from './lib/figure-confirmation.mjs';
+import {layoutInput} from './lib/publisher-layout.mjs';
 
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS',name);};
 // Synthetic page: rows of letter-like marks at known heights, plus rules and specks.
@@ -64,5 +65,16 @@ test('the review packet carries the measured letter size',()=>{
   const [e]=figurePrintEvidence([column]);assert.equal(e.letter_points,4.11);assert.equal(e.reading_sizes[0].letter_points,4.11);
   const {letter_points,...bare}={...column,reading_sizes:sizes};
   assert(!('letter_points' in figurePrintEvidence([bare])[0]));assert(!('letter_points' in figurePrintEvidence([bare])[0].reading_sizes[0]));
+});
+test('layout review sees the letter size a figure would print at if shrunk into the gap',()=>{
+  const plate={id:'timeline',page:2,h:485.28,w:310,floating:false,reading_mode:'landscape',letter_points:4.74,visual_role:{role:'reading'}};
+  const measurement={pages:[{page:1,blank:.75,layout_geometry:{trailing_space_points:360}},{page:2,blank:0}],figures:[plate],articles:[{n:1,start:1,end:3}]};
+  const input=layoutInput({measurement,report:{},fit:{},review:{findings:[]}});
+  const f=input.pages.find(p=>p.page===1).following_source_figure;
+  assert.equal(f.printed_letter_points,4.74);assert.equal(f.letter_floor_points,MIN_LETTER_POINTS);
+  assert.equal(f.letter_points_if_fitted_to_gap,3.52);assert(f.letter_points_if_fitted_to_gap<f.letter_floor_points);
+  const {letter_points,...unmeasured}=plate;
+  const g=layoutInput({measurement:{...measurement,figures:[unmeasured]},report:{},fit:{},review:{findings:[]}}).pages.find(p=>p.page===1).following_source_figure;
+  assert(!('letter_points_if_fitted_to_gap' in g));
 });
 console.log(`${count} figure lettering checks passed`);

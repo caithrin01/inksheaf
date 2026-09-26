@@ -1,6 +1,7 @@
 // Models select among measured, reversible typesetting operations. They never
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
+import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
 import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
 import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
 const LayoutDecision=z.object({
@@ -222,6 +223,8 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
         minimum_linear_reduction_fraction_to_fit:knownFit?Math.max(0,1-gap/following.h):null,
         same_article:true,kept_in_source_order:following.floating===false,
         reading_size_protected:following.visual_role?.role==='reading'&&['column','landscape'].includes(following.reading_mode),
+        ...(Number.isFinite(following.letter_points)?{printed_letter_points:following.letter_points,letter_floor_points:MIN_LETTER_POINTS,
+          letter_points_if_fitted_to_gap:knownFit?Math.round(following.letter_points*Math.min(1,gap/following.h)*100)/100:null}:{}),
         measurement_note:'Image height excludes caption and figure spacing.'}:null,
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
