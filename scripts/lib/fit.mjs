@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import {readingOrderFindings} from './publisher-layout.mjs';
 import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
 import {PreparedTypesetting} from './prepared-typesetting.mjs';
+import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
 
 export function fit(options) {
   const steps = fitPasses(options);
@@ -60,7 +61,11 @@ function* fitPasses({ args, html, pdf, log = () => {}, passes = 10, initial = {}
       // each category continued the loop immediately; reference tails waited behind
       // every leading adjustment and could consume the whole allowance unchanged.
       const interruptions=pj.engine==='typst'?readingOrderFindings(pj).filter(f=>!inFlow.includes(f.figure_id)):[];
-      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => (!allowMeasuredSpaceReview||pj.figures?.find(x=>x.id===f.id)?.role==='picture') && !readingFigures[f.id] && (spacePending||f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
+      // A reading figure with measured lettering may shrink to fit, but
+      // only while its printed letters stay at or above the floor.
+      const legibleFit = f => { const g = pj.figures?.find(x=>x.id===f.id);
+        return g?.role==='reading' && ['column','landscape'].includes(g.reading_mode) && Number.isFinite(g.letter_points) && g.h>0 && f.height*72 >= g.h*MIN_LETTER_POINTS/g.letter_points - .5; };
+      const tails = pj.engine === "typst" ? (pj.fit || []).filter(f => (!allowMeasuredSpaceReview||pj.figures?.find(x=>x.id===f.id)?.role==='picture'||legibleFit(f)) && !readingFigures[f.id] && (spacePending||f.closer || f.opener) && (!(f.id in fitFigs) || f.height <= fitFigs[f.id] - 0.1)) : [];
       const stranded = pj.engine === 'typst' ? (pj.articles || []).filter(a=>!backLinks.has(a.n) && a.end>a.start &&
         pj.pages[a.end-1]?.ink_rows < .25 && pj.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1)) : [];
       // Bring a very sparse ending back by adjusting leading, never font size, within

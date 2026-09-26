@@ -11,6 +11,7 @@ import * as fsMod from "node:fs";
 import * as cryptoMod from "node:crypto";
 import { dirname, resolve,relative } from "node:path";
 import {figureReadingSizes} from './figure-reading.mjs';
+import {figureLettering,letterPoints,legibleReadingSize,MIN_LETTER_POINTS} from './figure-lettering.mjs';
 
 const PUBLISHER_MARK = readFileSync(new URL("../../public/brand/wordmark-watermark.svg", import.meta.url), "utf8");
 const RUBRIC = "#7d6448", FAINT = "#6b6457", RULE = "#b9b19d", INK = "#1e1710";
@@ -166,12 +167,26 @@ export function emitTypst(html, opts = {}) {
     }
     const capTxt = caption ? `, caption: [${caption}]` : "";
     const img = extra => `image(${str(src)}, format: ${str(fmt)}, ${extra})`;
-    const readingSizes=figureReadingSizes(dim,{textWidth,textHeight});
+    // Fine text records its measured printed letter size at each setting.
+    const lettering=sourceRole?.reading_detail==='small_text'&&dim?('lettering' in sourceRole?(Number.isFinite(sourceRole.lettering?.min_letter_px)?sourceRole.lettering:null):figureLettering(path)):null;
+    const readingSizes=figureReadingSizes(dim,{textWidth,textHeight}).map(s=>lettering?{...s,letter_points:letterPoints(lettering,s,dim.w)}:s);
     // Missing alt text does not establish that an image is decorative. Keep its
     // detail at the bounded column reading size until its role is known.
-    const largest=readingSizes.reduce((best,s)=>!best||s.image_width_points>best.image_width_points?s:best,null);
-    const readingMode=sourceRole?.reading_detail==='small_text'?largest?.mode:readingFigures[id]||((sourceRole?.role==='reading'||attr(imgEl,'data-role')==='unknown')&&readingSizes.length?'column':undefined),reading=readingSizes.find(s=>s.mode===readingMode);
+    // Fine text takes the smallest setting whose measured letters meet the
+    // print floor; a requested larger setting is kept; unmeasured text is largest.
+    const legible=legibleReadingSize(readingSizes,lettering,dim?.w),requested=readingSizes.find(s=>s.mode===readingFigures[id]);
+    const readingMode=sourceRole?.reading_detail==='small_text'?(requested&&requested.image_width_points>legible.image_width_points?requested:legible)?.mode:readingFigures[id]||((sourceRole?.role==='reading'||attr(imgEl,'data-role')==='unknown')&&readingSizes.length?'column':undefined);
+    let reading=readingSizes.find(s=>s.mode===readingMode);
     if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
+    // A reading figure may give back space to the page before it, but
+    // never below the width at which its measured letters reach the floor.
+    // A quarter-turn figure's page height is its image width.
+    if(['column','landscape'].includes(readingMode)&&!readingFigures[id]&&lettering&&Number(fitFigs[id])>0){
+      const turned=readingMode==='landscape',floor=MIN_LETTER_POINTS*dim.w/lettering.min_letter_px;
+      const width=Math.max(floor,Number(fitFigs[id])*72*(turned?1:dim.w/dim.h));
+      if(width<reading.image_width_points-.5){const w=Math.ceil(width*1000)/1000,h=w*dim.h/dim.w;reading={...reading,image_width_points:w,image_height_points:h,width_points:turned?h:w,height_points:turned?w:h};}
+    }
+    const printedLetters=lettering&&reading?letterPoints(lettering,reading,dim.w):null;
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';
     const readingImage=reading?img(`width: ${reading.image_width_points}pt, height: auto`):null;
     const readingBody=readingMode==='landscape'?`rotate(90deg, reflow: true, ${readingImage})`:readingImage;
@@ -180,7 +195,7 @@ export function emitTypst(html, opts = {}) {
        above the inline image's paragraph spacing, or before its page turn. */
     const tagFor = extra => {
       const measured=readingBody||img(extra.replace(/width: (\d+(?:\.\d+)?)%/, (m,pct)=>`width: sz.width * ${pct} / 100`));
-      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, page: query(label(${str(imageAnchor)})).first().location().page(), y: query(label(${str(imageAnchor)})).first().location().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
+      return `#block(height: 0pt, above: 0pt, below: 0pt)[#layout(sz => context [#metadata((id: ${str(id)}, source: ${str(path)}, article: ${articleN}, source_next_paragraph: ${paragraphN+1}, role: ${str(attr(imgEl, "data-role") || "unknown")}, floating: ${Boolean(!sourceRole && !reading && !fitH && !isLast && !inFlow.includes(id))}, reading_mode: ${readingMode?str(readingMode):'none'}, reading_sizes: ${readingMetadata}, ${printedLetters!==null?`letter_points: ${printedLetters}, `:''}page: query(label(${str(imageAnchor)})).first().location().page(), y: query(label(${str(imageAnchor)})).first().location().position().y.pt(), w: measure(${measured}).width.pt(), h: measure(${measured}).height.pt(), image_width_points: ${reading?reading.image_width_points:`measure(${measured}).width.pt()`})) <fig>])]`;
     };
     /* a figure the fit loop asked to scale (it fell onto the page after a short one) sits in flow
        at the height that was left, so the page before it stays full; every other figure floats */

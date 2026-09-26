@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 import { readFileSync } from 'node:fs';
 import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
 const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
@@ -30,11 +31,11 @@ await test('unchanged source replay makes no second inference call', async () =>
 await test('missing full bodies hold the book without a model call', async () => { await assert.rejects(publishSelection({posts:[{id:1,title:'Missing'}],publication:'Fixture',ask:()=>{throw Error('Should not call');}}),/source text is missing/); });
 await test('image-only work is retained as unreviewed by the text classifier', async () => { const result=await publishSelection({posts:[{id:1,title:'Photograph',body_html:'<img src="photo.png">'}],publication:'Fixture',ask}); assert.deepEqual(result.included_ids,['1']); assert.equal(result.decisions[0].decision,'uncertain'); });
 await test('budget denial occurs before any provider request', async () => { let network=0; const call=openRouterPublisher({key:'fixture',budget:0,fetchImpl:async()=>{network++;}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/budget/); assert.equal(network,0); });
-await test('annual review can pass 96 calls while the 256-call and $2 limits remain enforced',async()=>{
+await test('annual review can pass 96 calls while the 256-call and edition money limits remain enforced',async()=>{
   let network=0;const journal={calls:Array.from({length:96},()=>({cost:.001})),spent:.096};
   const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{network++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});
   await call({role:'reader',task:'Read',schema:Reading});assert.equal(network,1);assert.equal(journal.calls.length,97);
-  journal.calls.push({reserved:1.91});
+  journal.calls.push({reserved:PUBLISHER_BUDGET_USD-.09});
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
   journal.calls=Array.from({length:256},()=>({cost:.001}));
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);

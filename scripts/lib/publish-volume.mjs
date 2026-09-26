@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {layoutInput,applyLayoutRepairs,pageContext,readingOrderFindings,unknownPictureFits} from './publisher-layout.mjs';
+import {layoutInput,applyLayoutRepairs,acceptMeasuredFigureGaps,pageContext,readingOrderFindings,unknownPictureFits} from './publisher-layout.mjs';
 import {reviewPdf,writerLine} from './page-review.mjs';
 import {pageTextEvidence} from './page-text-evidence.mjs';
 import {prepareLayoutEvidence} from './layout-evidence.mjs';
@@ -76,7 +76,7 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     const measuredInput=layoutInput({measurement,report:book.report,fit:book.report.fit,review,figureRoles,pageText:execFileSync('pdftotext',['-layout',book.pdf,'-'],{encoding:'utf8',maxBuffer:20_000_000}).split('\f'),pdfHash:createHash('sha256').update(readFileSync(book.pdf)).digest('hex')});
     const evidence=prepareLayoutEvidence(measuredInput,{directory:`${reviewDirectory}-${round}`,rasterDirectory:`${reviewDirectory}-${round}/pages`,pageCount:review.pages,policy:PUBLISHER_REVIEW_POLICY});
     const input=evidence.input;
-    try{layout=await publisher.layout(input,{imagesByPage:evidence.imagesByPage});}
+    try{layout=acceptMeasuredFigureGaps(await publisher.layout(input,{imagesByPage:evidence.imagesByPage}),input);}
     catch(error){evidence.saveResult({status:'incomplete'});throw error;}
     // Save before events, repair exhaustion or quality holds can interrupt work.
     evidence.saveResult({status:'completed-review',decisions:layout.decisions});
