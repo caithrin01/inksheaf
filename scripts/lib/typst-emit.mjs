@@ -178,11 +178,13 @@ export function emitTypst(html, opts = {}) {
     const readingMode=sourceRole?.reading_detail==='small_text'?(requested&&requested.image_width_points>legible.image_width_points?requested:legible)?.mode:readingFigures[id]||((sourceRole?.role==='reading'||attr(imgEl,'data-role')==='unknown')&&readingSizes.length?'column':undefined);
     let reading=readingSizes.find(s=>s.mode===readingMode);
     if(readingMode&&!reading)throw Error(`No bounded reading size for figure ${id}`);
-    // A column reading figure may give back space to the page before it, but
+    // A reading figure may give back space to the page before it, but
     // never below the width at which its measured letters reach the floor.
-    if(readingMode==='column'&&lettering&&Number(fitFigs[id])>0){
-      const floor=MIN_LETTER_POINTS*dim.w/lettering.min_letter_px,width=Math.max(floor,Number(fitFigs[id])*72*dim.w/dim.h);
-      if(width<reading.image_width_points-.5){const w=Math.ceil(width*1000)/1000;reading={...reading,image_width_points:w,image_height_points:w*dim.h/dim.w,width_points:w,height_points:w*dim.h/dim.w};}
+    // A quarter-turn figure's page height is its image width.
+    if(['column','landscape'].includes(readingMode)&&!readingFigures[id]&&lettering&&Number(fitFigs[id])>0){
+      const turned=readingMode==='landscape',floor=MIN_LETTER_POINTS*dim.w/lettering.min_letter_px;
+      const width=Math.max(floor,Number(fitFigs[id])*72*(turned?1:dim.w/dim.h));
+      if(width<reading.image_width_points-.5){const w=Math.ceil(width*1000)/1000,h=w*dim.h/dim.w;reading={...reading,image_width_points:w,image_height_points:h,width_points:turned?h:w,height_points:turned?w:h};}
     }
     const printedLetters=lettering&&reading?letterPoints(lettering,reading,dim.w):null;
     const readingMetadata='('+readingSizes.map(s=>'('+Object.entries(s).map(([k,v])=>`${k}: ${typeof v==='string'?str(v):v}`).join(', ')+')').join(', ')+(readingSizes.length?',':'')+')';

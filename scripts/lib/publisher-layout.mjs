@@ -192,6 +192,11 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
   for(const f of measurement.fit||[]){
     const figure=(measurement.figures||[]).find(x=>x.id===f.id);
     if(figure?.role==='picture'&&!figure.reading_mode&&!fit.readingFigures?.[f.id]&&Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
+    // A reading figure may shrink into the gap only while its measured source
+    // lettering still prints at or above the floor.
+    const lettersAfter=figure&&Number.isFinite(figure.letter_points)&&figure.h>0&&Number.isFinite(f.height)?Math.round(figure.letter_points*Math.min(1,f.height*72/figure.h)*100)/100:null;
+    if(figure?.role==='reading'&&['column','landscape'].includes(figure.reading_mode)&&!fit.readingFigures?.[f.id]&&lettersAfter>=MIN_LETTER_POINTS&&f.height>=1.2&&f.height*72<figure.h-6&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))
+      candidates.push({id:`reading-fit:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height,letter_points_after_fit:lettersAfter,letter_floor_points:MIN_LETTER_POINTS});
   }
   for(const candidate of unknownPictureFits({measurement,fit,review})){
     const evidence=figureRoles[candidate.figure];

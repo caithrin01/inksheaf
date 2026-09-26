@@ -77,4 +77,16 @@ test('layout review sees the letter size a figure would print at if shrunk into 
   const g=layoutInput({measurement:{...measurement,figures:[unmeasured]},report:{},fit:{},review:{findings:[]}}).pages.find(p=>p.page===1).following_source_figure;
   assert(!('letter_points_if_fitted_to_gap' in g));
 });
+test('a reading figure is offered a shrink only while its letters stay at or above the floor',()=>{
+  const plate={id:'timeline',page:2,h:485.28,w:310,floating:false,role:'reading',reading_mode:'landscape',letter_points:4.74,visual_role:{role:'reading'}};
+  const base={pages:[{page:1,blank:.75,layout_geometry:{trailing_space_points:380}},{page:2,blank:0}],figures:[plate],articles:[{n:1,start:1,end:3}]};
+  const offered=layoutInput({measurement:{...base,fit:[{page:1,id:'timeline',height:5.28}]},report:{},fit:{},review:{findings:[]}}).candidates.find(c=>c.id==='reading-fit:timeline');
+  assert(offered);assert.equal(offered.operation,'fit_figure');assert(offered.letter_points_after_fit>=MIN_LETTER_POINTS);
+  const tooSmall=layoutInput({measurement:{...base,fit:[{page:1,id:'timeline',height:4.5}]},report:{},fit:{},review:{findings:[]}}).candidates.find(c=>c.id==='reading-fit:timeline');
+  assert.equal(tooSmall,undefined);
+  const requested=layoutInput({measurement:{...base,fit:[{page:1,id:'timeline',height:5.28}]},report:{},fit:{readingFigures:{timeline:'landscape'}},review:{findings:[]}}).candidates.find(c=>c.id==='reading-fit:timeline');
+  assert.equal(requested,undefined,'an explicitly enlarged figure is never offered a shrink');
+  const {letter_points,...unmeasured}=plate;
+  assert.equal(layoutInput({measurement:{...base,figures:[unmeasured],fit:[{page:1,id:'timeline',height:5.28}]},report:{},fit:{},review:{findings:[]}}).candidates.find(c=>c.id==='reading-fit:timeline'),undefined);
+});
 console.log(`${count} figure lettering checks passed`);
