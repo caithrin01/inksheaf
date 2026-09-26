@@ -5,6 +5,7 @@ import {mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {publisherSession} from './lib/publisher-session.mjs';
+import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 const dirs=[],env={OPENROUTER_API_KEY:'fixture'};
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=','base64');
 let passed=0;
@@ -34,7 +35,7 @@ await check('unchanged page facts and rasters reuse a verdict across PDFs with b
 });
 await check('reuse at the original model/render/repair caps leaves every reservation intact',async()=>{
  const f=await fixture();await f.review();const s=await f.open();for(let n=0;n<6;n++)await s.reserveRender('1',{});for(let n=0;n<2;n++)await s.reserveRepair('1',{});
- const exhausted=f.state();exhausted.journal.calls[0].cost=2;exhausted.journal.spent=2;writeFileSync(join(f.directory,'state.json'),JSON.stringify(exhausted));f.input.pdf_hash='b'.repeat(64);
+ const exhausted=f.state();exhausted.journal.calls[0].cost=PUBLISHER_BUDGET_USD;exhausted.journal.spent=PUBLISHER_BUDGET_USD;writeFileSync(join(f.directory,'state.json'),JSON.stringify(exhausted));f.input.pdf_hash='b'.repeat(64);
  await f.review();assert.equal(f.calls(),1);assert.deepEqual(f.state().journal,exhausted.journal);assert.deepEqual(f.state().renderBudget,exhausted.renderBudget);
  f.input.pages[0].printed_text='Changed text.';await assert.rejects(f.review(),/budget reached/);assert.equal(f.calls(),1);
 });

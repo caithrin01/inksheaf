@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {publisherSession} from './lib/publisher-session.mjs';
+import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 const dir=mkdtempSync(join(tmpdir(),'source-notes-budget-'));
 try{
  let calls=0;
@@ -20,7 +21,7 @@ try{
  assert.equal(await(await session()).sourceNotes(input),false);assert.equal(calls,1,'rebuild reuses a settled source decision');
  await(await session()).sourceNotes({...input,tailHtml:input.tailHtml+'<p>Changed beyond the excerpt</p>'});assert.equal(calls,2,'full tail hash invalidates even outside the excerpt');
  let saved=JSON.parse(readFileSync(join(dir,'state.json')));assert.equal(saved.journal.spent,.002);assert(saved.journal.calls.every(c=>c.status==='completed'&&c.cost===.001));
- saved.journal.calls.push({id:'historical-unknown',reserved:2,status:'reserved'});writeFileSync(join(dir,'state.json'),JSON.stringify(saved));
+ saved.journal.calls.push({id:'historical-unknown',reserved:PUBLISHER_BUDGET_USD,status:'reserved'});writeFileSync(join(dir,'state.json'),JSON.stringify(saved));
  await assert.rejects((await session()).sourceNotes({...input,heading:'Uncached'}),/budget/);assert.equal(calls,2,'budget refusal never contacts provider');
  console.log('PASS source-notes request identity, prior reservation, settled cost, cross-build cache, full-tail invalidation and budget refusal');
 }finally{rmSync(dir,{recursive:true,force:true});}
