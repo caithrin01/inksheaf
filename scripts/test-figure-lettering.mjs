@@ -122,4 +122,11 @@ test('a measured-unreadable shrink turns needs_review into accepted figure seque
     assert.equal(acceptMeasuredFigureGaps(held,i).decisions[0].decision,'needs_review',name);
   }
 });
+test('a confirmed source-content answer with no print defect is source preservation, not a defect',()=>{
+  const fig={id:'error-shot',page:1,w:326,h:485,image_width_points:485,reading_mode:'landscape',letter_points:2.84,reading_sizes:[{mode:'column',image_width_points:326,width_points:326,height_points:200},{mode:'landscape',image_width_points:485,width_points:300,height_points:485}]};
+  const r=adjudicateFigureConfirmation({confirmed:true,origin:'source_content',note:'The error dialog is in the source screenshot.',figure_id:'error-shot',defect:'none',reading_detail:'small_text'},[fig]);
+  assert.equal(r.source_preserved,true);assert.equal(r.origin,'source_content');assert.equal(r.confirmed,true);
+  const u=adjudicateFigureConfirmation({confirmed:true,origin:'rendered_layout',note:'x',figure_id:'error-shot',defect:'none',reading_detail:'small_text'},[fig]);
+  assert(!u.source_preserved);assert.equal(u.origin,'uncertain');
+});
 console.log(`${count} figure lettering checks passed`);

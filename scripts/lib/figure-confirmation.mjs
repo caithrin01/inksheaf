@@ -46,6 +46,10 @@ export function adjudicateFigureConfirmation(answer,figures){
   // Source crops can be intentional. Source fidelity cannot excuse an
   // unreadable print size, detached caption, or missing figure.
   if(result.defect==='crop'&&result.origin==='source_content')return changed({confirmed:false,source_preserved:true});
+  // "The flagged content is in the source, and nothing is wrong in print" is
+  // source preservation. Page review clears it only with an actual source
+  // comparison; without one it remains held.
+  if(result.defect==='none'&&result.confirmed&&result.origin==='source_content')return changed({confirmed:true,origin:'source_content',source_preserved:true});
   if(result.defect==='none')return result.confirmed?changed({confirmed:true,origin:'uncertain'}):result;
   return changed({confirmed:true,origin:'rendered_layout'});
 }
