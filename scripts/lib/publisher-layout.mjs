@@ -229,7 +229,10 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
         same_article:true,kept_in_source_order:following.floating===false,
         reading_size_protected:following.visual_role?.role==='reading'&&['column','landscape'].includes(following.reading_mode),
         ...(Number.isFinite(following.letter_points)?{printed_letter_points:following.letter_points,letter_floor_points:MIN_LETTER_POINTS,
-          letter_points_if_fitted_to_gap:knownFit?Math.round(following.letter_points*Math.min(1,gap/following.h)*100)/100:null}:{}),
+          letter_points_if_fitted_to_gap:knownFit?Math.round(following.letter_points*Math.min(1,gap/following.h)*100)/100:null,
+          // The renderer's fit target also reserves caption and figure spacing.
+          ...(()=>{const t=(measurement.fit||[]).find(x=>x.id===following.id&&x.page===p.page);
+            return Number.isFinite(t?.height)&&following.h>0?{letter_points_at_fit_target:Math.round(following.letter_points*Math.min(1,t.height*72/following.h)*100)/100}:{};})()}:{}),
         measurement_note:'Image height excludes caption and figure spacing.'}:null,
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
@@ -268,6 +271,26 @@ export function validateLayout(result,input){
   }
   if(seen.size!==pages.size)throw invalid('Layout review omitted a measured page');
   return parsed;
+}
+// Owner rule (2026-09-26): a gap before a protected reading figure is accepted
+// when measurement proves the figure's lettering would fall below the print
+// floor if shrunk into it. Only a spacing-only page without any offered repair
+// qualifies; the model's own decision is retained beside the measured one.
+export function acceptMeasuredFigureGaps(result,input){
+  const decisions=result.decisions.map(d=>{
+    const p=input.pages.find(p=>p.page===d.page),f=p?.following_source_figure;
+    if(d.decision!=='needs_review'||!p||!f?.same_article||!f.reading_size_protected||f.image_alone_fits_in_gap!==false)return d;
+    const letters=f.letter_points_at_fit_target??f.letter_points_if_fitted_to_gap;
+    if(!(Number.isFinite(letters)&&letters<f.letter_floor_points))return d;
+    if(p.findings.some(x=>x.check!==1)||sparseProseEnding(p)||p.stranded_picture_fit||input.candidates.some(c=>c.page===p.page))return d;
+    if(!allowedSpaceBases(p).includes('figure_sequence'))return d;
+    return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'figure_sequence',article_ends_here:d.article_ends_here??false,
+      reason:`Measured: shrinking the next figure into this gap would print its lettering at ${letters}pt, below the ${f.letter_floor_points}pt floor.`.slice(0,200),
+      measured_override:true,model_decision:d};
+  });
+  const accepted={...result,decisions};
+  validateLayout({decisions:decisions.map(({measured_override,model_decision,...d})=>d)},input);
+  return accepted;
 }
 export function applyLayoutRepairs(fit,result,input){
   validateLayout(result,input);

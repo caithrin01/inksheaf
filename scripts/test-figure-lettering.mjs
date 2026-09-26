@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {letteringFromGray,letterPoints,legibleReadingSize,MIN_LETTER_POINTS} from './lib/figure-lettering.mjs';
 import {adjudicateFigureConfirmation,figurePrintEvidence} from './lib/figure-confirmation.mjs';
-import {layoutInput} from './lib/publisher-layout.mjs';
+import {layoutInput,acceptMeasuredFigureGaps} from './lib/publisher-layout.mjs';
 
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS',name);};
 // Synthetic page: rows of letter-like marks at known heights, plus rules and specks.
@@ -88,5 +88,25 @@ test('a reading figure is offered a shrink only while its letters stay at or abo
   assert.equal(requested,undefined,'an explicitly enlarged figure is never offered a shrink');
   const {letter_points,...unmeasured}=plate;
   assert.equal(layoutInput({measurement:{...base,figures:[unmeasured],fit:[{page:1,id:'timeline',height:5.28}]},report:{},fit:{},review:{findings:[]}}).candidates.find(c=>c.id==='reading-fit:timeline'),undefined);
+});
+test('a measured-unreadable shrink turns needs_review into accepted figure sequence, and nothing else does',()=>{
+  const plate={id:'timeline',page:2,h:485.28,w:310,floating:false,role:'reading',reading_mode:'landscape',letter_points:3.1,visual_role:{role:'reading'}};
+  const measurement={pages:[{page:1,blank:.8,layout_geometry:{trailing_space_points:400}},{page:2,blank:0}],figures:[plate],articles:[{n:1,start:1,end:3}]};
+  const finding={page:1,check:1,note:'Large gap.'};
+  const input=layoutInput({measurement,report:{},fit:{},review:{findings:[finding]}});
+  const held={decisions:[{page:1,decision:'needs_review',candidate_id:null,reason:'No repair candidate.',space_basis:null,article_ends_here:false}]};
+  const out=acceptMeasuredFigureGaps(held,input).decisions[0];
+  assert.equal(out.decision,'intentional_space');assert.equal(out.space_basis,'figure_sequence');assert(out.measured_override);assert.deepEqual(out.model_decision,held.decisions[0]);
+  // The renderer's fit target (caption and spacing reserved) governs when present.
+  const tight=layoutInput({measurement:{...measurement,figures:[{...plate,letter_points:4.74}],fit:[{page:1,id:'timeline',height:4.38}]},report:{},fit:{},review:{findings:[finding]}});
+  assert.equal(tight.pages[0].following_source_figure.letter_points_at_fit_target,3.08);
+  assert.equal(acceptMeasuredFigureGaps(held,tight).decisions[0].decision,'intentional_space');
+  // Readable when shrunk, unmeasured, or another defect on the page: the model's hold stands.
+  for(const [name,m,r] of [['readable',{...measurement,figures:[{...plate,letter_points:4.74}]},{findings:[finding]}],
+    ['unmeasured',{...measurement,figures:[(({letter_points,...x})=>x)(plate)]},{findings:[finding]}],
+    ['content defect',measurement,{findings:[finding,{page:1,check:6,note:'Stray glyph.'}]}]]){
+    const i=layoutInput({measurement:m,report:{},fit:{},review:r});
+    assert.equal(acceptMeasuredFigureGaps(held,i).decisions[0].decision,'needs_review',name);
+  }
 });
 console.log(`${count} figure lettering checks passed`);
