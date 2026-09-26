@@ -220,7 +220,7 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
       ...context.get(p.page),
       compiled_article_span:a?{start:a.start,end:a.end}:null,
       article_ends_here:a?p.page===a.end:null,
-      following_source_figure:following?{id:following.id,physical_page:following.page,
+      following_source_figure:following?{id:following.id,physical_page:following.page,...(following.parent_id?{enlarged_detail_of:following.parent_id}:{}),
         source_role:following.visual_role??null,reading_mode:following.reading_mode??null,
         image_height_points:following.h,trailing_space_before_points:p.layout_geometry?.trailing_space_points??null,
         image_alone_fits_in_gap:knownFit?following.h<=gap:null,
@@ -232,7 +232,8 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
           letter_points_if_fitted_to_gap:knownFit?Math.round(following.letter_points*Math.min(1,gap/following.h)*100)/100:null,
           // The renderer's fit target also reserves caption and figure spacing.
           ...(()=>{const t=(measurement.fit||[]).find(x=>x.id===following.id&&x.page===p.page);
-            return Number.isFinite(t?.height)&&following.h>0?{letter_points_at_fit_target:Math.round(following.letter_points*Math.min(1,t.height*72/following.h)*100)/100}:{};})()}:{}),
+            const target=Number.isFinite(t?.height)?t.height*72:knownFit?Math.max(0,gap-86.4):null;
+            return Number.isFinite(target)&&following.h>0?{letter_points_at_fit_target:Math.round(following.letter_points*Math.min(1,target/following.h)*100)/100}:{};})()}:{}),
         measurement_note:'Image height excludes caption and figure spacing.'}:null,
       adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
@@ -279,13 +280,18 @@ export function validateLayout(result,input){
 export function acceptMeasuredFigureGaps(result,input){
   const decisions=result.decisions.map(d=>{
     const p=input.pages.find(p=>p.page===d.page),f=p?.following_source_figure;
-    if(d.decision!=='needs_review'||!p||!f?.same_article||!f.reading_size_protected||f.image_alone_fits_in_gap!==false)return d;
+    if(d.decision!=='needs_review'||!p||!f?.same_article)return d;
     const letters=f.letter_points_at_fit_target??f.letter_points_if_fitted_to_gap;
-    if(!(Number.isFinite(letters)&&letters<f.letter_floor_points))return d;
+    const detail=Boolean(f.enlarged_detail_of)&&f.image_alone_fits_in_gap===false;
+    // Fitting must require a reduction (renderer spacing included), and the
+    // reduced lettering must fall below the floor.
+    const needsReduction=Number.isFinite(f.letter_points_at_fit_target)?f.letter_points_at_fit_target<f.printed_letter_points:f.image_alone_fits_in_gap===false;
+    if(!detail&&!(f.reading_size_protected&&needsReduction&&Number.isFinite(letters)&&letters<f.letter_floor_points))return d;
     if(p.findings.some(x=>x.check!==1)||sparseProseEnding(p)||p.stranded_picture_fit||input.candidates.some(c=>c.page===p.page))return d;
     if(!allowedSpaceBases(p).includes('figure_sequence'))return d;
     return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'figure_sequence',article_ends_here:d.article_ends_here??false,
-      reason:`Measured: shrinking the next figure into this gap would print its lettering at ${letters}pt, below the ${f.letter_floor_points}pt floor.`.slice(0,200),
+      reason:(detail?`The next page is an enlarged detail of ${f.enlarged_detail_of}; details exist to print larger and are never shrunk to fill a gap.`
+        :`Measured: shrinking the next figure into this gap would print its lettering at ${letters}pt, below the ${f.letter_floor_points}pt floor.`).slice(0,200),
       measured_override:true,model_decision:d};
   });
   const accepted={...result,decisions};

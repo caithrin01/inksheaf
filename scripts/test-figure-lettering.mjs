@@ -101,8 +101,21 @@ test('a measured-unreadable shrink turns needs_review into accepted figure seque
   const tight=layoutInput({measurement:{...measurement,figures:[{...plate,letter_points:4.74}],fit:[{page:1,id:'timeline',height:4.38}]},report:{},fit:{},review:{findings:[finding]}});
   assert.equal(tight.pages[0].following_source_figure.letter_points_at_fit_target,3.08);
   assert.equal(acceptMeasuredFigureGaps(held,tight).decisions[0].decision,'intentional_space');
+  // Without a renderer fit entry, the estimate reserves 1.2in like the renderer.
+  const noEntry=layoutInput({measurement:{...measurement,pages:[{page:1,blank:.8,layout_geometry:{trailing_space_points:380}},{page:2,blank:0}],figures:[{...plate,letter_points:4.74}]},report:{},fit:{},review:{findings:[finding]}});
+  assert.equal(noEntry.pages[0].following_source_figure.letter_points_at_fit_target,2.87);
+  assert.equal(acceptMeasuredFigureGaps(held,noEntry).decisions[0].decision,'intentional_space');
+  // Fits by bare image height but not with caption and spacing, letters already small: accepted.
+  const nearly=layoutInput({measurement:{...measurement,pages:[{page:1,blank:.55,layout_geometry:{trailing_space_points:292}},{page:2,blank:0}],figures:[{...plate,reading_mode:'column',h:273.6,letter_points:2.72}]},report:{},fit:{},review:{findings:[finding]}});
+  assert.equal(nearly.pages[0].following_source_figure.image_alone_fits_in_gap,true);
+  assert.equal(acceptMeasuredFigureGaps(held,nearly).decisions[0].decision,'intentional_space');
+  // An enlarged detail page is never shrunk; its gap is accepted.
+  const detail={id:'grid::detail-1',parent_id:'grid',page:2,h:430,w:326,floating:false,role:'reading',reading_mode:'column'};
+  const di=layoutInput({measurement:{...measurement,figures:[detail]},report:{},fit:{},review:{findings:[finding]}});
+  assert.equal(di.pages[0].following_source_figure.enlarged_detail_of,'grid');
+  assert.equal(acceptMeasuredFigureGaps(held,di).decisions[0].decision,'intentional_space');
   // Readable when shrunk, unmeasured, or another defect on the page: the model's hold stands.
-  for(const [name,m,r] of [['readable',{...measurement,figures:[{...plate,letter_points:4.74}]},{findings:[finding]}],
+  for(const [name,m,r] of [['readable',{...measurement,pages:[{page:1,blank:.9,layout_geometry:{trailing_space_points:470}},{page:2,blank:0}],figures:[{...plate,letter_points:4.74}]},{findings:[finding]}],
     ['unmeasured',{...measurement,figures:[(({letter_points,...x})=>x)(plate)]},{findings:[finding]}],
     ['content defect',measurement,{findings:[finding,{page:1,check:6,note:'Stray glyph.'}]}]]){
     const i=layoutInput({measurement:m,report:{},fit:{},review:r});
