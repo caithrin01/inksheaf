@@ -43,6 +43,13 @@ for x,y in zip(a,b):
  assert.equal(pageTextEvidence(withoutEntry,marker.page).reference_markers[0].matching_entry,null);
  const wrongArticle={...measurement,print_elements:measurement.print_elements.map(e=>e.kind==='reference_entry'?{...e,article:e.article+1}:e)};
  assert.equal(pageTextEvidence(wrongArticle,marker.page).reference_markers[0].matching_entry,null);
+ // An entry page reports its marker even when the marker is pages earlier in the article.
+ const entryFirst={print_elements:[{kind:'reference_marker',text:'a',anchor:'slopstops.com',article:19,page:150,y:64.2},
+  {kind:'reference_entry',text:'a',anchor:'slopstops.com',article:19,page:154,y:531.2},{kind:'reference_entry',text:'b',anchor:'md file',article:19,page:154,y:539.4}]};
+ const onEntryPage=pageTextEvidence(entryFirst,154);
+ assert.deepEqual(onEntryPage.reference_entries[0].matching_marker,{physical_page:150,y_points:64.2,anchor:'slopstops.com'});
+ assert.equal(onEntryPage.reference_entries[1].matching_marker,null);assert.equal(onEntryPage.reference_entries[1].marker_match_count,0);
+ assert.equal(pageTextEvidence({print_elements:entryFirst.print_elements.map(e=>e.kind==='reference_marker'?{...e,article:20}:e)},154).reference_entries[0].matching_marker,null);
  assert.equal(pageTextEvidence({},1),null);assert.throws(()=>pageTextEvidence({},0),/physical PDF page/);
  console.log('PASS compiled references, exact reader caption and source fragments; missing or unrelated reference entries stay unknown; every page remains pixel/text-identical');
  let evidenceCalls=0,confirmations=0;
