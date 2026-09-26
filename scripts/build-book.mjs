@@ -198,6 +198,54 @@ else {
   for(const result of results)if(result.post)full.push(result.post);else report.skips.push(result.skip);
 }
 console.error(full.length, "bodies fetched");
+
+// image localization: download once into the cache, convert to grayscale for BW proofs,
+// rewrite to relative paths (renders become network-independent; dead images get honest boxes).
+// Every image starts downloading as soon as its body arrives, overlapping the
+// editorial model work; the later rewrite awaits the same single attempt.
+const {execFile}=await import("node:child_process");
+const {promisify}=await import("node:util");
+const convertImage=promisify(execFile);
+const crypto = await import("node:crypto");
+const IMGCACHE = "proofs/.cache/img";
+mkdirSync(IMGCACHE, { recursive: true });
+const imageAttempts = new Map(), imageAborts = new Map();
+let imagesPlaced = false;
+function localizeImage(u) {
+  if (imageAttempts.has(u)) return imageAttempts.get(u);
+  const abort = new AbortController();
+  imageAborts.set(u, abort);
+  const attempt = (async () => {
+    const h = crypto.createHash("sha1").update(u).digest("hex").slice(0, 16);
+    const ext = /f_jpg|\.jpe?g/i.test(u) ? "jpg" : /\.png/i.test(u) ? "png" : "img";
+    const base = `${IMGCACHE}/${h}.${ext}`;
+    const normalized = `${IMGCACHE}/${h}-print-v2-${BW ? 'gray' : 'color'}.jpg`;
+    const {existsSync:ex,writeFileSync:wf,renameSync,unlinkSync}=await import("node:fs");
+    if (!ex(base)) {
+      const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] },signal:AbortSignal.any([AbortSignal.timeout(15000), abort.signal]) });
+      if (!r.ok) throw new Error(r.status);
+      wf(base, Buffer.from(await r.arrayBuffer()));
+    }
+    // A guessed extension or grayscale profile does not convert HEIC into a format
+    // Typst can print. Normalize explicitly, retaining the original cache file.
+    if(!ex(normalized)){
+      const temporary=normalized+'.'+crypto.randomUUID()+'.tmp';
+      try{
+        await convertImage('python3',['scripts/normalize-print-image.py',base,temporary,
+          ...(BW?['--bw']:[]),'--max-width',MODE==='print'?'2700':'5400'],{timeout:70000,maxBuffer:1000000});
+        renameSync(temporary,normalized);
+      }finally{if(ex(temporary))unlinkSync(temporary);}
+    }
+    return normalized;
+  })();
+  attempt.catch(() => {});
+  imageAttempts.set(u, attempt);
+  return attempt;
+}
+const imageSourceUrl = src => MODE === "print" ? decodeCdn(src) : src.replace(/w_\d+/, "w_1100").replace("f_auto", "f_jpg").replace("q_auto:good", "q_80").replace(",fl_progressive:steep", "");
+const prefetchImages = [...new Set(full.flatMap(p => [...String(p.body_html || "").matchAll(/<img[^>]+src="([^"]+)"/gi)].map(m => m[1])))]
+  .filter(Boolean).map(imageSourceUrl).filter(u => /^https?:/.test(u));
+const imagePrefetch = mapConcurrent(prefetchImages, u => localizeImage(u).catch(() => null), { concurrency: 8, shouldStop: () => imagesPlaced }).catch(() => []);
 // Stop before optional homepage/brand reads when required writing is unavailable.
 if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error('Selected source text is missing; cannot finish the publisher edition');
 
@@ -446,7 +494,7 @@ function clean(html, slug) {
     const src = (tag.match(/src="([^"]+)"/) || [])[1] || "";
     const alt = (tag.match(/alt="([^"]*)"/) || [])[1] || "";
     if (!src) return "";
-    const out = MODE === "print" ? decodeCdn(src) : src.replace(/w_\d+/, "w_1100").replace("f_auto", "f_jpg").replace("q_auto:good", "q_80").replace(",fl_progressive:steep", "");
+    const out = imageSourceUrl(src);
     return `<img src="${out}" alt="${alt}" data-fig="${slug}:${++figN}">`;
   });
   /* --defer a:3,b:1 : an image the renderer found pushed whole to the next page (leaving the
@@ -857,14 +905,6 @@ window.__pagedDone = new Promise(res => {
 </body>
 </html>`;
 
-// image localization: download once into the cache, convert to grayscale for BW proofs,
-// rewrite to relative paths (renders become network-independent; dead images get honest boxes)
-const {execFile}=await import("node:child_process");
-const {promisify}=await import("node:util");
-const convertImage=promisify(execFile);
-const crypto = await import("node:crypto");
-const IMGCACHE = "proofs/.cache/img";
-mkdirSync(IMGCACHE, { recursive: true });
 const { relative: relPath, dirname: dirN } = await import("node:path");
 const OUTDIR = dirN(OUT);
 const srcs = [...new Set([...html.matchAll(/<img src="(http[^"]+)"/g)].map(m => m[1]))];
@@ -873,28 +913,8 @@ const queue = [...srcs];
 async function worker() {
   while (queue.length) {
     const u = queue.pop();
-    const h = crypto.createHash("sha1").update(u).digest("hex").slice(0, 16);
-    const ext = /f_jpg|\.jpe?g/i.test(u) ? "jpg" : /\.png/i.test(u) ? "png" : "img";
-    const base = `${IMGCACHE}/${h}.${ext}`;
-    const normalized = `${IMGCACHE}/${h}-print-v2-${BW ? 'gray' : 'color'}.jpg`;
-    const want = normalized;
     try {
-      const {existsSync:ex,writeFileSync:wf,renameSync,unlinkSync}=await import("node:fs");
-      if (!ex(base)) {
-        const r = await fetch(u, { headers: { "user-agent": UA["user-agent"] },signal:AbortSignal.timeout(15000) });
-        if (!r.ok) throw new Error(r.status);
-        wf(base, Buffer.from(await r.arrayBuffer()));
-      }
-      // A guessed extension or grayscale profile does not convert HEIC into a format
-      // Typst can print. Normalize explicitly, retaining the original cache file.
-      if(!ex(normalized)){
-        const temporary=normalized+'.'+crypto.randomUUID()+'.tmp';
-        try{
-          await convertImage('python3',['scripts/normalize-print-image.py',base,temporary,
-            ...(BW?['--bw']:[]),'--max-width',MODE==='print'?'2700':'5400'],{timeout:70000,maxBuffer:1000000});
-          renameSync(temporary,normalized);
-        }finally{if(ex(temporary))unlinkSync(temporary);}
-      }
+      const want = await localizeImage(u);
       htmlOut = htmlOut.replaceAll(`<img src="${u}"`, `<img src="${relPath(OUTDIR, want)}"`);
     } catch (e) {
       report.deadImages.push(u.slice(0, 120));
@@ -904,7 +924,11 @@ async function worker() {
     }
   }
 }
-await Promise.all([worker(), worker(), worker(), worker()]);
+await Promise.all([worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker()]);
+// Prefetches for images this book does not print never delay it.
+imagesPlaced = true;
+for (const [u, abort] of imageAborts) if (!srcs.includes(u)) abort.abort();
+await imagePrefetch;
 report.deadImages.sort();
 
 mkdirSync("proofs", { recursive: true });
