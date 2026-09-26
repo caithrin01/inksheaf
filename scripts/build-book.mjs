@@ -58,7 +58,12 @@ const BRAND_FILE = process.argv.includes("--brand-file")
 let host = new URL(RAW.includes("://") ? RAW : "https://" + RAW).hostname;
 
 /* ---------------- fetch ---------------- */
-async function j(url) {
+const {sourceRelay,refused}=await import('./lib/source-relay.mjs');
+const relay=sourceRelay();
+const relayed={archive:0,posts:0};
+// A refused datacenter read (HTTP 403) retries once through the signed relay.
+async function j(url,fallback){try{return await direct(url);}catch(error){if(!relay||!fallback||!refused(error))throw error;return fallback();}}
+async function direct(url) {
   for (let a = 0; a < 5; a++) {
     const r = await fetch(url, { headers: UA, redirect: "follow" });
     if (r.status === 429 || r.status >= 500) { await new Promise(z => setTimeout(z, 1500 * (a + 1))); continue; }
@@ -85,7 +90,7 @@ if (!FIXTURE)
 // posts, so a fixed stride of 25 skipped posts 23 and 24 of every archive (found 2026-09-01
 // on the caithrin edition: the plan named 23 posts, the build found 21).
 for (let offset = 0; ; ) {
-  const page = await j(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`);
+  const page = await j(`https://${host}/api/v1/archive?sort=new&offset=${offset}&limit=25`,()=>(relayed.archive++,relay.archive(host,offset)));
   offset += Array.isArray(page) ? page.length : 25;
   if (!Array.isArray(page) || !page.length) break;
   listing.push(...page);
@@ -194,13 +199,14 @@ else for (const p of deduped) {
   const cp = cachePath(p);
   if (exf(cp)) { full.push(JSON.parse(rdf(cp, "utf-8"))); continue; }
   try {
-    const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);
+    const d = await j(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`,()=>(relayed.posts++,relay.post(p,host)));
     if (d.body_html && d.body_html.length <= 2_000_000) { full.push(d); wrf(cp, JSON.stringify(d)); }
     else report.skips.push({ slug: p.slug, reason: d.body_html ? "body over 2MB" : "empty body" });
   } catch (e) { report.skips.push({ slug: p.slug, reason: String(e.message) }); }
   await new Promise(r => setTimeout(r, 350));
 }
 console.error(full.length, "bodies fetched");
+if(relayed.archive||relayed.posts){report.sourceRelay={archive_pages:relayed.archive,posts:relayed.posts};console.error(`source relay used: ${relayed.archive} archive pages, ${relayed.posts} posts`);}
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
