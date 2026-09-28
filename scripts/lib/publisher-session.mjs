@@ -2,6 +2,7 @@
 import { mkdirSync,readFileSync,existsSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync } from 'node:fs';
 import { createHash,createHmac,randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import {clippedText} from './schema-text.mjs';
 import {mapConcurrent,serialWrites} from './async-work.mjs';
 import {LayoutReviewDecisions,validateLayout,layoutBatches} from './publisher-layout.mjs';
 import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
@@ -102,7 +103,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const role = model === PUBLISHER_MODELS.reader.id ? 'reader' : model === PUBLISHER_MODELS.publisher.id ? 'publisher' : null;
     if (!role) throw Error('Page review model is outside the edition budget configuration');
     const buffers=images.map(path=>readFileSync(path));
-    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:z.string().max(200)}))}):check===2?BoundaryConfirmation:check===3?FigureConfirmation:check===8?ReadingOrderConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200)});
+    const schema=role==='reader'?z.object({findings:z.array(z.object({page:z.number().int().min(1),check:z.number().int().min(1).max(8),confidence:z.number().min(0).max(1),note:clippedText(200)}))}):check===2?BoundaryConfirmation:check===3?FigureConfirmation:check===8?ReadingOrderConfirmation:z.object({confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:clippedText(200)});
     const task=text+' Return only the requested JSON schema; notes must be under 200 characters.'+(role==='reader'?' Put the findings array in the findings field.':'');
     const key=publisherReviewCacheKey({model,task,schema,maxTokens,imageHashes:buffers.map(b=>createHash('sha256').update(b).digest('hex'))});
     const cache=new Map(state.cache);

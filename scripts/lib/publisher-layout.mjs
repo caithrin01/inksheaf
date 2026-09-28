@@ -1,12 +1,13 @@
 // Models select among measured, reversible typesetting operations. They never
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
+import {clippedText} from './schema-text.mjs';
 import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
 import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
 import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
 const LayoutDecision=z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
-  candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
+  candidate_id:z.string().nullable(),reason:clippedText(200,1),
   space_basis:z.enum(['single_piece','article_end','structural_leaf','source_form','figure_sequence','composition']).nullable().default(null),
   article_ends_here:z.boolean().nullable().optional(),
 });

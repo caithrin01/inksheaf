@@ -1,8 +1,9 @@
 // Ground check 2 in compiled paragraph anchors and actual printed line boxes.
 // A page turn in a sentence is not, by itself, a one-line widow or orphan.
 import {z} from 'zod';
+import {clippedText} from './schema-text.mjs';
 export const BoundaryConfirmation=z.object({
-  confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200),
+  confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:clippedText(200),
   defect:z.enum(['single_line_fragment','stranded_heading','stranded_group','none','uncertain']),edge:z.enum(['top','foot','both','uncertain']),
   physical_page:z.number().int().min(1),
 }).refine(r=>!(r.confirmed&&r.defect==='none'),{message:'A confirmation cannot claim there is no defect.'});

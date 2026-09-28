@@ -1,10 +1,11 @@
 import {z} from 'zod';
+import {clippedText} from './schema-text.mjs';
 import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
 
 // Fidelity, reading scale and orientation are distinct observations. In
 // particular, an unchanged bitmap says nothing about the size of its labels.
 export const FigureConfirmation=z.object({
-  confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:z.string().max(200),
+  confirmed:z.boolean(),origin:z.enum(['rendered_layout','source_content','uncertain']),note:clippedText(200),
   figure_id:z.string().nullable(),
   defect:z.enum(['reading_size','crop','caption','missing','orientation_only','none','uncertain']),
   reading_detail:z.enum(['small_text','large_labels','picture','uncertain']),
