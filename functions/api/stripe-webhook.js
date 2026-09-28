@@ -14,13 +14,27 @@ export async function onRequest({ request, env }) {
   const s = event.data.object;
   const mailingId = Number(s.metadata?.mailing_id), signupId = Number(s.metadata?.signup_id);
   if (!mailingId) return new Response("no mailing", { status: 200 });
-  const m = await env.DB.prepare("SELECT id, signup_id, status, addresses, level FROM mailings WHERE id = ?").bind(mailingId).first().catch(() => null);
-  if (!m || m.status === "paid" || m.status === "printing") return new Response("already", { status: 200 });
-  await env.DB.prepare("UPDATE mailings SET status = 'paid', paid_at = datetime('now'), stripe_payment = ? WHERE id = ?").bind(String(s.payment_intent || s.id), mailingId).run();
+  // One Stripe event is acted on once; a redelivery finds its claim and stops.
+  const claim = await env.DB.prepare("INSERT INTO stripe_events (id, type, mailing_id, outcome) VALUES (?, ?, ?, 'claimed') ON CONFLICT(id) DO NOTHING")
+    .bind(String(event.id || ""), event.type, mailingId).run().catch(() => null);
+  if (!event.id || !claim || !claim.meta?.changes) return new Response("already", { status: 200 });
+  const m = await env.DB.prepare("SELECT id, signup_id, status, addresses, level, version_id, amount_cents FROM mailings WHERE id = ?").bind(mailingId).first().catch(() => null);
+  if (!m || m.status !== "checkout") return new Response("already", { status: 200 });
+  // The amount paid must be the amount agreed for this mailing.
+  if (Number.isSafeInteger(m.amount_cents) && Number(s.amount_total) !== m.amount_cents) {
+    await env.DB.prepare("UPDATE stripe_events SET outcome = 'amount-mismatch' WHERE id = ?").bind(String(event.id)).run().catch(() => {});
+    return new Response("amount mismatch", { status: 200 });
+  }
+  const moved = await env.DB.prepare("UPDATE mailings SET status = 'paid', paid_at = datetime('now'), stripe_payment = ?, stripe_event_id = ? WHERE id = ? AND status = 'checkout'")
+    .bind(String(s.payment_intent || s.id), String(event.id), mailingId).run();
+  if (!moved.meta?.changes) return new Response("already", { status: 200 });
   const row = await env.DB.prepare("SELECT email, publication_url, plan_json FROM signups WHERE id = ?").bind(signupId || m.signup_id).first().catch(() => null);
-  const press = await env.DB.prepare("SELECT detail FROM press WHERE signup_id = ?").bind(signupId || m.signup_id).first().catch(() => null);
+  // Print exactly the version that was priced and paid for, from its own validated files.
+  const ver = m.version_id ? await env.DB.prepare("SELECT files_json FROM edition_versions WHERE id = ? AND signup_id = ?").bind(m.version_id, m.signup_id).first().catch(() => null) : null;
+  let files = null; try { files = JSON.parse(ver?.files_json || "null"); } catch {}
   await dispatchPress(env, { event: "mail", signup_id: signupId || m.signup_id, mailing_id: mailingId, publication_url: row?.publication_url, email: row?.email,
-    addresses: JSON.parse(m.addresses || "[]"), level: m.level, plan_json: row?.plan_json || null, files: press?.detail || null });
+    addresses: JSON.parse(m.addresses || "[]"), level: m.level, plan_json: row?.plan_json || null, files: files ? JSON.stringify({ files, version_id: m.version_id }) : null });
+  await env.DB.prepare("UPDATE stripe_events SET outcome = 'dispatched' WHERE id = ?").bind(String(event.id)).run().catch(() => {});
   return new Response("ok", { status: 200 });
 }
 async function verify(payload, header, secret) {
