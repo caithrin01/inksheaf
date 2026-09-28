@@ -26,6 +26,15 @@ test('the smallest text line governs, ignoring rules and specks',()=>{
 test('light lettering on a dark background is measured',()=>{
   assert.equal(measure(page({dark:true,rows:[{y:60,letter:20},{y:140,letter:20}]})).min_letter_px,20);
 });
+test('light lettering inside dark bands on a pale page is measured as a fallback',()=>{
+  // A pale page (230) with black bands, each holding a row of white marks 12px tall.
+  const w=900,h=600,g=new Uint8Array(w*h).fill(230);
+  const box=(x0,y0,bw,bh,v)=>{for(let y=y0;y<y0+bh;y++)for(let x=x0;x<x0+bw;x++)g[y*w+x]=v;};
+  for(const y of [60,160,260,360]){box(100,y,600,50,0);let x=130;for(let i=0;i<10;i++){box(x,y+19,8,12,255);x+=12;}}
+  const m=letteringFromGray(g,w,h);assert(m);assert.equal(m.min_letter_px,12);
+  // Ordinary dark-on-light text never reaches the fallback.
+  const plain=page({rows:[{y:40,letter:20},{y:120,letter:20}]});assert.equal(measure(plain).min_letter_px,20);
+});
 test('no confident text returns null rather than a size',()=>{
   assert.equal(measure(page({rows:[]})),null);
   assert.equal(measure(page({rows:[{y:60,letter:20}]})),null);

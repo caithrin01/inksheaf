@@ -16,7 +16,17 @@ export function letteringFromGray(gray,w,h){
   if(!(w>0&&h>0)||gray.length!==w*h)return null;
   const hist=new Uint32Array(256);for(const v of gray)hist[v]++;
   let bg=0;for(let v=1;v<256;v++)if(hist[v]>hist[bg])bg=v;
-  const fg=new Uint8Array(w*h);for(let i=0;i<fg.length;i++)fg[i]=Math.abs(gray[i]-bg)>80?1:0;
+  const first=marksAgainst(gray,w,h,v=>Math.abs(v-bg)>80);
+  if(first)return first;
+  // Light lettering set inside dark shapes (a pale page with black bands) is invisible
+  // against the dominant pale tone. Only when no text was found at all, measure light
+  // marks against the image's own dark tone; letters there have no light counters.
+  let dark=-1,darkCount=0;for(let v=0;v<96;v++){darkCount+=hist[v];if(dark<0||hist[v]>hist[dark])dark=v;}
+  if(darkCount<w*h*0.05||bg-dark<=80)return null;
+  return marksAgainst(gray,w,h,v=>v-dark>80&&Math.abs(v-bg)>24);
+}
+function marksAgainst(gray,w,h,isInk){
+  const fg=new Uint8Array(w*h);for(let i=0;i<fg.length;i++)fg[i]=isInk(gray[i])?1:0;
   const seen=new Uint8Array(w*h),stack=new Int32Array(w*h),marks=[];
   for(let start=0;start<fg.length;start++){
     if(!fg[start]||seen[start])continue;
