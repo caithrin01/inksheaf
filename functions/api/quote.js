@@ -64,7 +64,9 @@ export async function onRequest({ request, env }) {
       out.push({ address, ok: true, estimated: false, quantity: qty, print: num(q.total_cost_excl_tax) - num(q.shipping_cost?.total_cost_excl_tax), shipping: num(q.shipping_cost?.total_cost_excl_tax),
         tax: num(q.total_tax), lulu_total: num(q.total_cost_incl_tax), inksheaf: fee, total: r2(num(q.total_cost_incl_tax) + fee), currency: q.currency || "USD", level });
     } catch (e) {
-      out.push({ address, ok: false, error: e.status === 400 ? "Lulu could not use this address: " + (e.detail || "").slice(0, 160) : "Lulu did not answer; try again in a minute" });
+      const detail = String(e.detail || "");
+      out.push({ address, ok: false, error: e.status === 400 && /no shipping option/i.test(detail) ? "This shipping speed is not available for this book to this address. Choose another speed and price it again."
+        : e.status === 400 ? "Lulu could not use this address: " + detail.slice(0, 160) : "Lulu did not answer; try again in a minute" });
     }
   }
   const good = out.filter(o => o.ok);

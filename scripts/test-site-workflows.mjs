@@ -14,7 +14,7 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   await page.route('**/api/**',r=>{
    const req=r.request(),path=new URL(req.url()).pathname;
    if(req.method()==='POST')writes.push({path,body:req.postDataJSON()});
-   return r.fulfill({json:path==='/api/change'?(req.method()==='GET'?fixture:{ok:true,plan:fixture.plan,reproof:'started'}):path==='/api/mail-context'?{ok:true,publication_url:'https://caithrin.com',interior:'bw',volumes:[{label:'Collected essays',pages:160}]}:path==='/api/quote'?{ok:true,payment:'invoice',level:'MAIL',quotes:[{ok:true,address:{name:'Review Reader',city:'Boston',state_code:'MA'},quantity:1,total:12}],totals:{print:7,shipping:5,tax:0,total:12,copies:1,estimated:true}}:{ok:true}});
+   return r.fulfill({json:path==='/api/change'?(req.method()==='GET'?fixture:{ok:true,plan:fixture.plan,reproof:'started'}):path==='/api/mail-context'?{ok:true,version_id:3,publication_url:'https://caithrin.com',interior:'bw',volumes:[{label:'Collected essays',pages:160}],print_files:'ready',per_book:2}:path==='/api/quote'?{ok:true,version_id:3,print_ready:true,payment:'invoice',level:'MAIL',quotes:[{ok:true,address:{name:'Review Reader',city:'Boston',state_code:'MA',country_code:'US'},quantity:1,lulu_total:12,inksheaf:2,total:14}],totals:{print:7,shipping:5,tax:0,lulu_total:12,inksheaf:2,books:1,per_book:2,total:14,copies:1,estimated:true}}:{ok:true}});
   });
   async function check(name){
    await page.evaluate(()=>document.fonts.ready);
@@ -34,9 +34,9 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(writes[0].body.changes.titles['Collected essays'],'My collected essays');
   assert.deepEqual(writes[0].body.changes.exclude,[2]);
   await page.goto(base+'mail/?id=local-review&sig=simulated');await page.locator('#work').waitFor();
-  for(const [name,value] of [['Recipient name','Review Reader'],['Street address','12 Example St'],['City','Boston'],['State','MA'],['ZIP code','02108']])await page.getByRole('textbox',{name,exact:true}).fill(value);
+  for(const [name,value] of [['Recipient name','Review Reader'],['Street address','12 Example St'],['City','Boston'],['State or province','MA'],['Postcode','02108']])await page.getByRole('textbox',{name,exact:true}).fill(value);
   await page.getByRole('button',{name:'Price it',exact:true}).click();await page.locator('#invoice').waitFor();
-  assert.match(await page.locator('#invoice').innerText(),/\$12\.00/);
+  const invoice=await page.locator('#invoice').innerText();assert.match(invoice,/Printing and shipping by Lulu\s*\$12\.00/);assert.match(invoice,/Inksheaf, \$2\.00 × 1 printed book\s*\$2\.00/);assert.match(invoice,/Total\s*\$14\.00/);
   await check('mail');await page.getByRole('button',{name:'Send me the invoice',exact:true}).click();await page.locator('#done').waitFor();
   assert.equal(writes.at(-1).path,'/api/mail');assert.equal(writes.at(-1).body.addresses[0].postcode,'02108');
   results.push({engine,width,scheme,pass:true,axe:0,simulatedWrites:writes.length});console.log('PASS workflow',engine,width,scheme);await page.close();
