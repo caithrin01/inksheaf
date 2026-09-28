@@ -236,6 +236,7 @@ if (EVENT === "press") {
   timing.mark('workspace_ready',{volumes:vols.length,pages:totalPages});
   const workspace = `${SITE}/edition?id=${ID}&sig=${hmac(`edition:${ID}`)}`;
   const order = `${SITE}/mail?id=${ID}&sig=${hmac(`mail:${ID}`)}`;
+  const sell = `${SITE}/sell?id=${ID}&sig=${hmac(`sell:${ID}`)}`;
   const change = `${SITE}/change?id=${ID}&sig=${hmac(`change:${ID}`)}`;
   const n = volumes.length;
   const cost = vols.reduce((t, x) => t + printCost(x.pages, interior), 0);
@@ -252,6 +253,9 @@ This is the file that prints. Lulu's printing cost for this edition is $${cost.t
 
 Order printed copies for yourself or as gifts, shipped wherever Lulu delivers. The printer checks the files first; ordering opens a few minutes after this email:
 ${order}
+
+To sell copies to your subscribers from your own Lulu account, with a button for your posts, follow the steps here:
+${sell}
 
 Want to change something first (leave posts out, bring one back, retitle, switch to a different set, add a dedication or an ISBN)?
 ${change}
@@ -300,7 +304,10 @@ Inksheaf`;
       const built = await printFiles(vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind })), { planNow: plan, lulu, stage: "print-files" });
       const normal = b => b.validation?.interior === "NORMALIZED" && b.validation?.cover === "NORMALIZED";
       const valid = built.every(normal);
-      const files = built.map(b => ({ label: b.label, pages: b.pages, interiorKey: b.interiorKey, coverKey: b.coverKey || null, validated: normal(b) }));
+      // Signed download links let a creator publish these exact files in their own Lulu account.
+      const linkTtl = 30 * 24 * 3600, linksExpire = new Date(Date.now() + linkTtl * 1000).toISOString();
+      const files = built.map(b => ({ label: b.label, pages: b.pages, interiorKey: b.interiorKey, coverKey: b.coverKey || null, validated: normal(b),
+        ...(normal(b) ? { interiorUrl: signedProofUrl(b.interiorKey, linkTtl), coverUrl: signedProofUrl(b.coverKey, linkTtl), cover: b.cover, links_expire_at: linksExpire } : {}) }));
       const quote = { print_cost: Math.round(cost * 100) / 100, volumes: built.map(b => ({ label: b.label, pages: b.pages })), interior, measured: new Date().toISOString() };
       await status("proofed", { ...proofedDetail, files, quote, ...(valid ? { version_status: "validated" } : {}),
         message: `${proofedDetail.message}; print files ${valid ? "passed Lulu's checks" : "need review"}` });

@@ -29,7 +29,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
       <div id="reading-panel"><h2 id="reading-heading">First, your writing.</h2><p id="reading-intro">Your publication’s name, contributors and selected writing will appear here as they are read.</p><div id="identity-note" hidden></div><span id="identity-home" hidden></span><figure id="writing-excerpt" class="writing-excerpt" hidden><figcaption id="excerpt-title"></figcaption><blockquote id="excerpt-words"></blockquote></figure><div id="reading-list"></div><details id="production-history" class="layout-reasons" hidden><summary>How your book is being made</summary><div id="production-notes"></div></details></div>
       <div id="contents-panel" hidden><h2>The shape of your book.</h2><div id="contents-list"></div><p class="work-note">Page numbers appear in the typeset PDF.</p></div>
       <EditionPages/><div id="downloads-reading" hidden></div><div id="continuity-reading" hidden></div>
-      <div id="edition-next" class="edition-next" hidden><h2>Make it yours.</h2><p>Review what’s included, restore a piece, or change your edition.</p><a id="change-edition">Adjust this edition <span aria-hidden="true">↗</span></a><a id="order-copies" hidden>Order printed copies <span aria-hidden="true">↗</span></a><p class="print-routes">Lulu prints and ships your book to most countries. You see Lulu’s price, shipping included, plus $2 for Inksheaf per printed book, before you pay.</p><a href="mailto:caithrin@caithrin.com?subject=My%20Inksheaf%20print%20edition">Get help with printing</a></div>
+      <div id="edition-next" class="edition-next" hidden><h2>Make it yours.</h2><p>Review what’s included, restore a piece, or change your edition.</p><a id="change-edition">Adjust this edition <span aria-hidden="true">↗</span></a><a id="order-copies" hidden>Order printed copies <span aria-hidden="true">↗</span></a><a id="sell-copies" hidden>Sell to your subscribers <span aria-hidden="true">↗</span></a><p class="print-routes">Lulu prints and ships your book to most countries. You see Lulu’s price, shipping included, plus $2 for Inksheaf per printed book, before you pay.</p><a href="mailto:caithrin@caithrin.com?subject=My%20Inksheaf%20print%20edition">Get help with printing</a></div>
       <p id="workspace-error" role="alert" hidden></p><button class="workspace-retry" id="workspace-retry" hidden>Refresh progress</button><a id="stopped-help" class="return-link" hidden>Get help with this edition</a>
     </section>
   </div>
@@ -255,6 +255,8 @@ async function refresh(){
     if(ready&&data.change_url){$('edition-next').hidden=false;($('change-edition') as HTMLAnchorElement).href=data.change_url;}
     const order=$('order-copies') as HTMLAnchorElement;order.hidden=!ready||!data.mail_url;
     if(ready&&data.mail_url){const url=new URL(data.mail_url,location.origin);if(url.origin===location.origin&&url.pathname==='/mail')order.href=url.href;else order.hidden=true;}
+    const sell=$('sell-copies') as HTMLAnchorElement;sell.hidden=!ready||!data.sell_url;
+    if(ready&&data.sell_url){const url=new URL(data.sell_url,location.origin);if(url.origin===location.origin&&url.pathname==='/sell')sell.href=url.href;else sell.hidden=true;}
     timer=setTimeout(refresh,ready&&['accepted','delivered'].includes(data.email_status)?30000:4000);
   }catch(error){$('workspace-error').textContent=(error as Error).message;$('workspace-error').hidden=false;$('workspace-retry').hidden=false;timer=setTimeout(refresh,10000);}
   finally{busy=false;}
