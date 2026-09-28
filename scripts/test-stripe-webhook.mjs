@@ -18,6 +18,8 @@ function world(mailing){
       if(/INSERT INTO stripe_events/.test(sql)){if(events.has(a[0]))return{meta:{changes:0}};events.set(a[0],'claimed');return{meta:{changes:1}};}
       if(/UPDATE stripe_events SET outcome/.test(sql)){events.set(a[1]??a[0],/'dispatched'/.test(sql)?'dispatched':'amount-mismatch');return{meta:{changes:1}};}
       if(/UPDATE mailings SET status = 'paid'/.test(sql)){if(db.mailing.status!=='checkout')return{meta:{changes:0}};db.mailing.status='paid';return{meta:{changes:1}};}
+      if(/UPDATE mailings SET status = 'checkout'/.test(sql)){if(db.mailing.status==='paid')db.mailing.status='checkout';return{meta:{changes:1}};}
+      if(/DELETE FROM stripe_events/.test(sql)){events.delete(a[0]);return{meta:{changes:1}};}
       throw Error('unexpected run '+sql);},
     async first(){
       if(/FROM mailings/.test(sql))return db.mailing.id===a[0]?{...db.mailing}:null;
@@ -25,7 +27,7 @@ function world(mailing){
       if(/FROM edition_versions/.test(sql))return a[0]===7&&a[1]===41?{files_json:JSON.stringify(files)}:null;
       throw Error('unexpected first '+sql);}};}};
   const env={DB,STRIPE_WEBHOOK_SECRET:secret,MAILINGS_ENABLED:'1',GITHUB_DISPATCH_TOKEN:'gh',INKSHEAF_ENV:'production'};
-  globalThis.fetch=async(url,init)=>{dispatched.push(JSON.parse(init.body));return new Response(null,{status:204});};
+  globalThis.fetch=async(url,init)=>{if(db.failDispatch)return new Response(null,{status:500});dispatched.push(JSON.parse(init.body));return new Response(null,{status:204});};
   return {env,db,dispatched};
 }
 const paidEvent=(id,amount=4130)=>JSON.stringify({id,type:'checkout.session.completed',data:{object:{id:'cs_1',payment_intent:'pi_1',amount_total:amount,metadata:{mailing_id:'9',signup_id:'41'}}}});
@@ -49,6 +51,12 @@ await test('a different amount than agreed is not printed',async()=>{
 await test('a mailing that is not at checkout is not printed',async()=>{
   const w=world({...mailing,status:'quoted'});const r=await post(w.env,paidEvent('evt_3'));
   assert.equal(await r.text(),'already');assert.equal(w.dispatched.length,0);
+});
+await test('a failed dispatch is retried by Stripe, not lost',async()=>{
+  const w=world(mailing);w.db.failDispatch=true;const r=await post(w.env,paidEvent('evt_5'));
+  assert.equal(r.status,503);assert.equal(w.db.mailing.status,'checkout');assert(!w.db.outcomes.has('evt_5'));
+  w.db.failDispatch=false;const again=await post(w.env,paidEvent('evt_5'));
+  assert.equal(await again.text(),'ok');assert.equal(w.dispatched.length,1);assert.equal(w.db.mailing.status,'paid');
 });
 await test('a bad signature is refused',async()=>{
   const w=world(mailing);const r=await post(w.env,paidEvent('evt_4'),'t=1,v1=00');

@@ -32,8 +32,15 @@ export async function onRequest({ request, env }) {
   // Print exactly the version that was priced and paid for, from its own validated files.
   const ver = m.version_id ? await env.DB.prepare("SELECT files_json FROM edition_versions WHERE id = ? AND signup_id = ?").bind(m.version_id, m.signup_id).first().catch(() => null) : null;
   let files = null; try { files = JSON.parse(ver?.files_json || "null"); } catch {}
-  await dispatchPress(env, { event: "mail", signup_id: signupId || m.signup_id, mailing_id: mailingId, publication_url: row?.publication_url, email: row?.email,
+  const sent = await dispatchPress(env, { event: "mail", signup_id: signupId || m.signup_id, mailing_id: mailingId, publication_url: row?.publication_url, email: row?.email,
     addresses: JSON.parse(m.addresses || "[]"), level: m.level, plan_json: row?.plan_json || null, files: files ? JSON.stringify({ files, version_id: m.version_id }) : null });
+  if (!sent?.ok) {
+    // The print run did not start. Release the claim and return the mailing to checkout, so
+    // Stripe's own retry of this event starts it again; nothing is lost or doubled.
+    await env.DB.prepare("UPDATE mailings SET status = 'checkout' WHERE id = ? AND status = 'paid'").bind(mailingId).run().catch(() => {});
+    await env.DB.prepare("DELETE FROM stripe_events WHERE id = ?").bind(String(event.id)).run().catch(() => {});
+    return new Response("dispatch failed; retry", { status: 503 });
+  }
   await env.DB.prepare("UPDATE stripe_events SET outcome = 'dispatched' WHERE id = ?").bind(String(event.id)).run().catch(() => {});
   return new Response("ok", { status: 200 });
 }
