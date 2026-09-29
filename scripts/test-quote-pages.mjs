@@ -22,8 +22,8 @@ ok(r.status === 200 && r.body.ok, "prices when a finished edition exists");
 ok(r.body.volumes?.[0]?.pages === 294, `returns ACTUAL pages 294 (got ${r.body.volumes?.[0]?.pages})`);
 ok(r.body.quotes?.[0]?.print === 18.68, `print = stored $9.34 x 2 copies = 18.68 (got ${r.body.quotes?.[0]?.print})`);
 ok(r.body.payment === "invoice", "no Stripe key: invoice");
-ok(r.body.quotes[0].inksheaf === 4 && r.body.totals.inksheaf === 4 && r.body.totals.books === 2 && r.body.totals.per_book === 2, "Inksheaf adds $2 for each of 2 printed books");
-ok(r.body.totals.total === Math.round((r.body.totals.lulu_total + 4) * 100) / 100, "total = Lulu's total + Inksheaf's line");
+ok(r.body.quotes[0].inksheaf === 6 && r.body.totals.inksheaf === 6 && r.body.totals.books === 2 && r.body.totals.per_book === 3, "Inksheaf adds $3 for each of 2 printed books");
+ok(r.body.totals.total === Math.round((r.body.totals.lulu_total + 6) * 100) / 100, "total = Lulu's total + Inksheaf's line");
 ok(r.body.version_id === 7, "reports the priced version");
 r = await call({ ...env(ver), STRIPE_SECRET_KEY: "sk_test_x" }, { id: 5, sig, level: "MAIL", addresses: addr });
 ok(r.body.payment === "stripe", "Stripe key: stripe");
@@ -31,7 +31,7 @@ ok(r.body.payment === "stripe", "Stripe key: stripe");
 // a two-volume set is two printed books per copy
 const two = { ...ver, volumes: JSON.stringify([{ label: "v1", pages: 200 }, { label: "v2", pages: 180 }]) };
 r = await call(env(two), { id: 5, sig, level: "MAIL", addresses: addr });
-ok(r.body.totals.books === 4 && r.body.totals.inksheaf === 8, `2 sets of 2 volumes = 4 books, $8 (got ${r.body.totals.books}, ${r.body.totals.inksheaf})`);
+ok(r.body.totals.books === 4 && r.body.totals.inksheaf === 12, `2 sets of 2 volumes = 4 books, $12 (got ${r.body.totals.books}, ${r.body.totals.inksheaf})`);
 
 // the newest finished book is priced only once its print files passed Lulu's checks
 const files = [{ label: "v1", pages: 294, interiorKey: "i", coverKey: "c", validated: true }];

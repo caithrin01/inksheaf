@@ -10,15 +10,15 @@ let count=0;const test=async(name,fn)=>{await fn();count++;console.log('PASS',na
 await test('both payees always receive at least their amounts',async()=>{
   let n=0;
   for(let cost=3.49;cost<=30;cost+=0.37)for(let markup=0;markup<=25;markup+=0.25){
-    const p=subscriberPrice({printCost:Math.round(cost*100)/100,markup,perBook:2});n++;
+    const p=subscriberPrice({printCost:Math.round(cost*100)/100,markup,perBook:3});n++;
     const paid=(p.retail-Math.round(cost*100)/100)*CREATOR_SHARE;
-    assert(paid*p.sharePercent/100>=2-1e-9,`Inksheaf short at ${cost},${markup}`);
+    assert(paid*p.sharePercent/100>=3-1e-9,`Inksheaf short at ${cost},${markup}`);
     assert(paid*(100-p.sharePercent)/100>=markup-1e-9,`creator short at ${cost},${markup}`);
     assert(Number.isInteger(p.sharePercent)&&p.sharePercent>=1&&p.sharePercent<=100);
     assert(Math.abs(p.retail*100-Math.round(p.retail*100))<1e-6,`retail ${p.retail} is not whole cents`);
   }
   assert(n>2000);
-  assert.deepEqual(subscriberPrice({printCost:9.34,markup:0}),{retail:11.84,sharePercent:100,inksheaf:2,creator:0});
+  assert.deepEqual(subscriberPrice({printCost:9.34,markup:0}),{retail:13.09,sharePercent:100,inksheaf:3,creator:0});
   assert.throws(()=>subscriberPrice({printCost:0,markup:1}));
 });
 const files=[{label:'2025–26',pages:176,interiorKey:'i',coverKey:'c',validated:true,interiorUrl:'https://store/i',coverUrl:'https://store/c',links_expire_at:new Date(Date.now()+86400000).toISOString()}];
@@ -33,7 +33,7 @@ await test('the hand-off is signed and waits for validated files',async()=>{
   assert.equal((await get(env(ver),'bad')).status,403);
   let r=await get(env({...ver,status:'proofed',files_json:null}));assert.equal(r.body.ready,false);assert.equal(r.body.pending,true);
   r=await get(env(ver));assert.equal(r.body.ready,true);assert.equal(r.body.volumes[0].print_cost,6.39);
-  assert.equal(r.body.volumes[0].cover_url,'https://store/c');assert.equal(r.body.payee_email,'press@inksheaf.com');assert.equal(r.body.per_book,2);
+  assert.equal(r.body.volumes[0].cover_url,'https://store/c');assert.equal(r.body.payee_email,'press@inksheaf.com');assert.equal(r.body.per_book,3);
   assert.match(r.body.settings.size,/6 × 9/);
 });
 await test('only a lulu.com product page becomes the button link',async()=>{

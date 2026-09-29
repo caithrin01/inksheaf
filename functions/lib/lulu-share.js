@@ -5,7 +5,7 @@
 // than its amount per printed book; the creator's markup is what remains.
 export const CREATOR_SHARE = 0.8;
 const cents = x => Math.ceil(Math.round(x * 1e6) / 1e4) / 100;
-export function subscriberPrice({ printCost, markup = 0, perBook = 2 }) {
+export function subscriberPrice({ printCost, markup = 0, perBook = 3 }) {
   if (![printCost, markup, perBook].every(x => Number.isFinite(x) && x >= 0) || printCost <= 0 || perBook <= 0) throw Error('Invalid price inputs');
   const payees = markup + perBook;
   const sharePercent = Math.min(100, Math.ceil((perBook / payees) * 100 - 1e-9));
