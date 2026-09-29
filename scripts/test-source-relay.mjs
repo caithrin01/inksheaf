@@ -6,7 +6,7 @@ const token='fixture-relay-token',sign=m=>createHmac('sha256',token).update(m).d
 const now=()=>1_800_000_000_000;
 await test('no token means no relay; only a 403 counts as refused',async()=>{
   assert.equal(sourceRelay({token:''}),null);
-  assert(refused(Error('Source HTTP 403')));assert(!refused(Error('Source HTTP 404')));assert(!refused(Error('Source HTTP 429 after bounded retries')));
+  assert(refused(Error('Source HTTP 403')));assert(refused(Error('403 https://x.substack.com/api/v1/archive')));assert(!refused(Error('Source HTTP 404')));assert(!refused(Error('Source HTTP 429 after bounded retries')));
 });
 await test('archive pages are signed for host and exact offset, including uneven offsets',async()=>{
   const seen=[];const relay=sourceRelay({token,now,fetchImpl:async url=>{seen.push(new URL(url));return Response.json([{id:1}]);}});

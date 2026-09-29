@@ -4,7 +4,7 @@
 import {createHmac} from 'node:crypto';
 export const RELAY_ARCHIVE='https://caithrin--inksheaf-archive-relay-archive.modal.run';
 export const RELAY_SAMPLE='https://caithrin--inksheaf-archive-relay-sample.modal.run';
-export const refused=error=>/^Source HTTP 403\b/.test(String(error?.message||''));
+export const refused=error=>/^(?:Source HTTP )?403\b/.test(String(error?.message||''));
 export function sourceRelay({token=process.env.ARCHIVE_RELAY_TOKEN||'',fetchImpl=fetch,now=Date.now,timeoutMs=60000}={}){
   if(!token)return null;
   const sign=message=>createHmac('sha256',token).update(message).digest('hex');
