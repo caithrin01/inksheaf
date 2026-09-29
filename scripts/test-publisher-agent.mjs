@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 import { readFileSync } from 'node:fs';
-import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
+import { archiveFacts, publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
 const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
 const sources = prepareSources(posts);
 const reading = batch => ({ decisions: batch.map(p => ({ post_id: p.id, kind: [102,106].includes(Number(p.id)) ? 'housekeeping' : p.id === '103' ? 'poem' : 'essay',
@@ -144,5 +144,11 @@ await test('short visual confirmations reserve their verdict instead of exhausti
   await call({role:'publisher',task:'Compose the contents',schema:Reading,maxOutput:5000});
   assert.deepEqual(requests[1].reasoning,{effort:'medium'});
   assert.equal(journal.calls.length,2);assert(journal.calls.every(c=>c.status==='completed'));
+});
+await test('archive facts are counted from the posts themselves', async () => {
+  const facts=archiveFacts(prepareSources([{id:2,title:'Later',post_date:'2025-06-01T00:00Z',body_html:'<p>Five words in this one.</p>'},
+    {id:1,title:'First',post_date:'2025-01-03T00:00Z',body_html:'<p>It began on a cold morning when the press first ran. Then more.</p><img src=x>'}]));
+  assert.deepEqual(facts,{posts:2,words:18,images:1,from:'2025-01-03',to:'2025-06-01',first:{title:'First',date:'2025-01-03',opening:'It began on a cold morning when the press first ran.'},longest:{title:'First',words:13}});
+  assert.equal(archiveFacts([]),null);
 });
 console.log(`${count} publisher-agent tests passed.`);

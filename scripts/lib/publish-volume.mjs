@@ -67,7 +67,13 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
-    review=await reviewPdf(book.pdf,{ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],textEvidence:page=>pageTextEvidence(measurement,page),outDir:`${reviewDirectory}-${round}`,log});
+    let reported=0,progressChain=Promise.resolve();
+    const onProgress=({checked,total})=>{
+      if(checked<total&&checked-reported<Math.max(8,Math.ceil(total/8)))return;
+      reported=checked;progressChain=progressChain.then(()=>emit({kind:'checking',volume,round,checked,total})).catch(()=>{});
+    };
+    review=await reviewPdf(book.pdf,{onProgress,ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],textEvidence:page=>pageTextEvidence(measurement,page),outDir:`${reviewDirectory}-${round}`,log});
+    await progressChain;
     if(review.skipped||review.errors.length||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
     review.measured_findings=readingOrderFindings(measurement);
     review.findings.push(...review.measured_findings);

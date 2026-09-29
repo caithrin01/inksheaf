@@ -165,7 +165,7 @@ function workQueue(limit){
 }
 
 /* the review. `ask` is injectable for tests. Never throws on model trouble: errors are recorded. */
-export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], textEvidence = null, stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, prepareSheets = streamReviewSheets, key = process.env.OPENROUTER_API_KEY, log = () => {} } = {}) {
+export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model = PASS1_MODEL, pass2Model = PASS2_MODEL, minConfidence = 0.35, imageFormat = "jpeg", pageContext = [], sourceFigures = [], textEvidence = null, stopOnError = false, deferSpacingToLayout = false, concurrency = REVIEW_CONCURRENCY, prepareSheets = streamReviewSheets, key = process.env.OPENROUTER_API_KEY, log = () => {}, onProgress = () => {} } = {}) {
   const started = Date.now();
   const out = { pdf, pages: 0, sheets: 0, pass1: { model: pass1Model, calls: 0, flagged: 0, errors: 0 }, pass2: { model: pass2Model, calls: 0, confirmed: 0, dismissed: 0, errors: 0 }, findings: [], dismissed: [], errors: [], usage: { prompt_tokens: 0, completion_tokens: 0 }, skipped: null, ms: 0 };
   if (!key && ask === askOpenRouter) { out.skipped = "no OPENROUTER_API_KEY"; return out; }
@@ -258,6 +258,7 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       if (j.confirmed&&!sourcePreserved) { out.findings.push(rec); out.pass2.confirmed++; } else { out.dismissed.push(rec); out.pass2.dismissed++; }
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   };
+  let screened=0;
   const screen=async s => {
     const flagged=[];
     try {
@@ -290,7 +291,9 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
   try{
     await prepareSheets(pdf,dir,{format:imageFormat,
       onReady:header=>{out.pages=header.pages;out.sheets=header.sheets;},
-      onSheet:sheet=>{out.preparation.first_sheet_ms??=Date.now()-started;pendingScreens.push(screenings(async()=>{if(!shouldStop())await screen(sheet);}).catch(error=>{out.pass1.errors++;out.errors.push(`pass1: ${String(error.message).slice(0,120)}`);}));},
+      onSheet:sheet=>{out.preparation.first_sheet_ms??=Date.now()-started;pendingScreens.push(screenings(async()=>{if(!shouldStop())await screen(sheet);
+        // Progress for the waiting creator; a reporting failure never affects the review.
+        screened+=sheet.pages.length;try{onProgress({checked:Math.min(screened,out.pages||screened),total:out.pages||screened});}catch{}}).catch(error=>{out.pass1.errors++;out.errors.push(`pass1: ${String(error.message).slice(0,120)}`);}));},
       onError:preparationError});
     out.preparation.all_sheets_ms=Date.now()-started;
   }catch(error){preparationError(error);}

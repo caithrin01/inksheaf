@@ -47,7 +47,7 @@ for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
     assert.match(await page.locator('#reading-heading').innerText(),/pieces read/);assert.match(await page.locator('#edition-status').innerText(),/keep making your book/);
     assert.equal(await page.locator('#show-pages').isDisabled(),true);
     const quote=await page.locator('#excerpt-words').innerText();assert(/[.!?…][”’"']?$/.test(quote));
-    if(width===390)assert((await page.locator('#excerpt-words').boundingBox()).y<800,'Actual writing must appear in the first phone viewport');
+    if(width===390)assert((await page.locator('#excerpt-words').boundingBox()).y<800,'Actual writing must appear in the first phone viewport, at y='+(await page.locator('#excerpt-words').boundingBox()).y);
     await page.screenshot({path:`${out}/${engine}-${width}-first-batch.png`,fullPage:true,animations:'disabled'});
     partial=false;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await page.waitForFunction(()=>document.querySelectorAll('.reading-piece').length===8);
     assert.equal(await page.locator('.reading-piece').count(),8);

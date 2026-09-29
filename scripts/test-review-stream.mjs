@@ -21,6 +21,11 @@ try{
   assert.deepEqual(events.flatMap(s=>s.pages).sort((a,b)=>a-b),Array.from({length:20},(_,i)=>i+1));
  }
  console.log('PASS every raster and labelled sheet byte-identical in JPEG and PNG; all physical pages covered exactly once');
+ const progress=[];
+ await reviewPdf(pdf,{outDir:join(dir,'progress'),key:'stub',ask:async()=>({text:'[]',usage:{}}),onProgress:p=>progress.push(p)});
+ assert.equal(progress.length,5);assert.deepEqual(progress.at(-1),{checked:20,total:20});
+ assert(progress.every((p,i)=>i===0||p.checked>progress[i-1].checked));
+ console.log('PASS page-check progress counts every screened sheet up to all pages');
  const shim=join(dir,'bin');mkdirSync(shim);const realPoppler=execFileSync('which',['pdftoppm'],{encoding:'utf8'}).trim();
  writeFileSync(join(shim,'pdftoppm'),`#!/usr/bin/env python3
 import sys,os,time,subprocess

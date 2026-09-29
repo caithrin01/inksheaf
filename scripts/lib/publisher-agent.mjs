@@ -56,6 +56,19 @@ export function prepareSources(posts) {
   });
 }
 
+// Plain facts about the posts being read, counted from their text; no model involved.
+export function archiveFacts(sources) {
+  const words = p => (p.text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+  const dated = sources.filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.text).sort((a, b) => a.date.localeCompare(b.date));
+  if (!dated.length) return null;
+  const counted = dated.map(p => ({ p, n: words(p) })), longest = counted.reduce((a, b) => b.n > a.n ? b : a);
+  const opening = (dated[0].text.split('\n').map(x => x.trim()).find(x => x.length >= 40) || '').match(/^.{20,220}?[.!?](?=\s|$)/)?.[0] || null;
+  return { posts: sources.length, words: counted.reduce((t, x) => t + x.n, 0), images: sources.reduce((t, p) => t + p.images, 0),
+    from: dated[0].date, to: dated[dated.length - 1].date,
+    first: { title: dated[0].title, date: dated[0].date, opening },
+    longest: { title: longest.p.title, words: longest.n } };
+}
+
 export function validateReading(result, sources) {
   const parsed = Reading.parse(result), byId = new Map(sources.map(p => [p.id, p])), seen = new Set();
   for (const decision of parsed.decisions) {
@@ -261,7 +274,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   const sources = prepareSources(posts), byId = new Map(sources.map(p => [p.id, p]));
   for (const [id, choice] of Object.entries(overrides)) if (!byId.has(id) || !['keep', 'set_aside'].includes(choice)) throw Error('Invalid creator override');
   const decisions = [];let readCount=0;
-  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))] });
+  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))], archive: archiveFacts(sources) });
   // Missing bodies are a hold, never an inferred empty/housekeeping post.
   if (sources.some(p => !p.text && !p.images)) throw Error('Complete source text is missing; publisher cannot finish the edition');
   const batches=Array.from({length:Math.ceil(sources.length/batchSize)},(_,i)=>sources.slice(i*batchSize,(i+1)*batchSize));
