@@ -67,10 +67,12 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     await onRendered({book,round,volume});
     const publisher=await session();
     const measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
+    // Progress goes through the review's own session: its saves share one ordered
+    // revision with the review's model journal, so they can never race it.
     let reported=0,progressChain=Promise.resolve();
     const onProgress=({checked,total})=>{
       if(checked<total&&checked-reported<Math.max(8,Math.ceil(total/8)))return;
-      reported=checked;progressChain=progressChain.then(()=>emit({kind:'checking',volume,round,checked,total})).catch(()=>{});
+      reported=checked;progressChain=progressChain.then(()=>publisher.emit({kind:'checking',volume,round,checked,total})).catch(()=>{});
     };
     review=await reviewPdf(book.pdf,{onProgress,ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],textEvidence:page=>pageTextEvidence(measurement,page),outDir:`${reviewDirectory}-${round}`,log});
     await progressChain;

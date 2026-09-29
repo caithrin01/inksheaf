@@ -31,8 +31,9 @@ async function scenario({alwaysRepair=false,changeSource=false,visionFails=false
     const result={decisions:input.pages.map(p=>{const held=hold||(mixedHold&&p.page===3);return{page:p.page,decision:held?'needs_review':'repair',candidate_id:held?null:input.candidates.find(c=>c.page===p.page)?.id,reason:held?'A content defect needs investigation.':'Bring the stranded ending back using measured leading.'};})};
     return validateLayout(result,input);
   }};
-  const run=()=>publishVolume({build,session:async()=>publisher,emit,volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
-  return{run,events,settings,previews,visionBuilds,dir,get builds(){return builds;}};
+  const outerKinds=[];
+  const run=()=>publishVolume({build,session:async()=>publisher,emit:async e=>{outerKinds.push(e.kind);return emit(e);},volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
+  return{run,events,outerKinds,settings,previews,visionBuilds,dir,get builds(){return builds;}};
 }
 await test('source picture classification shares bounded fitting before the first full-page scan',async()=>{
   const s=await scenario({imageRole:'picture',initialPasses:4}),book=await s.run();
@@ -40,6 +41,13 @@ await test('source picture classification shares bounded fitting before the firs
   assert.deepEqual(s.settings[1].initial.pictureFigures,['photo']);assert.equal(s.settings[1].initial.fitFigs.photo,2.05);
   assert(s.visionBuilds.every(n=>n===2),'never pay to scan the known pre-fit photograph gap');
   assert.equal(book.report.layoutAgent.total_render_passes,5);assert.equal(s.previews.length,1);
+});
+await test('page-check progress goes through the review session, never a second session',async()=>{
+  const s=await scenario({imageRole:'picture',initialPasses:4});await s.run();
+  const checking=s.events.filter(e=>e.kind==='checking');
+  assert(checking.length>0,'the review reports page-check progress');
+  assert(!s.outerKinds.includes('checking'),'progress must not open a second state writer during the review');
+  assert(checking.every(e=>e.checked<=e.total&&e.total>0));
 });
 await test('reading, uncertain and failed source-role checks cannot authorize a photo repair',async()=>{
   for(const imageRole of ['reading','uncertain','failure']){
