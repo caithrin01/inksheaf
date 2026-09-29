@@ -251,6 +251,18 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
     return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
+// article_ends_here is a supplied fact the model restates as a consistency check. After the
+// model's one correction still restates it wrongly, the measured value replaces the restatement;
+// every rule that depends on the boundary is computed from measurement and still applies.
+export function restateMeasuredBoundaries(result,input){
+  const pages=new Map((input.pages||[]).map(p=>[p.page,p])),restated=[];
+  const decisions=(result?.decisions||[]).map(d=>{
+    const p=pages.get(d?.page);if(!p||d.article_ends_here==null)return d;
+    const measured=articleEndsHere(p);if(measured==null||d.article_ends_here===measured)return d;
+    restated.push(d.page);return {...d,article_ends_here:measured};
+  });
+  return restated.length?{...result,decisions,boundary_restated:restated}:result;
+}
 export function validateLayout(result,input){
   const invalid=message=>Object.assign(Error(message),{code:'PUBLISHER_LAYOUT_INVALID'});
   const parsed=LayoutDecisions.parse(result),seen=new Set(),pages=new Map(input.pages.map(p=>[p.page,p])),candidates=new Map(input.candidates.map(c=>[c.id,c]));
