@@ -70,6 +70,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPERATOR_EMAIL: caithrin@caithrin.com
           SITE_BASE: https://inksheaf.com
+          MAILINGS_ENABLED: ${{ vars.MAILINGS_ENABLED }}
           PRESS_CODE_SHA: ${{ steps.deployed-press.outputs.sha }}
           PRESS_RUNTIME_IMAGE: ${{ steps.deployed-press.outputs.runtime_image }}
           PRESS_REQUESTED_AT: ${{ github.event.client_payload.requested_at }}

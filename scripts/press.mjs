@@ -38,6 +38,8 @@ const ID = Number(process.env.SIGNUP_ID);
 const URL_ = process.env.PUBLICATION_URL || "";
 const TO = process.env.WRITER_EMAIL || "";
 const OPERATOR = process.env.OPERATOR_EMAIL || "caithrin@caithrin.com";
+// Printed-copy ordering opens with MAILINGS_ENABLED; until then the email names no order or sell page.
+const PRINT_ORDERS = /^(1|true)$/i.test(process.env.MAILINGS_ENABLED || "");
 const SITE = (process.env.SITE_BASE || (MODE === "production" ? "https://inksheaf.com" : "http://localhost:8788")).replace(/\/$/, "");
 const SECRET = process.env.ARCHIVE_RELAY_TOKEN || "";
 const host = URL_.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
@@ -249,20 +251,20 @@ ${workspace}
 Download the complete PDF${n > 1 ? "s" : ""} (${shape}) below. These private links work for seven days. Please save the files and keep the links private:
 ${proofUrl}
 ${n > 1 ? vols.slice(1).map(x => `${x.label}: ${signedProofUrl(x.key, 7 * 24 * 3600)}`).join("\n") + "\n" : ""}
-This is the file that prints. Lulu's printing cost for this edition is $${cost.toFixed(2)} per copy before shipping; Inksheaf adds $2 per printed book. You see the full price, shipping included, before you pay. ${plan?.est_pages && Math.abs(totalPages - plan.est_pages) / totalPages > 0.15 ? `(The plan page estimated ${plan.est_pages} pages; the typeset book is ${totalPages}. The price above is for the real book.) ` : ""}
-
+This is the file that prints. Lulu's printing cost for this edition is $${cost.toFixed(2)} per copy before shipping${PRINT_ORDERS ? "; Inksheaf adds $${Number(prices.inksheaf_per_book)} per printed book. You see the full price, shipping included, before you pay." : ". Printed copies are not open yet."} ${plan?.est_pages && Math.abs(totalPages - plan.est_pages) / totalPages > 0.15 ? `(The plan page estimated ${plan.est_pages} pages; the typeset book is ${totalPages}. The price above is for the real book.) ` : ""}
+${PRINT_ORDERS ? `
 Order printed copies for yourself or as gifts, shipped wherever Lulu delivers. The printer checks the files first; ordering opens a few minutes after this email:
 ${order}
 
 To sell copies to your subscribers from your own Lulu account, with a button for your posts, follow the steps here:
 ${sell}
-
+` : ""}
 Want to change something first (leave posts out, bring one back, retitle, switch to a different set, add a dedication or an ISBN)?
 ${change}
 
 ${vols.map(x => writerLine(x.review)).filter(Boolean).map((l, i) => (n > 1 ? `${vols[i].label}: ` : "") + l).join("\n")}
 
-Nothing prints until you order and pay. Reply to this email and a person answers.
+${PRINT_ORDERS ? "Nothing prints until you order and pay. " : ""}Reply to this email and a person answers.
 
 Inksheaf`;
   // Send the operator's complete files first, so a writer-email failure cannot hide them.

@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 export const PRESS_IMAGE=/^ghcr\.io\/caithrin01\/inksheaf-press@sha256:[a-f0-9]{64}$/;
 export function preparedPressArgs({image,sha,output,env}){
   if(!PRESS_IMAGE.test(image)||!/^[a-f0-9]{40}$/.test(sha))throw Error('Invalid prepared press release');
-  const names=['INKSHEAF_ENV','BOOK_ENGINE','PRESS_EVENT','SIGNUP_ID','PUBLICATION_URL','WRITER_EMAIL','PLAN_JSON','VERSION_ID','CHANGE_REQUEST','MAILING_ID','INVOICE_JSON','ADDRESSES_JSON','FILES_JSON','LEVEL','ARCHIVE_RELAY_TOKEN','PROOF_STORE_TOKEN','RESEND_API_KEY','LULU_CLIENT_KEY','LULU_CLIENT_SECRET','ANTHROPIC_API_KEY','OPENROUTER_API_KEY','OPERATOR_EMAIL','SITE_BASE','GITHUB_RUN_ID','PRESS_REQUESTED_AT'];
+  const names=['INKSHEAF_ENV','BOOK_ENGINE','PRESS_EVENT','SIGNUP_ID','PUBLICATION_URL','WRITER_EMAIL','PLAN_JSON','VERSION_ID','CHANGE_REQUEST','MAILING_ID','INVOICE_JSON','ADDRESSES_JSON','FILES_JSON','LEVEL','ARCHIVE_RELAY_TOKEN','PROOF_STORE_TOKEN','RESEND_API_KEY','LULU_CLIENT_KEY','LULU_CLIENT_SECRET','ANTHROPIC_API_KEY','OPENROUTER_API_KEY','OPERATOR_EMAIL','SITE_BASE','MAILINGS_ENABLED','GITHUB_RUN_ID','PRESS_REQUESTED_AT'];
   return ['run','--rm','--init',...names.filter(n=>env[n]!=null).flatMap(n=>['--env',n]),'--env',`GITHUB_SHA=${sha}`,'--mount',`type=bind,source=${resolve(output)},target=/app/output`,image];
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

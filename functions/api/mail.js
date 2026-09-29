@@ -7,6 +7,8 @@ export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
   let body; try { body = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
   if (!mailingsEnabled(env)) return json({ ok: false, error: "mailings are disabled for beta" }, 503);
+  // A test-mode key in production would take pretend payments for real print jobs.
+  if (env.INKSHEAF_ENV === "production" && /^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "")) return json({ ok: false, error: "Printed copies are not open yet." }, 503);
   const id = Number(body.id), sig = String(body.sig || "");
   if (!id || !env.ARCHIVE_RELAY_TOKEN || sig !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `mail:${id}`)) return json({ ok: false, error: "bad link" }, 403);
   /* the quote endpoint is the one source of prices; ask it the same question */

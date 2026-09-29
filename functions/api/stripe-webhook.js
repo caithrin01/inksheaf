@@ -12,6 +12,9 @@ export async function onRequest({ request, env }) {
   const event = JSON.parse(raw);
   if (event.type !== "checkout.session.completed") return new Response("ignored", { status: 200 });
   const s = event.data.object;
+  // Production prints only from a live, settled payment: a test-mode card never reaches Lulu.
+  if (env.INKSHEAF_ENV === "production" && event.livemode !== true) return new Response("test-mode event ignored in production", { status: 200 });
+  if (s.payment_status && s.payment_status !== "paid") return new Response("not paid", { status: 200 });
   const mailingId = Number(s.metadata?.mailing_id), signupId = Number(s.metadata?.signup_id);
   if (!mailingId) return new Response("no mailing", { status: 200 });
   // One Stripe event is acted on once; a redelivery finds its claim and stops.

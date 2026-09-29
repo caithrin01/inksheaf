@@ -21,5 +21,7 @@ r = await quote({ request: req({ id: 1, sig: "bad" }), env: on });
 ok(r.status === 403, `with flag on, quote passes the gate and hits auth (got ${r.status})`);
 r = await mail({ request: req({ id: 1, sig: "bad" }), env: on });
 ok(r.status === 403, `with flag on, mail passes the gate and hits auth (got ${r.status})`);
+r = await mail({ request: req({ id: 1, sig: "bad" }), env: { ...on, STRIPE_SECRET_KEY: "sk_test_x", INKSHEAF_ENV: "production" } });
+ok(r.status === 503, `production refuses a test-mode Stripe key before any checkout (got ${r.status})`);
 
 console.log(`mailings-flag: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

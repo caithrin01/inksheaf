@@ -33,6 +33,6 @@ export async function onRequest({request,env}) {
       events:visibleEvents,email_status:email?.delivery_status||email?.status||null, retry_email_sig:email?await hmacHex(env.ARCHIVE_RELAY_TOKEN,`edition-email:${id}`):null,
       change_url:version?`/change?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`change:${id}`)}`:null,
       mail_url:version&&mailingsEnabled(env)?`/mail?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`mail:${id}`)}`:null,
-      sell_url:version?`/sell?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`sell:${id}`)}`:null});
+      sell_url:version&&mailingsEnabled(env)?`/sell?id=${id}&sig=${await hmacHex(env.ARCHIVE_RELAY_TOKEN,`sell:${id}`)}`:null});
   }catch{return json({ok:false,error:'Your book is saved. We could not refresh its progress just now.'},503);}
 }

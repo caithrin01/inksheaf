@@ -30,7 +30,7 @@ function world(mailing){
   globalThis.fetch=async(url,init)=>{if(db.failDispatch)return new Response(null,{status:500});dispatched.push(JSON.parse(init.body));return new Response(null,{status:204});};
   return {env,db,dispatched};
 }
-const paidEvent=(id,amount=4130)=>JSON.stringify({id,type:'checkout.session.completed',data:{object:{id:'cs_1',payment_intent:'pi_1',amount_total:amount,metadata:{mailing_id:'9',signup_id:'41'}}}});
+const paidEvent=(id,amount=4130,{livemode=true,payment_status='paid'}={})=>JSON.stringify({id,type:'checkout.session.completed',livemode,data:{object:{id:'cs_1',payment_intent:'pi_1',amount_total:amount,payment_status,metadata:{mailing_id:'9',signup_id:'41'}}}});
 const post=async(env,payload,header)=>onRequest({request:new Request('https://inksheaf.com/api/stripe-webhook',{method:'POST',headers:{'stripe-signature':header??await sign(payload)},body:payload}),env});
 const mailing={id:9,signup_id:41,status:'checkout',addresses:JSON.stringify([{name:'A',country_code:'GB',quantity:1}]),level:'MAIL',version_id:7,amount_cents:4130};
 
@@ -43,6 +43,11 @@ await test('a paid checkout dispatches one print run with the paid version files
 await test('a redelivered event does nothing',async()=>{
   const w=world(mailing);await post(w.env,paidEvent('evt_1'));const again=await post(w.env,paidEvent('evt_1'));
   assert.equal(await again.text(),'already');assert.equal(w.dispatched.length,1);
+});
+await test('production never prints from a test-mode or unsettled payment',async()=>{
+  const w=world(mailing);let r=await post(w.env,paidEvent('evt_t',4130,{livemode:false}));
+  assert.match(await r.text(),/test-mode/);r=await post(w.env,paidEvent('evt_u',4130,{payment_status:'unpaid'}));
+  assert.equal(await r.text(),'not paid');assert.equal(w.db.mailing.status,'checkout');assert.equal(w.dispatched.length,0);
 });
 await test('a different amount than agreed is not printed',async()=>{
   const w=world(mailing);const r=await post(w.env,paidEvent('evt_2',100));
