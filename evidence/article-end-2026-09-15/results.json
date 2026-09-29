@@ -1,0 +1,53 @@
+{
+  "as_of": "2026-09-15T23:47:51.691282+00:00",
+  "base_commit": "ac301081651743bb022f3f0d9845ff1e5ed94ac4",
+  "change": "Remove the layout block around invisible article-end metadata so a fitted closing figure cannot produce an empty article leaf.",
+  "reproduction": "Synthetic actual-emitter fixture fails on the parent: closing-photo page 7, article end page 8, following article page 9. The corrected emitter keeps the end on page 7 and following article on page 8.",
+  "checks": {
+    "article_count": true,
+    "all_article_body_text_matches": true,
+    "all_image_pixels_and_sizes_match": true,
+    "no_empty_article_body_pages": true,
+    "photo_article_loses_only_blank_leaf": true
+  },
+  "retained_comparison": {
+    "before_raw_pages": 171,
+    "after_raw_pages": 169,
+    "articles": 22,
+    "article_image_occurrences": 50,
+    "before_empty_article_leaves": [
+      52
+    ],
+    "after_empty_article_leaves": [],
+    "bounds_pass": true,
+    "missing_glyph_check": "pass"
+  },
+  "validation": {
+    "article_end_cases": 4,
+    "typst_fixtures": {
+      "pass": 45,
+      "fail": 0
+    },
+    "publisher_watermark": {
+      "pass": 6,
+      "fail": 0
+    },
+    "required_renderer": {
+      "pass": 69,
+      "fail": 0
+    },
+    "validator": {
+      "pass": 13,
+      "warn": 0,
+      "fail": 0
+    }
+  },
+  "scope": "Offline frozen-typeset-source A/B with only article-end metadata wrapper removed. No AI verdict reused or acceptance claimed. Body text comparisons exclude running matter and normalize whitespace, discretionary hyphens and resolved reference-page numbers. Original print files remain untouched; binding parity is not applied to these raw compilations.",
+  "not_established": [
+    "Accepted annual or divided edition",
+    "Montage title readability",
+    "One-minute completion",
+    "Production deployment or delivery"
+  ],
+  "model_spend_usd": 0
+}

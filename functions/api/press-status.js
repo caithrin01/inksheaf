@@ -9,12 +9,19 @@ export async function onRequest({ request, env }) {
   if (!id || !status) return json({ ok: false, error: "signup_id and status required" }, 400);
   if (!env.ARCHIVE_RELAY_TOKEN || String(body.sig || "") !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${id}:${status}`))
     return json({ ok: false, error: "bad signature" }, 403);
-  const detail = JSON.stringify({ proof_key: body.proof_key || null, proof_url: body.proof_url || null, listing_url: body.listing_url || null,
+  let detail = JSON.stringify({ proof_key: body.proof_key || null, proof_url: body.proof_url || null, listing_url: body.listing_url || null,
     message: String(body.message || "").slice(0, 500), run: body.run || null,
     files: Array.isArray(body.files) ? body.files.slice(0, 24) : undefined, jobs: Array.isArray(body.jobs) ? body.jobs.slice(0, 60) : undefined,
     /* what left the book and why (rule cuts, guest posts, the editor's exclusions): the change page shows it with an "include" box */
     version_id: Number(body.version_id) || undefined,
     left_out: Array.isArray(body.left_out) ? body.left_out.slice(0, 80).map(x => ({ slug: String(x.slug || "").slice(0, 200), title: String(x.title || "").slice(0, 120), reason: String(x.reason || "").slice(0, 160), kind: String(x.kind || "rule").slice(0, 12) })) : undefined }).slice(0, 24000);
+  // A status that does not restate what left the book keeps the earlier list: the change page
+  // reads it, and later statuses (print files, orders) are about other things.
+  if (!Array.isArray(body.left_out)) {
+    const prev = await env.DB.prepare("SELECT detail FROM press WHERE signup_id = ?").bind(id).first().catch(() => null);
+    let kept = null; try { kept = JSON.parse(prev?.detail || "null")?.left_out; } catch {}
+    if (Array.isArray(kept)) { const d = JSON.parse(detail); d.left_out = kept; detail = JSON.stringify(d); }
+  }
   await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now'))
     ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')`)
     .bind(id, status, detail).run();
@@ -24,8 +31,8 @@ export async function onRequest({ request, env }) {
     const vs = ["proofed", "approved", "building-final", "validated", "listing-pending", "listed", "failed", "superseded"].includes(body.version_status) ? body.version_status : null;
     /* a version that advances past a failure clears the old error; a failure records its own */
     const clears = ["validated", "listing-pending", "listed"].includes(vs);
-    await env.DB.prepare(`UPDATE edition_versions SET status = COALESCE(?, status), quote_json = COALESCE(?, quote_json), listing_url = COALESCE(?, listing_url), error = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, error) END, run_id = COALESCE(?, run_id), updated_at = datetime('now') WHERE id = ? AND signup_id = ?`)
-      .bind(vs, body.quote ? JSON.stringify(body.quote).slice(0, 4000) : null, body.listing_url ? String(body.listing_url).slice(0, 300) : null, clears ? 1 : 0, body.error ? String(body.error).slice(0, 300) : null, body.run ? String(body.run).slice(0, 40) : null, vid, id).run().catch(() => {});
+    await env.DB.prepare(`UPDATE edition_versions SET status = COALESCE(?, status), files_json = COALESCE(?, files_json), quote_json = COALESCE(?, quote_json), listing_url = COALESCE(?, listing_url), error = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, error) END, run_id = COALESCE(?, run_id), updated_at = datetime('now') WHERE id = ? AND signup_id = ?`)
+      .bind(vs, Array.isArray(body.files) ? JSON.stringify(body.files.slice(0, 24)).slice(0, 12000) : null, body.quote ? JSON.stringify(body.quote).slice(0, 4000) : null, body.listing_url ? String(body.listing_url).slice(0, 300) : null, clears ? 1 : 0, body.error ? String(body.error).slice(0, 300) : null, body.run ? String(body.run).slice(0, 40) : null, vid, id).run().catch(() => {});
   }
   return json({ ok: true });
 }

@@ -1,0 +1,22 @@
+{
+  "scope": "Archival manifest; screenshot masters stay in the ignored output directory. Replay uses the original output bundle.",
+  "specification": {
+    "model": "anthropic/claude-opus-5",
+    "max_tokens": 5000,
+    "brief": "brief.md",
+    "images": [
+      {
+        "file": "output/playwright/launch/complete-reader/chromium-1280-middle.png",
+        "label": "Desktop: arbitrary middle page of a synthetic complete volume, actual PDF.js canvas."
+      },
+      {
+        "file": "output/playwright/launch/complete-reader/webkit-390-middle.png",
+        "label": "Phone: complete book with volume/page controls and separate PDF downloads."
+      },
+      {
+        "file": "output/playwright/launch/complete-reader/webkit-390-last-text.png",
+        "label": "Phone: final page of the second volume, text view and exact printed/physical labels."
+      }
+    ]
+  }
+}

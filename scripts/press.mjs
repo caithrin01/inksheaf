@@ -8,13 +8,15 @@
 //   list:  reuse approved interiors, build covers and validate with Lulu; bookstore publishing
 //          remains a separate operation until the listing launch work is complete.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { validDesign } from "../functions/lib/book-design.js";
 import {publishPreview} from './lib/publisher-preview.mjs';
+import {completeReaderMap} from './lib/complete-reader.mjs';
 import {publishVolume} from "./lib/publish-volume.mjs";
+import {renderIdentity} from './lib/render-checkpoint.mjs';
 import { publisherSession } from "./lib/publisher-session.mjs";
 import {currentPublisherSelection,withPublisherSelection} from "./lib/publisher-selection.mjs";
-import { fit } from "./lib/fit.mjs";
+import { fitWithBudget } from "./lib/fit.mjs";
 import { createHash } from "node:crypto";
 import { printCost } from "../functions/lib/editor-input.js";
 import { createHmac } from "node:crypto";
@@ -27,6 +29,7 @@ import { proofKey, uploadProof, signedProofUrl } from "./lib/proof-store.mjs";
 import { makeClient } from "./lulu-client.mjs";
 import prices from "../functions/lib/print-prices.json" with { type: "json" };
 import { chromium } from "playwright";
+import {pressTiming} from './lib/press-timing.mjs';
 import { luluUsesProduction, pressEventType, runtimeMode } from "../functions/lib/runtime.js";
 
 const EVENT = process.env.PRESS_EVENT || "press";
@@ -35,6 +38,8 @@ const ID = Number(process.env.SIGNUP_ID);
 const URL_ = process.env.PUBLICATION_URL || "";
 const TO = process.env.WRITER_EMAIL || "";
 const OPERATOR = process.env.OPERATOR_EMAIL || "caithrin@caithrin.com";
+// Printed-copy ordering opens with MAILINGS_ENABLED; until then the email names no order or sell page.
+const PRINT_ORDERS = /^(1|true)$/i.test(process.env.MAILINGS_ENABLED || "");
 const SITE = (process.env.SITE_BASE || (MODE === "production" ? "https://inksheaf.com" : "http://localhost:8788")).replace(/\/$/, "");
 const SECRET = process.env.ARCHIVE_RELAY_TOKEN || "";
 const host = URL_.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
@@ -44,6 +49,7 @@ if (plan?.design && !validDesign(plan.design)) throw new Error("Unsupported rese
 const slug = host.replace(/\W+/g, "-");
 const DIR = `proofs/press/${ID}`; mkdirSync(DIR, { recursive: true });
 const log = (s, m) => console.error(`[${s}] ${m}`);
+const timing=pressTiming('output/press-timing.json',{requestedAt:process.env.PRESS_REQUESTED_AT});timing.mark('worker_started');
 /* a failing command must leave its own words in the log, not just node's stack */
 const sh = (cmd, args) => { try { return execFileSync(cmd, args, { stdio: ["ignore", "pipe", "inherit"] }).toString(); }
   catch (e) { const out = e.stdout ? e.stdout.toString().trim() : ""; if (out) console.error(out.split("\n").slice(-12).join("\n")); throw new Error(`${cmd} ${args.slice(0, 2).join(" ")} failed (exit ${e.status})`); } };
@@ -52,6 +58,7 @@ const hmac = m => createHmac("sha256", SECRET).update(m).digest("hex");
 let STAGE = "start";
 /* a crash anywhere becomes a truthful "failed" row with the stage and run id, never "building" */
 for (const ev of ["uncaughtException", "unhandledRejection"]) process.on(ev, async (err) => {
+  timing.mark('stopped');
   const msg = String((err && err.message) || err).replace(/[\r\n]+/g, " ").slice(0, 200);
   console.error(`PRESS FAILED at ${STAGE}: ${msg}`);
   try { await status("failed", { message: `failed at ${STAGE}: ${msg}`, error: msg, run: process.env.GITHUB_RUN_ID || "local", version_id: Number(process.env.VERSION_ID) || undefined, version_status: process.env.VERSION_ID ? "failed" : undefined }); } catch {}
@@ -78,7 +85,9 @@ const POD_ID = prices.pods[interior].pod_package_id; // 6x9 perfect bound, black
 
 /* the publication's own palette for the cover and the title page */
 const brandPath = `${DIR}/brand.json`;
+timing.mark('publication_identity_started');
 if (!existsSync(brandPath)) { try { sh("node", ["scripts/brand-lift.mjs", host, "--out", brandPath]); } catch (e) { log("brand", "lift failed, default brand: " + String(e.message).slice(0, 80)); } }
+timing.mark('publication_identity_finished');
 
 
 /* the short links a volume prints go to the site's links table so inksheaf.com/l/<code> answers;
@@ -99,7 +108,7 @@ async function dispatchOrLog(payload) {
   try { const eventType = pressEventType(process.env, payload.event); const r = await fetch("https://api.github.com/repos/caithrin01/inksheaf/dispatches", { method: "POST", headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "content-type": "application/json", "user-agent": "inksheaf-press/1.0" }, body: JSON.stringify({ event_type: eventType, client_payload: { ...payload, environment: MODE } }) }); log("dispatch", `${eventType} -> ${r.status}`); }
   catch (e) { log("dispatch", `failed: ${String(e.message).slice(0, 80)}`); }
 }
-function buildVolume(v, i, { proof, initial = {}, passes = 4 }) {
+async function buildVolume(v, i, { proof, initial = {}, passes = 4, beforePass, prepared }) {
   const base = `${slug}-${ID}-v${i + 1}`;
   const html = `proofs/${base}.html`, pdf = `${DIR}/${base}.pdf`;
   const args = ["scripts/build-book.mjs", host, "--out", html, "--publisher-dir", `${DIR}/publisher`, "--publisher-volume", String(i+1), "--direct-links"];
@@ -116,22 +125,63 @@ function buildVolume(v, i, { proof, initial = {}, passes = 4 }) {
   if (Array.isArray(plan?.include) && plan.include.length) args.push("--include", plan.include.map(x => String(x).replace(/[^a-z0-9-]/gi, "")).filter(Boolean).join(","));
   if (v.label && v.label !== "The edition") { args.push("--vol-label", v.label); if (volumes.length > 1) args.push("--vol-of", `${ROMAN_N[i] || i + 1} of ${ROMAN_N[volumes.length - 1] || volumes.length}`); }
   log("build", `${v.label}: ${args.slice(2).join(" ")}`);
-  const fitted = fit({ args, html, initial, passes, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
+  const fitted = await fitWithBudget({ args, html, initial, passes, beforePass, prepared, allowMeasuredSpaceReview:true, pdf: `${process.cwd()}/${pdf}`, log: m => log("fit", `${v.label}: ${m}`) });
   for (const line of String(fitted.out || "").split("\n").filter(l => /^(BLANK|TAIL|OK )/.test(l))) log("render", `${v.label}: ${line}`); /* the measure lines belong in the run log */
   const report = JSON.parse(readFileSync(html.replace(/\.html$/, ".report.json"), "utf-8"));
-  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow };
+  report.fit = { pass:fitted.pass, defer:fitted.defer, fitFigs:fitted.fitFigs, fitText:fitted.fitText, backLinks:fitted.backLinks, inFlow:fitted.inFlow, readingFigures:fitted.readingFigures, pictureFigures:fitted.pictureFigures, ...(fitted.spacing_requires_review?{spacing_requires_review:true}:{}) };
   if (!args.includes("--direct-links")) registerLinks(report).catch(e => log("links", `not registered: ${String(e.message).slice(0, 80)}`));
   const pages = PDFDocument.load(readFileSync(pdf)).then(d => d.getPageCount());
   if (report.planSelection && report.planSelection.missing && report.planSelection.missing.length) log("build", `${v.label}: ${report.planSelection.missing.length} planned post(s) not in the archive listing: ${report.planSelection.missing.slice(0, 5).join(", ")}`);
-  return { html, pdf, report, pages };
+  return { html, pdf, report, pages, brand:existsSync(brandPath)?JSON.parse(readFileSync(brandPath,'utf8')):null };
 }
 
+/* One Lulu file set per volume: the interior already made and checked, a cover wrap sized by
+   Lulu's own dimensions for its page count, and Lulu's file validation of both. Shared by the
+   finished-book path (after the PDF is delivered) and the older approve-and-list path. */
+async function printFiles(vvols, { planNow, lulu, stage }) {
+  const built = [];
+  for (let i = 0; i < vvols.length; i++) {
+    const v = vvols[i];
+    const base = `${slug}-${ID}-v${i + 1}`;
+    const pages = v.pages;
+    const row = { label: v.label, pages, interiorKey: v.key, sha256: v.sha256, report: { included: v.included } };
+    if (lulu) {
+      const dims = await lulu.coverDimensions(pages, POD_ID);
+      const W = +dims.width, H = +dims.height;
+      const pubName = v.pubName || host;
+      const kind = v.kind || "essays";
+      const meta = { pubName, host, kindLine: `${v.title && v.title !== pubName ? v.title + " · " : ""}${v.label}`,
+        spineText: `${pubName} · ${v.label}`, dates: v.subtitle || v.label, countLine: `${v.included} ${kind}`,
+        blurb: "", desc: `${v.included} ${kind} from ${host.replace(/^www\./, "")}, ${v.subtitle || v.label}, printed in the order they first appeared.` };
+      const metaPath = `${DIR}/${base}.cover.json`; writeFileSync(metaPath, JSON.stringify(meta));
+      const coverHtml = `${DIR}/${base}.cover.html`, coverPdf = `${DIR}/${base}.cover.pdf`;
+      const cargs = ["scripts/cover-wrap.mjs", String(W), String(H), coverHtml, "--meta", metaPath];
+      if (planNow?.design) { if (!validDesign(planNow.design)) throw new Error("Unsupported approved cover design"); const designPath = `${DIR}/approved-design.json`; writeFileSync(designPath, JSON.stringify(planNow.design)); cargs.push("--design-file", designPath); }
+      const isbn = (Array.isArray(planNow?.isbns) ? planNow.isbns[i] : null) || (vvols.length === 1 ? planNow?.isbn : null);
+      if (isbn) cargs.push("--isbn", String(isbn));
+      if (existsSync(brandPath)) cargs.push("--brand", brandPath);
+      sh("node", cargs);
+      const browser = await chromium.launch();
+      try { const page = await browser.newPage(); await page.goto(`file://${process.cwd()}/${coverHtml}`, { waitUntil: "networkidle" }); await page.waitForTimeout(1500); await page.pdf({ path: coverPdf, preferCSSPageSize: true, printBackground: true }); }
+      finally { await browser.close(); }
+      const cKey = proofKey(`${slug}-${ID}`, `cover-v${i + 1}`, coverPdf);
+      await uploadProof(coverPdf, cKey);
+      const vi = await lulu.validateInterior(signedProofUrl(v.key), POD_ID);
+      const vc = await lulu.validateCover(signedProofUrl(cKey), pages, POD_ID);
+      const [ri, rc] = await Promise.all([lulu.pollValidation("interior", vi.id), lulu.pollValidation("cover", vc.id)]);
+      Object.assign(row, { coverKey: cKey, cover: { W, H }, validation: { interior: ri.status, cover: rc.status, interiorId: vi.id, coverId: vc.id } });
+      log(stage, `${v.label}: ${pages} pages, interior ${ri.status}, cover ${rc.status}`);
+    } else log(stage, `${v.label}: ${pages} pages (no Lulu key: cover and validation skipped)`);
+    built.push(row);
+  }
+  return built;
+}
 if (EVENT === "press") {
   /* The proof is the print file (Codex audit P0-1, P1-7): every volume is built once at final
      resolution, uploaded, hashed, and recorded as one edition version. The writer reads the
      exact bytes that will print; approval names the version and its digest. */
   await status("building");
-  const emit = async event => (await publisherSession({directory:`${DIR}/publisher`})).emit(event);
+  const emit = async event => {await(await publisherSession({directory:`${DIR}/publisher`})).emit(event);if(event.kind==='pages')timing.mark('draft_available',{volume:Number(event.volume),round:event.round});};
   const {vols,totalPages,rendererSha,finalPlan,vj}=await withPublisherSelection({
     load:()=>currentPublisherSelection(),
     onChange:async()=>log('publisher','Picking up the creator’s saved correction.'),
@@ -141,43 +191,54 @@ if (EVENT === "press") {
       const postOrder = [], bodyHashes = {};
       for (let i = 0; i < volumes.length; i++) {
         const v = volumes[i];
+        timing.mark('volume_started',{volume:i+1});
         const b=await publishVolume({build:options=>buildVolume(v,i,{proof:false,...options}),
+          renderIdentity:renderIdentity({host,plan,volume:v,index:i,interior}),
+          // Preserve the saved edition's scraped palette before any repair or
+          // later volume/cover work. It is not a new creator instruction.
+          onRestored:book=>{if(book.brand)writeFileSync(brandPath,JSON.stringify(book.brand));else if(existsSync(brandPath))unlinkSync(brandPath);},
           session:()=>publisherSession({directory:`${DIR}/publisher`}),emit,volume:String(i+1),
           onRendered:({book,round,volume})=>publishPreview({book,round,volume,emit,upload:uploadProof,url:k=>signedProofUrl(k,7*24*3600),key:file=>proofKey(`${slug}-${ID}`,'preview',file),log:m=>log('preview',m)}),
           reviewDirectory:`${DIR}/${slug}-${ID}-v${i+1}-review`,log:m=>log('review',`${v.label}: ${m}`)});
         const pages=await b.pages;
+        timing.mark('volume_accepted',{volume:i+1,pages});
         const key=proofKey(`${slug}-${ID}`,`interior-v${i+1}`,b.pdf);
         const sha=createHash('sha256').update(readFileSync(b.pdf)).digest('hex');
         for (const o of (b.report.postOrder || [])) postOrder.push(o);
         Object.assign(bodyHashes, b.report.bodyHashes || {});
         vols.push({ label: v.label, title: v.title || null, subtitle: v.subtitle || null, pages, key, sha256: sha, included: b.report.included, pubName: b.report.pubName || host, kind: plan?.kind || "essays", postOrder: b.report.postOrder || [],
           leftOut: [...(b.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({slug:d.slug,title:d.title,reason:d.reason,kind:"publisher"})), ...(b.report.ruleCuts || []).map(c => ({ slug: c.slug, title: c.title, reason: c.reason, kind: "rule" })), ...(b.report.guestCuts || []).map(g => ({ slug: g.slug, title: g.title, reason: `a guest post by ${g.by}`, kind: "guest" }))],
-          pdf: b.pdf, report: b.report, review: b.review });
+          reader_map:completeReaderMap(b,pages),pdf: b.pdf, report: b.report, review: b.review });
         log("press", `${v.label}: ${pages} pages, ${key}, sha256 ${sha.slice(0, 12)}`);
       }
       return {vols,postOrder,bodyHashes};
     },
     commit:async({vols,postOrder,bodyHashes},selection)=>{
+      timing.mark('upload_started',{volumes:vols.length});
       for(const v of vols)await uploadProof(v.pdf,v.key);
+      timing.mark('upload_finished',{volumes:vols.length});
       const finalPlan = {...(plan||{}),volumes:volumes.map((v,i)=>({...v,post_ids:vols[i].postOrder.map(p=>p.id),posts:vols[i].included})),
         publisher:{version:2,selection_revision:selection.revision,excluded:vols.flatMap((v,i)=>(v.report.publisher?.decisions||[]).filter(d=>d.decision==='set_aside').map(d=>({...d,volume:i+1})))}};
       const totalPages = vols.reduce((n, x) => n + x.pages, 0);
       const rendererSha = process.env.GITHUB_SHA || (() => { try { return sh("git", ["rev-parse", "HEAD"]).trim(); } catch { return "local"; } })();
       const vr = await fetch(`${SITE}/api/version`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
         signup_id: ID, sig: hmac(`version:${ID}`), plan_json: finalPlan, selection_revision:selection.revision, post_ids: postOrder, body_hashes: bodyHashes, renderer_sha: rendererSha, print_mode: interior,
-        volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
+        volumes: vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, reader_map:x.reader_map, included: x.included, pubName: x.pubName, kind: x.kind, postOrder: x.postOrder, leftOut: x.leftOut })),
         proof_key: vols[0].key, proof_sha256: vols[0].sha256, pages: totalPages, run_id: process.env.GITHUB_RUN_ID || "" }) });
       const vj = await vr.json().catch(() => ({}));
       if (!vr.ok || !vj.ok) throw new Error(`version not recorded: ${vr.status} ${JSON.stringify(vj).slice(0, 160)}`);
+      timing.mark('version_saved',{volumes:vols.length,pages:totalPages});
       return {vols,totalPages,rendererSha,finalPlan,vj};
     }
   });
   plan=finalPlan;
   const versionId = vj.version_id, nonce = vj.nonce;
   const proofUrl = signedProofUrl(vols[0].key, 7 * 24 * 3600);
-  await emit({kind:"ready",files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
+  await emit({kind:"ready",version_id:versionId,files:vols.map(x=>({label:x.label,pages:x.pages,url:signedProofUrl(x.key,7*24*3600)})),expires_at:new Date(Date.now()+7*86400000).toISOString(),pages:totalPages});
+  timing.mark('workspace_ready',{volumes:vols.length,pages:totalPages});
   const workspace = `${SITE}/edition?id=${ID}&sig=${hmac(`edition:${ID}`)}`;
-  const approve = `${SITE}/api/approve?v=${versionId}&n=${nonce}`;
+  const order = `${SITE}/mail?id=${ID}&sig=${hmac(`mail:${ID}`)}`;
+  const sell = `${SITE}/sell?id=${ID}&sig=${hmac(`sell:${ID}`)}`;
   const change = `${SITE}/change?id=${ID}&sig=${hmac(`change:${ID}`)}`;
   const n = volumes.length;
   const cost = vols.reduce((t, x) => t + printCost(x.pages, interior), 0);
@@ -190,17 +251,20 @@ ${workspace}
 Download the complete PDF${n > 1 ? "s" : ""} (${shape}) below. These private links work for seven days. Please save the files and keep the links private:
 ${proofUrl}
 ${n > 1 ? vols.slice(1).map(x => `${x.label}: ${signedProofUrl(x.key, 7 * 24 * 3600)}`).join("\n") + "\n" : ""}
-This is the file that prints. Print cost at Lulu for this edition: $${cost.toFixed(2)} per copy before shipping. This is the production cost; any print-service addition and creator markup are shown before ordering. ${plan?.est_pages && Math.abs(totalPages - plan.est_pages) / totalPages > 0.15 ? `(The plan page estimated ${plan.est_pages} pages; the typeset book is ${totalPages}. The price above is for the real book.) ` : ""}
+This is the file that prints. Lulu's printing cost for this edition is $${cost.toFixed(2)} per copy before shipping${PRINT_ORDERS ? "; Inksheaf adds $${Number(prices.inksheaf_per_book)} per printed book. You see the full price, shipping included, before you pay." : ". Printed copies are not open yet."} ${plan?.est_pages && Math.abs(totalPages - plan.est_pages) / totalPages > 0.15 ? `(The plan page estimated ${plan.est_pages} pages; the typeset book is ${totalPages}. The price above is for the real book.) ` : ""}
+${PRINT_ORDERS ? `
+Order printed copies for yourself or as gifts, shipped wherever Lulu delivers. The printer checks the files first; ordering opens a few minutes after this email:
+${order}
 
-When you want printed copies, review this edition and its print options:
-${approve}
-
+To sell copies to your subscribers from your own Lulu account, with a button for your posts, follow the steps here:
+${sell}
+` : ""}
 Want to change something first (leave posts out, bring one back, retitle, switch to a different set, add a dedication or an ISBN)?
 ${change}
 
 ${vols.map(x => writerLine(x.review)).filter(Boolean).map((l, i) => (n > 1 ? `${vols[i].label}: ` : "") + l).join("\n")}
 
-Nothing prints until you approve. Reply to this email and a person answers.
+${PRINT_ORDERS ? "Nothing prints until you order and pay. " : ""}Reply to this email and a person answers.
 
 Inksheaf`;
   // Send the operator's complete files first, so a writer-email failure cannot hide them.
@@ -209,12 +273,14 @@ Inksheaf`;
     text: `Reservation #${ID}\n${URL_}\nWriter: ${TO}\nroute ${plan?.cadence || "none"}, ${n} volume(s), ${interior}\nversion ${versionId}, ${totalPages} pages, print cost $${cost.toFixed(2)}, renderer ${rendererSha.slice(0, 12)}\nrun ${process.env.GITHUB_RUN_ID || "local"}\n\n` + vols.map(x => `${x.label}, SHA-256 ${x.sha256}\n${operatorBlock(x.review)}`).join("\n\n"),
     assets: vols.map(x => ({ label: x.label, pages: x.pages, key: x.key, pdf: x.pdf })) },
     { log: m => log("operator-pdf", m) });
+  timing.mark('operator_mail_finished');
   const leftOut = vols.flatMap(x => x.leftOut);
   /* the estimate against the typeset book (Codex audit P0-2): recorded, and over 15% it is said */
   const est = Number(plan?.est_pages) || vols.reduce((t, x, i) => t + (Number(volumes[i]?.est_pages) || 0), 0);
   const estErr = est ? Math.round(Math.abs(totalPages - est) / totalPages * 100) : null;
   if (estErr != null && estErr > 15) log("estimate", `plan said ${est} pages, the book is ${totalPages}: ${estErr}% off, over the 15% tolerance; the writer was told and the price is for ${totalPages}`);
-  await status("proofed", { proof_key: vols[0].key, message: `version ${versionId}: ${totalPages} pages, ${n} volume(s)${estErr != null ? `, estimate ${est} (${estErr}% off)` : ""}`, left_out: leftOut, version_id: versionId, estimate: est || null, estimate_error_pct: estErr });
+  const proofedDetail = { proof_key: vols[0].key, message: `version ${versionId}: ${totalPages} pages, ${n} volume(s)${estErr != null ? `, estimate ${est} (${estErr}% off)` : ""}`, left_out: leftOut, version_id: versionId, estimate: est || null, estimate_error_pct: estErr };
+  await status("proofed", proofedDetail);
   // An email failure cannot invalidate the saved PDF. Retry /api/proof-email for this
   // version; do not rerun the press to resend it. The site persists the exact provider
   // message and send key, and derives the recipient from the saved reservation.
@@ -223,12 +289,37 @@ Inksheaf`;
     delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId,
       subject: `Your complete PDF: ${vols[0].pubName || host}`, text });
   } catch (e) { log("creator-email", String(e.message || e).slice(0, 160)); }
+  timing.mark('creator_mail_finished');
   await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
   log("creator-email", `version ${versionId}: ${delivery.status}; provider accepted ${delivery.accepted === true}`);
   if (!delivery.accepted) {
     try { await sendMail({ to: OPERATOR, subject: `PDF email needs attention: ${host} (#${ID}, version ${versionId})`,
       text: `The complete PDF for reservation #${ID}, version ${versionId}, is saved. Creator email acceptance is ${delivery.status}. Retry the saved proof-email operation for this version; do not rebuild the book.\n\nRun ${process.env.GITHUB_RUN_ID || "local"}`, timeoutMs: 20_000 }); }
     catch { log("creator-email", "operator delivery alert could not be confirmed"); }
+  }
+  // Print files for ordering copies are made after the PDF is delivered, so they never delay
+  // it, and a problem here never marks the delivered book as failed. The status repeats the
+  // proofed detail (the change page reads left_out from it) and adds the files.
+  if (process.env.LULU_CLIENT_KEY) {
+    try {
+      const lulu = makeClient({ production: luluUsesProduction(process.env) });
+      const built = await printFiles(vols.map(x => ({ label: x.label, title: x.title, subtitle: x.subtitle, pages: x.pages, key: x.key, sha256: x.sha256, included: x.included, pubName: x.pubName, kind: x.kind })), { planNow: plan, lulu, stage: "print-files" });
+      const normal = b => b.validation?.interior === "NORMALIZED" && b.validation?.cover === "NORMALIZED";
+      const valid = built.every(normal);
+      // Signed download links let a creator publish these exact files in their own Lulu account.
+      const linkTtl = 30 * 24 * 3600, linksExpire = new Date(Date.now() + linkTtl * 1000).toISOString();
+      const files = built.map(b => ({ label: b.label, pages: b.pages, interiorKey: b.interiorKey, coverKey: b.coverKey || null, validated: normal(b),
+        ...(normal(b) ? { interiorUrl: signedProofUrl(b.interiorKey, linkTtl), coverUrl: signedProofUrl(b.coverKey, linkTtl), cover: b.cover, links_expire_at: linksExpire } : {}) }));
+      const quote = { print_cost: Math.round(cost * 100) / 100, volumes: built.map(b => ({ label: b.label, pages: b.pages })), interior, measured: new Date().toISOString() };
+      await status("proofed", { ...proofedDetail, files, quote, ...(valid ? { version_status: "validated" } : {}),
+        message: `${proofedDetail.message}; print files ${valid ? "passed Lulu's checks" : "need review"}` });
+      timing.mark('print_files_finished', { valid });
+      if (!valid) await sendMail({ to: OPERATOR, subject: `Print files need review: ${vols[0].pubName || host} (#${ID}, version ${versionId})`,
+        text: `The PDF was delivered. Lulu's checks on the print files did not all pass, so copies cannot be ordered yet.\n\n` + built.map(b => `${b.label}: ${b.pages} pages; ${b.validation ? `interior ${b.validation.interior}, cover ${b.validation.cover}` : "not validated"}`).join("\n") });
+    } catch (e) {
+      log("print-files", String(e.message || e).slice(0, 200));
+      try { await sendMail({ to: OPERATOR, subject: `Print files could not be made: ${host} (#${ID}, version ${versionId})`, text: `The PDF was delivered. Making the print files stopped: ${String(e.message || e).slice(0, 400)}` }); } catch {}
+    }
   }
   writeFileSync(`${DIR}/press.json`, JSON.stringify({ id: ID, host, pages: totalPages, key: vols[0].key, volumes: n, interior, version_id: versionId }, null, 1));
   mkdirSync('output', { recursive: true });
@@ -267,47 +358,16 @@ Inksheaf`;
     console.log(`PRESS stopped #${ID}: ${changed.length} article(s) changed since version ${VERSION_ID}`);
   } else {
   const lulu = process.env.LULU_CLIENT_KEY ? makeClient({ production: luluUsesProduction(process.env) }) : null;
-  const built = [];
+  // Every approved interior must match its digest before covers are made from it.
   for (let i = 0; i < vvols.length; i++) {
-    const v = vvols[i];
-    const base = `${slug}-${ID}-v${i + 1}`;
-    const pdf = `${DIR}/${base}.pdf`;
+    const v = vvols[i], pdf = `${DIR}/${slug}-${ID}-v${i + 1}.pdf`;
     const r = await fetch(signedProofUrl(v.key)); if (!r.ok) throw new Error(`interior ${v.key} not in the proof store (${r.status})`);
     writeFileSync(pdf, Buffer.from(await r.arrayBuffer()));
     const sha = createHash("sha256").update(readFileSync(pdf)).digest("hex");
     if (sha !== v.sha256) throw new Error(`interior ${v.key} digest ${sha.slice(0, 12)} differs from the approved ${String(v.sha256).slice(0, 12)}`);
-    const pages = v.pages;
-    const row = { label: v.label, pages, interiorKey: v.key, sha256: sha, report: { included: v.included } };
-    if (lulu) {
-      const dims = await lulu.coverDimensions(pages, POD_ID);
-      const W = +dims.width, H = +dims.height;
-      const pubName = v.pubName || host;
-      const kind = v.kind || "essays";
-      const meta = { pubName, host, kindLine: `${v.title && v.title !== pubName ? v.title + " · " : ""}${v.label}`,
-        spineText: `${pubName} · ${v.label}`, dates: v.subtitle || v.label, countLine: `${v.included} ${kind}`,
-        blurb: "", desc: `${v.included} ${kind} from ${host.replace(/^www\./, "")}, ${v.subtitle || v.label}, printed in the order they first appeared.` };
-      const metaPath = `${DIR}/${base}.cover.json`; writeFileSync(metaPath, JSON.stringify(meta));
-      const coverHtml = `${DIR}/${base}.cover.html`, coverPdf = `${DIR}/${base}.cover.pdf`;
-      const cargs = ["scripts/cover-wrap.mjs", String(W), String(H), coverHtml, "--meta", metaPath];
-      let planNow = null; try { planNow = JSON.parse(ver.plan_json || "null"); } catch {}
-      if (planNow?.design) { if (!validDesign(planNow.design)) throw new Error("Unsupported approved cover design"); const designPath = `${DIR}/approved-design.json`; writeFileSync(designPath, JSON.stringify(planNow.design)); cargs.push("--design-file", designPath); }
-      const isbn = (Array.isArray(planNow?.isbns) ? planNow.isbns[i] : null) || (vvols.length === 1 ? planNow?.isbn : null);
-      if (isbn) cargs.push("--isbn", String(isbn));
-      if (existsSync(brandPath)) cargs.push("--brand", brandPath);
-      sh("node", cargs);
-      const browser = await chromium.launch();
-      try { const page = await browser.newPage(); await page.goto(`file://${process.cwd()}/${coverHtml}`, { waitUntil: "networkidle" }); await page.waitForTimeout(1500); await page.pdf({ path: coverPdf, preferCSSPageSize: true, printBackground: true }); }
-      finally { await browser.close(); }
-      const cKey = proofKey(`${slug}-${ID}`, `cover-v${i + 1}`, coverPdf);
-      await uploadProof(coverPdf, cKey);
-      const vi = await lulu.validateInterior(signedProofUrl(v.key), POD_ID);
-      const vc = await lulu.validateCover(signedProofUrl(cKey), pages, POD_ID);
-      const [ri, rc] = await Promise.all([lulu.pollValidation("interior", vi.id), lulu.pollValidation("cover", vc.id)]);
-      Object.assign(row, { coverKey: cKey, cover: { W, H }, validation: { interior: ri.status, cover: rc.status, interiorId: vi.id, coverId: vc.id } });
-      log("list", `${v.label}: ${pages} pages, interior ${ri.status}, cover ${rc.status}`);
-    } else log("list", `${v.label}: ${pages} pages (no Lulu key: cover and validation skipped)`);
-    built.push(row);
   }
+  let planNow = null; try { planNow = JSON.parse(ver.plan_json || "null"); } catch {}
+  const built = await printFiles(vvols, { planNow, lulu, stage: "list" });
   writeFileSync(`${DIR}/list.json`, JSON.stringify({ id: ID, host, version_id: VERSION_ID, built, interior }, null, 1));
   const allValid = lulu && built.every(b => b.validation && b.validation.interior === "NORMALIZED" && b.validation.cover === "NORMALIZED");
   const cost = built.reduce((t, x) => t + printCost(x.pages, interior), 0);
@@ -355,7 +415,7 @@ Inksheaf` });
   const placed = [];
   for (let i = 0; i < addresses.length; i++) {
     const a = addresses[i];
-    const address = { name: a.name, street1: a.street1, street2: a.street2 || undefined, city: a.city, state_code: a.state_code, postcode: a.postcode, country_code: "US", phone_number: a.phone || "+1 415 555 0100" };
+    const address = { name: a.name, street1: a.street1, street2: a.street2 || undefined, city: a.city, state_code: a.state_code || undefined, postcode: a.postcode, country_code: a.country_code || "US", phone_number: a.phone || "+1 415 555 0100" };
     const externalId = `inksheaf-${ID}-m${process.env.MAILING_ID}-${i + 1}`;
     try {
       const job = await lulu.api("/print-jobs/", { external_id: externalId, contact_email: OPERATOR, shipping_level: level, shipping_address: address,

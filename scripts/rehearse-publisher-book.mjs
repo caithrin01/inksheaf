@@ -4,9 +4,10 @@
 import {existsSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {resolve} from 'node:path';
-import {fit} from './lib/fit.mjs';
+import {fitWithBudget} from './lib/fit.mjs';
 import {publisherSession} from './lib/publisher-session.mjs';
 import {publishVolume} from './lib/publish-volume.mjs';
+import {renderIdentity} from './lib/render-checkpoint.mjs';
 const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
 const fixture=arg('--fixture'),out=arg('--out'),host=arg('--host')||'workshop.substack.com',brand=arg('--brand-file');
 if(!fixture||!out||!process.argv.includes('--live'))throw Error('Use --fixture posts.json --out proofs/publisher/name --host publication-host --live. This spends model budget only.');
@@ -20,7 +21,7 @@ for(const name of ['SIGNUP_ID','SITE_BASE','ARCHIVE_RELAY_TOKEN'])delete process
 mkdirSync(out,{recursive:true});const html=out+'/book.html',pdf=resolve(out+'/book.pdf'),directory=out+'/publisher';
 const session=()=>publisherSession({directory,env}),events=[];
 const emit=async e=>{events.push(e);writeFileSync(out+'/events.json',JSON.stringify(events,null,2));await(await session()).emit(e);};
-const result={status:'running',fixture,host,started:new Date().toISOString()};
+const result={status:'running',fixture,host,started:new Date().toISOString(),timing_scope:'Cached source fixture; normal PDF generation and reviews; excludes source retrieval, dispatch queue and delivery',rendered_checkpoints:[]};
 const saveResult=()=>{
   const saved=existsSync(directory+'/state.json')?JSON.parse(readFileSync(directory+'/state.json','utf8')):null;
   result.model_cost_usd=saved?.journal?.spent||0;
@@ -33,12 +34,12 @@ for(const [signal,code] of [['SIGINT',130],['SIGTERM',143]])process.once(signal,
   saveResult();process.exit(code);
 });
 try{
-  const book=await publishVolume({build:({passes,initial})=>{
+  const book=await publishVolume({build:async({passes,initial,beforePass,prepared})=>{
     const args=['scripts/build-book.mjs',host,'--fixture',fixture,'--out',html,...(brand?['--brand-file',brand]:['--no-brand']),'--cover-design','classic','--print-interior','--direct-links','--publisher-dir',directory,'--publisher-volume','1'];
-    const fitted=fit({args,html,pdf,passes,initial,log:console.error});
+    const fitted=await fitWithBudget({args,html,pdf,passes,initial,beforePass,prepared,allowMeasuredSpaceReview:true,log:console.error});
     const report=JSON.parse(readFileSync(html.replace(/\.html$/,'.report.json'),'utf8'));report.fit=fitted;
     return{html,pdf,report};
-  },session,emit,volume:'1',reviewDirectory:out+'/review',log:console.error});
-  result.status='completed';result.included=book.report.postOrder;result.layout=book.report.layoutAgent;result.review=book.review;result.pdf=pdf;
+  },session,emit,onRendered:async({book,round})=>{result.rendered_checkpoints.push({round,elapsed_ms:Date.now()-Date.parse(result.started),pages:book.report.pages??null});saveResult();},volume:'1',renderIdentity:renderIdentity({host,fixture:readFileSync(fixture,'utf8'),brand:brand?readFileSync(brand,'utf8'):null,design:'classic',printInterior:true}),reviewDirectory:out+'/review',log:console.error});
+  result.status='completed';result.recovered=Boolean(book.recovered);result.included=book.report.postOrder;result.layout=book.report.layoutAgent;result.review=book.review;result.pdf=book.pdf;
 }catch(error){result.status='held';result.error=String(error.message).replaceAll(key,'[redacted]');process.exitCode=1;}
 finally{result.finished=new Date().toISOString();saveResult();console.log(JSON.stringify(result));}

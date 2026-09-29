@@ -1,0 +1,15 @@
+PASS all 8 project documents present
+PASS launch-plan.md: all 7 required sections present
+PASS design-brief.md: all 7 required sections present
+PASS no credential patterns in project files
+PASS no CSV with third-party email addresses in the project
+PASS plan.md: 10 tasks checked; 4 evidence-gated, all satisfied
+PASS lulu-costs.json: 20 measured rows, matrix complete
+PASS launch-plan.md: no unmeasured price claims
+PASS design-brief.md: no unmeasured price claims
+PASS launch-plan.md: no affiliation-implying phrasing
+PASS design-brief.md: no affiliation-implying phrasing
+PASS no caithrin brand assets referenced in Inksheaf docs
+PASS all project-internal wiki-links resolve
+
+13 pass, 0 warn, 0 fail

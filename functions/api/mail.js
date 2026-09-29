@@ -7,6 +7,8 @@ export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
   let body; try { body = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
   if (!mailingsEnabled(env)) return json({ ok: false, error: "mailings are disabled for beta" }, 503);
+  // A test-mode key in production would take pretend payments for real print jobs.
+  if (env.INKSHEAF_ENV === "production" && /^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "")) return json({ ok: false, error: "Printed copies are not open yet." }, 503);
   const id = Number(body.id), sig = String(body.sig || "");
   if (!id || !env.ARCHIVE_RELAY_TOKEN || sig !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `mail:${id}`)) return json({ ok: false, error: "bad link" }, 403);
   /* the quote endpoint is the one source of prices; ask it the same question */
@@ -14,16 +16,23 @@ export async function onRequest({ request, env }) {
   const quote = await qr.json().catch(() => ({}));
   if (!quote.ok) return json({ ok: false, error: quote.error || "could not price" }, 409);
   if (quote.quotes.some(x => !x.ok) || !quote.totals.copies) return json({ ok: false, error: "fix the addresses first" }, 400);
+  // Only a book whose print files passed Lulu's checks can be paid for and printed.
+  if (!quote.print_ready || !quote.version_id) return json({ ok: false, error: "The printer is still checking this book's files." }, 409);
   const row = await env.DB.prepare("SELECT email, publication_url FROM signups WHERE id = ?").bind(id).first().catch(() => null);
   if (!row) return json({ ok: false, error: "not found" }, 404);
-  const res = await env.DB.prepare("INSERT INTO mailings (signup_id, level, addresses, quote, status) VALUES (?, ?, ?, ?, 'quoted')")
-    .bind(id, quote.level, JSON.stringify(quote.quotes.map(x => ({ ...x.address, quantity: x.quantity }))), JSON.stringify({ totals: quote.totals, volumes: quote.volumes, interior: quote.interior })).run();
-  const mailingId = res.meta?.last_row_id;
   const total = quote.totals.total;
+  const res = await env.DB.prepare("INSERT INTO mailings (signup_id, level, addresses, quote, status, version_id, amount_cents, currency) VALUES (?, ?, ?, ?, 'quoted', ?, ?, 'usd')")
+    .bind(id, quote.level, JSON.stringify(quote.quotes.map(x => ({ ...x.address, quantity: x.quantity }))), JSON.stringify({ totals: quote.totals, volumes: quote.volumes, interior: quote.interior }),
+      quote.version_id, Math.round(total * 100)).run();
+  const mailingId = res.meta?.last_row_id;
   if (env.STRIPE_SECRET_KEY) {
+    const pub = row.publication_url.replace(/^https?:\/\//, "");
     const form = new URLSearchParams({ mode: "payment", "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(Math.round(total * 100)),
-      "line_items[0][price_data][product_data][name]": `${quote.totals.copies} ${quote.volumes.length === 1 ? "copies" : "sets"} of ${row.publication_url.replace(/^https?:\/\//, "")}, printed and mailed at cost`,
+      "line_items[0][price_data][unit_amount]": String(Math.round(quote.totals.lulu_total * 100)),
+      "line_items[0][price_data][product_data][name]": `Printing and shipping by Lulu: ${quote.totals.copies} ${quote.volumes.length === 1 ? "copies" : "sets"} of ${pub}`,
+      "line_items[1][quantity]": String(quote.totals.books), "line_items[1][price_data][currency]": "usd",
+      "line_items[1][price_data][unit_amount]": String(Math.round(quote.totals.per_book * 100)),
+      "line_items[1][price_data][product_data][name]": "Inksheaf, per printed book",
       success_url: `${new URL(request.url).origin}/mail?id=${id}&sig=${sig}&paid=${mailingId}`, cancel_url: `${new URL(request.url).origin}/mail?id=${id}&sig=${sig}`,
       customer_email: row.email, "metadata[mailing_id]": String(mailingId), "metadata[signup_id]": String(id) });
     const sr = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "content-type": "application/x-www-form-urlencoded" }, body: form });

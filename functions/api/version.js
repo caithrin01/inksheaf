@@ -29,10 +29,13 @@ export async function onRequest({ request, env }) {
   if(!Number.isSafeInteger(selectionRevision)||selectionRevision<0)return json({ok:false,error:'selection_revision'},400);
   const nonce = [...crypto.getRandomValues(new Uint8Array(18))].map(x => x.toString(16).padStart(2, "0")).join("");
   const str = x => typeof x === "string" ? x : JSON.stringify(x);
+  const volumeJSON=str(b.volumes);
+  if(volumeJSON.length>100_000)return json({ok:false,error:'volumes too large'},413);
+  try{if(!Array.isArray(JSON.parse(volumeJSON)))throw Error();}catch{return json({ok:false,error:'volumes must be valid JSON'},400);}
   let r;
   try{r = await env.DB.prepare(`INSERT INTO edition_versions (signup_id, plan_json, post_ids, body_hashes, renderer_sha, print_mode, volumes, proof_key, proof_sha256, pages, status, approval_nonce, run_id, selection_revision)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proofed', ?, ?, ?)`)
-    .bind(id, str(b.plan_json).slice(0, 60000), str(b.post_ids).slice(0, 60000), str(b.body_hashes).slice(0, 200000), String(b.renderer_sha).slice(0, 64), b.print_mode, str(b.volumes).slice(0, 20000),
+    .bind(id, str(b.plan_json).slice(0, 60000), str(b.post_ids).slice(0, 60000), str(b.body_hashes).slice(0, 200000), String(b.renderer_sha).slice(0, 64), b.print_mode, volumeJSON,
       String(b.proof_key).slice(0, 300), String(b.proof_sha256), Number(b.pages) || 0, nonce, String(b.run_id || "").slice(0, 40),selectionRevision).run();
   }catch(error){
     if(String(error.message).includes('publisher selection changed'))return json({ok:false,error:'The creator changed this selection.',code:'PUBLISHER_SELECTION_CHANGED'},409);

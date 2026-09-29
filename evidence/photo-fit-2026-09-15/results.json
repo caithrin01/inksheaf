@@ -1,0 +1,76 @@
+{
+  "as_of": "2026-09-15T19:32:07.399512+00:00",
+  "base_commit": "3b9e9121c29df00f52eb3342aeafe1b802dfcb05",
+  "base_ci_passed": 35011920531,
+  "problem": "Cold pipeline completed but independent visual inspection found the reduced photograph still alone on p50. Raster free-space estimate was 158.56128pt versus 144.54751953125pt physical space. Final model accepted the ineffective fit.",
+  "source_sha256": {
+    "scripts/render-book.sh": "cb27c90f6b4c34f99851b94c63844c2e0f5f60d4505403919d9d6e2850086b01",
+    "scripts/lib/publisher-layout.mjs": "a9461d54ecf923b524d006a9816cad89bc3a0e76399e5b709db229d3d07da704",
+    "scripts/lib/publisher-session.mjs": "42465d8d17d1b72c5b4b20dd979bbce69cc1077ba81f304dac611f1f3fac27a7",
+    "scripts/test-photo-fit.mjs": "1a67204fa5362f448d76c52738d97590146605e778ea2c48b78590d96882bc0e",
+    "scripts/test-publisher-layout.mjs": "9c825ab66f4f90083bfbb3e88ad11b7490b7c941b799c5b0ad145bdefc846cc1",
+    "package.json": "63a8b1a3a130e839f76216e5955d4143a2a42023a07349a55171d76c1fc77766"
+  },
+  "regression": {
+    "old_fitter": "FAIL: photograph stays on page 3",
+    "new_fitter": "PASS: photograph moves to page 2 within the two render reservations",
+    "source_markers_preserved": true,
+    "leading_unchanged": true
+  },
+  "actual_saved_html_replay": {
+    "before_article": {
+      "n": 8,
+      "start": 45,
+      "end": 50
+    },
+    "after_article": {
+      "n": 8,
+      "start": 45,
+      "end": 49
+    },
+    "before_photo_page": 50,
+    "after_photo_page": 49,
+    "after_photo_height_points": 115.92,
+    "reserved_renders": 2,
+    "pdf_pages": 162,
+    "pdf_sha256": "4f3340c54d08ba863351919346282bc70a08cde9e8d795294ed559ac3394a1d2",
+    "all_22_normalized_printed_articles_equal": true,
+    "all_58_bitmap_occurrences_equal": true
+  },
+  "guard_real_packet": {
+    "before": [
+      {
+        "figure_id": "ten-commandments-of-ai-parties:1",
+        "physical_page": 50,
+        "height_points": 130.32,
+        "body_height_points": 535.6800000000001,
+        "reason": "The fitted photograph remains alone on the article closing leaf at less than a quarter of the usable page height. Its fit has not resolved the orphan."
+      }
+    ],
+    "after": []
+  },
+  "checks": {
+    "renderer": "69 pass, 0 fail; disposable Chrome outside sandbox after sandbox SIGABRT",
+    "typst": "45 pass, 0 fail",
+    "layout": "19 pass",
+    "reuse": "14 pass",
+    "publisher": "30 pass",
+    "durable_budget": "17 pass",
+    "orchestration": "13 pass",
+    "checkpoint": "5 pass",
+    "source_role_and_real_fit_batched_and_reading_fixtures": "pass",
+    "partial_layout_batch_and_image_evidence": "pass",
+    "build": "pass",
+    "honesty_source": "48 pass",
+    "validator": "13 pass, 0 warnings/failures"
+  },
+  "log_sha256": {
+    "before-regression.log": "011f215f443303872bf35196b28ba9a4779b19040d92f2119d866af934cd7d74",
+    "after-checks.log": "7239d770040d63f1f90ca61ab46382d1ce2fbd81e21b9f41f752fbd5bb73ffee",
+    "renderer.log": "814ae39f5146f254ab83fbfeacf8fb38ad413b6a64d68e30de9fadad141fef66",
+    "renderer-outside-sandbox.log": "0c5a116f4ce60f14f33d3415637e4d2952b3f79f6e9c3ab2d59eee8a23923de7",
+    "final-checks.log": "f507d606b8d5626975b7c592e5c651debbea1fd56b1c1d0d7f3b4fcb4dee4d4c",
+    "normal-fit.log": "b9933b5dae1799779416aa607cf7e38a6e43359b338f77635ec9158cf5ded270"
+  },
+  "limits": "Offline saved-HTML/role evidence is not cold completion. Text equality is alphanumeric before/after, excludes running matter and generated page pointers, and does not prove every original source word or punctuation. Screenshot readability and corrected cold quality acceptance remain open. No paid calls, uploads, email, listing or deployment from this fix. Old trial/journal/spend preserved; new renderer/review policy invalidates their former bindings."
+}

@@ -1,0 +1,68 @@
+{
+  "status": "failed",
+  "started": "2026-09-15T15:07:59.737Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "inputs": [
+    {
+      "label": "Desktop: arbitrary middle page of a synthetic complete volume, actual PDF.js canvas.",
+      "source": "output/playwright/launch/complete-reader/chromium-1280-middle.png",
+      "saved": "input-1.png",
+      "sha256": "f0f60a72381e20683ee3699fd6b311f5760912e493b3d53df6dc74c5c6556d23"
+    },
+    {
+      "label": "Phone: complete book with volume/page controls and separate PDF downloads.",
+      "source": "output/playwright/launch/complete-reader/webkit-390-middle.png",
+      "saved": "input-2.png",
+      "sha256": "8538ed73990d2f6261fd8242bc2c9f89762ed0dc6c76bc113f1508ef516a21b0"
+    },
+    {
+      "label": "Phone: final page of the second volume, text view and exact printed/physical labels.",
+      "source": "output/playwright/launch/complete-reader/webkit-390-last-text.png",
+      "saved": "input-3.png",
+      "sha256": "8f586e4d8d1a187fee643ab6f817e4c35786e7b0daa11830f741579f76ae3c0c"
+    }
+  ],
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "8cc6d7938529d8db83ce8450db074b7831a63fd99a144be9aac1ab0a6d2a8cc1",
+  "git_head": "43523eeaa8bc8f337bcebdf22c0585c487ae5908",
+  "git_dirty": false,
+  "pricing": {
+    "prompt": "0.000005",
+    "completion": "0.000025",
+    "web_search": "0.01",
+    "input_cache_read": "0.0000005",
+    "input_cache_write": "0.00000625",
+    "input_cache_write_1h": "0.00001"
+  },
+  "max_tokens": 3000,
+  "reasoning_effort": "low",
+  "http_status": 200,
+  "model_returned": "anthropic/claude-opus-5",
+  "request_id": "gen-1789484880-IhYZkBl8kuIkpPUAVmDI",
+  "usage": {
+    "prompt_tokens": 5364,
+    "completion_tokens": 3000,
+    "total_tokens": 8364,
+    "cost": 0.10182,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.10182,
+      "upstream_inference_prompt_cost": 0.02682,
+      "upstream_inference_completions_cost": 0.075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1468,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "length",
+  "error": "Incomplete review: finish_reason=length.",
+  "finished": "2026-09-15T15:08:47.268Z"
+}

@@ -1,10 +1,41 @@
 // Models select among measured, reversible typesetting operations. They never
 // delete a source post, shrink type, invent figure dimensions or edit the prose.
 import {z} from 'zod';
-export const LayoutDecisions=z.object({decisions:z.array(z.object({
+import {clippedText} from './schema-text.mjs';
+import {MIN_LETTER_POINTS} from './figure-lettering.mjs';
+import {paragraphBoundaryContext} from './paragraph-boundaries.mjs';
+import {leadingForTail,preFigureTextTails} from './copy-fit.mjs';
+const LayoutDecision=z.object({
   page:z.number().int().min(1),decision:z.enum(['repair','intentional_space','needs_review']),
-  candidate_id:z.string().nullable(),reason:z.string().min(1).max(200),
-}))});
+  candidate_id:z.string().nullable(),reason:clippedText(200,1),
+  space_basis:z.enum(['single_piece','article_end','structural_leaf','source_form','figure_sequence','composition']).nullable().default(null),
+  article_ends_here:z.boolean().nullable().optional(),
+});
+export const LayoutDecisions=z.object({decisions:z.array(LayoutDecision)});
+// Model reviews must explicitly acknowledge the compiled article boundary,
+// including when holding a page. Local measured repair callers need no echo.
+export const LayoutReviewDecisions=z.object({decisions:z.array(LayoutDecision.extend({article_ends_here:z.boolean().nullable()}))});
+export function articleEndsHere(page){
+  const span=page.compiled_article_span;
+  if(span&&Number.isInteger(span.start)&&Number.isInteger(span.end)&&span.start<=page.page&&page.page<=span.end)return page.page===span.end;
+  if(Object.hasOwn(page,'compiled_article_span'))return null;
+  if(['article ending','complete short piece'].includes(page.position))return true;
+  if(['article opening','body'].includes(page.position))return false;
+  return null;
+}
+export function sparseProseEnding(page){
+  return page.position==='article ending'&&Number.isFinite(page.ink_rows)&&page.ink_rows<.25
+    &&!(page.figures||[]).length&&!['poem','recipe'].includes(page.kind);
+}
+export function allowedSpaceBases(page){
+  const allowed=['composition'];
+  if(page.position==='complete short piece')allowed.push('single_piece');
+  if(page.position==='article ending'&&!sparseProseEnding(page))allowed.push('article_end');
+  if(page.position&& !['body','article opening','article ending','complete short piece'].includes(page.position))allowed.push('structural_leaf');
+  if(['poem','recipe'].includes(page.kind))allowed.push('source_form');
+  if((page.figures||[]).length||['previous_page','next_page'].some(k=>page.adjacent_layout?.[k]?.same_article&&page.adjacent_layout[k].figures?.length))allowed.push('figure_sequence');
+  return allowed;
+}
 // A floating image between a source paragraph's actual start/end interrupts its
 // reading even when vision misses it. Positions come from the compiled document.
 export function readingOrderFindings(measurement){
@@ -13,6 +44,20 @@ export function readingOrderFindings(measurement){
   const findings=[];
   for(const figure of measurement.figures||[]){
     if(!figure.floating||!valid(figure))continue;
+    // A float can pass several complete sections without bisecting a paragraph.
+    // Compare its original following paragraph with actual printed lines, not an
+    // empty start marker carried across a page turn. Never cross article bounds.
+    const next=(measurement.paragraphs||[]).find(p=>p.id===figure.source_next_paragraph&&figure.article>0&&p.start?.article===figure.article&&p.end?.article===figure.article&&valid(p.start)&&valid(p.end));
+    if(next){
+      const line=(measurement.pages||[]).flatMap(p=>(p.layout_geometry?.blocks||[])
+        .filter(b=>b.kind==='text'&&b.text?.trim()&&b.bbox?.length===4&&b.bbox.every(Number.isFinite))
+        .map(b=>({page:p.page,y:(b.bbox[1]+b.bbox[3])/2})))
+        .filter(p=>!before(p,next.start)&&!before(next.end,p)).sort((a,b)=>a.page-b.page||a.y-b.y)[0];
+      if(line&&before(line,figure)){
+        findings.push({page:figure.page,check:8,figure_id:figure.id,paragraph_id:next.id,defect:'delayed_source_figure',confidence:1,origin:'measured_layout',note:`Floating figure ${figure.id} prints after text that followed it in the source. Keep it before source paragraph ${next.id}.`});
+        continue;
+      }
+    }
     const paragraph=(measurement.paragraphs||[]).find(p=>valid(p.start)&&valid(p.end)&&before(p.start,figure)&&before(figure,p.end));
     if(paragraph)findings.push({page:figure.page,check:8,figure_id:figure.id,paragraph_id:paragraph.id,confidence:1,origin:'measured_layout',note:`Floating figure ${figure.id} interrupts source paragraph ${paragraph.id} between its measured start and end.`});
   }
@@ -34,6 +79,9 @@ export function pageContext(measurement,report) {
       running_head_map_available:headMap,
       expected_running_head:headMap&&article&&article.start!==p.page&&folio!==null?(folio%2?title:report.pubName||null):null,
       article_title:title,publication:report.pubName||null,
+      paragraph_boundaries:paragraphBoundaryContext(measurement,p.page),
+      figure_details:(measurement.figures||[]).filter(f=>f.page===p.page&&(f.detail_pages||f.parent_id)).map(f=>({id:f.id,...(f.detail_pages?{treatment:'Complete original overview; enlarged source details follow on the listed pages. Check the details for small-text readability.',detail_pages:f.detail_pages}:{treatment:'Labelled enlarged detail; full original preserved on the overview page.',overview_page:f.overview_page,detail_index:f.detail_index,detail_total:f.detail_total})})),
+      ...((measurement.figures||[]).some(f=>f.page===p.page&&f.reading_mode==='landscape')?{figure_orientation:'A quarter-turn figure is intentional landscape reading. Check its actual readability, caption and bounds; rotation alone is not a defect.'}:{}),
       ...((measurement.publisher_marks||[]).some(m=>m.page===p.page)?{publisher_mark:'Intentional pale Inksheaf watermark on publisher opening or closing matter.'}:{})};
   });
 }
@@ -43,14 +91,93 @@ export function layoutBatches(input,size=12){
   for(let i=0;i<input.pages.length;i+=size){const pages=input.pages.slice(i,i+size),ids=new Set(pages.map(p=>p.page));batches.push({...input,pages,candidates:input.candidates.filter(c=>ids.has(c.page))});}
   return batches;
 }
-export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]}) {
+// Keep adjacent-page evidence with its concern even when review batches split at
+// that page. Local image paths and unrelated source text never enter this packet.
+export function adjacentLayoutContext(measurement,page,pageText=[]){
+  const pages=measurement.pages||[],articles=measurement.articles||[];
+  const owner=n=>articles.find(a=>n>=a.start&&n<=a.end)?.n;
+  const excerpt=(value,limit,tail=false)=>{
+    const text=String(value||'');return {text:tail?text.slice(-limit):text.slice(0,limit),truncated:text.length>limit};
+  };
+  const view=(n,edge)=>{
+    const p=pages.find(p=>p.page===n);if(!p)return null;
+    const geometry=p.layout_geometry,all=geometry?.blocks||[];
+    const blocks=edge==='end'?all.slice(-6):all.slice(0,8);
+    const figures=(measurement.figures||[]).filter(f=>f.page===n);
+    const paragraphs=(measurement.paragraphs||[]).filter(p=>p.start?.page<=n&&p.end?.page>=n);
+    const anchors=edge==='end'?paragraphs.slice(-4):paragraphs.slice(0,4);
+    return {page:n,same_article:owner(page)!=null&&owner(n)===owner(page),
+      printed_excerpt:excerpt(pageText[n-1],2000,edge==='end'),
+      body_bounds_points:geometry?.body_bounds_points??null,
+      last_occupied_y_points:geometry?.last_occupied_y_points??null,
+      trailing_space_points:geometry?.trailing_space_points??null,
+      printed_blocks:blocks.map(({kind,bbox,text})=>({kind,bbox,...(text!=null?{printed_text:excerpt(text,400)}:{})})),
+      printed_blocks_truncated:blocks.length<all.length,
+      figures:figures.slice(0,12).map(({id,role,page,y,h,w,floating,reading_mode,visual_role})=>({id,role,page,y_points:y,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
+      figures_truncated:figures.length>12,
+      paragraph_anchors:anchors.map(({id,start,end})=>({id,start:start?{page:start.page,y:start.y}:start,end:end?{page:end.page,y:end.y}:end})),
+      paragraph_anchors_truncated:anchors.length<paragraphs.length};
+  };
+  return {previous_page:view(page-1,'end'),current_page:view(page,'end'),next_page:view(page+1,'start')};
+}
+const unusedBody=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+// A fit can shrink a photograph without moving it off its otherwise empty
+// closing leaf. That failed outcome must not become an article-end exemption.
+export function strandedPictureFit(measurement,fit,page){
+  const article=(measurement.articles||[]).find(a=>a.end===page.page&&a.start<a.end);
+  const geometry=page.layout_geometry,figures=(measurement.figures||[]).filter(f=>f.page===page.page);
+  const body=geometry?.body_bounds_points,blocks=geometry?.blocks;
+  if(!article||figures.length!==1||!body?.every(Number.isFinite)||body.length!==4||!Array.isArray(blocks)
+    ||blocks.some(b=>b.kind==='text'&&b.text?.trim())||blocks.filter(b=>b.kind==='image').length!==1)return null;
+  const figure=figures[0],height=fit.fitFigs?.[figure.id],bodyHeight=body[3]-body[1];
+  if(figure.role!=='picture'||figure.reading_mode||fit.readingFigures?.[figure.id]
+    ||!Number.isFinite(height)||height<=0||!Number.isFinite(figure.h)||figure.h<=0||bodyHeight<=0||figure.h>=bodyHeight*.25)return null;
+  return {figure_id:figure.id,physical_page:figure.page,height_points:figure.h,body_height_points:bodyHeight,
+    reason:'The fitted photograph remains alone on the article closing leaf at less than a quarter of the usable page height. Its fit has not resolved the orphan.'};
+}
+// Potential dimensions are not available to the layout model until a separate
+// look at this exact source image establishes its picture role.
+export function unknownPictureFits({measurement,fit={},review={}}){
+  const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
+  const concerns=new Set(pages.filter(p=>unusedBody(p)>.30).map(p=>p.page));
+  for(const f of review.findings||[])concerns.add(f.page);
+  for(const n of concerns){
+    const page=pages.find(p=>p.page===n),article=articles.find(a=>n>=a.start&&n<a.end);
+    const figure=(measurement.figures||[]).find(f=>f.page===n+1);
+    if(!page||!article||!figure||figure.page>article.end||figure.role!=='unknown'||![figure.h,figure.w].every(v=>Number.isFinite(v)&&v>0)||fit.readingFigures?.[figure.id]
+      ||(review.findings||[]).some(f=>[n,figure.page].includes(f.page)&&f.check!==1))continue;
+    const measured=(measurement.fit||[]).find(f=>f.page===n&&f.id===figure.id);
+    const gap=page.layout_geometry?.trailing_space_points;
+    // Reserve an inch for figure spacing/caption. Never enlarge a fit or choose
+    // dimensions from prose, aspect-ratio guesses, or a model's invented number.
+    const height=measured?.height??Math.floor(Math.min(gap/72-1,figure.h/72-.15)*100)/100;
+    if(!Number.isFinite(height)||height<1.2||height>5.5||height>=figure.h/72-.09)continue;
+    candidates.push({id:`picture:${figure.id}:${n}`,page:n,operation:'fit_figure',figure:figure.id,
+      figure_page:figure.page,height,original_height_points:figure.h,
+      effect:`Fit the figure currently on physical page ${figure.page} into the gap on physical page ${n}. Return this repair for page ${n}; figure_page is its current location, not a different decision target.`,
+      requires_picture_confirmation:true});
+  }
+  return candidates;
+}
+export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],figureRoles={}}) {
+  measurement={...measurement,figures:(measurement.figures||[]).map(f=>({...f,...(figureRoles[f.id]?{visual_role:figureRoles[f.id]}:{})}))};
   const pages=measurement.pages||[],articles=measurement.articles||[],candidates=[];
   const context=new Map(pageContext(measurement,report).map(p=>[p.page,p]));
   // `blank` measures the trailing gap only. Top-aligned empty areas (e.g. a
   // copyright leaf) and large internal gaps also need a recorded design reason.
-  const unused=p=>Math.min(1,Math.max(Number.isFinite(p.unused)?p.unused:0,(p.blank||0)+Math.max(0,p.ink_top||0),p.hole||0));
+  const unused=unusedBody;
   const concerns=new Set(pages.filter(p=>unused(p)>.30).map(p=>p.page));
   for(const f of review.findings||[])concerns.add(f.page);
+  for(const f of measurement.figures||[]){
+    const findings=(review.findings||[]).filter(v=>v.page===f.page&&v.check===3&&(!v.figure_id||v.figure_id===f.id));
+    if(!findings.length)continue;
+    const required=findings.find(v=>v.required_reading_mode)?.required_reading_mode;
+    for(const size of f.reading_sizes||[]){
+      if(required&&size.mode!==required)continue;
+      if(!['column','landscape'].includes(size.mode)||size.mode===fit.readingFigures?.[f.id]||![size.image_width_points,size.width_points,size.height_points].every(v=>Number.isFinite(v)&&v>0)||!Number.isFinite(f.image_width_points)||size.image_width_points<=f.image_width_points*1.12)continue;
+      candidates.push({id:`reading:${f.id}:${size.mode}`,page:f.page,operation:'set_figure_reading_size',figure:f.id,...size});
+    }
+  }
   for(const page of concerns){
     const findings=(review.findings||[]).filter(f=>f.page===page);
     if(!findings.some(f=>[2,8].includes(f.check)))continue;
@@ -64,23 +191,64 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[]})
     }
   }
   for(const f of measurement.fit||[]){
-    if(Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
+    const figure=(measurement.figures||[]).find(x=>x.id===f.id);
+    if(figure?.role==='picture'&&!figure.reading_mode&&!fit.readingFigures?.[f.id]&&Number.isFinite(f.height)&&f.height>=1.2&&f.height<=5.5&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))candidates.push({id:`figure:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height});
+    // A reading figure may shrink into the gap only while its measured source
+    // lettering still prints at or above the floor.
+    const lettersAfter=figure&&Number.isFinite(figure.letter_points)&&figure.h>0&&Number.isFinite(f.height)?Math.round(figure.letter_points*Math.min(1,f.height*72/figure.h)*100)/100:null;
+    if(figure?.role==='reading'&&['column','landscape'].includes(figure.reading_mode)&&!fit.readingFigures?.[f.id]&&lettersAfter>=MIN_LETTER_POINTS&&f.height>=1.2&&f.height*72<figure.h-6&&(!fit.fitFigs?.[f.id]||f.height<fit.fitFigs[f.id]-.09))
+      candidates.push({id:`reading-fit:${f.id}`,page:f.page,operation:'fit_figure',figure:f.id,height:f.height,letter_points_after_fit:lettersAfter,letter_floor_points:MIN_LETTER_POINTS});
+  }
+  for(const candidate of unknownPictureFits({measurement,fit,review})){
+    const evidence=figureRoles[candidate.figure];
+    if(evidence?.role==='picture'&&/^[a-f0-9]{64}$/.test(evidence.image_sha256||''))candidates.push({...candidate,picture_evidence:evidence});
+  }
+  for(const tail of preFigureTextTails(measurement,fit.fitText)){
+    candidates.push({id:`prose-tail:${tail.article}:${tail.page}`,page:tail.page,operation:'tighten_leading',article:tail.article,leading:tail.leading});
   }
   for(const a of articles){
     const page=pages[a.end-1],current=fit.fitText?.[a.n]||.66;
-    if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:Math.max(.54,+(current-.04).toFixed(2))});
+    if(a.end>a.start&&page?.blank>.30&&current>.54)candidates.push({id:`leading:${a.n}`,page:a.end,operation:'tighten_leading',article:a.n,leading:leadingForTail(measurement,a,current)});
     if(a.end>a.start&&page?.blank>.30&&!fit.backLinks?.includes(a.n)&&measurement.linkStarts?.some(l=>l.n===a.n&&l.page>=a.end-1))candidates.push({id:`references:${a.n}`,page:a.end,operation:'collect_references',article:a.n});
   }
   return {pdf_hash:pdfHash,candidates,pages:pages.filter(p=>concerns.has(p.page)).map(p=>{
     const a=articles.find(a=>p.page>=a.start&&p.page<=a.end),post=a?report.postOrder?.[a.n-1]:null;
     const reading=report.publisher?.decisions.find(d=>String(d.post_id)===String(post?.id));
-    return {page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
+    const following=a&&p.page<a.end?(measurement.figures||[]).find(f=>f.page===p.page+1):null;
+    const gap=p.layout_geometry?.trailing_space_points;
+    const knownFit=Number.isFinite(gap)&&gap>=0&&Number.isFinite(following?.h)&&following.h>0;
+    const packet={page:p.page,printed_text:String(pageText[p.page-1]||'').slice(0,12000),printed_text_truncated:String(pageText[p.page-1]||'').length>12000,unused_body_fraction_lower_bound:unused(p),measured_unused_body_fraction:p.unused??null,whitespace_metric:measurement.whitespace_metric??null,trailing_unused_fraction:p.blank,ink_rows:p.ink_rows,
       ...context.get(p.page),
+      compiled_article_span:a?{start:a.start,end:a.end}:null,
+      article_ends_here:a?p.page===a.end:null,
+      following_source_figure:following?{id:following.id,physical_page:following.page,...(following.parent_id?{enlarged_detail_of:following.parent_id}:{}),
+        source_role:following.visual_role??null,reading_mode:following.reading_mode??null,
+        image_height_points:following.h,trailing_space_before_points:p.layout_geometry?.trailing_space_points??null,
+        image_alone_fits_in_gap:knownFit?following.h<=gap:null,
+        minimum_height_shortfall_points:knownFit?Math.max(0,following.h-gap):null,
+        minimum_linear_reduction_fraction_to_fit:knownFit?Math.max(0,1-gap/following.h):null,
+        same_article:true,kept_in_source_order:following.floating===false,
+        reading_size_protected:following.visual_role?.role==='reading'&&['column','landscape'].includes(following.reading_mode),
+        ...(Number.isFinite(following.letter_points)?{printed_letter_points:following.letter_points,letter_floor_points:MIN_LETTER_POINTS,
+          letter_points_if_fitted_to_gap:knownFit?Math.round(following.letter_points*Math.min(1,gap/following.h)*100)/100:null,
+          // The renderer's fit target also reserves caption and figure spacing.
+          ...(()=>{const t=(measurement.fit||[]).find(x=>x.id===following.id&&x.page===p.page);
+            const target=Number.isFinite(t?.height)?t.height*72:knownFit?Math.max(0,gap-86.4):null;
+            return Number.isFinite(target)&&following.h>0?{letter_points_at_fit_target:Math.round(following.letter_points*Math.min(1,target/following.h)*100)/100}:{};})()}:{}),
+        measurement_note:'Image height excludes caption and figure spacing.'}:null,
+      adjacent_layout:adjacentLayoutContext(measurement,p.page,pageText),
       title:reading?.title,kind:reading?.kind,editorial_reason:reading?.reason,
       internal_gap_fraction:p.hole,first_ink_position:p.ink_top,
-      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,floating})=>({id,role,height_points:h,floating})),
+      stranded_picture_fit:strandedPictureFit(measurement,fit,p),
+      figures:(measurement.figures||[]).filter(f=>f.page===p.page).map(({id,role,h,w,floating,reading_mode,visual_role})=>({id,role,height_points:h,width_points:w,floating,reading_mode,...(visual_role?{visual_role}:{})})),
       design_purpose:a&&a.start===a.end?'This independent piece starts and finishes on the same page. The book design starts each piece on a new page. Remaining space after its complete text separates it from the next piece.':null,
-      findings:(review.findings||[]).filter(f=>f.page===p.page)};
+      findings:(review.findings||[]).filter(f=>f.page===p.page),
+      text_evidence:[...(review.findings||[]),...(review.dismissed||[])].find(f=>f.page===p.page&&[6,7].includes(f.check)&&f.text_evidence)?.text_evidence??null,
+      // Source comparison explains only that specific observation. It never
+      // exempts the page's spacing, reading scale, or other content checks.
+      source_observations:(review.dismissed||[]).filter(f=>f.page===p.page&&[6,7].includes(f.check)&&f.source_preserved===true&&f.source_comparisons>0&&f.origin==='source_content')
+        .map(({check,note,source_comparisons,artifact_evidence})=>({check,note,source_comparisons,...(artifact_evidence?{artifact_evidence}:{}),scope:'The flagged content was compared with the actual source bitmap; spacing and print readability still require review.'}))};
+    return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
 export function validateLayout(result,input){
@@ -88,22 +256,67 @@ export function validateLayout(result,input){
   const parsed=LayoutDecisions.parse(result),seen=new Set(),pages=new Map(input.pages.map(p=>[p.page,p])),candidates=new Map(input.candidates.map(c=>[c.id,c]));
   for(const d of parsed.decisions){
     const p=pages.get(d.page);if(!p||seen.has(d.page))throw invalid('Layout review must account for each supplied page exactly once');seen.add(d.page);
+    if(d.article_ends_here!==undefined&&d.article_ends_here!==articleEndsHere(p))throw invalid(`Page ${p.page}: article_ends_here must be ${articleEndsHere(p)} according to the compiled position (${p.position}) and article span ${JSON.stringify(p.compiled_article_span??null)}. Reassess the page using that boundary, including any following image. A hold must use correct source boundaries too.`);
     if(d.decision==='repair'&&candidates.get(d.candidate_id)?.page!==d.page)throw invalid('Layout repair is not a measured operation for this page');
+    if(d.decision==='repair'&&p.findings.some(f=>f.required_reading_mode
+      &&(candidates.get(d.candidate_id)?.operation!=='set_figure_reading_size'
+        ||candidates.get(d.candidate_id)?.figure!==f.figure_id||candidates.get(d.candidate_id)?.mode!==f.required_reading_mode)))
+      throw invalid('Small-text reading size requires its matching measured enlargement or needs_review.');
+    if(d.decision==='repair'&&candidates.get(d.candidate_id)?.requires_picture_confirmation
+      &&!p.visual_context?.physical_pages?.includes(candidates.get(d.candidate_id).figure_page))throw invalid('Picture confirmation requires the actual figure page image');
     if(d.decision!=='repair'&&d.candidate_id!==null)throw invalid('Layout verdict has an unused repair operation');
     if(d.decision==='intentional_space'&&p.findings.some(f=>f.check!==1))throw invalid(`Page ${p.page}: a content or overflow defect (checks ${p.findings.filter(f=>f.check!==1).map(f=>f.check).join(', ')}) cannot be excused as intentional space. Choose an applicable measured repair or needs_review`);
+    if(d.decision==='intentional_space'&&sparseProseEnding(p))throw invalid(`Page ${p.page}: a sparse prose tail occupies less than a quarter of the page. Article-end separation cannot excuse it; choose an applicable repair or needs_review.`);
+    if(d.decision==='intentional_space'&&p.stranded_picture_fit)throw invalid(`Page ${p.page}: the fitted photograph is still stranded on its own closing leaf. Choose a measured repair or needs_review; an article-end reason cannot accept an ineffective fit.`);
+    if(d.decision==='intentional_space'&&!allowedSpaceBases(p).includes(d.space_basis))throw invalid(`Page ${p.page}: space_basis must match the compiled position (${p.position}) and supplied figure evidence; allowed: ${allowedSpaceBases(p).join(', ')}. An article-end reason cannot explain a body-page gap.`);
+    if(d.decision!=='intentional_space'&&d.space_basis!==null)throw invalid('Only intentional space can carry a space_basis');
   }
   if(seen.size!==pages.size)throw invalid('Layout review omitted a measured page');
   return parsed;
 }
+// Owner rule (2026-09-26): a gap before a protected reading figure is accepted
+// when measurement proves the figure's lettering would fall below the print
+// floor if shrunk into it. Only a spacing-only page without any offered repair
+// qualifies; the model's own decision is retained beside the measured one.
+export function acceptMeasuredFigureGaps(result,input){
+  const decisions=result.decisions.map(d=>{
+    const p=input.pages.find(p=>p.page===d.page),f=p?.following_source_figure;
+    if(d.decision!=='needs_review'||!p||!f?.same_article)return d;
+    const letters=f.letter_points_at_fit_target??f.letter_points_if_fitted_to_gap;
+    const detail=Boolean(f.enlarged_detail_of)&&f.image_alone_fits_in_gap===false;
+    // Fitting must require a reduction (renderer spacing included), and the
+    // reduced lettering must fall below the floor.
+    const needsReduction=Number.isFinite(f.letter_points_at_fit_target)?f.letter_points_at_fit_target<f.printed_letter_points:f.image_alone_fits_in_gap===false;
+    if(!detail&&!(f.reading_size_protected&&needsReduction&&Number.isFinite(letters)&&letters<f.letter_floor_points))return d;
+    if(p.findings.some(x=>x.check!==1)||sparseProseEnding(p)||p.stranded_picture_fit||input.candidates.some(c=>c.page===p.page))return d;
+    if(!allowedSpaceBases(p).includes('figure_sequence'))return d;
+    return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'figure_sequence',article_ends_here:d.article_ends_here??false,
+      reason:(detail?`The next page is an enlarged detail of ${f.enlarged_detail_of}; details exist to print larger and are never shrunk to fill a gap.`
+        :`Measured: shrinking the next figure into this gap would print its lettering at ${letters}pt, below the ${f.letter_floor_points}pt floor.`).slice(0,200),
+      measured_override:true,model_decision:d};
+  });
+  const accepted={...result,decisions};
+  validateLayout({decisions:decisions.map(({measured_override,model_decision,...d})=>d)},input);
+  return accepted;
+}
 export function applyLayoutRepairs(fit,result,input){
   validateLayout(result,input);
   const next={defer:[...(fit.defer||[])],fitFigs:{...fit.fitFigs},fitText:{...fit.fitText},backLinks:[...(fit.backLinks||[])],inFlow:[...(fit.inFlow||[])]};
+  if(fit.readingFigures)next.readingFigures={...fit.readingFigures};
+  if(fit.pictureFigures)next.pictureFigures=[...fit.pictureFigures];
   for(const d of result.decisions.filter(d=>d.decision==='repair')){
     const c=input.candidates.find(c=>c.id===d.candidate_id);
-    if(c.operation==='fit_figure')next.fitFigs[c.figure]=c.height;
-    else if(c.operation==='tighten_leading')next.fitText[c.article]=c.leading;
+    if(c.operation==='fit_figure'){
+      next.fitFigs[c.figure]=c.height;
+      if(c.requires_picture_confirmation)next.pictureFigures=[...new Set([...(next.pictureFigures||[]),c.figure])];
+    }
+    else if(c.operation==='tighten_leading')next.fitText[c.article]=Math.min(next.fitText[c.article]??.66,c.leading);
     else if(c.operation==='collect_references')next.backLinks.push(c.article);
     else if(c.operation==='keep_figure_in_flow'&&!next.inFlow.includes(c.figure))next.inFlow.push(c.figure);
+    else if(c.operation==='set_figure_reading_size'){
+      next.readingFigures??={};next.readingFigures[c.figure]=c.mode;
+      delete next.fitFigs[c.figure];
+    }
   }
   return next;
 }

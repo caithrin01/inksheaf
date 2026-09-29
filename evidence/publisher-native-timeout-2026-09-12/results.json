@@ -1,0 +1,32 @@
+{
+  "code": "1d7b1a093f796c544b665648e11e06ca01ae5241",
+  "ci": 34671214791,
+  "status": "held-during-initial-source-role-requests",
+  "run": {
+    "run": "proofs/publisher/owner-cold-source-roles-2026-09-11/publisher",
+    "calls": 16,
+    "spent_usd": 0.03358675,
+    "reserved_or_spent_usd": 0.052816,
+    "status": "held: Cannot set property code of  which has only a getter",
+    "render_passes": 2,
+    "repair_rounds": 0,
+    "failed_calls": 0,
+    "unknown_cost_calls": 1,
+    "pdf_sha256": "89ecc2a0026831c1b1cc1129f7ff02072a8d5945078403f1ceaba2fc4bc87aff"
+  },
+  "independent_audit_pass": true,
+  "pages": 170,
+  "pieces": 22,
+  "source_words": 36001,
+  "cause": "Retry handler assigns to error.code; native DOMException exposes a read-only getter. The original native error name was not saved because the handler itself threw. Native TimeoutError and AbortError regression fixtures reproduce this class of failure.",
+  "fix": "Wrap native transport errors with the original cause and a writable retry code. Persist failed status before the single same-model retry. Retain unknown charges.",
+  "validation": {
+    "publisher_agent_tests": 30,
+    "source_role_identity_cache": "passed",
+    "render_checkpoint_tests": 5,
+    "validator": "13 passed, 0 warnings, 0 failures"
+  },
+  "campaign_known_usd": 24.68402975,
+  "campaign_committed_usd": 27.14194225,
+  "limitations": "No accepted annual. Resume must retain the saved PDF and entire journal with original $2 cap. Publisher policy hashes change with the adapter; old answers are not silently rekeyed."
+}

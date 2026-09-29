@@ -1,0 +1,11 @@
+PASS a validated repair reaches the builder and the changed PDF is reviewed again
+PASS source mutation during a repair holds the complete edition
+PASS unresolved layout stops without a ready event or extra render
+PASS two unsuccessful model repair rounds are a finite hold
+PASS available repairs run before a mixed hold and all affected pages are rechecked
+PASS a finding still held after other repairs cannot emit a ready review
+PASS unavailable visual review cannot release an unreviewed PDF
+PASS a model scan with no findings cannot clear a measured paragraph interruption
+PASS measured reading-order repair runs before vision and still preserves the final render pass
+PASS source mutation during deterministic source-position repair is held before preview
+10 complete publisher orchestration checks passed

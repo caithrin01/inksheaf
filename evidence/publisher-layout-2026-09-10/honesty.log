@@ -1,0 +1,49 @@
+PASS bw curve reproduces the $9.34 order
+PASS $9.34 on page
+PASS $16.58 on page
+PASS preview bw curve matches measured source
+PASS preview colour curve matches measured source
+PASS preview shipping base matches measured source
+PASS shipping point 1 measured
+PASS shipping point 2 measured
+PASS shipping point 4 measured
+PASS shipping point 8 measured
+PASS edition essay count matches the manifest
+PASS edition page count matches the manifest
+PASS edition span on page matches the cover copy
+PASS engine cap is 300
+PASS page states the 300 cap
+PASS pipeline hard limit is 800
+PASS page states the 800 refusal (D5)
+PASS builder warns between 300 and 800 (D5)
+PASS page references its client bundle
+PASS full-year claim is gone
+PASS capped sentence in client bundle
+PASS unmeasured shipping says about (source)
+PASS shipping is exact only at measured set sizes (source)
+PASS shipping 8-point is from the sweep
+PASS preview button opens the free book request
+PASS free PDF request has no verification gate
+PASS snippet offers a preview until an edition is live
+PASS relay budget is 40s
+PASS client abort is 45s, after the server budget
+PASS abort shows the hand-built offer
+PASS no text glued to a link by the compressor
+PASS no dead hello@ anywhere in page
+PASS contact is caithrin@
+PASS substack non-affiliation
+PASS og domain canonical
+PASS no exclamation marks in visible copy or client strings
+PASS voice: no "high-quality"
+PASS voice: no "join thousands"
+PASS voice: no "beautiful"
+PASS voice: no "treasure"
+PASS voice: no affiliation construction (the disclaimer's negation is the one allowed form)
+PASS brand: approved Inter and Source Serif system
+PASS brand: publication logo masters remain separate from Inksheaf wordmark
+PASS brand: no Substack corporate logo assets
+PASS brand: signature orange is confined to the custom post button
+PASS subscriber button leads to the existing Lulu edition
+PASS beta payout copy does not promise an automated margin
+PASS delivery timing is confirmed rather than promised by date
+HONESTY GATE (source only): 48 checks passed

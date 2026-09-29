@@ -67,7 +67,9 @@ def archive(host: str, offset: int = 0, sig: str = "", mode: str = "page", cold:
     if not expected or not ok_sig:
         raise HTTPException(status_code=401, detail="unauthorized")
     host = host.lower().strip().rstrip(".")
-    if not valid_host(host) or offset < 0 or offset > 150 or offset % 25:
+    # offset counts posts and a "25" page can answer fewer rows, so the press
+    # pages by the count received; the signature already binds host and offset.
+    if not valid_host(host) or offset < 0 or offset > 1800:
         raise HTTPException(status_code=400, detail="bad request")
 
     if mode == "all":

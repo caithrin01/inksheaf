@@ -18,11 +18,12 @@ const wrap = body => `<html><body><span class="pubsrc">Fixture</span><section cl
 const marks = [".", ",", ":", ";", "?", "!", ")", "]", "\"", "'", "a", "(x)", "[y]", ".he", "–", "…"];
 const inl = { em: "<em>word</em>", strong: "<strong>word</strong>", code: "<code>x()</code>", link: '<a href="https://example.com/p">word</a>', sup: "<sup>2</song>".replace("</song>", "</sup>"), footnote: '<a class="footnote-anchor" href="#footnote-1" id="footnote-anchor-1">1</a>' };
 const paras = []; for (const [k, h] of Object.entries(inl)) for (const m of marks) paras.push(`<p>${h}${m} after ${k}</p>`);
+for(const m of marks){paras.push(`<p>${m} ParagraphStartMarker.</p>`);paras.push(`<p>(<em>ParentheticalEmphasisMarker</em> continues.)</p>`);}
 paras.push(`<div class="footnote"><a id="footnote-1" href="#footnote-anchor-1" class="footnote-number">1</a><div class="footnote-content"><p>A note (with brackets) [and more].</p></div></div>`);
 let typ = emitTypst(wrap(paras.join("")), { baseDir: "proofs/fixtures", pubName: "Fixture", host: "example.com", notes: "footnotes" });
 let r = compile(typ, "boundaries");
 ok(r.ok, "boundary table compiles: " + (r.err || ""));
-if (r.ok) { const t = text(r.pdf); ok((t.match(/after em/g) || []).length === marks.length && (t.match(/after link/g) || []).length === marks.length, "every boundary line printed"); ok(!/#emph|#strong|#super|#raw|#footnote|#link/.test(t), "no Typst code leaked into the text"); }
+if (r.ok) { const t = text(r.pdf); ok((t.match(/after em/g) || []).length === marks.length && (t.match(/after link/g) || []).length === marks.length, "every boundary line printed"); ok((t.match(/ParagraphStartMarker/g)||[]).length===marks.length && (t.match(/ParentheticalEmphasisMarker/g)||[]).length===marks.length,"paragraph metadata cannot consume leading punctuation or emphasized parentheses"); ok(!/#emph|#strong|#super|#raw|#footnote|#link/.test(t), "no Typst code leaked into the text"); }
 
 /* 2. link-note torture */
 const rows = Array.from({ length: 15 }, (_, i) => `<a href="https://a-very-long-host-name-number-${i}.example-domain-for-testing.org/path/that/goes/on/and/on?x=${i}">${"A long anchor text that wraps across the column more than once ".repeat(2)}${i}</a>`);
@@ -149,4 +150,10 @@ if(r.ok){
   const ends=JSON.parse(execFileSync('typst',['query','--font-path','fonts','proofs/fixtures/trailing-editor-breaks.typ','<parend>','--field','value'],{encoding:'utf8'}));
   ok(ends.length===3&&ends.every(p=>Number.isFinite(p.y)&&p.page>0),'each paragraph retains its compiled end position');
 }
+/* Display titles must wrap at word boundaries without changing their text. */
+const displayTitle='Working with AI: Craft, Tools, and Focus';
+const displayHtml=wrap('<p>DisplaySourceMarker.</p>').replace('<section class="article"','<section class="part"><div class="partkind">Annual</div><div class="parttitle">'+displayTitle+'</div></section><section class="article"');
+r=compile(emitTypst(displayHtml,{baseDir:'proofs/fixtures',pubName:'Fixture'}),'display-title');
+ok(r.ok,'long display title compiles');
+if(r.ok){const t=text(r.pdf),divider=t.split('\f').find(p=>p.includes('Craft, Tools'));ok(divider.includes('Focus')&&!/Fo[-\u00ad]\s*cus/.test(divider),'section title retains whole Focus at its line break');ok(t.includes('DisplaySourceMarker'),'display-title wrapping preserves source body');}
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

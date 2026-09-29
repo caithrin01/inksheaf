@@ -1,0 +1,34 @@
+[
+  {
+    "browser": "chromium",
+    "width": 1280,
+    "pass": true,
+    "pages": 4,
+    "designs": 4,
+    "axe": 0
+  },
+  {
+    "browser": "chromium",
+    "width": 390,
+    "pass": true,
+    "pages": 4,
+    "designs": 4,
+    "axe": 0
+  },
+  {
+    "browser": "webkit",
+    "width": 1280,
+    "pass": true,
+    "pages": 4,
+    "designs": 4,
+    "axe": 0
+  },
+  {
+    "browser": "webkit",
+    "width": 390,
+    "pass": true,
+    "pages": 4,
+    "designs": 4,
+    "axe": 0
+  }
+]

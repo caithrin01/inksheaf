@@ -1,0 +1,43 @@
+{
+  "recorded_at": "2026-09-15T20:48:19.620023+00:00",
+  "scope": "Typed image confirmation and measured small-text enlargement; private diagnostic, not cold annual or release acceptance.",
+  "behavior": [
+    "Separate source fidelity, reading detail, and intentional orientation.",
+    "Small text uses the largest measured reading setting when it materially enlarges the image; unknown identity or print geometry holds.",
+    "Only source-crop findings receive the image-fidelity exemption.",
+    "A required reading mode cannot be replaced by whitespace or an unrelated repair.",
+    "Preserve raw model answers and bind review cache identity to the new contract."
+  ],
+  "live_diagnostic": {
+    "calls": 3,
+    "cost_usd": 0.06169,
+    "failed": 0,
+    "unknown_cost": 0,
+    "column_requires_landscape": true,
+    "normal_layout_selects_landscape": true,
+    "landscape_orientation_only_clears": true,
+    "limitation": "The model still called the small column image readable. The typed small-text observation activates an explicit largest-reading-size rule; this does not certify physical print legibility."
+  },
+  "final_code_replay": {
+    "figure-confirmation.mjs": "b7f6b5ae7b31b15388f20cd6c615f8df10124568069f0ac7fc7f89c93ab92ed5",
+    "page-review.mjs": "7ca9363a75275bccba2aab3b6dfae94826118875237b76f235587af997995f19",
+    "publisher-layout.mjs": "b326418795f39391011bef5c6229d5e03e1ad5be82b148a0e23434f85fb43ecc",
+    "publisher-session.mjs": "515d0655c20d65739462bc21a4b8a4a1fd086533283bc0c5770684424a37c056"
+  },
+  "validation": {
+    "figure_confirmation_checks": 8,
+    "page_review_checks": 33,
+    "layout_checks": 19,
+    "rendered_figure_reading_checks": 9,
+    "orchestration_checks": 13,
+    "durable_budget_checks": 17,
+    "layout_reuse_checks": 14,
+    "full_unit_suite": "passed, resumed at HEIC fixture outside sandbox after macOS temporary-file denial",
+    "build": "passed",
+    "source_honesty": "passed",
+    "vault_validator": "13 pass, 0 warn, 0 fail",
+    "independent_image_audit": "Rejects prior cold PDF; accepts selected offline landscape/photo placement using actual embedded pixels, transforms and body text.",
+    "renderer": "69 pass, 0 fail"
+  },
+  "limits": "No old annual PDF/journal reset or cache migration; no accepted cold annual, checkpoint deployment, delivery or site release claimed."
+}

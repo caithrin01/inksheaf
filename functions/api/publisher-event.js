@@ -1,7 +1,7 @@
 import { hmacHex } from '../lib/press-dispatch.js';
 import { readLimitedText } from './preview.js';
 import {validPreview} from '../lib/publisher-preview.js';
-const kinds = new Set(['identity','reading','contents','typesetting','pages','layout','review','ready','delivery']);
+const kinds = new Set(['identity','reading','contents','typesetting','pages','layout','review','ready','delivery','checking']);
 export async function onRequest({request, env}) {
   if (request.method !== 'POST') return Response.json({ok:false}, {status:405});
   let b;

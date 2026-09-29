@@ -1,0 +1,10 @@
+{
+  "model":"anthropic/claude-opus-5",
+  "max_tokens":3000,
+  "brief":"creation-2026-09-15.md",
+  "images":[
+    {"file":"../../output/playwright/launch/publisher/chromium-1280-first-batch.png","label":"Desktop, one real recorded reading batch shown; remaining reading and complete PDF pending. Synthetic publication identity."},
+    {"file":"../../output/playwright/launch/publisher/webkit-390-first-batch.png","label":"Phone, first batch of real recorded decisions shown; compact cover and visible source excerpt. Remaining work pending."},
+    {"file":"../../output/playwright/launch/complete-reader/webkit-390-middle.png","label":"Phone, actual PDF.js rendering of a middle page in one of two complete synthetic fixture volumes. No live acceptance or email proven."}
+  ]
+}

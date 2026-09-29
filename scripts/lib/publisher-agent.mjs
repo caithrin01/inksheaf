@@ -1,7 +1,9 @@
 // In-product editorial work. Decisions refer to original posts; models never rewrite
 // the source. The caller persists the journal before a paid request and each event.
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { Parser } from 'htmlparser2';
+import { REVIEW_CONCURRENCY, mapConcurrent } from './async-work.mjs';
 import { z } from 'zod';
 import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
 
@@ -13,6 +15,10 @@ export const PUBLISHER_MODELS = {
 export const COMPUTE_POLICY = Object.freeze({ currency: 'USD', generationChargeMinor: 0,
   printRetailAdditionMinor: 200, collection: 'printed-copy-order', purpose: 'inference-cost-recovery' });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// Bind cached editorial decisions to the actual system/task/schema/validation
+// implementation, rather than relying on a manually bumped version alone.
+export const PUBLISHER_CACHE_POLICY = createHash('sha256').update(readFileSync(new URL(import.meta.url)))
+  .update(readFileSync(new URL('../../functions/lib/publisher-policy.js',import.meta.url))).digest('hex');
 const kinds = ['essay', 'interview', 'poem', 'recipe', 'photo-essay', 'story', 'review', 'dispatch', 'housekeeping', 'mixed', 'unknown'];
 export const Reading = z.object({ decisions: z.array(z.object({
   post_id: z.string(), kind: z.enum(kinds), decision: z.enum(['keep', 'set_aside', 'uncertain']),
@@ -48,6 +54,19 @@ export function prepareSources(posts) {
       authors: (post.publishedBylines || []).map(x => x.name).filter(Boolean), text,
       body_hash: createHash('sha256').update(String(post.body_html || '')).digest('hex'), images: (String(post.body_html || '').match(/<img\b/gi) || []).length };
   });
+}
+
+// Plain facts about the posts being read, counted from their text; no model involved.
+export function archiveFacts(sources) {
+  const words = p => (p.text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+  const dated = sources.filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.text).sort((a, b) => a.date.localeCompare(b.date));
+  if (!dated.length) return null;
+  const counted = dated.map(p => ({ p, n: words(p) })), longest = counted.reduce((a, b) => b.n > a.n ? b : a);
+  const opening = (dated[0].text.split('\n').map(x => x.trim()).find(x => x.length >= 40) || '').match(/^.{20,220}?[.!?](?=\s|$)/)?.[0] || null;
+  return { posts: sources.length, words: counted.reduce((t, x) => t + x.n, 0), images: sources.reduce((t, p) => t + p.images, 0),
+    from: dated[0].date, to: dated[dated.length - 1].date,
+    first: { title: dated[0].title, date: dated[0].date, opening },
+    longest: { title: longest.p.title, words: longest.n } };
 }
 
 export function validateReading(result, sources) {
@@ -86,17 +105,51 @@ export function validateStructure(result, sources) {
 }
 
 // Source reading and bounded PNG page review share the same persisted ledger.
-// At <=4096px per side we reserve 65,536 image tokens per image, substantially
-// above current Claude patch counts and Gemini tile counts. Oversize images are
-// rejected before a request; actual usage is reconciled and checked below.
+// Sonnet 5 uses 28px patches with a 4,784-token native image limit (Anthropic
+// vision docs, checked 2026-09-10). Reserve the larger of that limit and the raw
+// unscaled patch count, plus 1,024 tokens per image for headroom. Do not rely on
+// provider downscaling to reduce the reservation. Other models retain the
+// conservative 65,536-token bound. Oversize files are rejected before a request.
+// https://platform.claude.com/docs/en/build-with-claude/vision
+export function publisherImageTokenBound(modelId, width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096)
+    throw Error('Publisher page images must be bounded PNG files');
+  return modelId === 'anthropic/claude-sonnet-5'
+    ? Math.max(4784, Math.ceil(width / 28) * Math.ceil(height / 28)) + 1024
+    : 65536;
+}
+// Different request adapters in one session share both the in-flight limit and
+// reservation lock. Only the durable writes are serialized; inference overlaps.
+const ledgers = new WeakMap();
+function requestLedger(journal) {
+  if (ledgers.has(journal)) return ledgers.get(journal);
+  let tail = Promise.resolve(), active = 0;
+  const waiting = [], settled = [], ledger = { failure: null, inFlight: new Set() };
+  ledger.afterSettlement = () => new Promise(resolve => settled.push(resolve));
+  ledger.notifySettlement = () => { for (const resolve of settled.splice(0)) resolve(); };
+  ledger.serial = work => {
+    const result = tail.then(work);
+    tail = result.catch(() => {});
+    return result;
+  };
+  const drain = () => {
+    while (active < REVIEW_CONCURRENCY && waiting.length) {
+      const { work, resolve, reject } = waiting.shift(); active++;
+      Promise.resolve().then(work).then(resolve, reject).finally(() => { active--; drain(); });
+    }
+  };
+  ledger.run = work => new Promise((resolve, reject) => { waiting.push({ work, resolve, reject }); drain(); });
+  ledgers.set(journal, ledger);
+  return ledger;
+}
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
   journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
-  let busy = false;
-  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput }) {
-    if (busy) throw Error('Publisher requests share one serial spend ledger');
-    busy = true;
+  const ledger = requestLedger(journal);
+  const save = async () => { try { await persist(journal); } catch (error) { ledger.failure ||= error; throw error; } };
+  const attempt = async function ({ role, task, data = {}, schema, images = [], maxOutput, reasoningBudget }) {
+    if (ledger.failure) throw ledger.failure;
     let call;
     try {
       const model = PUBLISHER_MODELS[role]; if (!model) throw Error('Unknown publisher role');
@@ -104,29 +157,60 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       const jsonSchema = z.toJSONSchema(schema);
       const outputLimit = maxOutput == null ? model.maxOutput : Math.min(model.maxOutput, Math.max(1,Math.floor(maxOutput)));
       if (!Number.isFinite(outputLimit) || !Array.isArray(images) || images.length > 4) throw Error('Invalid publisher image/output limits');
+      // A short visual confirmation needs a structured verdict. In the owner
+      // trial, adaptive thinking consumed 399/400 output tokens and returned no
+      // verdict. Disable it for these bounded confirmations. Layout batches can
+      // explicitly disable it too: a live probe ignored a numeric thinking cap.
+      // Other editorial requests keep medium effort.
+      // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+      if(reasoningBudget!=null&&(role!=='publisher'||!Number.isInteger(reasoningBudget)||(reasoningBudget!==0&&reasoningBudget<1024)||reasoningBudget>=outputLimit))throw Error('Invalid publisher reasoning budget');
+      const reasoning=role==='publisher'?(reasoningBudget===0?{enabled:false}:reasoningBudget!=null?{max_tokens:reasoningBudget}:images.length&&outputLimit<=400?{enabled:false}:{effort:'medium'}):null;
       for (const image of images) {
         if (!Buffer.isBuffer(image) || image.length < 24 || image.subarray(0,8).toString('hex') !== '89504e470d0a1a0a'
           || image.readUInt32BE(16)<1 || image.readUInt32BE(20)<1 || image.readUInt32BE(16)>4096 || image.readUInt32BE(20)>4096) throw Error('Publisher page images must be bounded PNG files');
       }
       // UTF-8 bytes conservatively bound text tokens; also reserve framing/schema
       // overhead and the entire completion ceiling, including billed reasoning.
-      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.length * 65536;
+      const inputBound = Buffer.byteLength(JSON.stringify({ messages, jsonSchema })) + 8192 + images.reduce((sum, image) => sum + publisherImageTokenBound(model.id, image.readUInt32BE(16), image.readUInt32BE(20)), 0);
       if (inputBound > 900_000) throw Error('Publisher input exceeds the bounded text context');
       const reserved = (inputBound * model.input + outputLimit * model.output) / 1e6;
-      const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-      if (journal.calls.length >= PUBLISHER_MAX_CALLS || committed + reserved > budget) throw Error('Publisher model budget reached; saved work is retained');
-      call = { id: crypto.randomUUID(), model: model.id, role, reserved, status: 'reserved', started: new Date().toISOString() };
-      journal.calls.push(call); await persist(journal);
       if (images.length) messages[1].content = [{type:'text',text:messages[1].content},...images.map(data=>({type:'image_url',image_url:{url:'data:image/png;base64,'+data.toString('base64')}}))];
+      const requestBody=JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
+        ...(reasoning ? { reasoning } : {}),
+        provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
+        response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } });
+      const requestHash=createHash('sha256').update(requestBody).digest('hex');
+      for (;;) {
+        const pending = await ledger.serial(async () => {
+          if (ledger.failure) throw ledger.failure;
+          const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
+          if (journal.calls.length >= PUBLISHER_MAX_CALLS) throw Error('Publisher model budget reached; saved work is retained');
+          if (committed + reserved > budget) {
+            // Current network work can settle below its conservative reservation.
+            // Wait outside the write lock; old unknown charges never trigger a wait.
+            if (ledger.inFlight.size) return { wait: ledger.afterSettlement() };
+            throw Error('Publisher model budget reached; saved work is retained');
+          }
+          call = { id: crypto.randomUUID(), request_sha256:requestHash, model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
+          journal.calls.push(call); await save(); ledger.inFlight.add(call.id);
+          return null;
+        });
+        if (!pending) break;
+        await pending.wait;
+      }
       const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120000),
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher' },
-        body: JSON.stringify({ model: model.id, messages, max_tokens: outputLimit,
-          ...(role === 'publisher' ? { reasoning: { effort: 'medium' } } : {}),
-          provider: { require_parameters: true, data_collection: 'deny', max_price: { prompt: model.input, completion: model.output } },
-          response_format: { type: 'json_schema', json_schema: { name: `publisher_${role}`, strict: true, schema: jsonSchema } } }),
+        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'HTTP-Referer': 'https://inksheaf.com', 'X-OpenRouter-Title': 'Inksheaf publisher', 'X-Inksheaf-Request-Id':call.id },
+        body:requestBody,
       });
       const raw = await response.json();
+      call.http_status = response.status;
+      if (raw.error) {
+        // Keep bounded diagnostics in the private journal, without copying
+        // upstream request bodies or exposing provider text to the creator.
+        const clean=value=>String(value??'').replaceAll(key,'[redacted]').replace(/[\r\n]+/g,' ');
+        call.provider_error = {code:clean(raw.error.code).slice(0,64),message:clean(raw.error.message).slice(0,500)};
+      }
       call.request_id = raw.id || null; call.model_returned = raw.model || null;
       call.usage = raw.usage || null; call.finish_reason = raw.choices?.[0]?.finish_reason || null;
       const cost = raw.usage?.cost;
@@ -134,6 +218,9 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       call.elapsed_ms = Date.now() - Date.parse(call.started);
       if (!response.ok || raw.error || call.finish_reason === 'error') {
         const error=Error(`Publisher provider did not complete the request (HTTP ${response.status}, ${call.finish_reason || 'no completion'})`);
+        // Access/credit refusals cannot recover by buying more calls in this
+        // session. Already-started requests still settle in their own records.
+        if([401,402,403].includes(response.status)){error.code='PUBLISHER_ACCESS_DENIED';ledger.failure ||= error;}
         if(response.status===429||response.status>=500||call.finish_reason==='error')error.code='PUBLISHER_TRANSIENT';
         throw error;
       }
@@ -143,21 +230,31 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       call.answer = JSON.parse(text);
       const result = schema.parse(call.answer);
       call.status = 'completed';
-      if (call.cost != null && call.cost > reserved + 0.000001) throw Error('Publisher usage exceeded its reservation; review provider accounting');
-      return result;
+      if (call.cost != null && call.cost > reserved + 0.000001) {
+        const error=Error('Publisher usage exceeded its reservation; review provider accounting');
+        ledger.failure ||= error; throw error;
+      }
+      return { result, usage: call.usage };
     } catch (error) {
-      if(['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&/fetch failed/i.test(error.message)))error.code='PUBLISHER_TRANSIENT';
+      // Native fetch aborts are DOMExceptions with a read-only numeric `code`.
+      // Keep the original error as the cause; tagging it in place can itself
+      // throw before the failed call is recorded or its bounded retry runs.
+      const transient=['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&/fetch failed/i.test(error.message));
+      const failure=transient?Object.assign(new Error(error.message,{cause:error}),{code:'PUBLISHER_TRANSIENT'}):error;
       if (call) { call.status = 'failed'; call.error = String(error.message).replaceAll(key, '[redacted]').slice(0, 250);
         call.elapsed_ms=Date.now()-Date.parse(call.started);
         if(error.cause?.code)call.transport_error_code=String(error.cause.code).replaceAll(key,'[redacted]').slice(0,64);
       }
-      throw error;
+      throw failure;
     } finally {
-      journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
-      try { await persist(journal); } finally { busy = false; }
+      if (call) await ledger.serial(async () => {
+        journal.spent = journal.calls.reduce((sum, x) => sum + (x.cost ?? 0), 0);
+        try { await save(); }
+        finally { ledger.inFlight.delete(call.id); ledger.notifySettlement(); }
+      });
     }
   };
-  return async function ask(request) {
+  const withUsage = request => ledger.run(async () => {
     try { return await attempt(request); }
     catch (error) {
       if(error.code!=='PUBLISHER_TRANSIENT')throw error;
@@ -165,7 +262,10 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       // durable ledger, including any unknown first-request charge. No model swap.
       return attempt(request);
     }
-  };
+  });
+  const ask = async request => (await withUsage(request)).result;
+  ask.withUsage = withUsage;
+  return ask;
 }
 
 export async function publishSelection({ posts, publication, identity = {}, ask, emit = async () => {},
@@ -173,16 +273,16 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 12) throw Error('Invalid publisher batch size');
   const sources = prepareSources(posts), byId = new Map(sources.map(p => [p.id, p]));
   for (const [id, choice] of Object.entries(overrides)) if (!byId.has(id) || !['keep', 'set_aside'].includes(choice)) throw Error('Invalid creator override');
-  const decisions = [];
-  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))] });
+  const decisions = [];let readCount=0;
+  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))], archive: archiveFacts(sources) });
   // Missing bodies are a hold, never an inferred empty/housekeeping post.
   if (sources.some(p => !p.text && !p.images)) throw Error('Complete source text is missing; publisher cannot finish the edition');
-  for (let offset = 0; offset < sources.length; offset += batchSize) {
-    const batch = sources.slice(offset, offset + batchSize);
+  const batches=Array.from({length:Math.ceil(sources.length/batchSize)},(_,i)=>sources.slice(i*batchSize,(i+1)*batchSize));
+  const readings=await mapConcurrent(batches,async batch=>{
     // A text-only classifier cannot judge an image-only piece. Preserve it for the
     // visual review and make that limitation explicit in the decision.
     const readable = batch.filter(p => p.text);
-    const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.reader.id, publication, readable]);
+    const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.reader, publication, readable]);
     let reading = { decisions: [] };
     if (readable.length) {
       let result = cache.get(key);
@@ -201,21 +301,25 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
       }
       reading = validateReading(result, readable);
     }
+    const batchDecisions=[];
     for (const source of batch) {
       const d = reading.decisions.find(x => x.post_id === source.id) || { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' };
       const override = overrides[source.id];
       const decision = { ...d, ...(override ? { decision: override, reason: override === 'keep' ? 'Kept by you.' : 'Left out by you.', author_override: true,
         original_decision:d.decision,original_reason:d.reason } : {}),
         title: source.title, date: source.date, authors: source.authors, body_hash: source.body_hash };
-      decisions.push(decision);
+      batchDecisions.push(decision);
     }
-    await emit({ kind: 'reading', decisions: decisions.slice(-batch.length), read: Math.min(offset + batchSize, sources.length), total: sources.length });
-  }
+    readCount+=batch.length;
+    await emit({ kind: 'reading', decisions: batchDecisions, read: readCount, total: sources.length });
+    return batchDecisions;
+  });
+  decisions.push(...readings.flat());
   const kept = sources.filter(p => decisions.find(d => d.post_id === p.id).decision !== 'set_aside');
   if (!kept.length) throw Error('Only housekeeping remains; there is no complete book to typeset');
   const input = kept.map(p => ({ id: p.id, title: p.title, date: p.date, authors: p.authors,
     kind: decisions.find(d => d.post_id === p.id).kind, evidence: decisions.find(d => d.post_id === p.id).evidence }));
-  const key = hash([PUBLISHER_VERSION, PUBLISHER_MODELS.publisher.id, publication, input]);
+  const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.publisher, publication, input]);
   let structure = cache.get(key);
   if (!structure) {
     const task = 'Compose the table of contents for this edition. Use one chronological section unless the writing clearly warrants a few meaningful sections. Preserve chronological order within each section. Keep every supplied post exactly once. The description MUST be under 200 characters, each section title under 80 characters, and each reason under 200 characters. Explain the arrangement in one short sentence; avoid literary praise. Do not invent post titles, author identities, page numbers or source facts; you are using source-backed classifications and quotations, not claiming another full reading.';

@@ -1,0 +1,108 @@
+---
+import Logo from "../components/Logo.astro";
+import "../styles/workflow.css";
+// Selling to subscribers from the creator's own Lulu account. Inksheaf prepares the files and
+// the numbers; the creator publishes in Lulu, then pastes the product page back here for a
+// short link and a Substack button. Nothing is published or charged from this page.
+---
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sell to subscribers · Inksheaf</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta name="robots" content="noindex" /></head>
+<body><main class="workflow-sheet"><a href="/" class="workflow-home" aria-label="Inksheaf home"><Logo small /></a>
+<p class="eyebrow">Inksheaf · sell to subscribers</p>
+<h1>Sell your book to subscribers</h1>
+<p id="lead" class="note" role="status">Loading your book…</p>
+
+<section id="work" hidden>
+<p class="note">You publish the book in your own Lulu account, so the sales and the earnings are yours. Inksheaf has prepared everything Lulu asks for; it takes about fifteen minutes per volume.</p>
+<ol class="sell-steps">
+  <li><h2>Download your print files</h2><div id="files"></div><p class="note" id="expiry"></p></li>
+  <li><h2>Start a print book in Lulu</h2><p>Sign in or create an account at <a href="https://www.lulu.com/" rel="noopener">lulu.com</a>, then choose to create a print book. Use your publication’s name as the author, and these settings:</p><dl id="settings" class="sell-settings"></dl></li>
+  <li><h2>Upload the files</h2><p>Upload the interior PDF, then choose to upload your own cover and add the cover PDF. Both have already passed Lulu’s file checks.</p></li>
+  <li><h2>Set the price and payees</h2>
+    <p>Lulu keeps 20% of the profit on each copy and pays the rest to the payees you name. Add Inksheaf as a payee for its share; the price below leaves you exactly what you choose to earn.</p>
+    <label class="sell-field">What you earn per copy <span class="sell-input">$<input id="markup" type="number" min="0" max="200" step="0.5" value="5" inputmode="decimal" /></span></label>
+    <div id="prices"></div>
+    <p class="note" id="payee"></p>
+  </li>
+  <li><h2>Publish</h2><p>Publish with Lulu Bookstore access set to public, or to direct link only if you want the book reachable just from your posts.</p></li>
+  <li><h2>Add the button to your post</h2>
+    <label class="sell-field" for="lulu-url">Your book’s page on Lulu</label>
+    <input id="lulu-url" type="url" placeholder="https://www.lulu.com/shop/…" autocomplete="off" />
+    <div class="actions"><button type="button" class="main" id="save">Make my button</button><span class="note" id="savenote"></span></div>
+    <div id="button-out" hidden><p>Your short link stays the same if you print a new edition: <a id="short"></a></p>
+      <p class="note">In Substack, add a button block with that address and a label such as “Order the book”, or paste this line into an email:</p>
+      <textarea id="button-html" readonly rows="3" aria-label="Button code"></textarea></div>
+    <div class="err" id="err" role="alert"></div>
+  </li>
+</ol>
+</section>
+</main>
+<style is:global>
+.sell-steps{padding-left:1.4em;margin:28px 0 0}.sell-steps>li{margin:0 0 34px;padding-left:4px}.sell-steps h2{margin:0 0 8px}
+.sell-settings{display:grid;grid-template-columns:max-content 1fr;gap:4px 18px;margin:12px 0 0}.sell-settings dt{color:var(--faint,#60635f)}.sell-settings dd{margin:0}
+.sell-field{display:block;margin:14px 0 6px}.sell-input{display:inline-flex;align-items:center;gap:4px;margin-left:10px}.sell-input input{width:6rem}
+.sell-price{display:grid;grid-template-columns:1fr auto;gap:2px 18px;margin:12px 0;padding:12px 0;border-top:1px solid var(--hair,#d5d7d1)}.sell-price b{font-weight:600}
+#button-html{width:100%;font:12px/1.5 ui-monospace,Menlo,monospace}
+</style>
+<script>
+import { subscriberPrice } from "../../functions/lib/lulu-share.js";
+const q = new URLSearchParams(location.search), id = q.get('id'), sig = q.get('sig');
+const $ = (s: string) => document.querySelector(s) as HTMLElement;
+const money = (n: number) => '$' + Number(n).toFixed(2);
+const el = (tag: string, text = '') => Object.assign(document.createElement(tag), { textContent: text });
+let ctx: any = null;
+function draw() {
+  const markup = Math.max(0, Number(($('#markup') as HTMLInputElement).value) || 0);
+  const out = $('#prices'); out.replaceChildren();
+  let share = 100;
+  for (const v of ctx.volumes) {
+    const p = subscriberPrice({ printCost: v.print_cost, markup, perBook: ctx.per_book });
+    share = p.sharePercent;
+    const box = el('div'); box.className = 'sell-price';
+    const add = (a: string, b: string, strong = false) => { const l = el(strong ? 'b' : 'span', a), r = el(strong ? 'b' : 'span', b); box.append(l, r); };
+    if (ctx.volumes.length > 1) add(v.label, '', true);
+    add('Retail price to set in Lulu', money(p.retail), true);
+    add('Lulu’s print cost', money(v.print_cost));
+    add(`You, ${100 - p.sharePercent}% of payee revenue`, money(p.creator));
+    add(`Inksheaf, ${p.sharePercent}%`, money(p.inksheaf));
+    out.append(box);
+  }
+  $('#payee').textContent = ctx.payee_email
+    ? `Add a payee named Inksheaf with the email ${ctx.payee_email} and a ${share}% share; keep ${100 - share}% for yourself. If Lulu shows a different print cost, tell us and we will adjust these numbers.`
+    : `Keep ${100 - share}% for yourself and give Inksheaf ${share}%. We will email you Inksheaf’s payee details for this step.`;
+}
+(async () => {
+  const r = await fetch(`/api/sell-context?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('#lead').textContent = r.status === 409 ? 'Your book is still being finished. Open this link again from your PDF email.' : 'That link is not valid. Open it from your PDF email again, or write to caithrin@caithrin.com.'; return; }
+  if (!d.ready) { $('#lead').textContent = d.pending ? 'The printer is checking your book’s files. This page opens by itself, usually within a few minutes.' : 'The printer’s file checks need a person to look at them. We have been told and will email you.'; if (d.pending) setTimeout(() => location.reload(), 20000); return; }
+  ctx = d;
+  $('#lead').textContent = (d.pub_name || d.publication_url.replace(/^https?:\/\//, '')) + (d.volumes.length > 1 ? ` · ${d.volumes.length} volumes, each its own Lulu book` : '');
+  const files = $('#files');
+  for (const v of d.volumes) {
+    const row = el('p'); row.append(el('span', `${v.label}, ${v.pages} pages: `));
+    const a = el('a', 'interior PDF') as HTMLAnchorElement; a.href = v.interior_url; a.download = '';
+    const c = el('a', 'cover PDF') as HTMLAnchorElement; c.href = v.cover_url; c.download = '';
+    row.append(a, document.createTextNode(' · '), c); files.append(row);
+  }
+  $('#expiry').textContent = d.links_expired ? 'These download links have expired. Reply to your PDF email and we will send new ones.' : 'These links are private and last 30 days from your book’s delivery.';
+  const s = $('#settings');
+  for (const [k, v] of [['Book size', d.settings.size], ['Binding', d.settings.binding], ['Interior', d.settings.interior], ['Paper', d.settings.paper], ['Cover finish', d.settings.cover]]) s.append(el('dt', k), el('dd', v));
+  if (d.listing_url) ($('#lulu-url') as HTMLInputElement).value = d.listing_url;
+  $('#markup').addEventListener('input', draw); draw();
+  $('#work').hidden = false;
+})();
+$('#save').addEventListener('click', async () => {
+  $('#err').textContent = ''; ($('#save') as HTMLButtonElement).disabled = true; $('#savenote').textContent = 'Saving…';
+  const r = await fetch('/api/sell-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sig, version_id: ctx?.version_id, listing_url: ($('#lulu-url') as HTMLInputElement).value.trim() }) });
+  const d = await r.json().catch(() => ({}));
+  ($('#save') as HTMLButtonElement).disabled = false; $('#savenote').textContent = '';
+  if (!d.ok) { $('#err').textContent = d.error || 'That did not save. Try again.'; return; }
+  const a = $('#short') as HTMLAnchorElement; a.href = d.short; a.textContent = d.short.replace(/^https:\/\//, '');
+  ($('#button-html') as HTMLTextAreaElement).value = d.button_html; $('#button-out').hidden = false;
+});
+</script></body></html>

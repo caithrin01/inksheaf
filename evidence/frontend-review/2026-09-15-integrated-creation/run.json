@@ -1,0 +1,52 @@
+{
+  "status": "completed",
+  "started": "2026-09-15T23:43:07.420Z",
+  "finished": "2026-09-15T23:43:35.859Z",
+  "model_requested": "anthropic/claude-opus-5",
+  "model_returned": "anthropic/claude-opus-5",
+  "usage": {
+    "prompt_tokens": 5053,
+    "completion_tokens": 1483,
+    "total_tokens": 6536,
+    "cost": 0.06234,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.06234,
+      "upstream_inference_prompt_cost": 0.025265,
+      "upstream_inference_completions_cost": 0.037075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 344,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "finish_reason": "stop",
+  "runner_sha256": "99d88b5a65df6edba3f9f0c717c9880fffc48271f8bd36bd4d61d421d381f01d",
+  "brief_sha256": "80ca545163538f86c0bb20ef7fda6d649747b1ebda5dccdfb2a8703eca3f24df",
+  "git_head": "ac301081651743bb022f3f0d9845ff1e5ed94ac4",
+  "git_dirty": true,
+  "inputs": [
+    {
+      "label": "Desktop, one real recorded reading batch shown; remaining reading and complete PDF pending. Synthetic publication identity.",
+      "sha256": "2ef70d1634e7939a2fbb2006d97dfe4651128be58c68c6b91ae765dc7ef3ef8d",
+      "saved": "input-1.png"
+    },
+    {
+      "label": "Phone, first batch of real recorded decisions shown; compact cover and visible source excerpt. Remaining work pending.",
+      "sha256": "e0252ae6ac9dbf93a0caf3bb19319b924e6a9d26a5337c2df363fe7878399689",
+      "saved": "input-2.png"
+    },
+    {
+      "label": "Phone, actual PDF.js rendering of a middle page in one of two complete synthetic fixture volumes. No live acceptance or email proven.",
+      "sha256": "87d4b8ecbaf3a40fd411baf2620ce90b7ee593494cda0b1162ae060bdbee9205",
+      "saved": "input-3.png"
+    }
+  ]
+}

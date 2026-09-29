@@ -29,6 +29,7 @@ async function run(script,args){
 try{
   if(process.argv.includes('--pages-only')){
     await run('scripts/test-publisher-pages-ui.mjs',[base]);
+    await run('scripts/test-complete-reader-ui.mjs',[base]);
   }else if(process.argv.includes('--publisher-only')){
     await run('scripts/test-verification-ui.mjs',[base]);
   }else{
@@ -40,6 +41,7 @@ try{
     await run('scripts/test-site-workflows.mjs',[base]);
     await run('scripts/test-verification-ui.mjs',[base]);
     await run('scripts/test-publisher-pages-ui.mjs',[base]);
+    await run('scripts/test-complete-reader-ui.mjs',[base]);
     await run('scripts/test-live-publication.mjs',[base,'output/playwright/launch/live-publication']);
 
   }

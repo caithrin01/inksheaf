@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 import { readFileSync } from 'node:fs';
-import { publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY } from './lib/publisher-agent.mjs';
+import { archiveFacts, publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
 const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
 const sources = prepareSources(posts);
 const reading = batch => ({ decisions: batch.map(p => ({ post_id: p.id, kind: [102,106].includes(Number(p.id)) ? 'housekeeping' : p.id === '103' ? 'poem' : 'essay',
@@ -18,21 +19,53 @@ await test('poem citations preserve the original line instead of generated slash
 await test('automatic exclusion cannot remove a classified poem or essay', () => { const r = reading(sources); r.decisions[2].decision = 'set_aside'; assert.throws(() => validateReading(r, sources)); });
 await test('TOC cannot silently omit, duplicate or invent selected posts', () => { for (const ids of [['101'], ['101','101'], ['999']]) assert.throws(() => validateStructure({description:'Test',sections:[{title:'Test',post_ids:ids,reason:'Test'}]},sources)); });
 await test('real batches emit before the final contents and preserve source bodies', async () => { const events = [], before = JSON.stringify(posts); const result = await publishSelection({ posts, publication:'Fixture', ask, emit: async e => events.push(e) }); assert.equal(JSON.stringify(posts),before); assert.deepEqual(result.excluded_ids,['102','106']); assert.deepEqual(events.map(e=>e.kind),['identity','reading','reading','contents']); assert(result.included_ids.includes('103')); assert(result.included_ids.includes('104')); assert.equal(events.at(-1).sections[0].posts[0].title,posts[0].title); });
+await test('a completed batch reaches the workspace while another is still reading',async()=>{
+  let releaseSlow,releaseSeen;const slow=new Promise(r=>releaseSlow=r),seen=new Promise(r=>releaseSeen=r),events=[];
+  const running=publishSelection({posts,publication:'Fixture',batchSize:4,ask:async request=>{if(request.role==='reader'&&request.data[0].id==='101')await slow;return ask(request);},emit:async event=>{events.push(event);if(event.kind==='reading')releaseSeen();}});
+  try{await Promise.race([seen,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(Error('No progress while the first batch was blocked')),2000);timer.unref();})]);assert.equal(events.filter(e=>e.kind==='reading').length,1);assert.equal(events.at(-1).decisions[0].post_id,'105');assert.equal(events.at(-1).read,posts.length-4);}
+  finally{releaseSlow();}
+  const result=await running;assert.deepEqual(result.decisions.map(d=>d.post_id),posts.map(p=>String(p.id)));assert.equal(events.at(-1).kind,'contents');assert.equal(events.at(-2).read,posts.length);
+});
 await test('creator restoration survives cached model suggestions and enters contents', async () => { const cache = new Map(); await publishSelection({posts,publication:'Fixture',ask,cache}); const result = await publishSelection({posts,publication:'Fixture',ask,cache,overrides:{102:'keep'}}); assert(result.included_ids.includes('102')); assert.equal(result.decisions.find(d=>d.post_id==='102').reason,'Kept by you.'); });
 await test('unchanged source replay makes no second inference call', async () => { const cache = new Map(); await publishSelection({posts,publication:'Fixture',ask,cache}); await publishSelection({posts,publication:'Fixture',cache,ask:()=>{throw Error('Unexpected paid replay');}}); });
 await test('missing full bodies hold the book without a model call', async () => { await assert.rejects(publishSelection({posts:[{id:1,title:'Missing'}],publication:'Fixture',ask:()=>{throw Error('Should not call');}}),/source text is missing/); });
 await test('image-only work is retained as unreviewed by the text classifier', async () => { const result=await publishSelection({posts:[{id:1,title:'Photograph',body_html:'<img src="photo.png">'}],publication:'Fixture',ask}); assert.deepEqual(result.included_ids,['1']); assert.equal(result.decisions[0].decision,'uncertain'); });
 await test('budget denial occurs before any provider request', async () => { let network=0; const call=openRouterPublisher({key:'fixture',budget:0,fetchImpl:async()=>{network++;}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/budget/); assert.equal(network,0); });
-await test('annual review can pass 96 calls while the 256-call and $2 limits remain enforced',async()=>{
+await test('annual review can pass 96 calls while the 256-call and edition money limits remain enforced',async()=>{
   let network=0;const journal={calls:Array.from({length:96},()=>({cost:.001})),spent:.096};
   const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{network++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});
   await call({role:'reader',task:'Read',schema:Reading});assert.equal(network,1);assert.equal(journal.calls.length,97);
-  journal.calls.push({reserved:1.91});
+  journal.calls.push({reserved:PUBLISHER_BUDGET_USD-.09});
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
   journal.calls=Array.from({length:256},()=>({cost:.001}));
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/budget/);assert.equal(network,1);
 });
 await test('provider timeout retains its reservation and private errors are not shown as success', async () => { const journal={calls:[],spent:0};const call=openRouterPublisher({key:'fixture-secret',journal,fetchImpl:async()=>{throw Error('network fixture-secret');}}); await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading})); assert.equal(journal.calls[0].status,'failed');assert(journal.calls[0].reserved>0);assert(!journal.calls[0].error.includes('fixture-secret')); });
+await test('access refusals retain bounded private diagnostics and stop later calls in the session',async()=>{
+  for(const status of [401,402,403]){
+    let calls=0;const journal={calls:[],spent:0};
+    const fetchImpl=async()=>{calls++;return Response.json({error:{code:status,message:'Key fixture-secret exhausted\n'+'.'.repeat(600),metadata:{raw:'Do not copy upstream bodies'}}},{status});};
+    const ask=openRouterPublisher({key:'fixture-secret',journal,fetchImpl});
+    await assert.rejects(ask({role:'reader',task:'Read',schema:Reading}),e=>e.code==='PUBLISHER_ACCESS_DENIED');
+    await assert.rejects(openRouterPublisher({key:'fixture-secret',journal,fetchImpl})({role:'publisher',task:'Read',schema:Reading}),e=>e.code==='PUBLISHER_ACCESS_DENIED');
+    assert.equal(calls,1);assert.equal(journal.calls.length,1);const call=journal.calls[0];
+    assert.equal(call.http_status,status);assert.equal(call.status,'failed');assert(call.reserved>0);assert.equal(call.cost,undefined);
+    assert.equal(call.provider_error.code,String(status));assert.equal(call.provider_error.message.length,500);
+    assert(!call.provider_error.message.includes('fixture-secret'));assert(!call.provider_error.message.includes('\n'));assert.equal(call.provider_error.metadata,undefined);
+  }
+});
+await test('an access refusal drains existing calls without sending queued requests',async()=>{
+  let network=0;const journal={calls:[],spent:0},responses=[];
+  const ask=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{
+    const index=network++;const response=new Promise(resolve=>responses.push(resolve));
+    if(network===8){responses[0](Response.json({error:{code:403,message:'Key allowance exhausted'}},{status:403}));for(const done of responses.slice(1))done(Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}}));}
+    return response;
+  }});
+  const results=await Promise.allSettled(Array.from({length:9},()=>ask({role:'reader',task:'Read',schema:Reading})));
+  assert.equal(network,8);assert.equal(journal.calls.length,8);assert.equal(results.filter(r=>r.status==='fulfilled').length,7);
+  assert.equal(journal.calls.filter(c=>c.status==='completed').length,7);assert.equal(journal.calls.filter(c=>c.status==='failed').length,1);
+  assert(journal.calls[0].reserved>0);assert.equal(journal.calls[0].cost,undefined);
+});
 await test('truncated model results are never accepted', async () => { const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>Response.json({choices:[{finish_reason:'length',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}})});await assert.rejects(call({role:'reader',task:'Read',data:sources,schema:Reading}),/incomplete/); });
 await test('the provider must honour schemas, privacy and price ceilings', async () => { let body;const call=openRouterPublisher({key:'fixture',fetchImpl:async(url,opts)=>{body=JSON.parse(opts.body);return Response.json({model:body.model,choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});}});await call({role:'reader',task:'Read',data:sources,schema:Reading});assert.equal(body.provider.require_parameters,true);assert.equal(body.provider.data_collection,'deny');assert.equal(body.response_format.json_schema.strict,true);assert.equal(body.provider.max_price.prompt,.25); });
 await test('contents reject reversed dates inside a section', () => { assert.throws(()=>validateStructure({description:'Test',sections:[{title:'Test',post_ids:sources.map(p=>p.id).reverse(),reason:'Test'}]},sources),/chronological/); });
@@ -49,5 +82,73 @@ await test('a transient provider failure gets one same-model retry in the same s
 await test('a repeating provider failure stops after the one bounded retry',async()=>{
   let calls=0;const call=openRouterPublisher({key:'fixture',fetchImpl:async()=>{calls++;return Response.json({error:{message:'busy'}},{status:503});}});
   await assert.rejects(call({role:'reader',task:'Read',schema:Reading}),/did not complete/);assert.equal(calls,2);
+});
+await test('a native fetch timeout retains its unknown charge and can retry without mutating DOMException',async()=>{
+  const timeout=new DOMException('Request timed out','TimeoutError'),originalCode=timeout.code,journal={calls:[],spent:0};let calls=0;const saved=[];
+  const ask=openRouterPublisher({key:'fixture',journal,persist:async()=>saved.push(structuredClone(journal)),fetchImpl:async()=>{
+    if(++calls===1)throw timeout;
+    assert.equal(journal.calls[0].status,'failed');assert.equal(journal.calls[0].cost,undefined);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await ask({role:'reader',task:'Read',schema:Reading});assert.equal(calls,2);assert.equal(timeout.code,originalCode);
+  assert.equal(journal.spent,.001);assert(journal.calls.reduce((sum,c)=>sum+(c.cost??c.reserved),0)>.001);
+  assert(saved.some(s=>s.calls.length===1&&s.calls[0].status==='failed'&&s.calls[0].error==='Request timed out'));
+});
+await test('repeated native aborts stop after one retry with both failures durably recorded',async()=>{
+  const aborted=new DOMException('Request aborted','AbortError'),journal={calls:[],spent:0};let calls=0;
+  const ask=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{calls++;throw aborted;}});
+  await assert.rejects(ask({role:'reader',task:'Read',schema:Reading}),error=>error.code==='PUBLISHER_TRANSIENT'&&error.cause===aborted);
+  assert.equal(calls,2);assert(journal.calls.every(c=>c.status==='failed'&&c.reserved>0&&c.cost===undefined));assert.equal(journal.spent,0);
+});
+await test('Sonnet image reservations exceed documented patches at every accepted size', () => {
+  for (const [w,h] of [[1,1],[28,28],[1200,1800],[2576,2576],[4096,4096]]) {
+    const bound = publisherImageTokenBound('anthropic/claude-sonnet-5',w,h);
+    assert(bound >= 4784 + 1024);
+    assert(bound >= Math.ceil(w/28)*Math.ceil(h/28)+1024);
+    assert.equal(publisherImageTokenBound('google/gemini-3.1-flash-lite',w,h),65536);
+    assert.equal(publisherImageTokenBound('future-model',w,h),65536);
+  }
+  assert.throws(()=>publisherImageTokenBound('anthropic/claude-sonnet-5',4097,1),/bounded PNG/);
+});
+await test('four-image confirmation fits remaining dollars while unknown charges stay reserved', async () => {
+  const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1200,16);png.writeUInt32BE(1800,20);
+  const journal={calls:[{cost:1.168},{reserved:.422,status:'reserved'}],spent:1.168};let network=0;
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>{
+    network++;assert.equal(journal.calls.at(-1).status,'reserved');
+    assert(journal.calls.at(-1).reserved>.05 && journal.calls.at(-1).reserved<.1);
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.015}});
+  }});
+  await call({role:'publisher',task:'Check figures',schema:Reading,images:[png,png,png,png],maxOutput:400});
+  assert.equal(network,1);assert.equal(journal.calls[1].reserved,.422);assert.equal(journal.calls[1].cost,undefined);
+  assert.equal(journal.calls.at(-1).cost,.015);
+  await assert.rejects(openRouterPublisher({key:'fixture',journal,budget:1.62,fetchImpl:()=>{throw Error('Must not call');}})({role:'publisher',task:'Check figures',schema:Reading,images:[png,png,png,png],maxOutput:400}),/budget/);
+});
+await test('actual image usage above its reserved bound fails closed', async () => {
+  const journal={calls:[],spent:0};
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async()=>Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:1}})});
+  await assert.rejects(call({role:'publisher',task:'Check',schema:Reading,maxOutput:400}),/exceeded its reservation/);
+  assert.equal(journal.calls[0].status,'failed');assert.equal(journal.calls[0].cost,1);
+});
+await test('short visual confirmations reserve their verdict instead of exhausting output on thinking',async()=>{
+  const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1200,16);png.writeUInt32BE(1800,20);
+  const journal={calls:[],spent:0},requests=[];
+  const call=openRouterPublisher({key:'fixture',journal,fetchImpl:async(url,opts)=>{
+    const request=JSON.parse(opts.body);requests.push(request);
+    assert.deepEqual(journal.calls.at(-1).reasoning,request.reasoning);
+    if(request.max_tokens===400&&request.reasoning.enabled!==false)
+      return Response.json({choices:[{finish_reason:'length',message:{content:''}}],usage:{cost:.023808,completion_tokens:400,completion_tokens_details:{reasoning_tokens:399}}});
+    return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reading(sources))}}],usage:{cost:.001}});
+  }});
+  await call({role:'publisher',task:'Confirm the measured defect',schema:Reading,images:[png],maxOutput:400});
+  assert.equal(requests[0].max_tokens,400);assert.deepEqual(requests[0].reasoning,{enabled:false});
+  await call({role:'publisher',task:'Compose the contents',schema:Reading,maxOutput:5000});
+  assert.deepEqual(requests[1].reasoning,{effort:'medium'});
+  assert.equal(journal.calls.length,2);assert(journal.calls.every(c=>c.status==='completed'));
+});
+await test('archive facts are counted from the posts themselves', async () => {
+  const facts=archiveFacts(prepareSources([{id:2,title:'Later',post_date:'2025-06-01T00:00Z',body_html:'<p>Five words in this one.</p>'},
+    {id:1,title:'First',post_date:'2025-01-03T00:00Z',body_html:'<p>It began on a cold morning when the press first ran. Then more.</p><img src=x>'}]));
+  assert.deepEqual(facts,{posts:2,words:18,images:1,from:'2025-01-03',to:'2025-06-01',first:{title:'First',date:'2025-01-03',opening:'It began on a cold morning when the press first ran.'},longest:{title:'First',words:13}});
+  assert.equal(archiveFacts([]),null);
 });
 console.log(`${count} publisher-agent tests passed.`);

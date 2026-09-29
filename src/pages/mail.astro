@@ -1,28 +1,28 @@
 ---
 import Logo from "../components/Logo.astro";
 import "../styles/workflow.css";
-// The mailing screen (plan-end-to-end-v1, phase 4): copies of the edition to readers'
-// addresses, priced by Lulu per address, at cost. Payment: Stripe when the deploy has keys,
-// otherwise an invoice by email settled by hand. Nothing is ordered from this page directly.
+// Printed copies of a finished edition, to any addresses Lulu ships to. Lulu prices each
+// address; Inksheaf adds a fixed amount per printed book, shown as its own line. Payment:
+// Stripe when the deploy has keys, otherwise an invoice by email. Nothing is ordered here.
 ---
 <html lang="en">
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mail copies · Inksheaf</title>
+<title>Order printed copies · Inksheaf</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <meta name="robots" content="noindex" /></head>
 <body><main class="workflow-sheet"><a href="/" class="workflow-home" aria-label="Inksheaf home"><Logo small /></a>
-<p class="eyebrow">Inksheaf · mail copies to readers</p>
-<h1 id="h">Send copies of your edition</h1>
+<p class="eyebrow">Inksheaf · printed copies</p>
+<h1 id="h">Order printed copies</h1>
 <p id="lead" class="note" role="status">Loading your edition…</p>
 <div class="edition" id="edition" hidden></div>
 
 <section id="work" hidden>
 <h2>Where they go</h2>
-<p class="note">One row per address, US only during the beta. Paste a list below instead if you have one: one address per line as <i>name, street, city, ST, ZIP, copies</i>.</p>
-<div class="address-table" role="region" aria-label="Mailing addresses" tabindex="0"><table id="tbl"><thead><tr><th>Name</th><th>Street</th><th>City</th><th>ST</th><th>ZIP</th><th>Copies</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="note">One row per address, yours or a reader's. Lulu ships to most countries; a state or province is needed for the US, Canada and Australia. To paste a list, put one address per line as <i>name, street, city, state, postcode, country, copies</i>.</p>
+<div class="address-table" role="region" aria-label="Mailing addresses" tabindex="0"><table id="tbl"><thead><tr><th>Name</th><th>Street</th><th>City</th><th>State</th><th>Postcode</th><th>Country</th><th>Copies</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="row-actions"><button type="button" id="add">Add an address</button><button type="button" id="pasteBtn">Paste a list</button></div>
-<textarea aria-label="Paste mailing addresses" id="paste" class="hidden" placeholder="Ada Lovelace, 12 Analytical St, Boston, MA, 02108, 2"></textarea>
+<textarea aria-label="Paste mailing addresses" id="paste" class="hidden" placeholder="Ada Lovelace, 12 Analytical St, Boston, MA, 02108, US, 2"></textarea>
 <h2>Shipping</h2>
 <label><input type="radio" name="level" value="MAIL" checked style="width:auto" /> Mail, the slowest and cheapest</label><br />
 <label><input type="radio" name="level" value="PRIORITY_MAIL" style="width:auto" /> Priority mail</label><br />
@@ -32,16 +32,17 @@ import "../styles/workflow.css";
 <div class="actions"><button type="button" class="main hidden" id="pay">Pay and print</button><span class="note" id="paynote"></span></div>
 <div class="err" id="err" role="alert"></div>
 <p class="note" id="done" hidden>Sent. You will get the invoice and, once paid, one email per parcel with its tracking number.</p>
+<p class="note" id="paid" role="status" hidden>Paid. Your copies are going to the printer now; you will get an email when they are with Lulu, then one per parcel with its tracking number.</p>
 </section>
 </main>
 <script>
 const q = new URLSearchParams(location.search); const id = q.get('id'), sig = q.get('sig');
 const $ = (s) => document.querySelector(s);
 const money = (n) => '$' + Number(n).toFixed(2);
-let volumes = [], payment = 'invoice', lastQuote = null;
+let volumes = [], payment = 'invoice', lastQuote = null, perBook = 0;
 function row(a = {}) {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input name="name" aria-label="Recipient name" value="${esc(a.name)}" /></td><td><input name="street1" aria-label="Street address" value="${esc(a.street1)}" /></td><td><input name="city" aria-label="City" value="${esc(a.city)}" /></td><td><input name="state_code" aria-label="State" maxlength="2" value="${esc(a.state_code)}" style="width:3.2rem" /></td><td><input name="postcode" aria-label="ZIP code" value="${esc(a.postcode)}" style="width:5.6rem" /></td><td><input class="q" name="quantity" aria-label="Copies" type="number" min="1" max="50" value="${a.quantity || 1}" /></td><td><button type="button" class="rm" aria-label="Remove this address" style="border:0;background:none;cursor:pointer;color:var(--faint)">×</button></td>`;
+  tr.innerHTML = `<td><input name="name" aria-label="Recipient name" value="${esc(a.name)}" /></td><td><input name="street1" aria-label="Street address" value="${esc(a.street1)}" /></td><td><input name="city" aria-label="City" value="${esc(a.city)}" /></td><td><input name="state_code" aria-label="State or province" maxlength="3" value="${esc(a.state_code)}" style="width:3.4rem" /></td><td><input name="postcode" aria-label="Postcode" value="${esc(a.postcode)}" style="width:5.6rem" /></td><td><input name="country_code" aria-label="Country, two letters" maxlength="2" value="${esc(a.country_code || 'US')}" style="width:3.2rem;text-transform:uppercase" /></td><td><input class="q" name="quantity" aria-label="Copies" type="number" min="1" max="50" value="${a.quantity || 1}" /></td><td><button type="button" class="rm" aria-label="Remove this address" style="border:0;background:none;cursor:pointer;color:var(--faint)">×</button></td>`;
   tr.querySelector('.rm').addEventListener('click', () => tr.remove());
   $('#rows').appendChild(tr);
 }
@@ -50,13 +51,21 @@ function addresses() { return [...$('#rows').querySelectorAll('tr')].map(tr => O
 $('#add').addEventListener('click', () => row());
 $('#pasteBtn').addEventListener('click', () => { $('#paste').classList.toggle('hidden'); $('#paste').focus(); });
 $('#paste').addEventListener('change', () => {
-  for (const line of $('#paste').value.split('\n')) { const p = line.split(',').map(s => s.trim()); if (p.length >= 5) row({ name: p[0], street1: p[1], city: p[2], state_code: p[3], postcode: p[4], quantity: p[5] || 1 }); }
+  for (const line of $('#paste').value.split('\n')) { const p = line.split(',').map(s => s.trim()); if (p.length >= 5) row({ name: p[0], street1: p[1], city: p[2], state_code: p[3], postcode: p[4], country_code: /^[A-Za-z]{2}$/.test(p[5] || '') ? p[5] : 'US', quantity: (/^[A-Za-z]{2}$/.test(p[5] || '') ? p[6] : p[5]) || 1 }); }
   $('#paste').value = ''; $('#paste').classList.add('hidden');
 });
 (async () => {
   const r = await fetch(`/api/mail-context?id=${encodeURIComponent(id || '')}&sig=${encodeURIComponent(sig || '')}`);
   const d = await r.json().catch(() => ({}));
-  if (!d.ok) { $('#lead').textContent = 'That link is not valid. Open it from your listing email again, or write to caithrin@caithrin.com.'; return; }
+  if (!d.ok) { $('#lead').textContent = r.status === 409 ? 'Your book is still being finished. Open this link again from your PDF email once it has arrived.' : 'That link is not valid. Open it from your PDF email again, or write to caithrin@caithrin.com.'; return; }
+  if (q.get('paid')) { $('#paid').hidden = false; $('#lead').textContent = d.publication_url.replace(/^https?:\/\//, ''); return; }
+  // Lulu checks the print files after the PDF is delivered; wait for that here.
+  if (d.print_files !== 'ready') {
+    $('#lead').textContent = d.print_files === 'pending' ? 'The printer is checking your book’s files. This page opens ordering by itself, usually within a few minutes.' : 'The printer’s file checks need a person to look at them. We have been told and will email you.';
+    if (d.print_files === 'pending') setTimeout(() => location.reload(), 20000);
+    return;
+  }
+  perBook = Number(d.per_book) || 0;
   volumes = d.volumes || [];
   $('#lead').textContent = d.publication_url.replace(/^https?:\/\//, '');
   const e = $('#edition'); e.hidden = false;
@@ -76,10 +85,12 @@ $('#quote').addEventListener('click', async () => {
   const inv = $('#invoice'); inv.classList.remove('hidden');
   const t = d.totals;
   inv.innerHTML = `<div class="eyebrow">Invoice${t.estimated ? ' · estimated from the measured cost table' : ' · Lulu\'s prices'}</div>` +
-    d.quotes.map(x => `<div class="line"><span>${esc(x.address.name)}, ${esc(x.address.city)} ${esc(x.address.state_code)} · ${x.quantity} × ${volumes.length === 1 ? 'copy' : 'set'}</span><span>${x.ok ? money(x.total) : '<span class="err">' + esc(x.error) + '</span>'}</span></div>`).join('') +
+    d.quotes.map(x => `<div class="line"><span>${esc(x.address.name)}, ${esc(x.address.city)} ${esc(x.address.country_code || '')} · ${x.quantity} × ${volumes.length === 1 ? 'copy' : 'set'}</span><span>${x.ok ? money(x.total) : '<span class="err">' + esc(x.error) + '</span>'}</span></div>`).join('') +
     `<div class="line"><span>Printing, ${t.copies} ${volumes.length === 1 ? 'copies' : 'sets'}</span><span>${money(t.print)}</span></div><div class="line"><span>Shipping, ${d.level.toLowerCase().replace('_', ' ')}</span><span>${money(t.shipping)}</span></div>` +
     (t.tax != null ? `<div class="line"><span>Tax</span><span>${money(t.tax)}</span></div>` : '') +
-    `<div class="line total"><span>Total, at cost</span><span>${money(t.total)}</span></div><p class="note">Nothing is marked up. Inksheaf pays the printer this exact amount.</p>`;
+    `<div class="line"><span>Printing and shipping by Lulu</span><span>${money(t.lulu_total)}</span></div>` +
+    `<div class="line"><span>Inksheaf, ${money(t.per_book)} × ${t.books} printed ${t.books === 1 ? 'book' : 'books'}</span><span>${money(t.inksheaf)}</span></div>` +
+    `<div class="line total"><span>Total</span><span>${money(t.total)}</span></div><p class="note">Lulu’s prices are passed through exactly. Inksheaf adds ${money(t.per_book)} for each printed book.</p>`;
   const bad = d.quotes.filter(x => !x.ok).length;
   $('#pay').classList.toggle('hidden', !!bad || !t.copies);
   $('#pay').textContent = payment === 'stripe' ? 'Pay and print' : 'Send me the invoice';

@@ -1,0 +1,164 @@
+{
+  "scope": "Adjacent-page layout evidence and batching measured repairs before model review; no final-book acceptance",
+  "base_commit": "62ac6321d9e5a9641b2739edf33db6842d56e2c7",
+  "files": {
+    "scripts/lib/fit.mjs": "65f1c60078c314b8b12e7935d7a32fdc6c56bb39846328a68e9d154c96dcff57",
+    "scripts/lib/publisher-layout.mjs": "1889e6a49eb2debf28dbac48ce8497fc9f2d7e36d68f9997c98dc5130e6b6e2e",
+    "scripts/lib/publisher-session.mjs": "116b113a38a619cff88ad6440328cff482b620a0fd1fa6889537360702da14c0",
+    "scripts/pdf-whitespace-audit.py": "fb8404594ed1a0595ad9ee83e46748746b51eb2a0aeef5fbe84bce2db41c099c",
+    "scripts/render-book.sh": "aec8d46ad098529b39c2005057225f7198bb56344a925d82d6c7df0c274fe994",
+    "scripts/test-fit-batching.mjs": "0904980b3b85700cf0a36ebcf2634db57efc738902b34fc6a82a405e848cdc6e",
+    "scripts/test-publisher-context.mjs": "3039be6c88bee7bca42b32d6e1bdb1166a35a99b7fa2329ec5eb480081f79a43",
+    "package.json": "3bd81e3c04e94f04110ce5bf44a0aa5bb79dd7916c9d8bf21d9e119dbb072ff3"
+  },
+  "regression": {
+    "baseline": "62ac632:scripts/lib/fit.mjs",
+    "command": "node scripts/test-fit-batching.mjs with only the fitter import replaced by baseline bytes",
+    "baseline_exit_code": 1,
+    "baseline_failure": "Second render omitted backLinks [1], consuming the pass on leading alone",
+    "candidate_exit_code": 0,
+    "candidate_result": "Two actual reserved Typst renders apply reference collection and independent leading repair; 52 source sentences and five references survive"
+  },
+  "checks": [
+    {
+      "command": "npm run test:preview:unit",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/test-renderer.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 validate.py",
+      "exit_code": 0
+    },
+    {
+      "command": "node scripts/test-honesty.mjs",
+      "exit_code": 0
+    }
+  ],
+  "counts": {
+    "renderer_passed": 69,
+    "renderer_failed": 0,
+    "validator_passed": 13,
+    "honesty_passed": 84,
+    "layout_checks": 15,
+    "orchestration_checks": 11,
+    "durable_budget_checks": 12
+  },
+  "owner_context": {
+    "checked_at": "2026-09-11T19:11:58.819Z",
+    "pdf": "dc9fe8648f5f3e537daf8f1076bcde5ae90391999855ad4f5494babad1c5206c",
+    "journal": "58f0eacbff82cc4c1dbddc1eba9538fad5ecc84fd69d2d64eba79998b01f338f",
+    "cases": [
+      {
+        "page": 35,
+        "same_article": true,
+        "trailing_space_points": 145.23251708984378,
+        "next_figure_height_points": 158.35706984667803,
+        "printed_block_count": 8
+      },
+      {
+        "page": 57,
+        "same_article": true,
+        "trailing_space_points": 171.88223632812503,
+        "next_figure_height_points": 210.02390177353342,
+        "printed_block_count": 8
+      },
+      {
+        "page": 114,
+        "same_article": true,
+        "trailing_space_points": 106.9375036621094,
+        "next_figure_height_points": 183.56253588516745,
+        "printed_block_count": 8
+      },
+      {
+        "page": 115,
+        "same_article": true,
+        "trailing_space_points": 163.42499145507816,
+        "next_figure_height_points": 179.9474511149228,
+        "printed_block_count": 8
+      },
+      {
+        "page": 117,
+        "same_article": true,
+        "trailing_space_points": 149.79751953125003,
+        "next_figure_height_points": 197.21302325581397,
+        "printed_block_count": 8
+      },
+      {
+        "page": 128,
+        "same_article": true,
+        "trailing_space_points": 159.06534179687503,
+        "next_figure_height_points": 236.46599999999998,
+        "printed_block_count": 5
+      }
+    ],
+    "paid_calls": 0,
+    "book_renders": 0,
+    "original_pdf_and_journal_unchanged": true,
+    "acceptance": "Held; measured context only, no new model verdict"
+  },
+  "request_envelope_simulation": {
+    "simulation": true,
+    "network_requests": 0,
+    "model_verdicts": 0,
+    "pages": 38,
+    "batches": [
+      {
+        "pages": 6,
+        "input_bytes": 31390
+      },
+      {
+        "pages": 6,
+        "input_bytes": 53740
+      },
+      {
+        "pages": 6,
+        "input_bytes": 50364
+      },
+      {
+        "pages": 6,
+        "input_bytes": 53396
+      },
+      {
+        "pages": 6,
+        "input_bytes": 61359
+      },
+      {
+        "pages": 6,
+        "input_bytes": 66369
+      },
+      {
+        "pages": 2,
+        "input_bytes": 18598
+      }
+    ],
+    "budget_reservations": [
+      0.13481,
+      0.183084,
+      0.176006,
+      0.182204,
+      0.199044,
+      0.209712,
+      0.107982
+    ],
+    "total_conservative_request_reservations_usd": 1.192842
+  },
+  "limitations": [
+    "No new annual render or paid model verdict",
+    "Original annual remains held at its original six-render allowance",
+    "Cold annual/divided completion, actual inbox delivery, Lulu routes and public-launch acceptance remain open"
+  ],
+  "external_effects": {
+    "paid_model_calls": 0,
+    "emails": 0,
+    "listings": 0,
+    "orders": 0,
+    "production_deployments": 0
+  }
+}
