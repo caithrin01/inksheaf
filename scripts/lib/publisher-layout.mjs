@@ -311,6 +311,25 @@ export function acceptMeasuredFigureGaps(result,input){
   validateLayout({decisions:decisions.map(({measured_override,model_decision,...d})=>d)},input);
   return accepted;
 }
+// Each piece starts on a new page, so an article's last page ends where its writing ends.
+// A held page that is measurably an ordinary ending (the piece ends here, at least half the
+// page is printed, no content finding, no sparse tail or stranded picture) is accepted by
+// measurement; the model's own verdict is kept beside it.
+export const ARTICLE_END_MAX_UNUSED=0.5;
+export function acceptMeasuredArticleEndings(result,input){
+  const decisions=result.decisions.map(d=>{
+    const p=input.pages.find(p=>p.page===d.page);
+    if(d.decision!=='needs_review'||!p||articleEndsHere(p)!==true)return d;
+    if(!(Number.isFinite(p.trailing_unused_fraction)&&p.trailing_unused_fraction<=ARTICLE_END_MAX_UNUSED))return d;
+    if(p.findings.some(x=>x.check!==1)||sparseProseEnding(p)||p.stranded_picture_fit||!allowedSpaceBases(p).includes('article_end'))return d;
+    return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'article_end',article_ends_here:true,
+      reason:`Measured ordinary ending: the piece ends here with ${Math.round((1-p.trailing_unused_fraction)*100)}% of the page printed; the next piece starts on a new page.`.slice(0,200),
+      measured_override:true,model_decision:d};
+  });
+  const accepted={...result,decisions};
+  validateLayout({decisions:decisions.map(({measured_override,model_decision,...d})=>d)},input);
+  return accepted;
+}
 export function applyLayoutRepairs(fit,result,input){
   validateLayout(result,input);
   const next={defer:[...(fit.defer||[])],fitFigs:{...fit.fitFigs},fitText:{...fit.fitText},backLinks:[...(fit.backLinks||[])],inFlow:[...(fit.inFlow||[])]};
