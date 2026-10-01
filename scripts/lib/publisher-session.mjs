@@ -4,7 +4,7 @@ import { createHash,createHmac,randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {clippedText} from './schema-text.mjs';
 import {mapConcurrent,serialWrites} from './async-work.mjs';
-import {LayoutReviewDecisions,validateLayout,layoutBatches} from './publisher-layout.mjs';
+import {LayoutReviewDecisions,validateLayout,layoutBatches,restateMeasuredBoundaries} from './publisher-layout.mjs';
 import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
 import {currentPublisherSelection,selectionChanged} from './publisher-selection.mjs';
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
@@ -168,7 +168,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     // for short visual confirmations. Incomplete answers still hold and count.
     const paidRequest={role:'publisher',schema:LayoutReviewDecisions,data:input,images,maxOutput:maxTokens,reasoningBudget:0,task:LAYOUT_TASK};
     let result;
-    try{result=await ask(paidRequest);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...paidRequest,task:paidRequest.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});}
+    try{result=await ask(paidRequest);validateLayout(result,input);}catch(error){if(error.name!=='ZodError'&&error.code!=='PUBLISHER_LAYOUT_INVALID')throw error;result=await ask({...paidRequest,task:paidRequest.task+' The previous response failed validation: '+error.message+'. Check page coverage, candidate IDs, content-defect holds and character limits.'});result=restateMeasuredBoundaries(result,input);}
     validateLayout(result,input);await saveLayout(result);return result;
   };
   const layout=async (input,{imagesByPage}={})=>{

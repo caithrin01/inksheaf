@@ -323,7 +323,9 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   let structure = cache.get(key);
   if (!structure) {
     const task = 'Compose the table of contents for this edition. Use one chronological section unless the writing clearly warrants a few meaningful sections. Preserve chronological order within each section. Keep every supplied post exactly once. The description MUST be under 200 characters, each section title under 80 characters, and each reason under 200 characters. Explain the arrangement in one short sentence; avoid literary praise. Do not invent post titles, author identities, page numbers or source facts; you are using source-backed classifications and quotations, not claiming another full reading.';
-    const request = { role: 'publisher', schema: Structure, data: { publication, posts: input }, task };
+    // Open-ended thinking once spent the whole 6,000-token output on a 23-post annual and
+    // returned no contents. A bounded budget keeps about 4,000 tokens for the answer.
+    const request = { role: 'publisher', schema: Structure, data: { publication, posts: input }, task, reasoningBudget: 2048 };
     try { structure = await ask(request); validateStructure(structure, kept); }
     catch (error) {
       if (error.name !== 'ZodError' && !String(error.message).startsWith('Contents')) throw error;

@@ -251,6 +251,18 @@ export function layoutInput({measurement,report,fit,review,pdfHash,pageText=[],f
     return {...packet,sparse_prose_ending:sparseProseEnding(packet),allowed_space_bases:allowedSpaceBases(packet)};
   })};
 }
+// article_ends_here is a supplied fact the model restates as a consistency check. After the
+// model's one correction still restates it wrongly, the measured value replaces the restatement;
+// every rule that depends on the boundary is computed from measurement and still applies.
+export function restateMeasuredBoundaries(result,input){
+  const pages=new Map((input.pages||[]).map(p=>[p.page,p])),restated=[];
+  const decisions=(result?.decisions||[]).map(d=>{
+    const p=pages.get(d?.page);if(!p||d.article_ends_here==null)return d;
+    const measured=articleEndsHere(p);if(measured==null||d.article_ends_here===measured)return d;
+    restated.push(d.page);return {...d,article_ends_here:measured};
+  });
+  return restated.length?{...result,decisions,boundary_restated:restated}:result;
+}
 export function validateLayout(result,input){
   const invalid=message=>Object.assign(Error(message),{code:'PUBLISHER_LAYOUT_INVALID'});
   const parsed=LayoutDecisions.parse(result),seen=new Set(),pages=new Map(input.pages.map(p=>[p.page,p])),candidates=new Map(input.candidates.map(c=>[c.id,c]));
@@ -293,6 +305,25 @@ export function acceptMeasuredFigureGaps(result,input){
     return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'figure_sequence',article_ends_here:d.article_ends_here??false,
       reason:(detail?`The next page is an enlarged detail of ${f.enlarged_detail_of}; details exist to print larger and are never shrunk to fill a gap.`
         :`Measured: shrinking the next figure into this gap would print its lettering at ${letters}pt, below the ${f.letter_floor_points}pt floor.`).slice(0,200),
+      measured_override:true,model_decision:d};
+  });
+  const accepted={...result,decisions};
+  validateLayout({decisions:decisions.map(({measured_override,model_decision,...d})=>d)},input);
+  return accepted;
+}
+// Each piece starts on a new page, so an article's last page ends where its writing ends.
+// A held page that is measurably an ordinary ending (the piece ends here, at least half the
+// page is printed, no content finding, no sparse tail or stranded picture) is accepted by
+// measurement; the model's own verdict is kept beside it.
+export const ARTICLE_END_MAX_UNUSED=0.5;
+export function acceptMeasuredArticleEndings(result,input){
+  const decisions=result.decisions.map(d=>{
+    const p=input.pages.find(p=>p.page===d.page);
+    if(d.decision!=='needs_review'||!p||articleEndsHere(p)!==true)return d;
+    if(!(Number.isFinite(p.trailing_unused_fraction)&&p.trailing_unused_fraction<=ARTICLE_END_MAX_UNUSED))return d;
+    if(p.findings.some(x=>x.check!==1)||sparseProseEnding(p)||p.stranded_picture_fit||!allowedSpaceBases(p).includes('article_end'))return d;
+    return {page:d.page,decision:'intentional_space',candidate_id:null,space_basis:'article_end',article_ends_here:true,
+      reason:`Measured ordinary ending: the piece ends here with ${Math.round((1-p.trailing_unused_fraction)*100)}% of the page printed; the next piece starts on a new page.`.slice(0,200),
       measured_override:true,model_decision:d};
   });
   const accepted={...result,decisions};
