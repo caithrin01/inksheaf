@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {layoutInput,validateLayout,applyLayoutRepairs,pageContext,layoutBatches,readingOrderFindings,articleEndsHere} from './lib/publisher-layout.mjs';
+import {acceptMeasuredArticleEndings,restateMeasuredBoundaries,layoutInput,validateLayout,applyLayoutRepairs,pageContext,layoutBatches,readingOrderFindings,articleEndsHere} from './lib/publisher-layout.mjs';
 const input=layoutInput({measurement:{pages:[{page:1,blank:.6,ink_rows:.2},{page:2,blank:.7,ink_rows:.2}],articles:[{n:1,start:1,end:2}],figures:[{id:'figure-1',page:1,role:'picture'}],fit:[{id:'figure-1',page:1,height:2.8}],linkStarts:[{n:1,page:2}]},report:{postOrder:[{id:1}],publisher:{decisions:[{post_id:1,title:'An essay',kind:'essay',reason:'Substantial writing.'}]}},fit:{fitText:{1:.62}},review:{findings:[]},pdfHash:'fixture'});
 let n=0;const test=(name,fn)=>{fn();n++;console.log('PASS',name);};
 const result={decisions:[{page:1,decision:'repair',candidate_id:'figure:figure-1',reason:'Fit the measured figure.'},{page:2,decision:'repair',candidate_id:'leading:1',reason:'Bring a sparse ending back.'}]};
@@ -81,6 +81,28 @@ test('body gaps cannot use an article-ending basis, even with final prose before
   assert.throws(()=>validateLayout({decisions:[d]},i),/compiled position/);
   assert.equal(validateLayout({decisions:[{...d,space_basis:'figure_sequence',reason:'Closing prose precedes the full-page photograph in the same article.'}]},i).decisions.length,1);
   assert.throws(()=>validateLayout({decisions:[{...d,space_basis:null}]},i),/space_basis/);
+});
+test('a wrong boundary restatement after correction takes the measured value; boundary rules still apply',()=>{
+  const page={page:130,position:'body',compiled_article_span:{start:121,end:131},findings:[],following_source_figure:{id:'closing-screenshot',physical_page:131}};
+  const input={pages:[page],candidates:[]},held={page:130,decision:'needs_review',candidate_id:null,space_basis:null,article_ends_here:true,reason:'Gap before the closing screenshot.'};
+  const restated=restateMeasuredBoundaries({decisions:[held]},input);
+  assert.deepEqual(restated.boundary_restated,[130]);assert.equal(restated.decisions[0].article_ends_here,false);
+  assert.equal(validateLayout(restated,input).decisions[0].decision,'needs_review');
+  const excused={...held,decision:'intentional_space',space_basis:'article_end',reason:'The article ends here.'};
+  assert.throws(()=>validateLayout(restateMeasuredBoundaries({decisions:[excused]},input),input),/space_basis/,'an article-end excuse still fails on a body page');
+  const right={decisions:[{...held,article_ends_here:false}]};assert.equal(restateMeasuredBoundaries(right,input),right,'a correct restatement is untouched');
+});
+test('an ordinary measured article ending held by the model is accepted; others stay held',()=>{
+  const base={position:'article ending',compiled_article_span:{start:112,end:121},findings:[],trailing_unused_fraction:.407,ink_rows:.394};
+  const input={pages:[{...base,page:121},{...base,page:122,compiled_article_span:{start:112,end:122},trailing_unused_fraction:.62},{...base,page:123,compiled_article_span:{start:112,end:123},findings:[{page:123,check:7,note:'stray markup'}]}],candidates:[]};
+  const held=page=>({page,decision:'needs_review',candidate_id:null,space_basis:null,article_ends_here:true,reason:'Space remains and no repair candidate is available.'});
+  const out=acceptMeasuredArticleEndings({decisions:[121,122,123].map(held)},input);
+  assert.equal(out.decisions[0].decision,'intentional_space');assert.equal(out.decisions[0].space_basis,'article_end');assert.equal(out.decisions[0].measured_override,true);
+  assert.equal(out.decisions[0].model_decision.decision,'needs_review','the model verdict is retained');
+  assert.equal(out.decisions[1].decision,'needs_review','more than half the page unused stays with review');
+  assert.equal(out.decisions[2].decision,'needs_review','a content finding is never excused as an ending');
+  const body={...base,page:130,position:'body',compiled_article_span:{start:121,end:131}};
+  assert.equal(acceptMeasuredArticleEndings({decisions:[{...held(130),article_ends_here:false}]},{pages:[body],candidates:[]}).decisions[0].decision,'needs_review','a body page is not an ending');
 });
 test('a held body page cannot invent an article ending before its closing image',()=>{
   const page={page:130,position:'body',compiled_article_span:{start:121,end:131},findings:[],following_source_figure:{id:'closing-screenshot',physical_page:131}};

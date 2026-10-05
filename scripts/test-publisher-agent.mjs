@@ -145,6 +145,11 @@ await test('short visual confirmations reserve their verdict instead of exhausti
   assert.deepEqual(requests[1].reasoning,{effort:'medium'});
   assert.equal(journal.calls.length,2);assert(journal.calls.every(c=>c.status==='completed'));
 });
+await test('the contents call keeps output for its answer with a bounded thinking budget', async () => {
+  const seen=[];await publishSelection({posts:posts.slice(0,1),publication:'Fixture',ask:async request=>{seen.push(request);return ask(request);}});
+  const contents=seen.find(r=>r.role==='publisher');assert(contents,'contents are composed by the publisher model');
+  assert.equal(contents.reasoningBudget,2048);
+});
 await test('archive facts are counted from the posts themselves', async () => {
   const facts=archiveFacts(prepareSources([{id:2,title:'Later',post_date:'2025-06-01T00:00Z',body_html:'<p>Five words in this one.</p>'},
     {id:1,title:'First',post_date:'2025-01-03T00:00Z',body_html:'<p>It began on a cold morning when the press first ran. Then more.</p><img src=x>'}]));
