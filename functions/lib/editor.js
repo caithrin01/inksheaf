@@ -91,12 +91,16 @@ export function calendarFallback(input) {
      the cadence's ideal (2026-09-04: "Four quarters, one book each" sat over two folded volumes) */
   const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
   const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  /* whole means the label is one of the window's own period labels; an off-calendar half-year's
+     label ("Q4 2025 – Q1 2026") contains " – " without being a fold */
+  const periodLabels = new Set([...w.halves, ...w.quarters, ...w.months].map(pd => pd.label));
+  const isWhole = v => periodLabels.has(v.label);
   const whyFor = (cadence, vols, periods) => {
-    const n = vols.length, whole = vols.filter(v => !/ – | · /.test(v.label)).length;
+    const n = vols.length, whole = vols.filter(isWhole).length;
     const unit = { half: "half-years", quarterly: "quarters", monthly: "months" }[cadence];
     if (whole === n && n === periods) return cadence === "half" ? (n === 2 ? "Two half-years, one book each." : "One half-year, one book.") : cadence === "quarterly" ? (n === 4 ? "Four quarters, one book each." : `${cap(WORDS[n])} quarters, one book each.`) : (n === 12 ? "A book a month." : `${cap(WORDS[n])} months, one book each.`);
     const list = vols.map(v => v.label).join(n === 2 ? " and " : ", ");
-    const folded = vols.some(v => / – /.test(v.label)), parts = vols.some(v => / · /.test(v.label));
+    const folded = vols.some(v => !isWhole(v) && / – /.test(v.label)), parts = vols.some(v => / · /.test(v.label));
     return `${cap(WORDS[n] || String(n))} books from the ${WORDS[periods] || periods} ${unit}${folded && parts ? ", thin ones folded and a long one split" : folded ? ", thin ones folded together" : parts ? ", a long one split in parts" : ""}: ${list}.`;
   };
   const consider = (cadence, vols, periods) => {
@@ -106,7 +110,7 @@ export function calendarFallback(input) {
     if (cadence !== "single" && vols.length < 2) { infeasible.push({ cadence, reason: vols.length ? "the archive folds down to one volume" : "no posts in the window" }); return; }
     /* a cadence is only itself when most of its periods survive as whole volumes: eleven months
        folded into one book beside a single whole month is not "monthly" */
-    const whole = vols.filter(v => !/ – | · /.test(v.label)).length;
+    const whole = vols.filter(isWhole).length;
     if (cadence !== "single" && whole < Math.ceil(periods / 2)) {
       const unit = { half: "half-years", quarterly: "quarters", monthly: "months" }[cadence];
       infeasible.push({ cadence, reason: whole === 0 ? `every one of the ${unit} would fold or split` : `most of the ${unit} would fold or split` }); return;

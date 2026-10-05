@@ -47,6 +47,17 @@ const small = buildEditorInput({ posts: year.slice(0, 20), identity, host: "s", 
 const fbs = checkPlan(calendarFallback(small), small);
 ok("fallback: young archive is a single volume", fbs.ok && fbs.plan.routes.find(r => r.recommended)?.cadence === "single", fbs.errors.join("; "));
 
+/* ---------- off-calendar half-years carry " – " in their own label (2026-10-05 nightly) ---------- */
+{
+  const oct5 = Date.parse("2026-10-05T12:00:00Z"), offYear = [];
+  for (const m of ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"])
+    for (let d = 1; d <= 6; d++) offYear.push(mk(`${m}-${String(d * 4).padStart(2, "0")}`, 1500));
+  const oi = buildEditorInput({ posts: offYear, identity, host: "off", nowMs: oct5 });
+  ok("off-calendar window: halves named by their quarters", editionWindow(oct5).halves.map(h => h.label).join(",") === "Q4 2025 – Q1 2026,Q2 2026 – Q3 2026");
+  const oc = checkPlan(calendarFallback(oi), oi);
+  ok("off-calendar window: a half-year route with its own window labels passes the checker", oc.ok && oc.plan.routes.some(r => r.cadence === "half" && r.volumes[0].label === "Q4 2025 – Q1 2026"), oc.errors.join("; "));
+}
+
 /* ---------- the cadence sentence is written from the folded volumes (2026-09-04) ---------- */
 ok("prose: four whole quarters say so", fb.plan.routes.find(r => r.cadence === "quarterly").why === "Four quarters, one book each.");
 {

@@ -11,6 +11,9 @@ const labelsOf = (w, cadence) =>
 const boundsOf = (w, cadence, label) => {
   /* a quarterly route may fold two quarters into a half-year and call it so; a monthly route may fold into a quarter */
   const list = cadence === "quarterly" ? [...w.quarters, ...w.halves] : cadence === "half" ? w.halves : cadence === "monthly" ? [...w.months, ...w.quarters] : [{ label: w.label, fromIso: w.fromIso, toIso: w.toIso }];
+  /* a window label can itself contain " – " (a half-year off the calendar: "Q4 2025 – Q1 2026"); match it whole first */
+  const whole = list.find(x => x.label === label.trim().replace(/\s·\s(?:[IVX]+|\d+)$/, ""));
+  if (whole) return { fromIso: whole.fromIso, toIso: whole.toIso };
   const parts = label.split(" – ").map(s => s.trim().replace(/\s·\s(?:[IVX]+|\d+)$/, ""));
   const found = parts.map(p => list.find(x => x.label === p)).filter(Boolean);
   if (found.length !== parts.length) return null;

@@ -26,6 +26,8 @@ export async function detectSubstack(host, { fetchImpl = fetch, timeoutMs = 4000
       const relayed = await relay(h).catch(() => null);
       if (Array.isArray(relayed)) return named(relayed, h);
     }
+    // Cloudflare answers 530 when the address has no DNS: there is no site there.
+    if (r.status === 530) return { state: "no_site", status: 530 };
     // A refusal or an upstream error says nothing about the address typed.
     if (r.status === 403 || r.status === 429 || r.status >= 500) return { state: "unknown", status: r.status };
     if (!r.ok) return { state: "not_substack", status: r.status };
