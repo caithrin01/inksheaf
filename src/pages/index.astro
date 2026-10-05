@@ -794,6 +794,32 @@ function fmt(iso: string){
 }
 trybtn.addEventListener('click', ()=>runPreview());
 tryurl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); runPreview(); } });
+/* As the writer types, say whether the address is a Substack. One small read per pause; a
+   late answer for an earlier address is ignored. The full preview still checks for itself. */
+{
+  const note = document.getElementById('trydetect')!;
+  let timer: ReturnType<typeof setTimeout>, asked = 0, lastHost = '';
+  const say = (state: string, text: string) => { note.dataset.state = state; note.textContent = text; };
+  const hostOf = (raw: string) => { try { return new URL(raw.includes('://') ? raw : 'https://' + raw).hostname.toLowerCase(); } catch { return ''; } };
+  tryurl.addEventListener('input', () => {
+    clearTimeout(timer);
+    const raw = tryurl.value.trim(), host = hostOf(raw);
+    if (!raw || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) || /\.$|\.[a-z0-9-]$/.test(host)) { lastHost = ''; say('', ''); return; }
+    if (host === lastHost) return;
+    say('checking', 'Checking…');
+    timer = setTimeout(async () => {
+      const mine = ++asked; lastHost = host;
+      try {
+        const d = await (await fetch('/api/detect?url=' + encodeURIComponent(raw), { signal: AbortSignal.timeout(9000) })).json();
+        if (mine !== asked) return;
+        if (d.state === 'substack') say('substack', d.name ? `Substack found: ${d.name}` : 'Substack found');
+        else if (d.state === 'not_substack') say('not_substack', 'That address is not a Substack. Check the spelling, or try yourname.substack.com.');
+        else if (d.state === 'no_site') say('no_site', 'No website answers at that address. Check the spelling.');
+        else say('', '');
+      } catch { if (mine === asked) say('', ''); }
+    }, 550);
+  });
+}
 { /* a preview someone shares reproduces itself */
   const pub = new URLSearchParams(location.search).get('pub');
   if (pub && /^[a-z0-9.-]+$/i.test(pub)){ tryurl.value = 'https://' + pub; runPreview(); }

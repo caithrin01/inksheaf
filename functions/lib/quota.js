@@ -14,4 +14,4 @@ export async function ipKey(request) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ip:" + ip));
   return "ip:" + [...new Uint8Array(d)].slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-export const LIMITS = { preview_ip: 120, preview_host: 60, signup_ip: 10, verify_host: 6 }; /* an hour; the release gates alone read one host dozens of times */
+export const LIMITS = { preview_ip: 120, preview_host: 60, signup_ip: 10, verify_host: 6, detect_ip: 600 }; /* an hour; the release gates alone read one host dozens of times */
