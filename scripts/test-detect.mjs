@@ -15,6 +15,7 @@ await test('a page that is not an archive list is not a Substack',async()=>{
 });
 await test('an unreachable host is no site; a refusal or timeout claims nothing',async()=>{
   assert.equal((await detectSubstack('asdfqwerzxcv.com',{fetchImpl:async()=>{throw new TypeError('fetch failed');}})).state,'no_site');
+  assert.equal((await detectSubstack('asdfqwerzxcv.com',{fetchImpl:async()=>respond(530,'')})).state,'no_site','Cloudflare reports a missing domain as 530');
   assert.deepEqual(await detectSubstack('x.substack.com',{fetchImpl:async()=>respond(403,'')}),{state:'unknown',status:403});
   assert.equal((await detectSubstack('x.substack.com',{fetchImpl:async()=>{throw Object.assign(Error('t'),{name:'TimeoutError'});}})).state,'unknown');
 });
