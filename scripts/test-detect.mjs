@@ -15,8 +15,15 @@ await test('a page that is not an archive list is not a Substack',async()=>{
 });
 await test('an unreachable host is no site; a refusal or timeout claims nothing',async()=>{
   assert.equal((await detectSubstack('asdfqwerzxcv.com',{fetchImpl:async()=>{throw new TypeError('fetch failed');}})).state,'no_site');
-  assert.equal((await detectSubstack('x.substack.com',{fetchImpl:async()=>respond(403,'')})).state,'unknown');
+  assert.deepEqual(await detectSubstack('x.substack.com',{fetchImpl:async()=>respond(403,'')}),{state:'unknown',status:403});
   assert.equal((await detectSubstack('x.substack.com',{fetchImpl:async()=>{throw Object.assign(Error('t'),{name:'TimeoutError'});}})).state,'unknown');
+});
+await test('a refused read is retried through the relay; a relay miss claims nothing',async()=>{
+  const refused=async()=>respond(403,'');
+  const found=await detectSubstack('chrislakin.substack.com',{fetchImpl:refused,relay:async h=>[post]});
+  assert.equal(found.state,'substack');assert.equal(found.name,'Locally Optimal');
+  assert.deepEqual(await detectSubstack('nytimes.com',{fetchImpl:refused,relay:async()=>null}),{state:'unknown',status:403});
+  assert.equal((await detectSubstack('x.com',{fetchImpl:refused,relay:async()=>{throw Error('down');}})).state,'unknown');
 });
 await test('a bare custom domain is retried once on www',async()=>{
   const seen=[];const r=await detectSubstack('caithrin.com',{fetchImpl:async url=>{seen.push(new URL(url).hostname);return new URL(url).hostname==='www.caithrin.com'?respond(200,[post],url):respond(404,'');}});
