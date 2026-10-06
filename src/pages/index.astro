@@ -17,10 +17,10 @@ import WriterFAQs from "../components/WriterFAQs.astro";
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Inksheaf: your Substack, bound as a book</title>
-<meta name="description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order at cost. Private beta, US delivery." />
+<meta name="description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order. The complete PDF is free; printed copies are Lulu&rsquo;s price plus $3." />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <meta property="og:title" content="Inksheaf: your Substack, bound as a book" />
-<meta property="og:description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order at cost. Private beta, US delivery." />
+<meta property="og:description" content="Paste your publication and see your book: every essay set in type, 6×9, perfect bound, printed to order. The complete PDF is free; printed copies are Lulu&rsquo;s price plus $3." />
 <meta property="og:image" content="https://inksheaf.com/og.png?v=20260907" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -60,7 +60,7 @@ import WriterFAQs from "../components/WriterFAQs.astro";
         <p class="pv-sub" id="pv-sub"></p>
         <div class="pv-price" id="pv-price"></div>
         <button class="pv-cta" id="pv-cta" type="button">Make this book</button>
-        <p class="pv-note note">Nothing prints until you approve your proof. Readers order from Lulu.</p>
+        <p class="pv-note note">Your complete PDF is free. Printed copies are Lulu&rsquo;s price plus $3 per book.</p>
         <div class="desk" id="desk" hidden>
           <p class="plan-what" id="plan-what"></p>
           <div class="desk-tabs" id="desk-tabs" role="tablist" aria-label="Ways to bind it"></div>
@@ -147,7 +147,7 @@ import WriterFAQs from "../components/WriterFAQs.astro";
     <a class="footer-identity" href="#hero-story" aria-label="Inksheaf home"><Logo inverse /></a>
     <p class="legal">Inksheaf prints editions of Substack publications with their owners&rsquo; permission. It is an
     independent product, for Substack writers, and is not affiliated with or endorsed by Substack Inc.
-    US delivery during the beta. Built by <a href="https://about.caithrin.com">Caithrin</a> &middot; <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a></p>
+    Built by <a href="https://about.caithrin.com">Caithrin</a> &middot; <a href="mailto:caithrin@caithrin.com">caithrin@caithrin.com</a></p>
     <div class="setline2">Set in Source Serif 4 &middot; printed on demand by Lulu</div>
   </footer>
 </div>
@@ -616,7 +616,7 @@ function drawPlan(){
   const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
   (document.getElementById('pv-price') as HTMLElement).textContent =
     'Estimated printing: ' + money(route.price[plan.interior]) + (n > 1 ? ' for the set' : ' per copy') +
-    '. Shipping: ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + ', mainland US, to one address. At cost during the beta. Lulu confirms fees and tax before payment.';
+    ', plus $3 per printed book for Inksheaf. Shipping: ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) + ' to one US address. Lulu confirms shipping, fees and tax before payment.';
   (document.getElementById('plan-by') as HTMLElement).textContent = ed.planned_by === 'editor' ? 'Planned by our editor from your archive' : (ed.pending ? 'Planned by the calendar · our editor is reading your archive' : 'Planned by the calendar');
   const E = editionView(d, plan.cadence);
   paintCover(d, E);
@@ -716,9 +716,9 @@ function drawDesk(){
   /* measured set sizes (1, 2, 4, 8) print exact; a fitted count, or a capped read, says "about" */
   const shipMeasured = Object.keys(PRICES.shipping_set || {}).map(Number).includes(n) && !d.capped;
   (document.getElementById('pv-price') as HTMLElement).textContent =
-    'Readers pay print cost plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) +
-    (n > 1 ? ' shipping for the set' : ' shipping') + ', mainland US. ' +
-    'Beta editions sell at cost. Lulu confirms fees and tax before payment.';
+    'Printed copies are Lulu\u2019s print price plus $3 per book, plus ' + (shipMeasured ? '$' + ship.toFixed(2) : 'about $' + Math.round(ship)) +
+    (n > 1 ? ' shipping for the set' : ' shipping') + ' to one US address. ' +
+    'Lulu confirms shipping, fees and tax before payment.';
   const E = editionView(d, desk.cadence);
   paintCover(d, E);
   paintEditionCopy(d, E);
