@@ -1,6 +1,6 @@
 import { hmacHex } from '../lib/press-dispatch.js';
 import { readLimitedText } from './preview.js';
-import { PUBLISHER_MAX_CALLS } from '../lib/publisher-policy.js';
+import { publisherAllowance, planVolumeCount } from '../lib/publisher-policy.js';
 import {readPublisherSelection} from '../lib/publisher-selection.js';
 import {renderBudgetTransition} from '../lib/publisher-render-budget.js';
 const json=(value,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store'}});
@@ -20,7 +20,10 @@ export async function onRequest({request,env}) {
       const row=await env.DB.prepare('SELECT revision,payload FROM publisher_state WHERE signup_id=?').bind(id).first();
       return json({ok:true,revision:row?.revision||0,state:row?JSON.parse(row.payload):null,selection});
     }
-    if(!Number.isSafeInteger(b.revision)||b.revision<0||!b.state || !Array.isArray(b.state.journal?.calls) || b.state.journal.calls.length>PUBLISHER_MAX_CALLS || !Array.isArray(b.state.cache))return json({ok:false},400);
+    // The call allowance follows the stored plan's volume count, never the press's own claim.
+    const planned=await env.DB.prepare('SELECT plan_json FROM signups WHERE id=?').bind(id).first().catch(()=>null);
+    const allowance=publisherAllowance(planVolumeCount(planned?.plan_json));
+    if(!Number.isSafeInteger(b.revision)||b.revision<0||!b.state || !Array.isArray(b.state.journal?.calls) || b.state.journal.calls.length>allowance.calls || !Array.isArray(b.state.cache))return json({ok:false},400);
     const current=await env.DB.prepare('SELECT revision,payload FROM publisher_state WHERE signup_id=?').bind(id).first();
     if((current?.revision||0)!==b.revision)return json({ok:false},409);
     const previous=current?JSON.parse(current.payload):null;

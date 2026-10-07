@@ -8,6 +8,7 @@ import {LayoutReviewDecisions,validateLayout,layoutBatches,restateMeasuredBounda
 import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
 import {currentPublisherSelection,selectionChanged} from './publisher-selection.mjs';
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
+import {publisherAllowance,planVolumeCount} from '../../functions/lib/publisher-policy.js';
 import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
 import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
@@ -60,6 +61,8 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
   if(!Number.isSafeInteger(selection?.revision)||!Array.isArray(selection?.restored))throw Error('Your saved selection is unavailable.');
   if(env.PUBLISHER_SELECTION_REVISION!=null&&Number(env.PUBLISHER_SELECTION_REVISION)!==selection.revision)throw selectionChanged();
   const run=baseRun+(selection.revision?'.s'+selection.revision:'');
+  // Each volume of the planned edition gets the per-book model allowance.
+  const allowance=publisherAllowance(planVolumeCount(env.PLAN_JSON));
   const ensureSelection=async()=>{if(remote&&(await currentPublisherSelection({env,fetchImpl})).revision!==selection.revision)throw selectionChanged();};
   state.runs||={};state.runs[run]||={sequence:0,keys:{}};
   const save=serialWrites(async()=>{
@@ -108,7 +111,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const key=publisherReviewCacheKey({model,task,schema,maxTokens,imageHashes:buffers.map(b=>createHash('sha256').update(b).digest('hex'))});
     const cache=new Map(state.cache);
     if(cache.has(key))return {text:JSON.stringify(cache.get(key)),usage:{prompt_tokens:0,completion_tokens:0,cost:0}};
-    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     const request={role,images:buffers,task,schema,maxOutput:maxTokens};
     let answer,usage;
     try{({result:answer,usage}=await ask.withUsage(request));}catch(error){
@@ -162,7 +165,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
       for(const result of await mapConcurrent(layoutBatches(input,6),batch=>layoutBatch(batch,imagesByPage)))decisions.push(...result.decisions);
       const result=validateLayout({decisions},input);await saveLayout(result);return result;
     }
-    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     // The cold annual and a numeric-cap probe exhausted all output on thinking.
     // Disable optional thinking for this bounded, measured decision packet, as
     // for short visual confirmations. Incomplete answers still hold and count.
@@ -187,7 +190,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const input={figure_id,source_sha256},imageHashes=[createHash('sha256').update(image).digest('hex')],maxTokens=250;
     const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:FIGURE_ROLE_TASK,schema:FigureRole,input,imageHashes,maxTokens}),cache=new Map(state.cache);
     if(cache.has(key))return FigureRole.parse(cache.get(key));
-    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     const result=await ask({role:'reader',task:FIGURE_ROLE_TASK,schema:FigureRole,data:input,images:[image],maxOutput:maxTokens});
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
   };
@@ -198,7 +201,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,input,imageHashes,maxTokens});
     const cache=new Map(state.cache);
     if(cache.has(key))return validateSourceFigureRoles(cache.get(key),figures);
-    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     const result=validateSourceFigureRoles(await ask({role:'reader',task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,data:input,images,maxOutput:maxTokens}),figures);
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
   };
@@ -208,7 +211,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     const input={...sourceNotesInput(heading,tailHtml),source_sha256:createHash('sha256').update(tailHtml).digest('hex')};
     const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:SOURCE_NOTES_TASK,schema,input,maxTokens}),cache=new Map(state.cache);
     if(cache.has(key))return schema.parse(cache.get(key)).notes;
-    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     const result=await ask({role:'reader',task:SOURCE_NOTES_TASK,schema,data:input,maxOutput:maxTokens});
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result.notes;
   };
@@ -232,7 +235,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     read:async({posts,publication,identity,overrides,volume})=>{
     await ensureSelection();
     const cache=new Map(state.cache);
-    const inference=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl});
+    const inference=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
     const ask=async request=>{await ensureSelection();return inference(request);};
     const ids=new Set(posts.map(p=>String(p.id??p.slug)));
     const restored=Object.fromEntries(selection.restored.filter(id=>ids.has(id)).map(id=>[id,'keep']));

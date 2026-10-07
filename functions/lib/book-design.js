@@ -18,6 +18,15 @@ export function designSelection(cover = 'masthead', theme = {}, logo) {
 export function validLogoTreatment(value){
   return value === undefined || !!value && ['transparent','original','band'].includes(value.treatment) && (value.treatment !== 'band' || /^#[0-9a-f]{6}$/i.test(value.background));
 }
+// A byline that fits a cover or a status line however many people write for a
+// publication: "A", "A and B", "A, B and C", then "A, B and 6 others".
+export function bylineOf(names = []) {
+  const list = [...new Set((names || []).map(n => String(n || '').trim()).filter(Boolean))];
+  if (list.length <= 1) return list[0] || '';
+  if (list.length === 2) return `${list[0]} and ${list[1]}`;
+  if (list.length === 3) return `${list[0]}, ${list[1]} and ${list[2]}`;
+  return `${list[0]}, ${list[1]} and ${list.length - 2} others`;
+}
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 export function coverColors(cover, theme = {}, version = DESIGN_VERSION) {
   theme = theme || {};

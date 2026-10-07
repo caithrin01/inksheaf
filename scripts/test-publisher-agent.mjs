@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {PUBLISHER_BUDGET_USD} from '../functions/lib/publisher-policy.js';
 import { readFileSync } from 'node:fs';
-import { archiveFacts, publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
+import { byPostCount, archiveFacts, publishSelection, prepareSources, sourceText, validateReading, validateStructure, openRouterPublisher, Reading, COMPUTE_POLICY, publisherImageTokenBound } from './lib/publisher-agent.mjs';
 const posts = JSON.parse(readFileSync('scripts/fixtures/publisher-posts.json', 'utf8'));
 const sources = prepareSources(posts);
 const reading = batch => ({ decisions: batch.map(p => ({ post_id: p.id, kind: [102,106].includes(Number(p.id)) ? 'housekeeping' : p.id === '103' ? 'poem' : 'essay',
@@ -149,6 +149,10 @@ await test('the contents call keeps output for its answer with a bounded thinkin
   const seen=[];await publishSelection({posts:posts.slice(0,1),publication:'Fixture',ask:async request=>{seen.push(request);return ask(request);}});
   const contents=seen.find(r=>r.role==='publisher');assert(contents,'contents are composed by the publisher model');
   assert.equal(contents.reasoningBudget,2048);
+});
+await test('contributors are ordered by how many posts each wrote', async () => {
+  const src=[{authors:['Guest']},{authors:['Shakeel','Celia']},{authors:['Shakeel']},{authors:['Celia']},{authors:['Shakeel','Shakeel']}];
+  assert.deepEqual(byPostCount(src),['Shakeel','Celia','Guest']);
 });
 await test('archive facts are counted from the posts themselves', async () => {
   const facts=archiveFacts(prepareSources([{id:2,title:'Later',post_date:'2025-06-01T00:00Z',body_html:'<p>Five words in this one.</p>'},

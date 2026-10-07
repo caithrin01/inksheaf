@@ -238,7 +238,9 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
       let provenance=[6,7].includes(f.check)&&textEvidence?textEvidence(f.page):null;
       if(f.check===6&&provenance?.reference_markers?.length)
         provenance={...provenance,printed_reference_identity:referenceIdentity(pdf,f.page,provenance.reference_markers)};
-      const r = await askBounded({ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord,artifacts,provenance), maxTokens: 400,check:f.check });
+      // A thrown confirmation request is asked once more before it counts as an error.
+      const confirmRequest={ model: pass2Model, images: [single,...comparisons,...adjacent,...(glyphs?[glyphs.file]:[])], text: pass2Prompt(f,pageContext.find(p=>p.page===f.page)||null,originals,neighbours,glyphRecord,artifacts,provenance), maxTokens: 400,check:f.check };
+      let r;try{r=await askBounded(confirmRequest);}catch(e){if(shouldStop())throw e;r=await askBounded(confirmRequest);}
       if(!r)return;
       out.pass2.calls++; addUsage(out, r.usage);
       let j = parseJson(r.text);
@@ -259,23 +261,35 @@ export async function reviewPdf(pdf, { outDir, ask = askOpenRouter, pass1Model =
     } catch (e) { out.pass2.errors++; out.errors.push(`pass2 page ${f.page}: ${String(e.message).slice(0, 120)}`); }
   };
   let screened=0;
+  // One reading of a contact sheet. A thrown request, an unreadable answer or a finding
+  // outside this sheet makes the reading unusable; the sheet is then read once more.
+  const screenOnce=async s => {
+    const r = await askBounded({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
+    if(!r)return {skipped:true};
+    out.pass1.calls++; addUsage(out, r.usage);
+    const arr = parseJson(r.text);
+    if (!Array.isArray(arr)) return {problem:'unparseable answer',invalid:1,flagged:[]};
+    const flagged=[];let invalid=0;
+    for (const f of arr) {
+      const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
+      if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') { invalid++; continue; }
+      if (conf < minConfidence) continue;
+      flagged.push({ page, check, note: String(f.note || "").slice(0, 200), confidence: Math.round(conf * 100) / 100 });
+    }
+    return invalid?{problem:'invalid page/check finding',invalid,flagged}:{flagged};
+  };
   const screen=async s => {
-    const flagged=[];
-    try {
-      const r = await askBounded({ model: pass1Model, images: [s.file], text: pass1Prompt(s.pages,pageContext.filter(p=>s.pages.includes(p.page))), maxTokens: 800 });
-      if(!r)return;
-      out.pass1.calls++; addUsage(out, r.usage);
-      const arr = parseJson(r.text);
-      if (!Array.isArray(arr)) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: unparseable answer`); return; }
-      for (const f of arr) {
-        const page = Number(f.page), check = Number(f.check), conf = Number(f.confidence);
-        if (!s.pages.includes(page) || !CHECKS[check] || !Number.isFinite(conf) || conf<0 || conf>1 || typeof f.note!=='string') {
-          out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: invalid page/check finding`); continue;
-        }
-        if (conf < minConfidence) continue;
-        flagged.push({ page, check, note: String(f.note || "").slice(0, 200), confidence: Math.round(conf * 100) / 100 });
-      }
-    } catch (e) { out.pass1.errors++; out.errors.push(`pass1 sheet ${s.pages[0]}: ${String(e.message).slice(0, 120)}`); }
+    // A one-off provider failure or malformed answer once held a whole 146-page
+    // edition (2026-10-06). A second unusable reading still stops the review.
+    let result;
+    for(let attempt=0;attempt<2;attempt++){
+      try{result=await screenOnce(s);}catch(e){result={problem:String(e.message).slice(0,120),invalid:1,flagged:[]};}
+      if(result.skipped||!result.problem||shouldStop())break;
+      log(`pass1 sheet ${s.pages[0]}-${s.pages[s.pages.length - 1]}: ${result.problem}; reading it once more`);
+    }
+    if(result.skipped)return;
+    if(result.problem){out.pass1.errors+=result.invalid;for(let i=0;i<result.invalid;i++)out.errors.push(`pass1 sheet ${s.pages[0]}: ${result.problem}`);}
+    const flagged=result.flagged;
     // A page belongs to exactly one contact sheet. Its highest-confidence
     // observation for each check is final as soon as that sheet settles.
     const unique=new Map();
