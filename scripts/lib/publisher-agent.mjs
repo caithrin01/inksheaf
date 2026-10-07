@@ -56,6 +56,12 @@ export function prepareSources(posts) {
   });
 }
 
+// Contributors, most posts first, so a short byline leads with the principal writers.
+export function byPostCount(sources) {
+  const n = new Map();
+  for (const p of sources) for (const a of new Set(p.authors)) n.set(a, (n.get(a) || 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+}
 // Plain facts about the posts being read, counted from their text; no model involved.
 export function archiveFacts(sources) {
   const words = p => (p.text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
@@ -143,7 +149,7 @@ function requestLedger(journal) {
   return ledger;
 }
 export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetchImpl = fetch,
-  journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD } = {}) {
+  journal = { calls: [], spent: 0 }, persist = async () => {}, budget = PUBLISHER_BUDGET_USD, maxCalls = PUBLISHER_MAX_CALLS } = {}) {
   if (!key) throw Error('Publisher model credential is unavailable');
   journal.calls ||= []; journal.spent ||= 0;
   const ledger = requestLedger(journal);
@@ -184,7 +190,7 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
         const pending = await ledger.serial(async () => {
           if (ledger.failure) throw ledger.failure;
           const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-          if (journal.calls.length >= PUBLISHER_MAX_CALLS) throw Error('Publisher model budget reached; saved work is retained');
+          if (journal.calls.length >= maxCalls) throw Error('Publisher model budget reached; saved work is retained');
           if (committed + reserved > budget) {
             // Current network work can settle below its conservative reservation.
             // Wait outside the write lock; old unknown charges never trigger a wait.
@@ -274,7 +280,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
   const sources = prepareSources(posts), byId = new Map(sources.map(p => [p.id, p]));
   for (const [id, choice] of Object.entries(overrides)) if (!byId.has(id) || !['keep', 'set_aside'].includes(choice)) throw Error('Invalid creator override');
   const decisions = [];let readCount=0;
-  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: [...new Set(sources.flatMap(p => p.authors))], archive: archiveFacts(sources) });
+  await emit({ ...identity, kind: 'identity', publication: String(publication), contributors: byPostCount(sources), archive: archiveFacts(sources) });
   // Missing bodies are a hold, never an inferred empty/housekeeping post.
   if (sources.some(p => !p.text && !p.images)) throw Error('Complete source text is missing; publisher cannot finish the edition');
   const batches=Array.from({length:Math.ceil(sources.length/batchSize)},(_,i)=>sources.slice(i*batchSize,(i+1)*batchSize));

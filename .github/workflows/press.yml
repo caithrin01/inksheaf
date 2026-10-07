@@ -16,7 +16,8 @@ jobs:
   press:
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: read }
-    timeout-minutes: 40
+    # Volumes are made one after another; a twelve-volume edition takes about an hour.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

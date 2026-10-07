@@ -32,18 +32,25 @@ const ask = async ({ model, images, text }) => {
   return { text: '{"confirmed": true, "note": "two thirds of the page is empty and it is not a closer"}', usage: { prompt_tokens: 900, completion_tokens: 20 } };
 };
 const r = await reviewPdf(pdf, { outDir: join(dir, "run"), ask, pass1Model: "stub-1", pass2Model: "stub-2", key: "stub" });
-ok("pass 1 ran once per sheet", r.pass1.calls === 2, JSON.stringify(calls));
+ok("pass 1 read each sheet once, and the sheet with an unusable finding once more", r.pass1.calls === 3, JSON.stringify(calls));
 ok("only in-sheet flags over the threshold reach pass 2", r.pass1.flagged === 1 && r.pass2.calls === 1);
 ok("pass 2 got the single page at full size", calls.find(c=>c.model === "stub-2")?.images === 1);
 const expectedPage=rasterise(pdf,join(dir,'expected-page-3'),{scale:1800,first:3,last:3})[0];
 ok("pass 2 was shown the flagged page itself (regression: shared raster dir handed it page 4)",readFileSync(calls.find(c=>c.model === "stub-2").image).equals(readFileSync(expectedPage)));
 ok("confirmed finding reported with page, check and both notes", r.findings.length === 1 && r.findings[0].page === 3 && r.findings[0].check === 1 && r.findings[0].pass1 === "mostly empty");
-ok("usage summed", r.usage.prompt_tokens === 2300 && r.usage.completion_tokens === 100);
+ok("usage summed, retry included", r.usage.prompt_tokens === 3000 && r.usage.completion_tokens === 140);
 ok("review.json written", existsSync(join(r.dir, "review.json")));
 ok("writer line reports incomplete review", /incomplete/.test(writerLine(r)) && !/flagged nothing/.test(writerLine(r)));
 ok("operator block carries counts and the finding", /pass1 stub-1 flagged 1/.test(operatorBlock(r)) && /p\.3 check 1/.test(operatorBlock(r)));
 
 ok("an invented page is recorded as incomplete review, never a clean pass",r.pass1.errors===1 && r.errors.length===1);
+{
+  /* a one-off failure: the first reading of a sheet throws, the second is clean */
+  let first=true;
+  const clean = async req => /contact sheet/.test(req.text) ? { text: "[]", usage: { prompt_tokens: 1, completion_tokens: 1 } } : ask(req);
+  const once = await reviewPdf(pdf, { outDir: join(dir, "flaky"), ask: async req => { if (/contact sheet/.test(req.text) && first) { first=false; throw Error('provider error'); } return clean(req); }, pass1Model: "stub-1", pass2Model: "stub-2", key: "stub", stopOnError: true });
+  ok("a sheet that fails once is read again and the review completes", once.errors.length === 0 && once.pass1.errors === 0 && once.pages === 6);
+}
 
 /* pass 2 dismisses: nothing reported, the dismissal kept */
 const r2 = await reviewPdf(pdf, { outDir: join(dir, "run2"), ask: async ({ text }) => /contact sheet/.test(text) ? { text: text.includes("page 1,") ? '[{"page":2,"check":6,"note":"boxes","confidence":0.9}]' : "[]" } : { text: '{"confirmed": false, "note": "clean Times, no boxes"}' }, key: "stub" });
@@ -92,7 +99,7 @@ const untyped=await reviewPdf(pdf,{outDir:join(dir,'untyped-figure'),key:'stub',
 ok('legacy untyped image dismissals leave review incomplete',untyped.errors.length===1&&untyped.dismissed.length===0);
 let failedRequests=0;
 const stopped=await reviewPdf(pdf,{outDir:join(dir,'outage'),key:'stub',stopOnError:true,concurrency:1,ask:async()=>{failedRequests++;throw Error('fetch failed');}});
-ok('single-worker outage stops before later pages; concurrent draining is tested separately',failedRequests===1&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
+ok('a lasting single-worker outage is asked once more, then stops before later pages; concurrent draining is tested separately',failedRequests===2&&stopped.errors.length===1&&stopped.pass2.calls===0&&existsSync(join(stopped.dir,'review.json')));
 let adjacent=false;
 const continuation=await reviewPdf(pdf,{outDir:join(dir,'continuation'),key:'stub',ask:async({text,images})=>{
   if(/contact sheet/.test(text))return{text:text.includes('page 1,')?'[{"page":3,"check":2,"confidence":0.9,"note":"word continues on the next page"}]':'[]'};

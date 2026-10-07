@@ -37,7 +37,7 @@ import {coverMarkup,coverStyle} from '../../functions/lib/book-design.js';
 <script>
 import {editionPages} from '../scripts/edition-pages';
 import {coverLogo} from '../../functions/lib/cover-logo.js';
-import {coverMarkup,coverStyle,COVER_DESIGNS} from '../../functions/lib/book-design.js';
+import {coverMarkup,coverStyle,COVER_DESIGNS,bylineOf} from '../../functions/lib/book-design.js';
 const $=(id:string)=>document.getElementById(id)!;
 const params=new URLSearchParams(location.search), id=params.get('id'), sig=params.get('sig');
 const endpoint='/api/edition?'+new URLSearchParams({id:id||'',sig:sig||''});
@@ -117,7 +117,7 @@ function cover(){
   const key=JSON.stringify([identity,selection]);if(key===coverKey)return;coverKey=key;
   const name=identity.publication||'Your publication',node=$('edition-cover');
   node.dataset.design=selection;node.setAttribute('style',coverStyle(selection,identity.theme||{},name));
-  node.innerHTML=coverMarkup({publication:name,...coverLogo(identity,selection),kind:'Collected writing',dates:identity.dates||'',foot:identity.contributors?.join(' · ')||'6 × 9 · perfect bound'});
+  node.innerHTML=coverMarkup({publication:name,...coverLogo(identity,selection),kind:'Collected writing',dates:identity.dates||'',foot:bylineOf(identity.contributors)||'6 × 9 · perfect bound'});
   $('cover-caption').textContent=(COVER_DESIGNS.find(d=>d.id===selection)?.name||'Masthead')+' cover · 6 × 9 inches';
 }
 cover();
@@ -184,7 +184,7 @@ function showEvent(e:any){
   displayedRevision=Math.max(displayedRevision,e.selection_revision||0);
   if(e.kind==='identity'){
     identity={...identity,...e};cover();$('identity-note').hidden=false;
-    pressLog.add(e,`Found ${e.publication}${e.contributors?.length?', by '+e.contributors.slice(0,3).join(', ')+(e.contributors.length>3?' and others':''):''}.`);
+    pressLog.add(e,`Found ${e.publication}${e.contributors?.length?', by '+bylineOf(e.contributors):''}.`);
     if(e.archive?.posts){archiveNote(e.archive);pressLog.add(e,`${plural(e.archive.posts,'post')} to read, ${plural(e.archive.words,'word')} in all.`);}
     $('identity-note').replaceChildren(el('p',e.publication,'identity-name'),el('p',e.contributors?.length?'Writing by '+e.contributors.join(', '):'The publication name is confirmed.','identity-byline'));
   } else if(e.kind==='reading'){
