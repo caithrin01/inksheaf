@@ -108,7 +108,11 @@ let browser;
 try{
   browser=await chromium.launch();const page=await browser.newPage({viewport:{width:1280,height:1000},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(origin);await page.locator('#tryurl').fill(host);await page.locator('#trybtn').click();
-  await page.waitForFunction(()=>document.getElementById('preview').classList.contains('personalized'),null,{timeout:90000});mark('identity_visible');
+  // A real archive preview can take its 40-second direct budget, then the relay; record how long.
+  const previewStarted=Date.now();
+  await page.waitForFunction(()=>document.getElementById('preview').classList.contains('personalized')||document.getElementById('tryerr')?.textContent,null,{timeout:180000});
+  const previewError=await page.locator('#tryerr').textContent();journal.seconds_to_preview=Math.round((Date.now()-previewStarted)/100)/10;
+  if(previewError)throw Error('Preview failed: '+previewError);mark('identity_visible');
   await page.waitForFunction(()=>/ready|planned|hand-built/i.test(document.querySelector('#pv-status')?.textContent||''),null,{timeout:120000}).catch(()=>{});
   await page.locator('#pv-cta').click();const plan=JSON.parse(await page.locator('#plan_json').inputValue());writeFileSync(join(out,'selected-plan.json'),JSON.stringify(plan,null,2));
   journal.plan={cadence:plan.cadence,planned_by:plan.planned_by,volumes:(plan.volumes||[]).length,posts:(plan.volumes||[]).reduce((t,v)=>t+(v.post_ids||[]).length,0),interior:plan.interior};
