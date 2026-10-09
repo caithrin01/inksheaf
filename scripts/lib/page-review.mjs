@@ -336,6 +336,7 @@ export function operatorBlock(r) {
   const head = `page review: ${r.pages} pages, ${r.sheets} sheets, pass1 ${r.pass1.model} flagged ${r.pass1.flagged}, pass2 ${r.pass2.model} confirmed ${r.pass2.confirmed} dismissed ${r.pass2.dismissed}, errors ${r.errors.length}, ${Math.round(r.ms / 1000)}s, tokens ${r.usage.prompt_tokens}/${r.usage.completion_tokens}`;
   const lines = r.findings.map(f => `  p.${f.page} check ${f.check} ${shortCheck(f.check)}: ${f.note}`);
   const errs = r.errors.slice(0, 5).map(e => `  ! ${e}`);
-  return [head, ...lines, ...errs].join("\n");
+  const open = (r.open_issues || []).map(e => `  OPEN (delivered anyway): ${e}`);
+  return [head, ...open, ...lines, ...errs].join("\n");
 }
 const shortCheck = n => ({ 1: "blank space", 2: "orphan/widow", 3: "figure", 4: "overflow", 5: "running head/folio", 6: "glyphs", 7: "artefact", 8: "reading order" })[n] || `check ${n}`;

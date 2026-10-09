@@ -10,7 +10,7 @@ import {validateLayout} from './lib/publisher-layout.mjs';
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../functions/lib/publisher-render-budget.js';
 let passed=0;
 async function test(name,fn){await fn();console.log('PASS',name);passed++;}
-async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false,initialPasses=1,keepSpace=false,imageRole=null}={}){
+async function scenario({alwaysRepair=false,changeSource=false,visionFails=false,hold=false,leading=.66,interrupted=false,mixedHold=false,persistentHold=false,initialPasses=1,keepSpace=false,imageRole=null,deliver=false}={}){
   const dir=mkdtempSync(join(tmpdir(),'publisher-volume-')),pdf=join(dir,'book.pdf');
   const doc=await PDFDocument.create();doc.addPage([432,648]);doc.addPage([432,648]);if(mixedHold)doc.addPage([432,648]);writeFileSync(pdf,await doc.save());
   let builds=0;const events=[],settings=[],previews=[],visionBuilds=[];
@@ -32,7 +32,8 @@ async function scenario({alwaysRepair=false,changeSource=false,visionFails=false
     return validateLayout(result,input);
   }};
   const outerKinds=[];
-  const run=()=>publishVolume({build,session:async()=>publisher,emit:async e=>{outerKinds.push(e.kind);return emit(e);},volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
+  // Strict mode (deliver=false) keeps every hold rule tested; delivery mode is tested separately.
+  const run=()=>publishVolume({deliverOpenIssues:deliver,build,session:async()=>publisher,emit:async e=>{outerKinds.push(e.kind);return emit(e);},volume:'1',reviewDirectory:join(dir,'review'),onRendered:async({book,round,volume})=>previews.push({round,volume,source:book.report.bodyHashes.source})});
   return{run,events,outerKinds,settings,previews,visionBuilds,dir,get builds(){return builds;}};
 }
 await test('source picture classification shares bounded fitting before the first full-page scan',async()=>{
@@ -48,6 +49,17 @@ await test('page-check progress goes through the review session, never a second 
   assert(checking.length>0,'the review reports page-check progress');
   assert(!s.outerKinds.includes('checking'),'progress must not open a second state writer during the review');
   assert(checking.every(e=>e.checked<=e.total&&e.total>0));
+});
+await test('delivery mode: an unsettled review delivers the reviewed book and lists the open pages',async()=>{
+  for(const [opts,pattern] of [[{hold:true},/closer look on page/],[{visionFails:true},/Page review incomplete/],[{alwaysRepair:true},/Repairs left unapplied/]]){
+    const s=await scenario({...opts,deliver:true});const book=await s.run();
+    assert(book.pdf,'a book is returned');assert(book.review.open_issues.length>=1);assert.match(book.review.open_issues.join(' '),pattern);
+    assert.deepEqual(book.report.layoutAgent.open_issues,book.review.open_issues);
+    assert(s.events.some(e=>e.kind==='review'),'the review event still reaches the creator');
+  }
+});
+await test('delivery mode never delivers changed source text',async()=>{
+  const s=await scenario({changeSource:true,deliver:true});await assert.rejects(s.run,/Source text changed/);
 });
 await test('reading, uncertain and failed source-role checks cannot authorize a photo repair',async()=>{
   for(const imageRole of ['reading','uncertain','failure']){

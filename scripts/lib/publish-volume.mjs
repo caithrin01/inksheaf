@@ -8,14 +8,21 @@ import {prepareLayoutEvidence} from './layout-evidence.mjs';
 import {inspectFigureRoles} from './figure-role.mjs';
 import {PreparedTypesetting} from './prepared-typesetting.mjs';
 import {PUBLISHER_REVIEW_POLICY} from './publisher-session.mjs';
-import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS} from '../../functions/lib/publisher-policy.js';
+import {PUBLISHER_MAX_RENDERS,PUBLISHER_MAX_REPAIR_ROUNDS,PUBLISHER_DELIVER_OPEN_ISSUES} from '../../functions/lib/publisher-policy.js';
+
+// Errors that mean the book itself cannot be trusted. Everything else the review
+// could not settle is delivered with its open pages listed for the operator.
+const REAL_HOLD=/Source text changed|source text is missing|Renderer did not account|could not be saved|selection|Saved layout evidence|locked by another worker|changed in another worker|credential/i;
 
 // The same complete local pipeline is used by the press and by private rehearsals.
 // Complete-file publication/email happen only after a checked PDF returns.
 // An optional private draft excerpt may appear while that review continues.
-export async function publishVolume({build,session,emit,volume,reviewDirectory,renderIdentity,log=()=>{},onRendered=async()=>{},onRestored=async()=>{}}){
+export async function publishVolume({build,session,emit,volume,reviewDirectory,renderIdentity,log=()=>{},onRendered=async()=>{},onRestored=async()=>{},deliverOpenIssues=PUBLISHER_DELIVER_OPEN_ISSUES}){
   let usage=(await session()).renderUsage(volume),totalPasses=usage.passes,review,layout;
   let sourceHashes;
+  const openIssues=[];
+  // Record an unsettled review step and keep going, or hold when delivery is off or the error is real.
+  const settle=(error,note)=>{if(!deliverOpenIssues||REAL_HOLD.test(String(error?.message||error)))throw error instanceof Error?error:Error(String(error));openIssues.push(note);log(`delivering with an open issue: ${note}`);};
   const prepared=new PreparedTypesetting();
   const boundedBuild=async options=>{
     const remaining=PUBLISHER_MAX_RENDERS-totalPasses;
@@ -49,8 +56,8 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     onResult:roles=>writeFileSync(`${reviewDirectory}-initial/figure-roles.json`,JSON.stringify({policy:PUBLISHER_REVIEW_POLICY,roles},null,2)+'\n',{mode:0o600})});
   const pictures=unknownPictureFits({measurement:firstMeasurement,fit:book.report.fit,review:{findings:interruptions}})
     .filter(c=>initialRoles[c.figure]?.role==='picture');
-  if(interruptions.length||pictures.length){
-    if(totalPasses>=PUBLISHER_MAX_RENDERS)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+  if((interruptions.length||pictures.length)&&totalPasses>=PUBLISHER_MAX_RENDERS)settle(Error('The bounded layout repairs need a closer look. Your work is saved.'),'No render was left to place images back between their paragraphs.');
+  else if(interruptions.length||pictures.length){
     const initial={...book.report.fit,inFlow:[...new Set([...(book.report.fit.inFlow||[]),...interruptions.map(f=>f.figure_id)])],
       ...(pictures.length?{pictureFigures:[...new Set([...(book.report.fit.pictureFigures||[]),...pictures.map(c=>c.figure)])],
         fitFigs:{...book.report.fit.fitFigs,...Object.fromEntries(pictures.map(c=>[c.figure,c.height]))}}:{})};
@@ -76,7 +83,8 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     };
     review=await reviewPdf(book.pdf,{onProgress,ask:publisher.vision,imageFormat:"png",stopOnError:true,deferSpacingToLayout:true,pageContext:pageContext(measurement,book.report),sourceFigures:measurement.figures||[],textEvidence:page=>pageTextEvidence(measurement,page),outDir:`${reviewDirectory}-${round}`,log});
     await progressChain;
-    if(review.skipped||review.errors.length||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
+    if(review.skipped||!review.pages)throw Error('Page review could not finish. Your editorial work is saved for recovery.');
+    if(review.errors.length)settle(Error('Page review could not finish. Your editorial work is saved for recovery.'),`Page review incomplete: ${review.errors.length} check${review.errors.length===1?'':'s'} could not finish (${String(review.errors[0]).slice(0,120)}).`);
     review.measured_findings=readingOrderFindings(measurement);
     review.findings.push(...review.measured_findings);
     const figureRoles={...book.report.sourceFigureRoles,...await inspectFigureRoles({measurement,fit:book.report.fit,review,ask:publisher.figureRole,directory:`${reviewDirectory}-${round}/figure-role-images`,
@@ -85,32 +93,39 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
     const evidence=prepareLayoutEvidence(measuredInput,{directory:`${reviewDirectory}-${round}`,rasterDirectory:`${reviewDirectory}-${round}/pages`,pageCount:review.pages,policy:PUBLISHER_REVIEW_POLICY});
     const input=evidence.input;
     try{layout=acceptMeasuredArticleEndings(acceptMeasuredFigureGaps(await publisher.layout(input,{imagesByPage:evidence.imagesByPage}),input),input);}
-    catch(error){evidence.saveResult({status:'incomplete'});throw error;}
+    catch(error){evidence.saveResult({status:'incomplete'});settle(error,`Layout review could not finish (${String(error.message).slice(0,140)}).`);layout={decisions:[]};break;}
     // Save before events, repair exhaustion or quality holds can interrupt work.
     evidence.saveResult({status:'completed-review',decisions:layout.decisions});
     await publisher.emit({kind:'layout',volume,pages:review.pages,passes:totalPasses,decisions:layout.decisions,message:layout.decisions.some(d=>d.decision==='repair')?'A few pages need a tighter setting. Their writing stays intact.':'Unused page space has been checked against the shape of each piece.'});
     // Apply available repairs before holding other findings: repagination can
     // resolve a neighbouring defect. Nothing clears until the new PDF is reviewed.
     if(!layout.decisions.some(d=>d.decision==='repair')){
-      if(layout.decisions.some(d=>d.decision==='needs_review'))throw Error('The layout needs a closer look before the complete PDF is ready.');
+      const held=layout.decisions.filter(d=>d.decision==='needs_review');
+      if(held.length)settle(Error('The layout needs a closer look before the complete PDF is ready.'),`Layout left for a closer look on page${held.length===1?'':'s'} ${held.map(d=>d.page).join(', ')}: ${held.map(d=>d.reason).join(' | ').slice(0,300)}`);
       break;
     }
-    if(usage.repairs>=PUBLISHER_MAX_REPAIR_ROUNDS||totalPasses>=PUBLISHER_MAX_RENDERS)throw Error('The bounded layout repairs need a closer look. Your work is saved.');
+    if(usage.repairs>=PUBLISHER_MAX_REPAIR_ROUNDS||totalPasses>=PUBLISHER_MAX_RENDERS){
+      settle(Error('The bounded layout repairs need a closer look. Your work is saved.'),`Repairs left unapplied on page${layout.decisions.filter(d=>d.decision==='repair').length===1?'':'s'} ${layout.decisions.filter(d=>d.decision==='repair').map(d=>d.page).join(', ')}: the repair rounds are used up.`);
+      break;
+    }
     const initial=applyLayoutRepairs(book.report.fit,layout,input);
     usage=await(await session()).reserveRepair(volume,initial);
     // A source-position repair can expose a new figure gap. Let the deterministic
     // fitter use otherwise-unused passes, while reserving a final repair round.
     const available=PUBLISHER_MAX_RENDERS-totalPasses;
     const passes=Math.min(3,Math.max(1,available-(round===0&&available>1?1:0)));
-    book=await boundedBuild({initial,passes});
-    if(JSON.stringify(book.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
+    // A failed repair render keeps the reviewed book; changed source text still holds.
+    let repaired;try{repaired=await boundedBuild({initial,passes});}catch(error){settle(error,`A repair render failed (${String(error.message).slice(0,140)}); the reviewed pages are delivered.`);break;}
+    if(JSON.stringify(repaired.report.bodyHashes)!==sourceHashes)throw Error('Source text changed during layout repair; cannot finish this edition');
+    book=repaired;
   }
   // A measured, explained use of whitespace is recorded as a resolved finding.
   const intentional=new Set(layout.decisions.filter(d=>d.decision==='intentional_space').map(d=>d.page));
   review.layout_exceptions=layout.decisions.filter(d=>d.decision==='intentional_space');
   review.resolved=(review.findings||[]).filter(f=>f.check===1&&intentional.has(f.page));
   review.findings=(review.findings||[]).filter(f=>!review.resolved.includes(f));
-  book.review=review;book.report.layoutAgent={decisions:layout.decisions,total_render_passes:totalPasses};
+  review.open_issues=openIssues;
+  book.review=review;book.report.layoutAgent={decisions:layout.decisions,total_render_passes:totalPasses,open_issues:openIssues};
   await emit({kind:'review',volume,pages:review.pages,reviewed:true,message:writerLine(review)||'The page review is complete.',findings:review.findings.length});
   return book;
 }

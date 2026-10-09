@@ -17,5 +17,10 @@ export function publisherAllowance(volumes = 1) {
   const n = Math.min(PUBLISHER_MAX_VOLUMES, Math.max(1, Math.floor(Number(volumes)) || 1));
   return { volumes: n, usd: PUBLISHER_BUDGET_USD * n, calls: PUBLISHER_MAX_CALLS * n };
 }
+// When the review itself cannot settle a page (a model mistake, an exhausted
+// allowance, an unresolved verdict), deliver the reviewed book and list the open
+// pages for the operator, instead of holding the creator's PDF. Missing or changed
+// source text, a broken file and lost saved work still hold. Pending owner decision.
+export const PUBLISHER_DELIVER_OPEN_ISSUES = true;
 export const PUBLISHER_MAX_RENDERS = 6;
 export const PUBLISHER_MAX_REPAIR_ROUNDS = 2;
