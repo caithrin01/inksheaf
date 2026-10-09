@@ -35,11 +35,11 @@ for i in range(5):
  assert.equal(figures.filter(f=>!f.parent_id).length,inventory.length,'each original is still printed exactly once');
  const details=figures.filter(f=>f.parent_id==='figure-1');assert.equal(details.length,6);
  for(const [i,detail] of details.entries()){
-  assert.equal(detail.page,screen.page+i+1,'each detail occupies its own following leaf in source order');
+  assert(detail.page>screen.page&&(i===0||detail.page>=details[i-1].page),'details follow the full image in source order; small details may share a page');
   assert.equal(detail.reading_mode,'landscape');
   const panel=roles['figure-1'].detail_panels[i];
   const scale=(detail.image_width_points/(panel.source_rect[2]-panel.source_rect[0]))/(screen.image_width_points/panel.source_width);
-  assert(Math.abs(scale-2)<.001,'two-column details double the source-pixel print scale');
+  assert(scale>=1.6&&scale<=2.001,'two-column details print near double the source scale (cuts snap to blank bands and overlap 2%)');
  }
  const audit=join(dir,'panels.json');writeFileSync(audit,JSON.stringify(roles['figure-1'].detail_panels));
  execFileSync('python3',['-c',`import json,sys
@@ -49,7 +49,7 @@ for p in json.load(open(sys.argv[2])):
  panel=Image.open(p['source']).convert('RGB');rect=p['source_rect']
  assert not ImageChops.difference(source.crop(rect),panel).getbbox(), 'Detail pixels changed'
  rebuilt.paste(panel,(rect[0],rect[1]));pixels+=panel.width*panel.height
-assert pixels==source.width*source.height and not ImageChops.difference(source,rebuilt).getbbox(), 'Incomplete or overlapping source coverage'`,join(dir,'1.png'),audit]);
+assert pixels>=source.width*source.height and not ImageChops.difference(source,rebuilt).getbbox(), 'Incomplete source coverage (tiles may overlap by design)'`,join(dir,'1.png'),audit]);
  assert.equal(screen.reading_mode,'landscape');assert(Math.abs(screen.image_width_points-485.28)<.01);
  assert(figures.every(f=>!f.floating),'prepared source figures remain between original paragraphs');
  const text=execFileSync('pdftotext',[pdf,'-'],{encoding:'utf8'});

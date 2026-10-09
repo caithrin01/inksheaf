@@ -222,7 +222,8 @@ export function emitTypst(html, opts = {}) {
           const label=`Enlarged detail ${panel.index} of ${panels.length} · row ${panel.row}, columns ${panel.first_column}–${panel.last_column}`;
           const panelAnchor=imageAnchor+'-detail-'+panel.index;
           const metadata=`#block(height:0pt,above:0pt,below:0pt)[#context [#metadata((id:${str(id+'::detail-'+panel.index)},parent_id:${str(id)},detail_index:${panel.index},detail_total:${panels.length},source:${str(panel.source)},article:${articleN},source_next_paragraph:${paragraphN+1},role:"reading",floating:false,reading_mode:${str(s.mode)},reading_sizes:((${Object.entries(s).map(([k,v])=>`${k}:${typeof v==='string'?str(v):v}`).join(',')}),),page:query(label(${str(panelAnchor)})).first().location().page(),y:query(label(${str(panelAnchor)})).first().location().position().y.pt(),w:${s.width_points},h:${s.height_points},image_width_points:${s.image_width_points})) <fig>]]`;
-          result+=`#pagebreak(weak:true)\n#source-figure([${metadata}#${body}#label(${str(panelAnchor)})],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
+          // Details flow and share pages; one forced page per detail left pages mostly blank.
+          result+=`#source-figure([${metadata}#${body}#label(${str(panelAnchor)})],caption:[${printMark('detail_caption',label,id)}${esc(label)}])\n\n`;
         }
         result+='#pagebreak(weak:true)\n';
       }

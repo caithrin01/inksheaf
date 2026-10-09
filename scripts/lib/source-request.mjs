@@ -6,16 +6,21 @@ export function retryDelay(value,now=Date.now()){
   const delay=Number.isFinite(seconds)?seconds*1000:Date.parse(value)-now;
   return Number.isFinite(delay)?Math.max(0,delay):null;
 }
-export function sourceJsonClient({fetchImpl=fetch,headers={},intervalMs=350,timeoutMs=15000,maxAttempts=5,maxWaitMs=15000,now=Date.now,sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
+export function sourceJsonClient({fetchImpl=fetch,headers={},intervalMs=350,timeoutMs=45000,maxAttempts=5,maxWaitMs=15000,now=Date.now,sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
   let next=0,queue=Promise.resolve(),failure;
   const slot=()=>{
     const work=queue.then(async()=>{while(next>now()){if(failure)throw failure;await sleep(next-now());}if(failure)throw failure;next=now()+intervalMs;});
     queue=work.catch(()=>{});return work;
   };
   return async url=>{
+    let timeouts=0;
     for(let attempt=0;attempt<maxAttempts;attempt++){
       await slot();
-      const r=await fetchImpl(url,{headers,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
+      // Substack can take 15–30 seconds to serve a post (Chris Lakin, 2026-10-09). A timed-out
+      // read is retried like a 5xx and, once retries are spent, reported for the relay.
+      let r;
+      try{r=await fetchImpl(url,{headers,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});}
+      catch(error){if(error?.name!=='TimeoutError'&&error?.name!=='AbortError')throw error;if(++timeouts>=2||attempt===maxAttempts-1)throw Error(`Source HTTP 504 timeout after bounded retries`);next=Math.max(next,now()+1500*(attempt+1));continue;}
       if(r.status!==429&&r.status<500){if(!r.ok)throw Error(`Source HTTP ${r.status}`);return r.json();}
       const delay=retryDelay(r.headers.get('retry-after'),now())??1500*(attempt+1);
       // Keep the shared pause even when this reader has exhausted its attempts.
