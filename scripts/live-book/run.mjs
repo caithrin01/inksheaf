@@ -33,7 +33,8 @@ assert(!existsSync(join(out,'journey.json')),'Preserve completed attempts; selec
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const release=JSON.parse(readFileSync('dist/inksheaf-press.json'));assert.equal(release.sha,sha,'Build dist at this commit first (npm run build)');
 const openrouterKey=readFileSync(join(process.env.HOME,'.secrets/openrouter'),'utf8').match(/sk-or-[A-Za-z0-9_-]+/)[0];
-const secret=randomBytes(24).toString('hex'),storeSecret=randomBytes(24).toString('hex');
+// The real relay secret, so a refused or rate-limited read falls back to the relay exactly as in production.
+const secret=readFileSync(join(process.env.HOME,'.secrets/inksheaf-relay-token'),'utf8').trim(),storeSecret=randomBytes(24).toString('hex');
 const owner='owner@example.com',operator='operator@example.com',sinks=new Set([owner,operator]);
 const journal={version:1,host,code_commit:sha,started:new Date().toISOString(),budget_usd:budget,events:[],requests:{},sends:[],dispatched:0,checks:{}};
 const mark=(kind,extra={})=>{journal.events.push({kind,elapsed_ms:Date.now()-Date.parse(journal.started),...extra});writeFileSync(join(out,'journey-running.json'),JSON.stringify(journal,null,2)+'\n');};

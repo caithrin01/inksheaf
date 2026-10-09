@@ -253,7 +253,7 @@ const prefetchImages = [...new Set(full.flatMap(p => [...String(p.body_html || "
   .filter(Boolean).map(imageSourceUrl).filter(u => /^https?:/.test(u));
 const imagePrefetch = mapConcurrent(prefetchImages, u => localizeImage(u).catch(() => null), { concurrency: 8, shouldStop: () => imagesPlaced }).catch(() => []);
 // Stop before optional homepage/brand reads when required writing is unavailable.
-if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error('Selected source text is missing; cannot finish the publisher edition');
+if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error(`Selected source text is missing; cannot finish the publisher edition (${[...report.skips.map(x=>`${x.slug}: ${String(x.reason).slice(0,80)}`),...(report.planSelection?.missing||[]).map(x=>`selected ${x}: not in the archive`)].slice(0,4).join('; ')})`);
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
