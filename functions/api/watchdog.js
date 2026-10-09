@@ -5,7 +5,7 @@
 // at all; only this check notices it.
 import { hmacHex } from '../lib/press-dispatch.js';
 import { planVolumeCount } from '../lib/publisher-policy.js';
-import { alertOperatorHeld } from '../lib/press-alert.js';
+import { alertOperatorHeld, tellCreatorDelayed } from '../lib/press-alert.js';
 
 export const MINUTES_PER_VOLUME = 25, GRACE_MINUTES = 10;
 const DONE = new Set(['proofed', 'approved', 'building-final', 'validated', 'listing-pending', 'listed', 'failed', 'superseded']);
@@ -37,6 +37,7 @@ export async function onRequest({ request, env }) {
     if (told) continue;
     const sent = await alertOperatorHeld(env, { signupId: s.signup_id, message: `No result after ${s.minutes} minutes (last status: ${s.status}). The press may never have started.` });
     if (sent.sent) await env.DB.prepare("INSERT INTO events (session, event) VALUES (?, 'stuck_alert')").bind(String(s.signup_id)).run().catch(() => {});
+    await tellCreatorDelayed(env, { signupId: s.signup_id });
   }
   return json({ ok: true, stuck });
 }

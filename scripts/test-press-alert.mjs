@@ -40,8 +40,10 @@ console.log(`${n} press alert checks passed`);
     const b=Math.floor(Date.now()/300000),call=async sig=>watchdog({request:new Request(`https://inksheaf.com/api/watchdog?b=${b}&sig=${sig}`),env});
     assert.equal((await call('bad')).status,403);
     const before=sent.length,r=await(await call(await hmacHex('t',`watchdog:${b}`))).json();
-    assert.deepEqual(r.stuck.map(s=>s.signup_id),[20]);assert.equal(sent.length,before+1);assert.match(sent.at(-1).text,/may never have started/);
-    await call(await hmacHex('t',`watchdog:${b}`));assert.equal(sent.length,before+1,'one alert per stuck book');
+    assert.deepEqual(r.stuck.map(s=>s.signup_id),[20]);const added=sent.slice(before);
+    assert(added.some(m=>m.to[0]==='operator@example.com'&&/may never have started/.test(m.text)),'operator alerted');
+    assert(!added.some(m=>m.to[0]==='writer@example.com'),'a writer already told their book is being finished is not told again');
+    const after=sent.length;await call(await hmacHex('t',`watchdog:${b}`));assert.equal(sent.length,after,'one alert per stuck book');
   });
   console.log(`${n} press alert and watchdog checks passed`);
 }

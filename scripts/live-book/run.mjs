@@ -24,7 +24,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {chromium} from 'playwright';
 import {PDFDocument} from 'pdf-lib';
 import {deployedPress} from '../press-release.mjs';
-import {reviewQuality} from './quality-review.mjs';
+import {reviewQuality} from '../lib/quality-review.mjs';
 
 const root=process.cwd(),arg=(f,d=null)=>{const i=process.argv.indexOf(f);return i<0?d:process.argv[i+1];};
 const host=String(arg('--host')||'').replace(/^https?:\/\//,'').replace(/\/.*$/,'');assert(host,'--host is required');

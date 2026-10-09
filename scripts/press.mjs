@@ -297,6 +297,24 @@ Inksheaf`;
       text: `The complete PDF for reservation #${ID}, version ${versionId}, is saved. Creator email acceptance is ${delivery.status}. Retry the saved proof-email operation for this version; do not rebuild the book.\n\nRun ${process.env.GITHUB_RUN_ID || "local"}`, timeoutMs: 20_000 }); }
     catch { log("creator-email", "operator delivery alert could not be confirmed"); }
   }
+  // Post-delivery audit: an independent model reads sampled pages of the delivered volumes.
+  // The writer already has the book; major defects go to the operator to correct and re-send.
+  if (process.env.OPENROUTER_API_KEY && process.env.INKSHEAF_AUDIT !== "0") {
+    try {
+      const { reviewQuality } = await import("./lib/quality-review.mjs");
+      const sample = vols.length <= 4 ? vols : [...new Set([vols[0], vols[Math.floor(vols.length / 3)], vols[Math.floor(2 * vols.length / 3)], vols[vols.length - 1]])];
+      const audits = [];
+      for (const v of sample) audits.push({ label: v.label, ...(await reviewQuality(v.pdf, { outDir: `${DIR}/audit-${String(v.label).replace(/[^A-Za-z0-9]+/g, "-")}`, key: process.env.OPENROUTER_API_KEY })) });
+      const flagged = audits.filter(a => a.major.length);
+      timing.mark("audit_finished", { volumes: audits.length, flagged: flagged.length, cost_usd: audits.reduce((t, a) => t + a.cost_usd, 0) });
+      log("audit", `${audits.length} volume(s) sampled; ${flagged.length} with major defects`);
+      if (flagged.length) await sendMail({ to: OPERATOR, subject: `Audit found problems: ${vols[0].pubName || host} (#${ID}, version ${versionId})`,
+        text: [`An independent review of the delivered book found major defects. The writer has the book; correct and re-send if they matter.`, ``,
+          ...flagged.flatMap(a => [`${a.label}:`, ...a.results.filter(r => r.verdict === "major").map(r => `  p. ${r.page}: ${r.defects.filter(d => d.severity === "major").map(d => `${d.type}: ${d.note}`).join("; ")}`)]), ``,
+          `Edition: ${workspace}`, `Run: ${process.env.GITHUB_RUN_ID ? `https://github.com/caithrin01/inksheaf/actions/runs/${process.env.GITHUB_RUN_ID}` : "local"}`,
+          `Re-make for checking first: node scripts/rerun-signup.mjs ${ID} --to-operator`].join("\n") }).catch(() => {});
+    } catch (e) { log("audit", `could not finish: ${String(e.message || e).slice(0, 160)}`); }
+  }
   // Print files for ordering copies are made after the PDF is delivered, so they never delay
   // it, and a problem here never marks the delivered book as failed. The status repeats the
   // proofed detail (the change page reads left_out from it) and adds the files.

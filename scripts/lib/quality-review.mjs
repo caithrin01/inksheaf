@@ -1,4 +1,4 @@
-// Independent page-quality review for the live-book test. A different, stronger model than
+// Independent page-quality review, used after every live delivery and by the live-book test. A different, stronger model than
 // the press's own reviewers reads sampled pages of the delivered PDF as a print production
 // editor would. It never changes the book; it only reports what a reader would notice.
 import {execFileSync} from 'node:child_process';

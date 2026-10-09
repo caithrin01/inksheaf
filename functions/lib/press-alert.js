@@ -49,3 +49,21 @@ export async function tellCreatorHeld(env, { signupId }, { fetcher = fetch } = {
   if (result.sent) await env.DB.prepare("INSERT INTO events (session, event) VALUES (?, 'creator_held_notice')").bind(String(signupId)).run().catch(() => {});
   return result;
 }
+
+// A book well past its planned time: the writer hears once that it is taking longer, not silence.
+export async function tellCreatorDelayed(env, { signupId }, { fetcher = fetch } = {}) {
+  if (!env.RESEND_API_KEY) return { sent: false, reason: 'no email key' };
+  const told = await env.DB.prepare("SELECT 1 FROM events WHERE event IN ('creator_delay_notice','creator_held_notice') AND session = ? LIMIT 1").bind(String(signupId)).first().catch(() => null);
+  if (told) return { sent: false, reason: 'already told' };
+  const row = await env.DB.prepare('SELECT email FROM signups WHERE id = ?').bind(signupId).first().catch(() => null);
+  if (!row?.email) return { sent: false, reason: 'no writer email' };
+  const text = [
+    'Your book is taking longer than usual to make. A person has been told and is looking at it now.',
+    'Your writing and your choices are saved, so there is nothing you need to do. We will email you when it is ready.', '',
+    `You can follow it here: ${await editionLink(env, signupId)}`, '',
+    'Reply to this email and a person answers.', '', 'Inksheaf',
+  ].join('\n');
+  const result = await send(env, { from: 'Inksheaf <press@inksheaf.com>', to: [row.email], reply_to: 'caithrin@caithrin.com', subject: 'Your Inksheaf book is taking longer than usual', text }, fetcher);
+  if (result.sent) await env.DB.prepare("INSERT INTO events (session, event) VALUES (?, 'creator_delay_notice')").bind(String(signupId)).run().catch(() => {});
+  return result;
+}
