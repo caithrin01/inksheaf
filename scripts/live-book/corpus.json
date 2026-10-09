@@ -1,0 +1,21 @@
+{
+  "note": "Real public publications chosen to cover the shapes that break books. Each entry names what it tests. The prolific tier is run separately because each book costs about $2 per volume.",
+  "standard": [
+    { "host": "chrislakin.substack.com", "tests": "real user; custom-domain redirect to chrislakin.blog; X embeds; illustrations" },
+    { "host": "www.callingtheshots.co", "tests": "real prospect; Chinese in the publication name" },
+    { "host": "manifund.substack.com", "tests": "organisation; several authors" },
+    { "host": "www.chinatalk.media", "tests": "several authors; podcasts; Chinese text" },
+    { "host": "experimentalhistory.substack.com", "tests": "long essays; comics and charts" },
+    { "host": "www.oneusefulthing.org", "tests": "image-heavy; AI screenshots" },
+    { "host": "www.construction-physics.com", "tests": "data-dense charts" },
+    { "host": "razib.substack.com", "tests": "mostly paid posts; podcasts" },
+    { "host": "www.lennysnewsletter.com", "tests": "mostly paid; guest authors" },
+    { "host": "poetry.substack.com", "tests": "poetry; line breaks" },
+    { "host": "sashachapin.substack.com", "tests": "personal essays" },
+    { "host": "www.caithrin.com", "tests": "owner; screenshots; annual" }
+  ],
+  "prolific": [
+    { "host": "www.transformernews.ai", "tests": "real user; about twelve monthly volumes; many authors" },
+    { "host": "garymarcus.substack.com", "tests": "prolific single author" }
+  ]
+}

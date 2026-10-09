@@ -1,0 +1,25 @@
+name: health
+# Every 15 minutes: the dependencies a book needs, and any book that never finished.
+# Read-only probes; a failure emails the operator and turns this run red.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Probe dependencies and stuck books
+        env:
+          ARCHIVE_RELAY_TOKEN: ${{ secrets.ARCHIVE_RELAY_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LULU_CLIENT_KEY: ${{ secrets.LULU_CLIENT_KEY }}
+          LULU_CLIENT_SECRET: ${{ secrets.LULU_CLIENT_SECRET }}
+          HEALTH_ALERT_TO: caithrin@caithrin.com
+        run: node scripts/health-check.mjs
