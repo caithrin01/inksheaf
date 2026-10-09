@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 import { Parser } from 'htmlparser2';
 import { REVIEW_CONCURRENCY, mapConcurrent } from './async-work.mjs';
 import { z } from 'zod';
-import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD } from '../../functions/lib/publisher-policy.js';
+import { PUBLISHER_MAX_CALLS, PUBLISHER_BUDGET_USD, PUBLISHER_DELIVER_OPEN_ISSUES } from '../../functions/lib/publisher-policy.js';
+// Lost saved work or a missing credential always stops the edition.
+const mustHold = error => !PUBLISHER_DELIVER_OPEN_ISSUES || /could not be saved|credential|selection/i.test(String(error?.message || error));
 
 export const PUBLISHER_VERSION = 2;
 export const PUBLISHER_MODELS = {
@@ -290,7 +292,7 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
     const readable = batch.filter(p => p.text);
     const key = hash([PUBLISHER_CACHE_POLICY, PUBLISHER_VERSION, PUBLISHER_MODELS.reader, publication, readable]);
     let reading = { decisions: [] };
-    if (readable.length) {
+    if (readable.length) try {
       let result = cache.get(key);
       if (!result) {
         const data = readable.map(({text, ...p}) => ({...p, lines: text.split('\n').map((text, i) => ({line: i + 1, text}))}));
@@ -306,10 +308,16 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
         validateReading(result, readable); cache.set(key, result); await saveCache(cache);
       }
       reading = validateReading(result, readable);
+    } catch (error) {
+      // An unfinished reading keeps every post in the book, marked for the operator; nothing is cached.
+      if (mustHold(error)) throw error;
+      reading = { decisions: [], unread: String(error.message).slice(0, 160) };
     }
     const batchDecisions=[];
     for (const source of batch) {
-      const d = reading.decisions.find(x => x.post_id === source.id) || { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' };
+      const d = reading.decisions.find(x => x.post_id === source.id) || (reading.unread && source.text
+        ? { post_id: source.id, kind: 'essay', decision: 'uncertain', reason: 'Kept: the reader could not finish this batch.', evidence: '', unread: reading.unread }
+        : { post_id: source.id, kind: 'photo-essay', decision: 'uncertain', reason: 'An image-only piece; kept for visual review.', evidence: '' });
       const override = overrides[source.id];
       const decision = { ...d, ...(override ? { decision: override, reason: override === 'keep' ? 'Kept by you.' : 'Left out by you.', author_override: true,
         original_decision:d.decision,original_reason:d.reason } : {}),
@@ -332,12 +340,21 @@ export async function publishSelection({ posts, publication, identity = {}, ask,
     // Open-ended thinking once spent the whole 6,000-token output on a 23-post annual and
     // returned no contents. A bounded budget keeps about 4,000 tokens for the answer.
     const request = { role: 'publisher', schema: Structure, data: { publication, posts: input }, task, reasoningBudget: 2048 };
-    try { structure = await ask(request); validateStructure(structure, kept); }
-    catch (error) {
-      if (error.name !== 'ZodError' && !String(error.message).startsWith('Contents')) throw error;
-      structure = await ask({...request, task: `${task}\nThe previous result violated the required format or contents accounting. Check character limits, IDs and chronological order before returning it.`});
+    try {
+      try { structure = await ask(request); validateStructure(structure, kept); }
+      catch (error) {
+        if (error.name !== 'ZodError' && !String(error.message).startsWith('Contents')) throw error;
+        structure = await ask({...request, task: `${task}\nThe previous result violated the required format or contents accounting. Check character limits, IDs and chronological order before returning it.`});
+      }
+      validateStructure(structure, kept); cache.set(key, structure); await saveCache(cache);
+    } catch (error) {
+      // Unfinished contents fall back to one section in publication order; nothing is cached.
+      if (mustHold(error)) throw error;
+      const ordered = [...kept].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      structure = { description: `${ordered.length} pieces from ${publication}, in the order they were published.`.slice(0, 240),
+        sections: [{ title: 'Collected writing', post_ids: ordered.map(p => p.id), reason: 'Set in publication order; the contents could not be composed.' }],
+        fallback: String(error.message).slice(0, 160) };
     }
-    validateStructure(structure, kept); cache.set(key, structure); await saveCache(cache);
   }
   structure = validateStructure(structure, kept);
   await emit({ kind: 'contents', description: structure.description, sections: structure.sections.map(section => ({ ...section,

@@ -150,6 +150,21 @@ await test('the contents call keeps output for its answer with a bounded thinkin
   const contents=seen.find(r=>r.role==='publisher');assert(contents,'contents are composed by the publisher model');
   assert.equal(contents.reasoningBudget,2048);
 });
+await test('an unfinished reading keeps every post; unfinished contents fall back to publication order', async () => {
+  const broken = async ({ role }) => { if (role === 'reader') throw Object.assign(Error('Reading did not account for every supplied post'), {}); return { description: 'x', sections: [] }; };
+  const result = await publishSelection({ posts, publication: 'Fixture', ask: broken });
+  assert.equal(result.decisions.length, sources.length);
+  assert(result.decisions.every(d => d.decision !== 'set_aside'), 'nothing is left out on an unfinished reading');
+  assert(result.decisions.filter(d => sources.find(s => s.id === d.post_id).text).every(d => /could not finish/.test(d.reason)));
+  assert.equal(result.structure.sections.length, 1);
+  const dates = result.structure.sections[0].post_ids.map(id => sources.find(s => s.id === id).date);
+  assert.deepEqual(dates, [...dates].sort(), 'publication order');
+  assert.equal(result.included_ids.length, sources.length);
+});
+await test('a lost save still stops the edition', async () => {
+  const lost = async () => { throw Error('Publisher work could not be saved; the book is held for recovery'); };
+  await assert.rejects(publishSelection({ posts, publication: 'Fixture', ask: lost }), /could not be saved/);
+});
 await test('contributors are ordered by how many posts each wrote', async () => {
   const src=[{authors:['Guest']},{authors:['Shakeel','Celia']},{authors:['Shakeel']},{authors:['Celia']},{authors:['Shakeel','Shakeel']}];
   assert.deepEqual(byPostCount(src),['Shakeel','Celia','Guest']);
