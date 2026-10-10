@@ -25,6 +25,7 @@ import {chromium} from 'playwright';
 import {PDFDocument} from 'pdf-lib';
 import {deployedPress} from '../press-release.mjs';
 import {completeness} from './completeness.mjs';
+import {sendAdapterError} from './http-error.mjs';
 import {sourceJsonClient} from '../lib/source-request.mjs';
 import {sourceRelay,refused} from '../lib/source-relay.mjs';
 import {reviewQuality} from '../lib/quality-review.mjs';
@@ -97,7 +98,7 @@ const server=createServer(async(req,res)=>{
     } else {let file=resolve(root,'dist','.'+u.pathname);if(!extname(file))file=join(file,'index.html');if(!existsSync(file)){res.writeHead(404);res.end();return;}response=new Response(readFileSync(file),{headers:{'content-type':types[extname(file)]||'application/octet-stream'}});}
     const headers=Object.fromEntries(response.headers);if(headers['content-encoding']){delete headers['content-encoding'];delete headers['content-length'];}
     res.writeHead(response.status,headers);if(response.body)for await(const b of response.body)res.write(Buffer.from(b));res.end();
-  }catch(e){mark('adapter_error',{error:String(e.message).slice(0,200)});res.writeHead(500,{'content-type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}));}
+  }catch(e){mark('adapter_error',{error:String(e.message).slice(0,200)});sendAdapterError(res,e);}
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));origin='http://127.0.0.1:'+server.address().port;
 async function startWorker(payload){

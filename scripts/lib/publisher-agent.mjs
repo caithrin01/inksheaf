@@ -252,7 +252,7 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
       // Native fetch aborts are DOMExceptions with a read-only numeric `code`.
       // Keep the original error as the cause; tagging it in place can itself
       // throw before the failed call is recorded or its bounded retry runs.
-      const transient=['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&/fetch failed/i.test(error.message));
+      const transient=['TimeoutError','AbortError'].includes(error.name)||(error instanceof TypeError&&(/fetch failed/i.test(error.message)||['UND_ERR_SOCKET','ECONNRESET','ETIMEDOUT'].includes(error.cause?.code)));
       const failure=transient?Object.assign(new Error(error.message,{cause:error}),{code:'PUBLISHER_TRANSIENT'}):error;
       if (call) { call.status = 'failed'; call.error = String(error.message).replaceAll(key, '[redacted]').slice(0, 250);
         call.elapsed_ms=Date.now()-Date.parse(call.started);
