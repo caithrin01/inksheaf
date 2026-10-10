@@ -7,7 +7,7 @@
     { "host": "www.chinatalk.media", "budget_usd": 54, "tests": "several authors; podcasts; Chinese text" },
     { "host": "experimentalhistory.substack.com", "tests": "long essays; comics and charts" },
     { "host": "www.oneusefulthing.org", "tests": "image-heavy; AI screenshots" },
-    { "host": "www.construction-physics.com", "tests": "data-dense charts" },
+    { "host": "www.construction-physics.com", "budget_usd": 10, "tests": "data-dense charts" },
     { "host": "razib.substack.com", "tests": "mostly paid posts; podcasts" },
     { "host": "www.lennysnewsletter.com", "tests": "mostly paid; guest authors" },
     { "host": "poetry.substack.com", "expected": "empty-archive", "tests": "poetry; line breaks" },
@@ -15,7 +15,7 @@
     { "host": "www.caithrin.com", "tests": "owner; screenshots; annual" }
   ],
   "prolific": [
-    { "host": "www.transformernews.ai", "tests": "real user; about twelve monthly volumes; many authors" },
+    { "host": "www.transformernews.ai", "budget_usd": 42, "tests": "real user; about twelve monthly volumes; many authors" },
     { "host": "garymarcus.substack.com", "tests": "prolific single author" }
   ]
 }
