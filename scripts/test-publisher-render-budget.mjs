@@ -227,7 +227,7 @@ await test('reading-order confirmation requests its typed schema and retries an 
   assert.deepEqual(read(dir).journal.calls.map(c=>c.status),['failed','completed']);assert.equal(read(dir).cache.length,1);
 });
 
-await test('layout reserves answer space and retains a truncated charge across restart without caching its partial verdict',async()=>{
+await test('layout retains an over-reservation truncated charge across restart without caching its partial verdict',async()=>{
   const dir=temporary();let calls=0;
   const input={pdf_hash:'fixture',pages:Array.from({length:6},(_,i)=>({page:i+1,findings:[],position:'complete short piece',printed_text:'A complete short poem.',unused_body_fraction_lower_bound:.8})),candidates:[]};
   const decisions=input.pages.map(p=>({page:p.page,article_ends_here:true,decision:'intentional_space',candidate_id:null,reason:'The complete short poem occupies its own page.',space_basis:'single_piece'}));
@@ -237,7 +237,9 @@ await test('layout reserves answer space and retains a truncated charge across r
     // thinking budget: a partial JSON answer cannot become quality acceptance.
     return Response.json({choices:[{finish_reason:calls===1?'length':'stop',message:{content:calls===1?'{"decisions":[':JSON.stringify({decisions})}}],usage:calls===1?{cost:.107472,completion_tokens:5000,completion_tokens_details:{reasoning_tokens:4695}}:{cost:.001}});
   }});
-  await assert.rejects((await session()).layout(input),/response was incomplete/);
+  // This historical response exceeded the requested token ceiling as well as
+  // truncating. Accounting must stop it before optional answer correction.
+  await assert.rejects((await session()).layout(input),/usage exceeded its reservation/);
   assert.equal(calls,1);assert.equal(read(dir).cache.length,0);assert.equal(read(dir).journal.spent,.107472);
   assert.deepEqual(await(await session()).layout(input),{decisions});
   await(await session()).layout(input);assert.equal(calls,2);
