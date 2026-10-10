@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {completeness} from './live-book/completeness.mjs';
+const report={guestCuts:[{slug:'guest'}],ruleCuts:[],editorExcluded:3,mediaOnly:0};
+const result=completeness({selected:[1,2,3,4,5],printed:[1],asides:[2],reports:[report],sourcePosts:[{id:3,slug:'guest'},{id:4,slug:'lost'}]});
+assert.deepEqual(result.cut_by_rule,[{id:'3',slug:'guest',reason:'guest post'}]);
+assert.deepEqual(result.missing,[{id:'4',slug:'lost'},{id:'5',slug:null}]);
+assert.equal(completeness({selected:[6],printed:[],reports:[{mediaCuts:[{id:6,slug:'video',reason:'No printable text'}]}]}).missing.length,0);
+assert.equal(completeness({selected:[7],printed:[],reports:[{editorExcluded:7,mediaOnly:7}]}).missing.length,1);
+assert.equal(completeness({selected:[],printed:[1,2]}).selection_known,false,'an unplanned fallback cannot claim selected-post completeness');
+console.log('PASS real report counts, named guest cuts, identified media cuts, unknown IDs and missing posts');

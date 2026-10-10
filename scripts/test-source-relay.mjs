@@ -4,9 +4,9 @@ import {sourceRelay,refused,RELAY_ARCHIVE,RELAY_SAMPLE} from './lib/source-relay
 let count=0;const test=async(name,fn)=>{await fn();count++;console.log('PASS',name);};
 const token='fixture-relay-token',sign=m=>createHmac('sha256',token).update(m).digest('hex');
 const now=()=>1_800_000_000_000;
-await test('no token means no relay; only a 403 counts as refused',async()=>{
+await test('no token means no relay; a 403 or a lasting 429 counts as refused',async()=>{
   assert.equal(sourceRelay({token:''}),null);
-  assert(refused(Error('Source HTTP 403')));assert(refused(Error('403 https://x.substack.com/api/v1/archive')));assert(!refused(Error('Source HTTP 404')));assert(!refused(Error('Source HTTP 429 after bounded retries')));
+  assert(refused(Error('Source HTTP 403')));assert(refused(Error('403 https://x.substack.com/api/v1/archive')));assert(!refused(Error('Source HTTP 404')));assert(refused(Error('Source HTTP 429 after bounded retries')));assert(refused(Error('429/5xx after retries https://x.substack.com/api/v1/posts/a')));assert(!refused(Error('Source HTTP 500 after bounded retries')));
 });
 await test('archive pages are signed for host and exact offset, including uneven offsets',async()=>{
   const seen=[];const relay=sourceRelay({token,now,fetchImpl:async url=>{seen.push(new URL(url));return Response.json([{id:1}]);}});

@@ -104,4 +104,12 @@ await test('a revision racing the send claim cannot emit an old ready message', 
   };
   const result = await (await send(c)).json(); assert.equal(result.delivery.accepted, false); assert.equal(c.calls.length, 0);
 });
+await test('operator review never calls the creator outbox even with a distinct saved writer address', async c => {
+  const result = await deliverCreatorPdf({ site:'https://inksheaf.com', secret:c.env.ARCHIVE_RELAY_TOKEN, versionId:1, ...message, deliveryMode:'operator' }, {fetcher:async(url,options)=>{
+    return onRequest({request:new Request(url,options),env:c.env});
+  }});
+  assert.equal(result.status,'operator-review'); assert.equal(c.calls.length,0);
+  assert.equal(c.db.prepare('SELECT count(*) n FROM email_outbox').get().n,0);
+  assert.equal(c.db.prepare('SELECT email FROM signups').get().email,'owner@example.com');
+});
 console.log(`${passed} creator proof-email checks passed`);

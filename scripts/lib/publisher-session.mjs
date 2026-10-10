@@ -226,8 +226,16 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
       await ensureSelection();const scope=renderScope(volume);
       if(JSON.stringify(scope)!==JSON.stringify(expectedScope))throw Error('Another render started before this PDF could be saved; the book is held for recovery.');
       if(!scope.render_ids.length)throw Error('An unreserved render cannot be checkpointed.');
-      const reference=await saveRenderCheckpoint({book,directory:`${directory}/renders`,scope,identity,store:artifacts});
+      // The recovery copy is a safety net. An image-heavy book can exceed its size limit and the
+      // store can be down (2026-10-06, 10-09); either way the book carries on without one.
+      let reference;
+      try{reference=await saveRenderCheckpoint({book,directory:`${directory}/renders`,scope,identity,store:artifacts});}
+      catch(error){
+        if(error.code!=='CHECKPOINT_UNAVAILABLE')throw error;
+        console.error(`[publisher] render recovery copy skipped: ${String(error.message||error).slice(0,160)}`);return null;
+      }
       await ensureSelection();state.completedRenders||={};state.completedRenders[String(volume)]=reference;await save();
+      return reference;
     },
     renderUsage:volume=>renderUsage(state,String(volume)),
     reserveRender:(volume,settings)=>reserveWork(volume,'render',settings),

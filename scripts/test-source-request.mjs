@@ -26,4 +26,9 @@ try{
  const answer=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
  assert.match(answer.error,/Selected source text is missing/);assert.deepEqual(answer.calls,['/api/v1/archive','/api/v1/posts/complete-essay'],'known incomplete books stop before homepage, branding or any inference');
 }finally{rmSync(dir,{recursive:true,force:true});rmSync(join('proofs/.cache',host),{recursive:true,force:true});}
+{ let tries=0;const slow=sourceJsonClient({intervalMs:0,timeoutMs:20,fetchImpl:async()=>{tries++;await new Promise((_,no)=>setTimeout(()=>no(Object.assign(Error('The operation was aborted due to timeout'),{name:'TimeoutError'})),5));}});
+  await assert.rejects(slow('https://x.substack.com/api/v1/posts/a'),/Source HTTP 504 timeout after bounded retries/);assert.equal(tries,2,'a slow read is tried twice, then handed to the relay');
+  const {refused}=await import('./lib/source-relay.mjs');assert(refused(Error('Source HTTP 504 timeout after bounded retries')));
+  let once=0;const recovers=sourceJsonClient({intervalMs:0,timeoutMs:20,fetchImpl:async()=>{if(once++===0)await new Promise((_,no)=>setTimeout(()=>no(Object.assign(Error('t'),{name:'TimeoutError'})),5));return Response.json({ok:1});}});
+  assert.deepEqual(await recovers('https://x.substack.com/api/v1/posts/b'),{ok:1},'a read that times out once succeeds on retry'); console.log('PASS timed-out reads are retried once and then reported for the relay'); }
 console.log('PASS server backoff reaches queued readers, request starts stay paced, out-of-order completion retains callers, attempts and long waits remain bounded');

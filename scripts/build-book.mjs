@@ -16,7 +16,7 @@ import { publicationFromHomepage, publicationFromArchive, publicationLabel } fro
 import { coverMarkup, coverStyle, designSelection, validDesign } from "../functions/lib/book-design.js";
 import { normalizeUrl, linkCode, SHORT_HOST } from "../functions/lib/links.js";
 import { transformComponents } from "./lib/components.mjs";
-import { ruleCut } from "../functions/lib/cuts.js";
+import { ruleCut, inferredOwnDomains } from "../functions/lib/cuts.js";
 import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
 const RAW = process.argv[2] || "https://www.caithrin.com";
@@ -105,28 +105,18 @@ const shortPosts = listing.filter(p => (p.wordcount || 0) < 150).length;
 if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-style publication");
 /* cuts by rule, each with its reason, named in the edition note (functions/lib/cuts.js) */
 report.ruleCuts = [];
-// A writer who canonicalizes every post to their own site (they own both the Substack and the
-// domain, a common SEO setup) would otherwise have every post cut as "first published elsewhere"
-// and get an empty book. If one non-substack canonical host covers half or more of the public
-// posts, it is the writer's own domain; keep those. Foreign Substacks and one-offs still cut.
-const hbare = host.replace(/^www\./, "").toLowerCase();
-const canonCount = {};
-for (const p of listing) {
-  if (p.audience !== "everyone" || !(p.type === "newsletter" || !p.type)) continue;
-  const c = String(p.canonical_url || ""); if (!/^https?:\/\//.test(c)) continue;
-  const ch = c.replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "").toLowerCase();
-  if (ch && ch !== hbare && !/\.substack\.com$/.test(ch)) canonCount[ch] = (canonCount[ch] || 0) + 1;
-}
-const pubPublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type)).length || 1;
-const ownDomains = Object.entries(canonCount).filter(([, n]) => n >= pubPublic * 0.5).map(([d]) => d);
+const ownDomains = inferredOwnDomains(listing, host);
 if (ownDomains.length) report.ownDomains = ownDomains;
-for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
-const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
+for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ id: p.id, slug: p.slug, title: p.title, reason: why }); }
+// Restacks can reuse the original essay's slug. Excluding the restack must
+// never exclude the separately identified original selected by the writer.
+const sourceKey = p => p.id != null ? `id:${p.id}` : `slug:${p.slug}`;
+const cutKeys = new Set(report.ruleCuts.map(sourceKey));
 /* the accounting invariant's terms (Codex audit P1-4): public pieces in the window before any cut */
 report.eligiblePublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type) && p.is_published !== false
   && (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER)) && (!BEFORE || Date.parse(p.post_date) < Date.parse(BEFORE))).length;
 const posts = listing
-  .filter(p => p.audience === "everyone" && !cutSlugs.has(p.slug))
+  .filter(p => p.audience === "everyone" && !cutKeys.has(sourceKey(p)))
   .filter(p => (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER))
             && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
@@ -253,7 +243,7 @@ const prefetchImages = [...new Set(full.flatMap(p => [...String(p.body_html || "
   .filter(Boolean).map(imageSourceUrl).filter(u => /^https?:/.test(u));
 const imagePrefetch = mapConcurrent(prefetchImages, u => localizeImage(u).catch(() => null), { concurrency: 8, shouldStop: () => imagesPlaced }).catch(() => []);
 // Stop before optional homepage/brand reads when required writing is unavailable.
-if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error('Selected source text is missing; cannot finish the publisher edition');
+if((PUBLISHER_DIR||PUBLISHER_REPLAY)&&(report.skips.length||report.planSelection?.missing?.length))throw Error(`Selected source text is missing; cannot finish the publisher edition (${[...report.skips.map(x=>`${x.slug}: ${String(x.reason).slice(0,80)}`),...(report.planSelection?.missing||[]).map(x=>`selected ${x}: not in the archive`)].slice(0,4).join('; ')})`);
 
 // publication meta from homepage
 const home = FIXTURE ? "" : await text(`https://${host}`);
@@ -315,14 +305,15 @@ const bylinesOf = p2 => (Array.isArray(p2.publishedBylines) ? p2.publishedByline
 const isGuestPost = p2 => { const bs = bylinesOf(p2); return bs.length > 0 && bs.every(b => b.is_guest); };
 report.guestCuts = [];
 if (!process.argv.includes("--include-guests")) {
-  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
+  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ id: full[i].id, slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
 }
 /* media-only pieces (video/audio interviews with no prose) never print as empty chapters */
 report.mediaOnly = 0;
+report.mediaCuts = [];
 for (let i = full.length - 1; i >= 0; i--) {
   const words = String(full[i].body_html || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
   const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
-  if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
+  if (words < 50 && hasEmbed) { report.mediaOnly++; report.mediaCuts.push({id:full[i].id,slug:full[i].slug,reason:"Media-only post with fewer than 50 printable words"}); full.splice(i, 1); }
 }
 
 let publisherResult = null;

@@ -1,4 +1,9 @@
-import { ruleCut, ruleFlag } from "../functions/lib/cuts.js";
+import { ruleCut, ruleFlag, inferredOwnDomains } from "../functions/lib/cuts.js";
+import { partition } from "../functions/lib/editor-input.js";
+import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const H = "www.example.com";
 ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.example.com/p/an-essay" }, H) === null, "an ordinary essay is kept");
@@ -8,6 +13,13 @@ ok(ruleCut({ type: "newsletter", canonical_url: "https://example.com/p/x" }, H) 
 ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com") === "first published at caithrin.com", "an author's own domain is cut when it is not named as own");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === null, "an author's own domain is kept when passed as ownDomains (canonicalised-to-own-site writer)");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://other.substack.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === "first published at other.substack.com", "a foreign Substack is still cut even with an own domain set");
+const ownPosts = [1,2,3].map(id=>({id,type:'newsletter',audience:'everyone',post_date:'2026-09-01',canonical_url:`https://writer.blog/p/${id}`}));
+ownPosts.push({id:4,type:'newsletter',audience:'everyone',post_date:'2026-09-01',canonical_url:'https://other.substack.com/p/foreign'});
+const domains = inferredOwnDomains(ownPosts,'writer.substack.com');
+ok(domains.length===1 && domains[0]==='writer.blog','dominant own-site canonical domain is shared');
+const split = partition(ownPosts,Date.parse('2026-10-10'),'writer.substack.com');
+ok(split.inWindow.length===3 && split.cut.length===1 && split.cut[0].post.id===4,'preview retains the same own-domain posts as the press, while foreign Substacks stay cut');
+ok(inferredOwnDomains([{canonical_url:'https://writer.blog/p/x',restacked_post_id:123}], 'writer.substack.com').length===0,'restacks cannot establish an own domain');
 ok(ruleCut({ type: "podcast" }, H) === "a podcast episode", "podcast");
 ok(ruleCut({ type: "thread" }, H) === "a discussion thread", "thread type");
 ok(ruleCut({ type: "newsletter", postTags: [{ name: "Threads" }] }, H) === 'tagged "Threads"', "Threads tag");
@@ -19,4 +31,13 @@ ok(ruleCut({ type: "newsletter", slug: "open-thread-449" }, H) === "an open thre
 ok(ruleCut({ type: "newsletter", slug: "hidden-open-thread-3021" }, H) === "an open thread", "hidden open thread slug");
 ok(ruleCut({ type: "newsletter", slug: "the-open-threads-of-history" }, H) === null, "a slug that merely contains the words is kept");
 ok(ruleCut({ type: "newsletter", is_published: false }, H) === "unpublished", "unpublished");
+const dir=mkdtempSync(join(tmpdir(),'inksheaf-cut-identity-'));
+try {
+  const original={id:10,slug:'same-slug',title:'The original essay',post_date:'2026-09-01',wordcount:300,publishedBylines:[{name:'Writer'}],body_html:'<p>'+ 'The original writing stays in the book. '.repeat(45)+'</p>'};
+  writeFileSync(join(dir,'posts.json'),JSON.stringify([original,{...original,id:11,type:'restack',restacked_post_id:10}]));
+  writeFileSync(join(dir,'selection.json'),JSON.stringify([10]));
+  execFileSync(process.execPath,['scripts/build-book.mjs','https://writer.substack.com','--fixture',join(dir,'posts.json'),'--posts',join(dir,'selection.json'),'--out',join(dir,'book.html'),'--no-brand','--direct-links'],{stdio:'pipe'});
+  const report=JSON.parse(readFileSync(join(dir,'book.report.json')));
+  ok(report.postOrder.length===1&&report.postOrder[0].id===10&&report.ruleCuts.length===1&&report.ruleCuts[0].id===11&&!report.planSelection.missing.length,'a cut restack cannot remove the selected original with the same slug');
+} finally {rmSync(dir,{recursive:true,force:true});}
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

@@ -1,7 +1,7 @@
 // Shapes an archive into the editor's input: compact rows the model can read, plus the
 // window, the constraints and the price table. Nothing here calls a model.
 import { editionWindow, spanLabel as spanLabelOf } from "./edition-window.js";
-import { ruleCut, ruleFlag } from "./cuts.js";
+import { ruleCut, ruleFlag, inferredOwnDomains } from "./cuts.js";
 import prices from "./print-prices.json" with { type: "json" };
 
 export const PAGE_WORDS = 270;
@@ -56,6 +56,7 @@ export function shapePost(p) {
 /* Split posts into the window, the quarter in progress, and older. Public newsletters only. */
 export function partition(posts, nowMs, host = "") {
   const w = editionWindow(nowMs);
+  const ownDomains = inferredOwnDomains(posts, host);
   const inWindow = [], inProgress = [], older = [], paid = [], podcasts = [], cut = [];
   const seen = new Set();
   for (const p of posts) {
@@ -66,7 +67,7 @@ export function partition(posts, nowMs, host = "") {
     if (p.type === "podcast") { podcasts.push(p); continue; }
     /* cuts by rule (functions/lib/cuts.js): cross-posts, threads, tagged housekeeping; each with
        its reason, so the plan and the change page can name what the editor never saw */
-    const why = ruleCut(p, host);
+    const why = ruleCut(p, host, ownDomains);
     if (why) { cut.push({ post: p, reason: why }); continue; }
     if (p.audience && p.audience !== "everyone") { paid.push(p); continue; }
     if (d >= w.fromIso && d < w.toIso) inWindow.push(p);

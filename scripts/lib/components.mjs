@@ -14,6 +14,12 @@ const cls = n => (attr(n, "class") || "").split(/\s+/);
 const has = (n, c) => cls(n).includes(c);
 const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const data = n => { try { return JSON.parse(attr(n, "data-attrs") || "{}"); } catch { return {}; } };
+/* X's full_text arrives with &, < and > already escaped; decode them once before printing
+   (Chris Lakin's book printed "Years &amp; years", 2026-10-09) */
+const xText = s => String(s ?? "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+// full_text can contain real Substack mention/link markup as well as entities.
+// Parse before escaping for print, so visible words survive and tags do not.
+const tweetText = s => parseDocument(String(s ?? "").replace(/<br\s*\/?\s*>/gi, "\n")).children.map(textOf).join("");
 const textEl = (tag, inner, klass) => ({ type: "tag", name: tag, attribs: klass ? { class: klass } : {}, children: [{ type: "text", data: inner }] });
 const htmlEl = html => parseDocument(html).children;
 
@@ -27,7 +33,7 @@ const RULES = {
   EmbeddedPublicationToDOMWithSubscribe: n => { const d = data(n); return d.name ? htmlEl(`<div class="embedcard">${esc(d.name)}${d.base_url ? ` · ${esc(String(d.base_url).replace(/^https?:\/\//, ""))}` : ""}</div>`) : null; },
   Twitter2ToDOM: n => { const d = data(n); if (!d.full_text) return null;
     const who = [d.name, d.username ? "@" + d.username : ""].filter(Boolean).join(" ");
-    return htmlEl(`<blockquote class="tweet-print"><p>${esc(d.full_text).replace(/\n+/g, "<br>")}</p><p class="tweet-by">— ${esc(who)}${d.date ? ", " + esc(String(d.date).slice(0, 10)) : ""}, on X</p></blockquote>`); },
+    return htmlEl(`<blockquote class="tweet-print"><p>${esc(tweetText(d.full_text)).replace(/\n+/g, "<br>")}</p><p class="tweet-by">— ${esc(xText(who))}${d.date ? ", " + esc(String(d.date).slice(0, 10)) : ""}, on X</p></blockquote>`); },
   Youtube2ToDOM: n => { const d = data(n); return d.videoId ? htmlEl(`<div class="embedcard">Video: youtu.be/${esc(d.videoId)}</div>`) : null; },
   LatexBlockToDOM: n => { const d = data(n); return d.persistentExpression ? htmlEl(`<p class="latex-print"><code>${esc(d.persistentExpression)}</code></p>`) : null; },
   HighlightedCodeBlockToDOM: undefined,
@@ -83,5 +89,22 @@ export function transformComponents(html, report = {}) {
     return out;
   };
   doc.children = walk(doc);
+  // A final all-link About | Twitter | ... row is website navigation. Keep
+  // prose, pull quotes and identical links used inside the essay untouched.
+  const last = doc.children.findLast(n => n.type !== "text" || n.data.trim());
+  if (last?.name === "p") {
+    const links = [], outside = [];
+    const inspect = n => {
+      if (n.type === "text") outside.push(n.data);
+      else if (n.name === "a") links.push(textOf(n).trim());
+      else if (["p", "strong", "em", "span"].includes(n.name)) (n.children || []).forEach(inspect);
+      else outside.push("non-navigation");
+    };
+    inspect(last);
+    if (links.length >= 2 && /^about$/i.test(links[0]) && /^(twitter|x)$/i.test(links[1]) && /^[\s|·]*$/.test(outside.join(""))) {
+      doc.children = doc.children.filter(n => n !== last);
+      seen.footer_navigation = (seen.footer_navigation || 0) + 1;
+    }
+  }
   return render(doc, { encodeEntities: "utf8" }); /* keep the writer's characters as characters */
 }

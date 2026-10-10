@@ -38,6 +38,8 @@ const ID = Number(process.env.SIGNUP_ID);
 const URL_ = process.env.PUBLICATION_URL || "";
 const TO = process.env.WRITER_EMAIL || "";
 const OPERATOR = process.env.OPERATOR_EMAIL || "caithrin@caithrin.com";
+const DELIVERY_MODE = process.env.PRESS_DELIVERY_MODE || 'creator';
+if (!['creator','operator'].includes(DELIVERY_MODE)) throw Error('Unknown press delivery mode');
 // Printed-copy ordering opens with MAILINGS_ENABLED; until then the email names no order or sell page.
 const PRINT_ORDERS = /^(1|true)$/i.test(process.env.MAILINGS_ENABLED || "");
 const SITE = (process.env.SITE_BASE || (MODE === "production" ? "https://inksheaf.com" : "http://localhost:8788")).replace(/\/$/, "");
@@ -71,7 +73,7 @@ async function status(st, extra = {}) {
   /* a status report that fails must never stop the press; the email is the deliverable */
   try {
     const r = await fetch(`${SITE}/api/press-status`, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}`), run: process.env.GITHUB_RUN_ID || null, ...extra }) });
+      body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}${DELIVERY_MODE==='operator'?':operator':''}`), run: process.env.GITHUB_RUN_ID || null, ...extra, delivery_mode: DELIVERY_MODE }) });
     log("status", `${st} -> ${r.status}`);
   } catch (e) { log("status", `${st} not reported: ${String(e.message || e).slice(0, 80)}`); }
 }
@@ -286,16 +288,34 @@ Inksheaf`;
   // message and send key, and derives the recipient from the saved reservation.
   let delivery = { accepted: false, status: "pending" };
   try {
-    delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId,
+    delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId, deliveryMode: DELIVERY_MODE,
       subject: `Your complete PDF: ${vols[0].pubName || host}`, text });
   } catch (e) { log("creator-email", String(e.message || e).slice(0, 160)); }
   timing.mark('creator_mail_finished');
-  await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
+  await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:DELIVERY_MODE==='operator'?"Your PDF is being checked before its email is sent.":delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
   log("creator-email", `version ${versionId}: ${delivery.status}; provider accepted ${delivery.accepted === true}`);
-  if (!delivery.accepted) {
+  if (!delivery.accepted && DELIVERY_MODE !== 'operator') {
     try { await sendMail({ to: OPERATOR, subject: `PDF email needs attention: ${host} (#${ID}, version ${versionId})`,
       text: `The complete PDF for reservation #${ID}, version ${versionId}, is saved. Creator email acceptance is ${delivery.status}. Retry the saved proof-email operation for this version; do not rebuild the book.\n\nRun ${process.env.GITHUB_RUN_ID || "local"}`, timeoutMs: 20_000 }); }
     catch { log("creator-email", "operator delivery alert could not be confirmed"); }
+  }
+  // Post-delivery audit: an independent model reads sampled pages of the delivered volumes.
+  // The writer already has the book; major defects go to the operator to correct and re-send.
+  if (process.env.OPENROUTER_API_KEY && process.env.INKSHEAF_AUDIT !== "0") {
+    try {
+      const { reviewQuality } = await import("./lib/quality-review.mjs");
+      const sample = vols.length <= 4 ? vols : [...new Set([vols[0], vols[Math.floor(vols.length / 3)], vols[Math.floor(2 * vols.length / 3)], vols[vols.length - 1]])];
+      const audits = [];
+      for (const v of sample) audits.push({ label: v.label, ...(await reviewQuality(v.pdf, { outDir: `${DIR}/audit-${String(v.label).replace(/[^A-Za-z0-9]+/g, "-")}`, key: process.env.OPENROUTER_API_KEY })) });
+      const flagged = audits.filter(a => a.major.length);
+      timing.mark("audit_finished", { volumes: audits.length, flagged: flagged.length, cost_usd: audits.reduce((t, a) => t + a.cost_usd, 0) });
+      log("audit", `${audits.length} volume(s) sampled; ${flagged.length} with major defects`);
+      if (flagged.length) await sendMail({ to: OPERATOR, subject: `Audit found problems: ${vols[0].pubName || host} (#${ID}, version ${versionId})`,
+        text: [`An independent review of the delivered book found major defects. The writer has the book; correct and re-send if they matter.`, ``,
+          ...flagged.flatMap(a => [`${a.label}:`, ...a.results.filter(r => r.verdict === "major").map(r => `  p. ${r.page}: ${r.defects.filter(d => d.severity === "major").map(d => `${d.type}: ${d.note}`).join("; ")}`)]), ``,
+          `Edition: ${workspace}`, `Run: ${process.env.GITHUB_RUN_ID ? `https://github.com/caithrin01/inksheaf/actions/runs/${process.env.GITHUB_RUN_ID}` : "local"}`,
+          `Re-make for checking first: node scripts/rerun-signup.mjs ${ID} --to-operator`].join("\n") }).catch(() => {});
+    } catch (e) { log("audit", `could not finish: ${String(e.message || e).slice(0, 160)}`); }
   }
   // Print files for ordering copies are made after the PDF is delivered, so they never delay
   // it, and a problem here never marks the delivered book as failed. The status repeats the

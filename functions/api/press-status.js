@@ -1,15 +1,16 @@
 // POST /api/press-status — the press (GitHub Actions) reports a reservation's progress.
 // Signed with the relay token: sig = hmac(secret, `${signup_id}:${status}`). One row per signup.
 import { hmacHex } from "../lib/press-dispatch.js";
+import { alertOperatorHeld, tellCreatorHeld } from "../lib/press-alert.js";
 
-export async function onRequest({ request, env }) {
+export async function onRequest({ request, env, waitUntil }) {
   if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
   let body; try { body = await request.json(); } catch { return json({ ok: false, error: "invalid json" }, 400); }
   const id = Number(body.signup_id), status = String(body.status || "").slice(0, 40);
   if (!id || !status) return json({ ok: false, error: "signup_id and status required" }, 400);
-  if (!env.ARCHIVE_RELAY_TOKEN || String(body.sig || "") !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${id}:${status}`))
+  if (!env.ARCHIVE_RELAY_TOKEN || String(body.sig || "") !== await hmacHex(env.ARCHIVE_RELAY_TOKEN, `${id}:${status}${body.delivery_mode === "operator" ? ":operator" : ""}`))
     return json({ ok: false, error: "bad signature" }, 403);
-  let detail = JSON.stringify({ proof_key: body.proof_key || null, proof_url: body.proof_url || null, listing_url: body.listing_url || null,
+  let detail = JSON.stringify({ delivery_mode: body.delivery_mode === "operator" ? "operator" : "creator", proof_key: body.proof_key || null, proof_url: body.proof_url || null, listing_url: body.listing_url || null,
     message: String(body.message || "").slice(0, 500), run: body.run || null,
     files: Array.isArray(body.files) ? body.files.slice(0, 24) : undefined, jobs: Array.isArray(body.jobs) ? body.jobs.slice(0, 60) : undefined,
     /* what left the book and why (rule cuts, guest posts, the editor's exclusions): the change page shows it with an "include" box */
@@ -22,6 +23,7 @@ export async function onRequest({ request, env }) {
     let kept = null; try { kept = JSON.parse(prev?.detail || "null")?.left_out; } catch {}
     if (Array.isArray(kept)) { const d = JSON.parse(detail); d.left_out = kept; detail = JSON.stringify(d); }
   }
+  const before = await env.DB.prepare("SELECT status, detail FROM press WHERE signup_id = ?").bind(id).first().catch(() => null);
   await env.DB.prepare(`INSERT INTO press (signup_id, status, detail, updated_at) VALUES (?, ?, ?, datetime('now'))
     ON CONFLICT(signup_id) DO UPDATE SET status = excluded.status, detail = excluded.detail, updated_at = datetime('now')`)
     .bind(id, status, detail).run();
@@ -33,6 +35,12 @@ export async function onRequest({ request, env }) {
     const clears = ["validated", "listing-pending", "listed"].includes(vs);
     await env.DB.prepare(`UPDATE edition_versions SET status = COALESCE(?, status), files_json = COALESCE(?, files_json), quote_json = COALESCE(?, quote_json), listing_url = COALESCE(?, listing_url), error = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, error) END, run_id = COALESCE(?, run_id), updated_at = datetime('now') WHERE id = ? AND signup_id = ?`)
       .bind(vs, Array.isArray(body.files) ? JSON.stringify(body.files.slice(0, 24)).slice(0, 12000) : null, body.quote ? JSON.stringify(body.quote).slice(0, 4000) : null, body.listing_url ? String(body.listing_url).slice(0, 300) : null, clears ? 1 : 0, body.error ? String(body.error).slice(0, 300) : null, body.run ? String(body.run).slice(0, 40) : null, vid, id).run().catch(() => {});
+  }
+  // A book that stops alerts the operator once per run and tells the creator once.
+  let previousRun = null; try { previousRun = JSON.parse(before?.detail || "null")?.run ?? null; } catch {}
+  if (status === "failed" && !(before?.status === "failed" && String(previousRun) === String(body.run || null))) {
+    const work = Promise.allSettled([alertOperatorHeld(env, { signupId: id, message: body.message || body.error, run: body.run }), ...(body.delivery_mode === "operator" ? [] : [tellCreatorHeld(env, { signupId: id })])]);
+    if (typeof waitUntil === "function") waitUntil(work); else await work;
   }
   return json({ ok: true });
 }
