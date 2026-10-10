@@ -24,6 +24,9 @@ import {DatabaseSync} from 'node:sqlite';
 import {chromium} from 'playwright';
 import {PDFDocument} from 'pdf-lib';
 import {deployedPress} from '../press-release.mjs';
+import {completeness} from './completeness.mjs';
+import {sourceJsonClient} from '../lib/source-request.mjs';
+import {sourceRelay,refused} from '../lib/source-relay.mjs';
 import {reviewQuality} from '../lib/quality-review.mjs';
 
 const root=process.cwd(),arg=(f,d=null)=>{const i=process.argv.indexOf(f);return i<0?d:process.argv[i+1];};
@@ -45,7 +48,7 @@ crypto.DigestStream=class extends WritableStream{constructor(){const h=createHas
 const env={DB,ARCHIVE_RELAY_TOKEN:secret,PROOF_STORE_TOKEN:storeSecret,GITHUB_DISPATCH_TOKEN:'isolated',INKSHEAF_ENV:'production',RESEND_API_KEY:'isolated',OPERATOR_EMAIL:operator,OPENROUTER_API_KEY:openrouterKey};
 const native=fetch,store=new Map(),hash=b=>createHash('sha256').update(b).digest('hex'),sign=(k,m)=>createHmac('sha256',k).update(m).digest('hex');
 const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2','.ttf':'font/ttf','.json':'application/json'};
-let origin,worker,workerDone;const pending=new Set();
+let origin,worker,workerDone;const pending=new Set(),modelReceipts=[];
 async function external(input,init){
   const req=new Request(input,init),u=new URL(req.url);journal.requests[u.hostname]=(journal.requests[u.hostname]||0)+1;
   if(u.origin===origin)return native(req);
@@ -63,7 +66,15 @@ async function external(input,init){
     const id='mail-'+(journal.sends.length+1),file=join(out,id+'.json');writeFileSync(file,JSON.stringify(msg,null,2));journal.sends.push({id,recipient:msg.to[0],subject:msg.subject,file});mark('mail_captured',{id});return Response.json({id});
   }
   if(u.hostname==='openrouter.ai'&&req.method==='POST'){
-    return native(req.url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+openrouterKey},body:await req.text(),signal:AbortSignal.any([req.signal,AbortSignal.timeout(180000)])});
+    const body=await req.text(),receipt={model:JSON.parse(body).model,cost:null};modelReceipts.push(receipt);
+    const response=await native(req.url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+openrouterKey},body,signal:AbortSignal.any([req.signal,AbortSignal.timeout(180000)])});
+    const accounting=response.clone().text().then(text=>{
+      const values=response.headers.get('content-type')?.includes('text/event-stream')?text.split('\n').filter(s=>s.startsWith('data:')).map(s=>{try{return JSON.parse(s.slice(5));}catch{return null;}}):[JSON.parse(text)];
+      for(const value of values)if(value?.usage?.cost!=null)receipt.cost=Number(value.usage.cost);
+      if(receipt.cost===null&&response.status>=400&&response.status<500)receipt.cost=0;
+    }).catch(()=>{});
+    pending.add(accounting);accounting.finally(()=>pending.delete(accounting));
+    return response;
   }
   if(u.hostname.endsWith('lulu.com'))return Response.json({detail:'Lulu is not part of the live-book test'},{status:503});
   // Live public reads: Substack archives and posts, images, fonts, the relay.
@@ -100,7 +111,7 @@ async function startWorker(payload){
       PUBLICATION_URL:payload.publication_url,WRITER_EMAIL:payload.email,OPERATOR_EMAIL:operator,PLAN_JSON:payload.plan_json||'',PRESS_EVENT:payload.event,PRESS_REQUESTED_AT:payload.requested_at,
       GITHUB_SHA:sha,GITHUB_RUN_ID:'live-book',GITHUB_RUN_ATTEMPT:'1',ARCHIVE_RELAY_TOKEN:secret,PROOF_STORE_TOKEN:storeSecret,RESEND_API_KEY:'isolated',OPENROUTER_API_KEY:'transport-supplies-real-key',
       ACCEPTANCE_ORIGIN:origin,NODE_OPTIONS:'--import '+join(root,'scripts/live-book/transport.mjs')};
-    worker=spawn(process.execPath,['scripts/press.mjs'],{cwd:workerPath,env:childEnv,stdio:['ignore','pipe','pipe']});worker.stdout.pipe(log);worker.stderr.pipe(log);
+    worker=spawn(process.execPath,['scripts/press.mjs'],{cwd:workerPath,env:childEnv,detached:true,stdio:['ignore','pipe','pipe']});worker.stdout.pipe(log);worker.stderr.pipe(log);
     workerDone=new Promise(r=>worker.on('close',code=>{mark('worker_stopped',{code});r(code);}));mark('worker_spawned');
   }catch(e){mark('worker_start_failed',{error:String(e.message).slice(0,200)});}
 }
@@ -152,19 +163,37 @@ try{
     C.readable=journal.volumes.length>0&&journal.volumes.every(x=>!x.quality.major.length&&!x.quality.unreviewed.length);
     // Completeness against a fresh read of each printed post.
     const ids=JSON.parse(v.post_ids).map(p=>({id:String(p.id),slug:p.slug})),hashes=JSON.parse(v.body_hashes);let mismatched=0,checked=0;
-    for(const p of ids){if(!p.slug)continue;try{const fresh=await(await native(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`,{redirect:'follow'})).json();checked++;if(fresh?.body_html&&hashes[p.id]&&hash(fresh.body_html)!==hashes[p.id])mismatched++;}catch{}}
-    const selected=new Set((plan.volumes||[]).flatMap(v=>v.post_ids||[]).map(String)),printed=new Set(ids.map(p=>p.id));
-    const asides=new Set(db.prepare("SELECT payload FROM publisher_events WHERE kind='reading'").all().flatMap(r=>JSON.parse(r.payload).decisions||[]).filter(d=>d.decision==='set_aside').map(d=>String(d.post_id)));
-    const missing=[...selected].filter(id=>!printed.has(id)&&!asides.has(id));
-    journal.completeness={selected:selected.size,printed:printed.size,set_aside:asides.size,missing,fresh_reads:checked,body_mismatches:mismatched};
-    C.complete=!missing.length&&mismatched===0;
+    const readSource=sourceJsonClient({fetchImpl:native}),relay=sourceRelay({token:secret,fetchImpl:native});
+    for(const p of ids){if(!p.slug)continue;try{
+      let fresh;try{fresh=await readSource(`https://${host}/api/v1/posts/${encodeURIComponent(p.slug)}`);}catch(error){if(!refused(error))throw error;fresh=await relay.post(p,host);}
+      if(fresh?.body_html&&hashes[p.id]){checked++;if(hash(fresh.body_html)!==hashes[p.id])mismatched++;}
+    }catch{}}
+    const reportsDir=join(out,'worker','proofs');
+    const reports=readdirSync(reportsDir).filter(f=>f.endsWith('.report.json')&&f.startsWith(host.replace(/\W+/g,'-')+'-')).map(f=>JSON.parse(readFileSync(join(reportsDir,f),'utf8')));
+    const cacheDir=join(reportsDir,'.cache',host);
+    const sourcePosts=existsSync(cacheDir)?readdirSync(cacheDir).filter(f=>f.endsWith('.json')).map(f=>JSON.parse(readFileSync(join(cacheDir,f),'utf8'))):[];
+    journal.completeness={...completeness({selected:(plan.volumes||[]).flatMap(v=>v.post_ids||[]),printed:ids.map(p=>p.id),
+      asides:db.prepare("SELECT payload FROM publisher_events WHERE kind='reading'").all().flatMap(r=>JSON.parse(r.payload).decisions||[]).filter(d=>d.decision==='set_aside'&&d.reason).map(d=>d.post_id),reports,sourcePosts}),fresh_reads:checked,body_mismatches:mismatched};
+    C.complete=!journal.completeness.missing.length&&mismatched===0&&checked===ids.length;
     journal.open_issues=snapshot.events?.filter(e=>e.kind==='review').map(e=>e.message)||[];
   }
   C.within_budget=journal.model.cost_usd<=budget;
   journal.status=Object.values(C).every(Boolean)&&C.delivered?'pass':C.delivered?'delivered-with-failed-checks':'not-delivered';
 }catch(e){journal.status='harness-failed';journal.error=String(e.stack||e).slice(0,1200);if(worker&&workerDone)await Promise.race([workerDone,new Promise(r=>setTimeout(r,30000))]);}
 finally{
+  if(worker&&worker.exitCode===null&&worker.signalCode===null){
+    try{process.kill(-worker.pid,'SIGTERM');}catch{}
+    await Promise.race([workerDone,new Promise(r=>setTimeout(r,5000))]);
+    if(worker.exitCode===null&&worker.signalCode===null){try{process.kill(-worker.pid,'SIGKILL');}catch{} await workerDone;}
+  }
   await Promise.allSettled([...pending]);await browser?.close();await new Promise(r=>server.close(r));db.close();globalThis.fetch=native;
+  journal.model_receipts=modelReceipts;
+  journal.total_model_cost_usd=modelReceipts.reduce((sum,r)=>sum+(r.cost??0),0);
+  journal.unknown_model_charges=modelReceipts.filter(r=>r.cost===null).length;
+  journal.checks.within_budget=!journal.unknown_model_charges&&journal.total_model_cost_usd<=budget;
+  if(journal.status==='pass'&&!journal.checks.within_budget)journal.status='delivered-with-failed-checks';
   journal.finished=new Date().toISOString();writeFileSync(join(out,'journey.json'),JSON.stringify(journal,null,2)+'\n');
   console.log(JSON.stringify({host,status:journal.status,checks:journal.checks,seconds_to_pdf:journal.seconds_to_pdf,model:journal.model,plan:journal.plan,error:journal.error?.split('\n')[0],out}));
 }
+
+process.exitCode=journal.status==='pass'?0:1;

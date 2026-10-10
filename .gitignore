@@ -74,3 +74,7 @@ proofs/publisher-fixture.report.json
 # Regenerable synthetic watermark comparison PDFs and rasters.
 output/brand-prominence/
 output/live-book/
+
+# Private repair evidence and generated regression artifacts.
+output/repair-*/
+output/print-recovery-test/

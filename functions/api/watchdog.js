@@ -12,7 +12,7 @@ const DONE = new Set(['proofed', 'approved', 'building-final', 'validated', 'lis
 const json = (o, status = 200) => Response.json(o, { status, headers: { 'cache-control': 'no-store' } });
 
 export async function stuckBooks(DB, nowMs = Date.now()) {
-  const rows = (await DB.prepare(`SELECT s.id, s.publication_url, s.plan_json, s.created_at, p.status, p.updated_at
+  const rows = (await DB.prepare(`SELECT s.id, s.publication_url, s.plan_json, s.created_at, p.status, p.updated_at, p.detail
     FROM signups s LEFT JOIN press p ON p.signup_id = s.id
     WHERE s.dispatch_status = 'dispatched' AND s.created_at > datetime('now', '-3 days')`).all()).results || [];
   const stuck = [];
@@ -21,7 +21,7 @@ export async function stuckBooks(DB, nowMs = Date.now()) {
     const since = Date.parse(String(r.updated_at || r.created_at).replace(' ', 'T') + 'Z');
     const allowed = (MINUTES_PER_VOLUME * planVolumeCount(r.plan_json) + GRACE_MINUTES) * 60000;
     if (Number.isFinite(since) && nowMs - since > allowed)
-      stuck.push({ signup_id: r.id, publication: String(r.publication_url).replace(/^https?:\/\//, ''), status: r.status || 'never started', minutes: Math.round((nowMs - since) / 60000) });
+      stuck.push({ signup_id: r.id, publication: String(r.publication_url).replace(/^https?:\/\//, ''), status: r.status || 'never started', delivery_mode: (()=>{try{return JSON.parse(r.detail||'{}').delivery_mode;}catch{return null;}})(), minutes: Math.round((nowMs - since) / 60000) });
   }
   return stuck;
 }
@@ -37,7 +37,7 @@ export async function onRequest({ request, env }) {
     if (told) continue;
     const sent = await alertOperatorHeld(env, { signupId: s.signup_id, message: `No result after ${s.minutes} minutes (last status: ${s.status}). The press may never have started.` });
     if (sent.sent) await env.DB.prepare("INSERT INTO events (session, event) VALUES (?, 'stuck_alert')").bind(String(s.signup_id)).run().catch(() => {});
-    await tellCreatorDelayed(env, { signupId: s.signup_id });
+    if(s.delivery_mode!=='operator') await tellCreatorDelayed(env, { signupId: s.signup_id });
   }
   return json({ ok: true, stuck });
 }

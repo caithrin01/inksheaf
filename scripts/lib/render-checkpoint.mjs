@@ -16,18 +16,18 @@ export const renderIdentity=input=>hash(JSON.stringify(input));
 const held=()=>Error('The saved render cannot be verified. Its PDF and spent allowances are retained for recovery.');
 function atomic(file,bytes){mkdirSync(resolve(file,'..'),{recursive:true});const temp=file+'.'+randomUUID()+'.tmp';writeFileSync(temp,bytes,{mode:0o600});renameSync(temp,file);}
 
-export async function saveRenderCheckpoint({book,directory,scope,identity,store}){
+export async function saveRenderCheckpoint({book,directory,scope,identity,store,maxBytes=CHECKPOINT_MAX_BYTES}){
   const assets={},add=bytes=>{const sha=hash(bytes);assets[sha]=bytes.toString('base64');return sha;};
   const pdfBytes=readFileSync(book.pdf),pdf=add(pdfBytes),measurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
   for(const figure of measurement.figures||[])if(figure.source){figure.source_asset=add(readFileSync(figure.source));delete figure.source;}
   const report=structuredClone(book.report);
   report.fit=Object.fromEntries(['pass','defer','fitFigs','fitText','backLinks','inFlow','readingFigures','pictureFigures','spacing_requires_review'].filter(k=>report.fit[k]!==undefined).map(k=>[k,report.fit[k]]));
   const value={version:1,identity,renderer_policy:RENDER_CHECKPOINT_POLICY,scope,pdf,measurement,report,brand:book.brand??null,assets};
-  const raw=Buffer.from(JSON.stringify(value));if(raw.length>CHECKPOINT_MAX_BYTES)throw held();
+  const raw=Buffer.from(JSON.stringify(value));if(raw.length>maxBytes)throw Object.assign(Error('Recovery bundle exceeds its size limit.'),{code:'CHECKPOINT_UNAVAILABLE'});
   const bytes=gzipSync(raw),sha256=hash(bytes),file=join(directory,sha256+'.json.gz');
   atomic(file,bytes);
   // Only a fully acknowledged upload may become the authoritative checkpoint.
-  if(store)await store.put(sha256,bytes);
+  if(store)try{await store.put(sha256,bytes);}catch(error){throw Object.assign(Error('Recovery upload unavailable.',{cause:error}),{code:'CHECKPOINT_UNAVAILABLE'});}
   return {version:1,sha256,identity,renderer_policy:RENDER_CHECKPOINT_POLICY,scope,pdf_sha256:pdf};
 }
 

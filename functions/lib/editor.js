@@ -3,7 +3,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { EditorialPlan, PLAN_VERSION, KINDS } from "./editor-schema.js";
-import { buildEditorInput, KIND_HINTS, volumePages, rawPages, printCost, postId } from "./editor-input.js";
+import { buildEditorInput, KIND_HINTS, volumePages, rawPages, printCost, postId, MAX_PAGES } from "./editor-input.js";
+import { PUBLISHER_MAX_VOLUMES } from "./publisher-policy.js";
 import { checkPlan } from "./plan-check.js";
 
 export const EDITOR_MODEL = "claude-opus-5";
@@ -123,6 +124,27 @@ export function calendarFallback(input) {
   consider("half", build("half", w.halves), lived(w.halves));
   consider("quarterly", build("quarterly", w.quarters), lived(w.quarters));
   consider("monthly", build("monthly", w.months), lived(w.months));
+  // A prolific archive may split every calendar period, making all cadences
+  // infeasible. Find the fewest contiguous volumes without dropping any posts.
+  const excluded = [];
+  if (!routes.length && posts.length) {
+    const best = Array(posts.length + 1).fill(null); best[0] = [];
+    for (let end = 1; end <= posts.length; end++) {
+      for (let start = end - 1; start >= 0; start--) {
+        const slice = posts.slice(start, end), size = rawPages(slice);
+        if (size > MAX_PAGES) break;
+        if (size < 32 || !best[start] || best[start].length >= PUBLISHER_MAX_VOLUMES) continue;
+        if (!best[end] || best[start].length + 1 < best[end].length) best[end] = [...best[start], slice];
+      }
+    }
+    const parts = best[posts.length];
+    if (parts?.length) {
+      const numerals = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI"];
+      const vols = parts.map((ps,k)=>vol(`${w.label} · ${numerals[k]}`,w.span,ps,`Part ${k+1} of ${parts.length}, in publication order.`));
+      const i = infeasible.findIndex(x=>x.cadence==='single'); if(i>=0) infeasible.splice(i,1);
+      routes.push({cadence:'single',recommended:false,why:`Your year is split between posts into ${parts.length} volumes, each estimated at no more than ${MAX_PAGES} pages.`,volumes:vols.map(({_posts,...v})=>v)});
+    }
+  }
   /* the golden route: the coarsest cadence whose volumes are whole periods; else the fewest volumes */
   const golden = routes.find(r => !r.volumes.some(v => /\s·\s[IVX]+$/.test(v.label)))
     || [...routes].sort((a, b) => a.volumes.length - b.volumes.length)[0];
@@ -133,13 +155,14 @@ export function calendarFallback(input) {
   const paidOnly = !posts.length && input.publication.paid_posts_in_window > 0;
   const headline = paidOnly ? "Your posts are for paid subscribers."
     : !golden ? "Your archive needs a hand-planned edition."
+    : golden.volumes.length > 1 && golden.cadence === "single" ? `Your year is a set of ${golden.volumes.length} books.`
     : w.everythingSoFar ? "Everything so far is one book."
     : golden.cadence === "single" ? "Your year is one book."
     : golden.cadence === "half" ? "Your year is a pair of half-year volumes."
     : golden.cadence === "quarterly" ? "Your year is a quarterly set." : "Your year is a monthly set.";
   return {
     kind: "essays", rhythm: "", description: `${name}: ${posts.length} public posts in ${w.span}.`,
-    routes, infeasible, contributors, excluded: [], interior: { recommended: "bw", why: "Black and white by default; choose colour if your images carry the writing." },
+    routes, infeasible, contributors, excluded, interior: { recommended: "bw", why: "Black and white by default; choose colour if your images carry the writing." },
     dedication_post_id: null, running_head: "publication",
     sentences: { plan_headline: headline,
       plan_sub: paidOnly ? `${input.publication.paid_posts_in_window} posts in ${w.span} are for paid subscribers, which the preview cannot read. Send a Substack export and we build from it.` : `${posts.length} posts, about ${totalPages} pages, ${w.span}.`,
@@ -184,6 +207,11 @@ export async function planEdition({ posts, identity, host, nowMs = Date.now(), c
     if (res.stop_reason === "refusal") { lastErrors = ["api: refusal"]; break; }
     if (!res.parsed_output) { lastErrors = ["api: no parsed output"]; messages.push({ role: "assistant", content: res.content }, { role: "user", content: "The answer did not parse. Return the plan again as the schema requires." }); continue; }
     const check = checkPlan(res.parsed_output, input);
+    // An editor plan with no route leaves the press nothing to bind; try a complete calendar split before giving up.
+    if (check.ok && !check.plan.routes.length && input.posts.length) {
+      const fb = checkPlan(calendarFallback(input), input);
+      if (fb.ok && fb.plan.routes.length) return { ...out, planned_by: "calendar", reason: "the editor found no binding route", plan: fb.plan, errors: [] };
+    }
     if (check.ok) return { ...out, planned_by: "editor", plan: check.plan, errors: [] };
     lastErrors = check.errors;
     out.attempt_errors.push(check.errors.slice(0, 12));

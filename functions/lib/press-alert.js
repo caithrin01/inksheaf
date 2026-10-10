@@ -27,7 +27,7 @@ export async function alertOperatorHeld(env, { signupId, message = '', run = nul
     `Publication: ${host}`, `Signup: #${signupId}`, `Writer: ${row?.email || 'unknown'}`, `Reason: ${String(message || 'not reported').slice(0, 500)}`,
     run ? `Run: https://github.com/caithrin01/inksheaf/actions/runs/${run}` : 'Run: not reported', `Edition page: ${await editionLink(env, signupId)}`, '',
     'To re-run after a fix: gh run rerun ' + (run || '<run id>') + ' --repo caithrin01/inksheaf',
-    'The writer has been told once that a person is finishing the book. Runbook: 05-Projects/Substack Magazine/failure-modes-runbook.md',
+    'Creator notification is tracked separately; operator review runs do not notify the writer. Runbook: 05-Projects/Substack Magazine/failure-modes-runbook.md',
   ];
   return send(env, { from: 'Inksheaf <press@inksheaf.com>', to: [to], reply_to: 'caithrin@caithrin.com', subject: `Book held: ${host} (#${signupId})`, text: lines.join('\n') }, fetcher);
 }

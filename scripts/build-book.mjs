@@ -120,7 +120,7 @@ for (const p of listing) {
 const pubPublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type)).length || 1;
 const ownDomains = Object.entries(canonCount).filter(([, n]) => n >= pubPublic * 0.5).map(([d]) => d);
 if (ownDomains.length) report.ownDomains = ownDomains;
-for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ slug: p.slug, title: p.title, reason: why }); }
+for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ id: p.id, slug: p.slug, title: p.title, reason: why }); }
 const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
 /* the accounting invariant's terms (Codex audit P1-4): public pieces in the window before any cut */
 report.eligiblePublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type) && p.is_published !== false
@@ -315,14 +315,15 @@ const bylinesOf = p2 => (Array.isArray(p2.publishedBylines) ? p2.publishedByline
 const isGuestPost = p2 => { const bs = bylinesOf(p2); return bs.length > 0 && bs.every(b => b.is_guest); };
 report.guestCuts = [];
 if (!process.argv.includes("--include-guests")) {
-  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
+  for (let i = full.length - 1; i >= 0; i--) if (isGuestPost(full[i]) && !INCLUDE.has(full[i].slug)) { report.guestCuts.push({ id: full[i].id, slug: full[i].slug, title: full[i].title, by: bylinesOf(full[i]).map(b => b.name).join(", ") }); full.splice(i, 1); }
 }
 /* media-only pieces (video/audio interviews with no prose) never print as empty chapters */
 report.mediaOnly = 0;
+report.mediaCuts = [];
 for (let i = full.length - 1; i >= 0; i--) {
   const words = String(full[i].body_html || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
   const hasEmbed = /<iframe|youtube|youtu\.be|\bvimeo\b|podcast_url/i.test(full[i].body_html || "") || full[i].podcast_url;
-  if (words < 50 && hasEmbed) { report.mediaOnly++; full.splice(i, 1); }
+  if (words < 50 && hasEmbed) { report.mediaOnly++; report.mediaCuts.push({id:full[i].id,slug:full[i].slug,reason:"Media-only post with fewer than 50 printable words"}); full.splice(i, 1); }
 }
 
 let publisherResult = null;

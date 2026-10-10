@@ -38,6 +38,8 @@ const ID = Number(process.env.SIGNUP_ID);
 const URL_ = process.env.PUBLICATION_URL || "";
 const TO = process.env.WRITER_EMAIL || "";
 const OPERATOR = process.env.OPERATOR_EMAIL || "caithrin@caithrin.com";
+const DELIVERY_MODE = process.env.PRESS_DELIVERY_MODE || 'creator';
+if (!['creator','operator'].includes(DELIVERY_MODE)) throw Error('Unknown press delivery mode');
 // Printed-copy ordering opens with MAILINGS_ENABLED; until then the email names no order or sell page.
 const PRINT_ORDERS = /^(1|true)$/i.test(process.env.MAILINGS_ENABLED || "");
 const SITE = (process.env.SITE_BASE || (MODE === "production" ? "https://inksheaf.com" : "http://localhost:8788")).replace(/\/$/, "");
@@ -71,7 +73,7 @@ async function status(st, extra = {}) {
   /* a status report that fails must never stop the press; the email is the deliverable */
   try {
     const r = await fetch(`${SITE}/api/press-status`, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}`), run: process.env.GITHUB_RUN_ID || null, ...extra }) });
+      body: JSON.stringify({ signup_id: ID, status: st, sig: hmac(`${ID}:${st}${DELIVERY_MODE==='operator'?':operator':''}`), run: process.env.GITHUB_RUN_ID || null, ...extra, delivery_mode: DELIVERY_MODE }) });
     log("status", `${st} -> ${r.status}`);
   } catch (e) { log("status", `${st} not reported: ${String(e.message || e).slice(0, 80)}`); }
 }
@@ -286,13 +288,13 @@ Inksheaf`;
   // message and send key, and derives the recipient from the saved reservation.
   let delivery = { accepted: false, status: "pending" };
   try {
-    delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId,
+    delivery = await deliverCreatorPdf({ site: SITE, secret: SECRET, versionId, deliveryMode: DELIVERY_MODE,
       subject: `Your complete PDF: ${vols[0].pubName || host}`, text });
   } catch (e) { log("creator-email", String(e.message || e).slice(0, 160)); }
   timing.mark('creator_mail_finished');
-  await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
+  await emit({kind:"delivery",accepted:delivery.accepted===true,status:delivery.status,message:DELIVERY_MODE==='operator'?"Your PDF is being checked before its email is sent.":delivery.accepted?"Your PDF email has been accepted for delivery.":"Your PDF is ready here. Its email is delayed; we are following up."});
   log("creator-email", `version ${versionId}: ${delivery.status}; provider accepted ${delivery.accepted === true}`);
-  if (!delivery.accepted) {
+  if (!delivery.accepted && DELIVERY_MODE !== 'operator') {
     try { await sendMail({ to: OPERATOR, subject: `PDF email needs attention: ${host} (#${ID}, version ${versionId})`,
       text: `The complete PDF for reservation #${ID}, version ${versionId}, is saved. Creator email acceptance is ${delivery.status}. Retry the saved proof-email operation for this version; do not rebuild the book.\n\nRun ${process.env.GITHUB_RUN_ID || "local"}`, timeoutMs: 20_000 }); }
     catch { log("creator-email", "operator delivery alert could not be confirmed"); }

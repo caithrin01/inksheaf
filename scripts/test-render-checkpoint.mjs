@@ -24,6 +24,14 @@ async function fixture(){
   return {dir,pdf,brand:{accent:'#63543a'},report:{included:1,bodyHashes:{one:'original'},publisher:{decisions:[]},fit:{pass:1,fitText:{1:.62},inFlow:['source'],pictureFigures:['source'],fitFigs:{source:2.4}}}};
 }
 try{
+await test('oversized recovery is optional, but missing source evidence still fails',async()=>{
+  const {saveRenderCheckpoint}=await import('./lib/render-checkpoint.mjs');
+  const book=await fixture();
+  await assert.rejects(saveRenderCheckpoint({book,directory:temp(),scope:{},identity:'large',maxBytes:100}),{code:'CHECKPOINT_UNAVAILABLE'});
+  const s=await local(temp());await s.reserveRender('1',{});
+  rmSync(book.pdf.replace('.pdf','.pages.json'));
+  await assert.rejects(s.saveRender('1',book,'missing',s.renderScope('1')),{code:'ENOENT'});
+});
 await test('a killed worker resumes review at six renders and two repairs without building again',async()=>{
   const book=await fixture(),directory=temp(),s=await local(directory);
   for(let n=0;n<6;n++)await s.reserveRender('1',{pass:n});for(let n=0;n<2;n++)await s.reserveRepair('1',{repair:n});
@@ -65,13 +73,13 @@ await test('replacement worker restores PDF and original source images through t
   assert.deepEqual(restored.report.fit.pictureFigures,['source']);assert.equal(restored.report.fit.fitFigs.source,2.4);
   assert.deepEqual(restored.brand,{accent:'#63543a'});
 });
-await test('lost checkpoint acknowledgement recovers its saved pointer; failed upload cannot publish a pointer',async()=>{
+await test('lost checkpoint acknowledgement recovers its saved pointer; a failed upload is skipped and never publishes a pointer',async()=>{
   const book=await fixture();let lost=false;
   const s=await remote(temp(),async(url,options)=>{const r=await transport(url,options);if(options?.method==='POST'&&!lost){lost=true;throw Error('lost acknowledgement');}return r;});
   await assert.rejects(s.saveRender('1',book,'acknowledged',s.renderScope('1')),/lost acknowledgement/);
   assert((await(await remote()).loadRender('1','acknowledged')).recovered);
   const failed=await remote(temp(),transport,{put:async()=>{throw Error('upload unavailable');}});
-  await assert.rejects(failed.saveRender('1',book,'unsaved',failed.renderScope('1')),/upload unavailable/);
+  assert.equal(await failed.saveRender('1',book,'unsaved',failed.renderScope('1')),null,'a failed recovery upload is skipped; the book carries on');
   assert((await(await remote()).loadRender('1','acknowledged')).recovered);
 });
 await test('stale worker checkpoint cannot overwrite a concurrent reservation or changed selection',async()=>{

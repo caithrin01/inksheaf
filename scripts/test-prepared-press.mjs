@@ -6,3 +6,4 @@ assert(!args.join(' ').includes(secret));assert(!args.includes('HOME'));assert(!
 for(const bad of [image.replace('caithrin01','someone'),image.replace('@sha256:','/'),image+'\n--privileged','ghcr.io/caithrin01/inksheaf-press:latest'])assert.throws(()=>preparedPressArgs({image:bad,sha,output:'/tmp/out',env}));
 assert.throws(()=>preparedPressArgs({image,sha:'main',output:'/tmp/out',env}));
 console.log('PASS immutable release image, exact source identity, explicit environment and no credentials in process arguments');
+assert(preparedPressArgs({image,sha,output:'/tmp/out',env:{PRESS_DELIVERY_MODE:'operator'}}).includes('PRESS_DELIVERY_MODE'),'prepared worker must preserve operator-only recovery');

@@ -6,7 +6,8 @@ import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 export const QUALITY_MODEL = 'anthropic/claude-opus-5.5';
-const TASK = `You are the production editor at a book publisher, checking one page of a print-ready 6 x 9 inch paperback made from a writer's newsletter.
+export const TASK = `You are the production editor at a book publisher, checking one page of a print-ready 6 x 9 inch paperback made from a writer's newsletter.
+The first image is the target page. Adjacent pages, when supplied, are context only: report defects on the target, not its neighbours. Check the following page before judging a short page: a protected-size figure can explain the break. Landscape figures are intentionally rotated so the reader turns the book; rotation alone is not a defect. An overview followed by labelled enlarged details is intentional, not duplication. These conventions never excuse unreadable lettering, clipped content, or actual overlap.
 Report only what a careful reader of the printed page would notice. Emoji drawn as small black-and-white pictograms are intended, as is an author's own wording and punctuation. Defect types:
 - cut_off: text or images cut off at an edge, or overlapping each other
 - unreadable: lettering in a chart, table or screenshot too small to read in print
@@ -33,7 +34,12 @@ export async function reviewQuality(pdf, {outDir, key, fetchImpl = fetch, model 
   for (const page of sample) {
     const base = join(outDir, `q-${String(page).padStart(4, '0')}`);
     execFileSync('pdftoppm', ['-png', '-r', '150', '-f', String(page), '-l', String(page), '-singlefile', pdf, base]);
-    const png = readFileSync(base + '.png').toString('base64');
+    const images=[{type:'image_url',image_url:{url:`data:image/png;base64,${readFileSync(base+'.png').toString('base64')}`}}];
+    for(const adjacent of [page-1,page+1].filter(p=>p>=1&&p<=total)){
+      const context=join(outDir,`context-${adjacent}`);
+      execFileSync('pdftoppm',['-png','-r','100','-f',String(adjacent),'-l',String(adjacent),'-singlefile',pdf,context]);
+      images.push({type:'text',text:`Context only: physical page ${adjacent}.`},{type:'image_url',image_url:{url:`data:image/png;base64,${readFileSync(context+'.png').toString('base64')}`}});
+    }
     let answer = null, error = null, usage = null;
     for (let attempt = 0; attempt < 2 && !answer; attempt++) {
       try {
@@ -41,7 +47,7 @@ export async function reviewQuality(pdf, {outDir, key, fetchImpl = fetch, model 
           headers: {authorization: `Bearer ${key}`, 'content-type': 'application/json'},
           body: JSON.stringify({model, max_tokens: 900, temperature: 0, messages: [{role: 'user', content: [
             {type: 'text', text: `${TASK}\nThis is physical page ${page} of ${total}.`},
-            {type: 'image_url', image_url: {url: `data:image/png;base64,${png}`}}]}]})});
+            ...images]}]})});
         const j = await r.json();
         if (!r.ok) throw Error(`HTTP ${r.status} ${JSON.stringify(j).slice(0, 160)}`);
         usage = j.usage || null;

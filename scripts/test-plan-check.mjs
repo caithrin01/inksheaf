@@ -4,7 +4,7 @@ import { strict as assert } from "node:assert";
 import { editionWindow } from "../functions/lib/edition-window.js";
 import { buildEditorInput, volumePages } from "../functions/lib/editor-input.js";
 import { checkPlan } from "../functions/lib/plan-check.js";
-import { calendarFallback } from "../functions/lib/editor.js";
+import { calendarFallback, planEdition } from "../functions/lib/editor.js";
 
 let n = 0; const ok = (name, cond, extra = "") => { n++; if (!cond) { console.log("FAIL", name, extra); process.exitCode = 1; } else console.log("ok  ", name); };
 
@@ -56,6 +56,27 @@ ok("fallback: young archive is a single volume", fbs.ok && fbs.plan.routes.find(
   ok("off-calendar window: halves named by their quarters", editionWindow(oct5).halves.map(h => h.label).join(",") === "Q4 2025 – Q1 2026,Q2 2026 – Q3 2026");
   const oc = checkPlan(calendarFallback(oi), oi);
   ok("off-calendar window: a half-year route with its own window labels passes the checker", oc.ok && oc.plan.routes.some(r => r.cadence === "half" && r.volumes[0].label === "Q4 2025 – Q1 2026"), oc.errors.join("; "));
+}
+
+/* ---------- a prolific year that no cadence binds splits into ~300-page volumes (ChinaTalk, 2026-10-09) ---------- */
+{
+  const huge = [];
+  for (const m of ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"])
+    for (let d = 1; d <= 18; d++) huge.push(mk(`${m}-${String(Math.min(28, d + 9)).padStart(2, "0")}`, 4500));
+  const hi = buildEditorInput({ posts: huge, identity, host: "huge", nowMs: Date.parse("2026-10-05T12:00:00Z") });
+  const hp = checkPlan(calendarFallback(hi), hi);
+  const route = hp.plan?.routes?.[0];
+  ok("prolific year: a page-balanced split passes the checker", hp.ok && route && route.volumes.length >= 2 && route.volumes.length <= 16, hp.errors.join("; "));
+  ok("prolific year: every volume binds under the cap", route && route.volumes.every(v => v.est_pages <= 300 && /· [IVX]+$/.test(v.label)));
+  ok("prolific year: nothing is left out under sixteen volumes", hp.plan && hp.plan.excluded.length === 0);
+  const giant = huge.map(p => ({ ...p, id: p.id + 100000, wordcount: 9000 }));
+  const gi = buildEditorInput({ posts: giant, identity, host: "giant", nowMs: Date.parse("2026-10-05T12:00:00Z") });
+  const gp = checkPlan(calendarFallback(gi), gi);
+  ok("enormous year: never remove source posts to fit the volume ceiling", gp.ok && gp.plan.routes.length === 0 && gp.plan.excluded.length === 0, gp.errors.join("; "));
+  ok("prolific year: headline names the actual set", hp.plan.sentences.plan_headline.includes(`${route.volumes.length} books`));
+  const empty=calendarFallback(hi);empty.routes=[];
+  const recovered=await planEdition({posts:huge,identity,host:'huge',nowMs:Date.parse('2026-10-05T12:00:00Z'),client:{messages:{parse:async()=>({parsed_output:empty})}}});
+  ok("valid model answer with no route falls back to a complete volume plan", recovered.planned_by==='calendar'&&recovered.plan.routes.length>0&&recovered.plan.routes[0].volumes.flatMap(v=>v.post_ids).length===huge.length);
 }
 
 /* ---------- the cadence sentence is written from the folded volumes (2026-09-04) ---------- */

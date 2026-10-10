@@ -137,10 +137,10 @@ await test('a current-revision state write still cannot delete, reduce or mutate
   assert.equal((await postState(4,{...legacy,renderBudget:newRenderBudget()})).status,409);
   await assert.rejects((await remote(4)).reserveRender('1',{}),{code:'PUBLISHER_RENDER_HISTORY_UNKNOWN'});
 });
-await test('the model call allowance follows the stored plan: one per-book allowance per volume, at most twelve',async()=>{
-  const {publisherAllowance,PUBLISHER_MAX_CALLS,PUBLISHER_BUDGET_USD}=await import('../functions/lib/publisher-policy.js');
+await test('the model call allowance follows the stored plan: one per-book allowance per volume, up to the policy volume ceiling',async()=>{
+  const {publisherAllowance,PUBLISHER_MAX_CALLS,PUBLISHER_BUDGET_USD,PUBLISHER_MAX_VOLUMES}=await import('../functions/lib/publisher-policy.js');
   assert.deepEqual(publisherAllowance(1),{volumes:1,usd:PUBLISHER_BUDGET_USD,calls:PUBLISHER_MAX_CALLS});
-  assert.deepEqual(publisherAllowance(40),{volumes:12,usd:PUBLISHER_BUDGET_USD*12,calls:PUBLISHER_MAX_CALLS*12});
+  assert.deepEqual(publisherAllowance(40),{volumes:PUBLISHER_MAX_VOLUMES,usd:PUBLISHER_BUDGET_USD*PUBLISHER_MAX_VOLUMES,calls:PUBLISHER_MAX_CALLS*PUBLISHER_MAX_VOLUMES});
   const plan=n=>JSON.stringify({volumes:Array.from({length:n},(_,i)=>({label:'V'+(i+1)}))});
   db.prepare("INSERT INTO signups (id,publication_url,email,raw_json,plan_json) VALUES (21,'https://a.substack.com','a@example.com','{}',?),(22,'https://b.substack.com','b@example.com','{}',?)").run(plan(12),plan(1));
   const many={journal:{calls:Array.from({length:PUBLISHER_MAX_CALLS+44},(_,i)=>({id:'c'+i,cost:.001})),spent:0},cache:[],runs:{},renderBudget:newRenderBudget()};

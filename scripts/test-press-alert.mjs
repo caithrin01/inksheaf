@@ -12,6 +12,15 @@ const env={DB,ARCHIVE_RELAY_TOKEN:'t',RESEND_API_KEY:'k',INKSHEAF_ENV:'productio
 const sent=[];globalThis.fetch=async(url,init)=>{assert.equal(url,'https://api.resend.com/emails');sent.push(JSON.parse(init.body));return new Response('{}',{status:200});};
 const post=async(status,extra={})=>onRequest({request:new Request('https://inksheaf.com/api/press-status',{method:'POST',body:JSON.stringify({signup_id:20,status,sig:await hmacHex('t',`20:${status}`),...extra})}),env});
 let n=0;const test=async(name,fn)=>{await fn();n++;console.log('PASS',name);};
+await test('operator recovery requires a purpose-bound signature and sends no creator notice',async()=>{
+  assert.equal((await post('failed',{delivery_mode:'operator'})).status,403);
+  assert.equal(sent.length,0);
+  await post('failed',{delivery_mode:'operator',run:'review-run',sig:await hmacHex('t','20:failed:operator')});
+  assert.equal(sent.length,1);assert.equal(sent[0].to[0],'operator@example.com');
+  assert.equal(JSON.parse(db.prepare('SELECT detail FROM press').get().detail).delivery_mode,'operator');
+  assert.equal(db.prepare("SELECT count(*) n FROM events WHERE event='creator_held_notice'").get().n,0);
+  sent.length=0;db.prepare('DELETE FROM press').run();
+});
 await test('ordinary progress sends nothing',async()=>{assert.equal((await post('building')).status,200);assert.equal(sent.length,0);});
 await test('a held book alerts the operator with the reason, run and edition link, and tells the creator once',async()=>{
   await post('failed',{message:'Page review could not finish.',run:'37887966414'});

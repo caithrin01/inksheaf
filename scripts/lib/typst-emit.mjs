@@ -279,12 +279,12 @@ export function emitTypst(html, opts = {}) {
         if (/^https?:\/\//.test(raw)) t = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0]; /* a URL as link text shows its host */
         else if (!/[\p{L}\p{N}]/u.test(raw)) t = (target || u).replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0] || raw; /* punctuation-only text shows the host */
         if (t.length > 60) t = t.slice(0, 57).replace(/\s+\S*$/, "") + "…";
-        return `[${printMark('reference_entry',L,t)}#super[${esc(L)}]], [${esc(t)}], [#text(fill: faint, size: 7pt, hyphenate: false)[${esc(u)}]]`; }).join(", ");
-      /* three columns (Codex audit P1-1): letter, wrapping text, the short URL in its own column,
-         so a long title never runs under its URL; leading a reader can follow; the QR with its
-         label in one unbreakable cell; the note may continue across pages */
+        const wrappedUrl = u.length <= 36 ? u : u.replace(/([./_-])/g, "$1\u200b").replace(/([^\u200b]{18})(?=[^\u200b])/g, "$1\u200b");
+        return `[${printMark('reference_entry',L,t)}#super[${esc(L)}]], [${esc(t)} #linebreak() #text(fill: faint, size: 7pt, hyphenate: false)[${esc(wrappedUrl)}]]`; }).join(", ");
+      /* Each URL sits below its title; long hostnames can break without extending
+         into another entry. The QR stays in one cell; notes may span pages. */
       return `#block(above: 1.2em, width: 100%, breakable: true)[#block(sticky: true)[#line(length: 100%, stroke: 0.5pt + rgb("${RULE}")) #v(0.35em) #text(size: 8pt, tracking: 0.2em, fill: rubric)[LINKS]] #v(0.35em) #set text(size: 8.5pt, fill: rgb("#3a352c")); #set par(first-line-indent: 0em, justify: false, leading: 0.62em)
-#grid(columns: (1fr, ${qrSrc ? "0.8in" : "0pt"}), gutter: 8pt, [#grid(columns: (1.3em, 1fr, 1.3in), column-gutter: 6pt, row-gutter: 0.3em, align: (left, left, right), ${rows})], [${qrSrc ? `#block(breakable: false)[#image(${str(qrSrc)}, width: 0.7in) #v(-0.15em) #text(size: 6.5pt, fill: faint)[${esc(shortEssay)}]]` : ""}])]\n\n`;
+#grid(columns: (1fr, ${qrSrc ? "0.8in" : "0pt"}), gutter: 8pt, [#grid(columns: (1.3em, 1fr), column-gutter: 6pt, row-gutter: 0.3em, align: left, ${rows})], [${qrSrc ? `#block(breakable: false)[#image(${str(qrSrc)}, width: 0.7in) #v(-0.15em) #text(size: 6.5pt, fill: faint)[${esc(shortEssay)}]]` : ""}])]\n\n`;
     }
     if (has(n, "srcnotes")) {
       const hEl = find(n, k => isEl(k) && /^h[2-4]$/.test(k.name)); const label = hEl ? textOf(hEl).trim() : "Sources & notes";

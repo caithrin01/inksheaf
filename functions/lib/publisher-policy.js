@@ -6,9 +6,9 @@ export const PUBLISHER_MAX_CALLS = 256;
 // its second review round; the retail addition per printed copy is print-prices.json inksheaf_per_book.
 export const PUBLISHER_BUDGET_USD = 3;
 // An edition of several volumes is several books, so each volume gets the per-book
-// allowance, up to twelve volumes (owner, 2026-10-06, funding a twelve-volume monthly
-// edition: "added 50 bucks, raised cap"). Renders and repairs were already per volume.
-export const PUBLISHER_MAX_VOLUMES = 12;
+// allowance, up to sixteen volumes to cover prolific annual archives.
+// Renders and repairs remain per volume.
+export const PUBLISHER_MAX_VOLUMES = 16;
 export function planVolumeCount(plan) {
   try { const p = typeof plan === 'string' ? JSON.parse(plan) : plan; return Array.isArray(p?.volumes) && p.volumes.length ? p.volumes.length : 1; }
   catch { return 1; }
