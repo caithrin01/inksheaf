@@ -38,6 +38,10 @@ export function sourceFigureInventory(html,baseDir){
 }
 
 export function validateSourceFigureRoles(answer,figures){
+  try{return validateRoles(answer,figures);}
+  catch(error){error.code='PUBLISHER_SOURCE_FIGURE_INVALID';throw error;}
+}
+function validateRoles(answer,figures){
   const result=SourceFigureRoles.parse(answer),seen=new Set(),ids=new Set(figures.map(f=>f.id));
   for(const f of result.figures){
     if(!ids.has(f.figure_id)||seen.has(f.figure_id))throw Error('Figure inspection contains an unknown or duplicate image');
@@ -46,6 +50,18 @@ export function validateSourceFigureRoles(answer,figures){
     seen.add(f.figure_id);
   }
   if(seen.size!==ids.size)throw Error('Figure inspection omitted a source image');
+  return result;
+}
+
+// This marker is added by the session only after bounded inference fails, never
+// by the model schema. Validate it on restore as strictly as the normal verdict.
+export function validateSourceFigureInspection(answer,figures){
+  const result=validateSourceFigureRoles(answer,figures);
+  if(answer.inspection_error!==undefined){
+    if(answer.inspection_error!=='classification_unavailable'||result.figures.some(f=>f.role!=='reading'||f.reading_detail!=='small_text'||f.grid!==null))
+      throw Error('Saved source-image evidence is invalid; the book is held for recovery');
+    result.inspection_error=answer.inspection_error;
+  }
   return result;
 }
 
@@ -59,10 +75,11 @@ export async function prepareSourceFigures({html,baseDir,directory,ask,onResult=
   const lettering=mapConcurrent(inventory,f=>measureFigureLettering(f.source),{concurrency:4}).catch(()=>[]);
   await mapConcurrent(batches,async(batch,index)=>{
     const files=sourceComparisons(batch,join(directory,String(index))),images=files.map(f=>readFileSync(f));
-    const result=validateSourceFigureRoles(await ask({figures:batch.map(f=>({id:f.id,image_sha256:f.image_sha256})),images}),batch);
+    const result=validateSourceFigureInspection(await ask({figures:batch.map(f=>({id:f.id,image_sha256:f.image_sha256})),images}),batch);
     for(const answer of result.figures){
       const source=batch.find(f=>f.id===answer.figure_id);
       roles[source.id]={...answer,image_sha256:source.image_sha256,
+        ...(result.inspection_error?{inspection_error:result.inspection_error}:{}),
         ...(answer.grid?{detail_panels:prepareFigureDetails(source,answer.grid,join(directory,'details'))}:{})};
     }
     await onResult(roles);

@@ -192,12 +192,12 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
         const pending = await ledger.serial(async () => {
           if (ledger.failure) throw ledger.failure;
           const committed = journal.calls.reduce((sum, x) => sum + (x.cost ?? x.reserved), 0);
-          if (journal.calls.length >= maxCalls) throw Error('Publisher model budget reached; saved work is retained');
+          if (journal.calls.length >= maxCalls) throw Object.assign(Error('Publisher model budget reached; saved work is retained'),{code:'PUBLISHER_BUDGET_EXHAUSTED'});
           if (committed + reserved > budget) {
             // Current network work can settle below its conservative reservation.
             // Wait outside the write lock; old unknown charges never trigger a wait.
             if (ledger.inFlight.size) return { wait: ledger.afterSettlement() };
-            throw Error('Publisher model budget reached; saved work is retained');
+            throw Object.assign(Error('Publisher model budget reached; saved work is retained'),{code:'PUBLISHER_BUDGET_EXHAUSTED'});
           }
           call = { id: crypto.randomUUID(), request_sha256:requestHash, model: model.id, role, ...(reasoning?{reasoning}:{}), reserved, status: 'reserved', started: new Date().toISOString() };
           journal.calls.push(call); await save(); ledger.inFlight.add(call.id);
@@ -232,16 +232,21 @@ export function openRouterPublisher({ key = process.env.OPENROUTER_API_KEY, fetc
         if(response.status===429||response.status>=500||call.finish_reason==='error')error.code='PUBLISHER_TRANSIENT';
         throw error;
       }
-      if (call.finish_reason !== 'stop') throw Error('Publisher response was incomplete');
-      const text = raw.choices?.[0]?.message?.content;
-      if (typeof text !== 'string') throw Error('Publisher returned no structured decisions');
-      call.answer = JSON.parse(text);
-      const result = schema.parse(call.answer);
-      call.status = 'completed';
       if (call.cost != null && call.cost > reserved + 0.000001) {
         const error=Error('Publisher usage exceeded its reservation; review provider accounting');
         ledger.failure ||= error; throw error;
       }
+      let result;
+      // Tag only model-answer failures. Persistence, source evidence and provider
+      // access failures must never be mistaken for an optional classification.
+      try{
+        if (call.finish_reason !== 'stop') throw Error('Publisher response was incomplete');
+        const text = raw.choices?.[0]?.message?.content;
+        if (typeof text !== 'string') throw Error('Publisher returned no structured decisions');
+        call.answer = JSON.parse(text);
+        result = schema.parse(call.answer);
+      }catch(error){error.code='PUBLISHER_ANSWER_INVALID';throw error;}
+      call.status = 'completed';
       return { result, usage: call.usage };
     } catch (error) {
       // Native fetch aborts are DOMExceptions with a read-only numeric `code`.

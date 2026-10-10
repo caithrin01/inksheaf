@@ -14,7 +14,7 @@ import {checkpointStore as privateCheckpointStore} from './proof-store.mjs';
 import {BoundaryConfirmation} from './paragraph-boundaries.mjs';
 import {FigureRole,FIGURE_ROLE_TASK} from './figure-role.mjs';
 import {FigureConfirmation,ReadingOrderConfirmation} from './figure-confirmation.mjs';
-import {SourceFigureRoles,SOURCE_FIGURE_TASK,validateSourceFigureRoles} from './prepare-figures.mjs';
+import {SourceFigureRoles,SOURCE_FIGURE_TASK,validateSourceFigureRoles,validateSourceFigureInspection} from './prepare-figures.mjs';
 import {SOURCE_NOTES_TASK,sourceNotesInput} from './notes-detect.mjs';
 import {TEXT_EVIDENCE_TASK} from './page-text-evidence.mjs';
 const REVIEW_POLICY = createHash('sha256').update(PUBLISHER_CACHE_POLICY);
@@ -200,9 +200,23 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     if(!figures.length||figures.length>4||figures.length!==images.length)throw Error('Invalid source-figure batch');
     const key=publisherReviewCacheKey({model:PUBLISHER_MODELS.reader.id,task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,input,imageHashes,maxTokens});
     const cache=new Map(state.cache);
-    if(cache.has(key))return validateSourceFigureRoles(cache.get(key),figures);
+    if(cache.has(key))return validateSourceFigureInspection(cache.get(key),figures);
     const ask=openRouterPublisher({key:env.OPENROUTER_API_KEY,journal:state.journal,persist:save,fetchImpl,budget:allowance.usd,maxCalls:allowance.calls});
-    const result=validateSourceFigureRoles(await ask({role:'reader',task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,data:input,images,maxOutput:maxTokens}),figures);
+    const request={role:'reader',task:SOURCE_FIGURE_TASK,schema:SourceFigureRoles,data:input,images,maxOutput:maxTokens};
+    let result,correction='';
+    for(let attempt=0;attempt<2;attempt++){
+      try{result=validateSourceFigureRoles(await ask({...request,task:request.task+correction}),figures);break;}
+      catch(error){
+        const invalid=['PUBLISHER_ANSWER_INVALID','PUBLISHER_SOURCE_FIGURE_INVALID'].includes(error.code);
+        if(!invalid&&!['PUBLISHER_TRANSIENT','PUBLISHER_BUDGET_EXHAUSTED'].includes(error.code))throw error;
+        if(invalid&&attempt===0){correction=' The previous answer failed validation. Return every supplied ID exactly once, keep role and reading_detail consistent, and set grid to null unless role is reading and reading_detail is small_text. Respect all field limits.';continue;}
+        // Preserve full originals at the conservative reading size. No guessed
+        // grid, crops or permission to shrink; this remains an explicit open issue.
+        result={inspection_error:'classification_unavailable',figures:figures.map(f=>({figure_id:f.id,role:'reading',reading_detail:'small_text',grid:null,
+          reason:'Image classification could not finish; the complete source image is retained at reading size.'}))};
+        break;
+      }
+    }
     const latest=new Map(state.cache);latest.set(key,result);state.cache=[...latest];await save();return result;
   };
   const sourceNotes=async({heading,tailHtml})=>{

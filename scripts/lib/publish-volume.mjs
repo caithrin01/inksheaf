@@ -46,6 +46,8 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
   // Restore known paragraph boundaries before spending vision calls rediscovering
   // the same deterministic interruption. This is one bounded batch, not a loop.
   const firstMeasurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
+  const unclassified=new Set(Object.entries(book.report.sourceFigureRoles||{}).filter(([,role])=>role.inspection_error).map(([id])=>id));
+  if(unclassified.size&&!deliverOpenIssues)throw Error('Source-image classification could not finish; full originals need review');
   const interruptions=readingOrderFindings(firstMeasurement);
   // Resolve source roles before the first full PDF scan. The normal fit loop
   // already fits known pictures; absent descriptions need this bounded evidence.
@@ -124,6 +126,11 @@ export async function publishVolume({build,session,emit,volume,reviewDirectory,r
   review.layout_exceptions=layout.decisions.filter(d=>d.decision==='intentional_space');
   review.resolved=(review.findings||[]).filter(f=>f.check===1&&intentional.has(f.page));
   review.findings=(review.findings||[]).filter(f=>!review.resolved.includes(f));
+  if(unclassified.size){
+    const finalMeasurement=JSON.parse(readFileSync(book.pdf.replace(/\.pdf$/,'.pages.json'),'utf8'));
+    const pages=[...new Set((finalMeasurement.figures||[]).filter(f=>unclassified.has(f.id)).map(f=>f.page))].sort((a,b)=>a-b);
+    settle(Error('Source-image classification could not finish'),`Source-image classification incomplete for ${unclassified.size} image${unclassified.size===1?'':'s'}${pages.length?' on page'+(pages.length===1?' ':'s ')+pages.join(', '):''}. Complete originals are retained at reading size; check their lettering and layout.`);
+  }
   review.open_issues=openIssues;
   book.review=review;book.report.layoutAgent={decisions:layout.decisions,total_render_passes:totalPasses,open_issues:openIssues};
   await emit({kind:'review',volume,pages:review.pages,reviewed:true,message:writerLine(review)||'The page review is complete.',findings:review.findings.length});
