@@ -63,6 +63,49 @@ assert pixels>=source.width*source.height and not ImageChops.difference(source,r
  assert.throws(()=>validateSourceFigureRoles({figures:[{...roles['figure-0'],grid:{columns:7,rows:3}}]},inventory.slice(0,1)));
  const ordinary=await prepareSourceFigures({html:'<img data-fig="plain-chart" src="1.png">',baseDir:dir,directory:join(dir,'ordinary'),ask:async()=>({figures:[{figure_id:'plain-chart',role:'reading',reading_detail:'small_text',grid:null,reason:'An ordinary chart with fine labels.'}]})});
  assert(!ordinary['plain-chart'].detail_panels,'fine text alone never triggers added detail pages');
+ // Reproduce the real grid/detail contradiction through the paid-call adapter,
+ // including durable accounting, correction, conservative fallback and restore.
+ const oneHtml='<img data-fig="source" src="1.png">';
+ async function inspectionCase(name,mode){
+  const directory=join(dir,name);let calls=0;
+  const fetchImpl=async()=>{
+   calls++;
+   if(mode==='access')return Response.json({error:{message:'Denied'}},{status:401});
+   if(mode==='unknown')throw Error('Unexpected implementation failure');
+   if(mode==='save')writeFileSync(join(directory,'state.json'),'{}');
+   if(mode==='transient')return Response.json({error:{message:'Unavailable'}},{status:503});
+   const correct=mode==='correct'&&calls===2;
+   const answer={figures:[{figure_id:'source',role:'picture',reading_detail:'picture',grid:correct?null:{columns:4,rows:2},reason:'Fixture classification.'}]};
+   return Response.json({choices:[{finish_reason:'stop',message:{content:mode==='json'?'not JSON':JSON.stringify(answer)}}],usage:{cost:.001}});
+  };
+  const run=async()=>prepareSourceFigures({html:oneHtml,baseDir:dir,directory:join(dir,name+'-images'),ask:(await publisherSession({directory,env:{OPENROUTER_API_KEY:'fixture'},fetchImpl})).sourceFigures});
+  return{run,directory,get calls(){return calls;}};
+ }
+ const corrected=await inspectionCase('corrected','correct'),correctedRoles=await corrected.run();
+ assert.equal(corrected.calls,2);assert.equal(correctedRoles.source.role,'picture');assert(!correctedRoles.source.inspection_error);
+ await corrected.run();assert.equal(corrected.calls,2,'corrected decisions recover without another paid request');
+ for(const mode of ['invalid','json','transient']){
+  const sample=await inspectionCase('fallback-'+mode,mode),fallback=await sample.run();
+  assert.equal(sample.calls,2,'one correction or one transport retry, never an unbounded retry');
+  assert.equal(fallback.source.role,'reading');assert.equal(fallback.source.reading_detail,'small_text');
+  assert.equal(fallback.source.grid,null);assert(!fallback.source.detail_panels);assert.equal(fallback.source.inspection_error,'classification_unavailable');
+  assert.equal(fallback.source.image_sha256,inventory[1].image_sha256,'the full original source remains bound to its exact pixels');
+  await sample.run();assert.equal(sample.calls,2,'an incomplete inspection is saved and not rebought on every render');
+  const saved=JSON.parse(readFileSync(join(sample.directory,'state.json'),'utf8'));
+  assert.equal(saved.journal.calls.length,2,'every attempt stays in the durable journal');
+  if(mode!=='transient')assert.equal(saved.journal.spent,.002);
+  const fallbackInput=join(dir,'fallback-'+mode+'.typ'),fallbackPdf=join(dir,'fallback-'+mode+'.pdf');
+  writeFileSync(fallbackInput,emitTypst('<html><body><section class="article"><header class="arthead"><h2 class="arttitle">Retained image</h2></header><div class="artbody">'+oneHtml+'</div></section></body></html>',{baseDir:dir,sourceFigureRoles:fallback}));
+  execFileSync('typst',['compile','--ignore-system-fonts','--font-path','fonts',fallbackInput,fallbackPdf]);
+  const printed=JSON.parse(execFileSync('typst',['query','--ignore-system-fonts','--font-path','fonts',fallbackInput,'<fig>','--field','value'],{encoding:'utf8'}));
+  assert.equal(printed.length,1);assert.equal(printed[0].id,'source');assert.equal(printed[0].role,'reading');assert.equal(printed[0].source,inventory[1].source);
+ }
+ for(const [mode,pattern] of [['access',/HTTP 401/],['unknown',/Unexpected implementation/],['save',/changed in another worker/]]){
+  const sample=await inspectionCase('hold-'+mode,mode);await assert.rejects(sample.run,pattern);assert.equal(sample.calls,1,'a real hold is never retried as optional inspection');
+ }
+ await assert.rejects(()=>prepareSourceFigures({html:'<img data-fig="missing" src="missing.png">',baseDir:dir,directory:join(dir,'missing'),ask:async()=>{throw Error('must not reach model');}}),/ENOENT/);
+ const noKey=await publisherSession({directory:join(dir,'no-key'),env:{}});
+ await assert.rejects(()=>noKey.sourceFigures({figures:[inventory[1]],images:[readFileSync(inventory[1].source)]}),/credential/);
  const panel=roles['figure-1'].detail_panels[0];writeFileSync(panel.source,Buffer.from('changed'));
  assert.throws(()=>emitTypst(html,{baseDir:dir,sourceFigureRoles:roles}),/detail evidence changed/);
 
