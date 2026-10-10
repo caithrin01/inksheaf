@@ -12,6 +12,14 @@ t = run(`<div class="twitter-embed" data-component-name="Twitter2ToDOM" data-att
 ok(/<blockquote class="tweet-print"><p>Line one\.<br>Line two\.<\/p><p class="tweet-by">— Some One @someone, 2026-08-27, on X<\/p><\/blockquote>/.test(t.out), "tweet becomes a set quotation: " + t.out.slice(0, 160));
 t = run(`<div class="twitter-embed" data-component-name="Twitter2ToDOM" data-attrs='{"url":"https://x.com/a/status/2","full_text":"Years &amp;amp; years &lt;3","username":"rota","name":"Rota 🚪","date":"2026-06-17"}'></div>`);
 ok(/Years &amp; years &lt;3/.test(t.out) && !/&amp;amp;/.test(t.out), "X's escaped text is decoded once, then escaped once for print: " + t.out);
+const tweet = {full_text:'<span class="tweet-fake-link">@chrislakin</span> Years &amp; years <3\nRead <a class="tweet-url" href="https://example.com">example.com</a> and &lt;literal&gt;',name:'Chris',username:'chris'};
+t = run(`<div data-component-name="Twitter2ToDOM" data-attrs='${JSON.stringify(tweet).replace(/&/g,"&amp;").replace(/'/g,"&#39;")}'></div>`);
+ok(t.out.includes('@chrislakin Years &amp; years &lt;3<br>Read example.com and &lt;literal&gt;') && !/tweet-fake-link|tweet-url|&lt;span|&lt;a /.test(t.out), "tweet markup becomes visible words while literal brackets survive: " + t.out);
+const navigation = '<p><strong><a href="/about">About</a> | <a href="https://x.com/example">Twitter</a> | <a href="/work">My work</a></strong></p>';
+t = run('<p>Essay ending.</p><div class="pullquote"><h1>Author’s closing thought</h1></div>'+navigation);
+ok(!t.out.includes('Twitter') && t.out.includes('Author’s closing thought') && t.r.components.footer_navigation===1, 'only trailing navigation is removed, closing pull quote remains');
+ok(run(navigation+'<p>My essay continues.</p>').out.includes('Twitter'), 'navigation-shaped links inside writing remain');
+ok(run('<p>Learn more <a href="/about">About</a> | <a href="https://x.com/example">Twitter</a></p>').out.includes('Learn more'), 'closing prose with navigation links remains');
 t = run(`<div class="embedded-post-wrap" data-attrs='{"id":1,"url":"https://other.substack.com/p/thing?utm_source=x","publication_name":"Other Letter","title":"The Thing","truncated_body_text":"..."}'><div class="embedded-post"><div class="embedded-post-title">The Thing</div></div></div>`);
 ok(/<div class="embedcard">Other Letter: The Thing · other\.substack\.com\/p\/thing<\/div>/.test(t.out), "embedded post becomes a citation line: " + t.out.slice(0, 160));
 t = run(`<div id="youtube2-abc123def45" class="youtube-wrap" data-component-name="Youtube2ToDOM" data-attrs='{"videoId":"abc123def45","startTime":null,"endTime":null}'><div class="youtube-inner"><iframe src="https://www.youtube-nocookie.com/embed/abc123def45"></iframe></div></div>`);

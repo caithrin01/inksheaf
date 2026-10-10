@@ -17,5 +17,5 @@ export function completeness({selected,printed,asides=[],reports=[],sourcePosts=
     const cut=cutsById.get(id)||cuts.get(slugOf.get(id));
     if(cut)cut_by_rule.push({id,...cut});else missing.push({id,slug:slugOf.get(id)||null});
   }
-  return {selected:new Set(selected.map(String)).size,printed:included.size,set_aside:aside.size,cut_by_rule,missing};
+  return {selection_known:selected.length>0,selected:new Set(selected.map(String)).size,printed:included.size,set_aside:aside.size,cut_by_rule,missing};
 }

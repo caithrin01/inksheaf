@@ -16,7 +16,7 @@ import { publicationFromHomepage, publicationFromArchive, publicationLabel } fro
 import { coverMarkup, coverStyle, designSelection, validDesign } from "../functions/lib/book-design.js";
 import { normalizeUrl, linkCode, SHORT_HOST } from "../functions/lib/links.js";
 import { transformComponents } from "./lib/components.mjs";
-import { ruleCut } from "../functions/lib/cuts.js";
+import { ruleCut, inferredOwnDomains } from "../functions/lib/cuts.js";
 import { extractBrand, contrastHex } from "./brand-lift.mjs";
 
 const RAW = process.argv[2] || "https://www.caithrin.com";
@@ -105,20 +105,7 @@ const shortPosts = listing.filter(p => (p.wordcount || 0) < 150).length;
 if (shortPosts > listing.length * 0.6) report.declineSignals.push("thread/notes-style publication");
 /* cuts by rule, each with its reason, named in the edition note (functions/lib/cuts.js) */
 report.ruleCuts = [];
-// A writer who canonicalizes every post to their own site (they own both the Substack and the
-// domain, a common SEO setup) would otherwise have every post cut as "first published elsewhere"
-// and get an empty book. If one non-substack canonical host covers half or more of the public
-// posts, it is the writer's own domain; keep those. Foreign Substacks and one-offs still cut.
-const hbare = host.replace(/^www\./, "").toLowerCase();
-const canonCount = {};
-for (const p of listing) {
-  if (p.audience !== "everyone" || !(p.type === "newsletter" || !p.type)) continue;
-  const c = String(p.canonical_url || ""); if (!/^https?:\/\//.test(c)) continue;
-  const ch = c.replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "").toLowerCase();
-  if (ch && ch !== hbare && !/\.substack\.com$/.test(ch)) canonCount[ch] = (canonCount[ch] || 0) + 1;
-}
-const pubPublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type)).length || 1;
-const ownDomains = Object.entries(canonCount).filter(([, n]) => n >= pubPublic * 0.5).map(([d]) => d);
+const ownDomains = inferredOwnDomains(listing, host);
 if (ownDomains.length) report.ownDomains = ownDomains;
 for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ id: p.id, slug: p.slug, title: p.title, reason: why }); }
 const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));

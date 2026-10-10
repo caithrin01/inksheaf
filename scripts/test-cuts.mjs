@@ -1,4 +1,5 @@
-import { ruleCut, ruleFlag } from "../functions/lib/cuts.js";
+import { ruleCut, ruleFlag, inferredOwnDomains } from "../functions/lib/cuts.js";
+import { partition } from "../functions/lib/editor-input.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const H = "www.example.com";
 ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.example.com/p/an-essay" }, H) === null, "an ordinary essay is kept");
@@ -8,6 +9,13 @@ ok(ruleCut({ type: "newsletter", canonical_url: "https://example.com/p/x" }, H) 
 ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com") === "first published at caithrin.com", "an author's own domain is cut when it is not named as own");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://caithrin.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === null, "an author's own domain is kept when passed as ownDomains (canonicalised-to-own-site writer)");
 ok(ruleCut({ type: "newsletter", canonical_url: "https://other.substack.com/p/x" }, "caithrin.substack.com", ["caithrin.com"]) === "first published at other.substack.com", "a foreign Substack is still cut even with an own domain set");
+const ownPosts = [1,2,3].map(id=>({id,type:'newsletter',audience:'everyone',post_date:'2026-09-01',canonical_url:`https://writer.blog/p/${id}`}));
+ownPosts.push({id:4,type:'newsletter',audience:'everyone',post_date:'2026-09-01',canonical_url:'https://other.substack.com/p/foreign'});
+const domains = inferredOwnDomains(ownPosts,'writer.substack.com');
+ok(domains.length===1 && domains[0]==='writer.blog','dominant own-site canonical domain is shared');
+const split = partition(ownPosts,Date.parse('2026-10-10'),'writer.substack.com');
+ok(split.inWindow.length===3 && split.cut.length===1 && split.cut[0].post.id===4,'preview retains the same own-domain posts as the press, while foreign Substacks stay cut');
+ok(inferredOwnDomains([{canonical_url:'https://writer.blog/p/x',restacked_post_id:123}], 'writer.substack.com').length===0,'restacks cannot establish an own domain');
 ok(ruleCut({ type: "podcast" }, H) === "a podcast episode", "podcast");
 ok(ruleCut({ type: "thread" }, H) === "a discussion thread", "thread type");
 ok(ruleCut({ type: "newsletter", postTags: [{ name: "Threads" }] }, H) === 'tagged "Threads"', "Threads tag");

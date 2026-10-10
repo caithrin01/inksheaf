@@ -174,7 +174,7 @@ try{
     const sourcePosts=existsSync(cacheDir)?readdirSync(cacheDir).filter(f=>f.endsWith('.json')).map(f=>JSON.parse(readFileSync(join(cacheDir,f),'utf8'))):[];
     journal.completeness={...completeness({selected:(plan.volumes||[]).flatMap(v=>v.post_ids||[]),printed:ids.map(p=>p.id),
       asides:db.prepare("SELECT payload FROM publisher_events WHERE kind='reading'").all().flatMap(r=>JSON.parse(r.payload).decisions||[]).filter(d=>d.decision==='set_aside'&&d.reason).map(d=>d.post_id),reports,sourcePosts}),fresh_reads:checked,body_mismatches:mismatched};
-    C.complete=!journal.completeness.missing.length&&mismatched===0&&checked===ids.length;
+    C.complete=journal.completeness.selection_known&&!journal.completeness.missing.length&&mismatched===0&&checked===ids.length;
     journal.open_issues=snapshot.events?.filter(e=>e.kind==='review').map(e=>e.message)||[];
   }
   C.within_budget=journal.model.cost_usd<=budget;

@@ -8,6 +8,22 @@ const TAGS = /^(threads?|open threads?|discussion|watch|listen|podcast|audio|vid
 const SOFT = /^(mailbag|housekeeping|announcements?|links?|roundup|digest|weekly|newsletter|programming note|meta)$/i;
 const SLUG = /(^|-)(open-thread|discussion-post|discussion-thread|mailbag|sunday-thread|weekly-thread|comment-thread|office-hours)(-|\d|$)/i;
 
+// Use the same canonical-domain inference in planning and printing. A writer may
+// point their Substack essays at their own site; isolated foreign links and
+// foreign Substacks remain cuts. This is a content heuristic, not ownership proof.
+export function inferredOwnDomains(posts, host = "") {
+  const h = host.replace(/^www\./, "").toLowerCase(), counts = new Map();
+  const publicPosts = posts.filter(p => p && (!p.audience || p.audience === "everyone") && (!p.type || p.type === "newsletter") && !p.restacked_post_id);
+  for (const p of publicPosts) {
+    try {
+      const url = new URL(p.canonical_url);
+      const ch = url.hostname.replace(/^www\./, "").toLowerCase();
+      if (/^https?:$/.test(url.protocol) && ch !== h && !/\.substack\.com$/.test(ch)) counts.set(ch, (counts.get(ch) || 0) + 1);
+    } catch {}
+  }
+  return [...counts].filter(([, n]) => n >= Math.max(1, publicPosts.length) * 0.5).map(([domain]) => domain);
+}
+
 export function ruleCut(post, host = "", ownDomains = []) {
   if (!post) return "empty";
   const type = post.type || "newsletter";
