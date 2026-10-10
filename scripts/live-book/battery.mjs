@@ -38,7 +38,7 @@ function reconcile(id,spent,status){
 }
 const runOne=entry=>new Promise(done=>{
   const id=`live-book-${entry.host}-${stamp}`,out=join(root,entry.host),allowance=entry.budget_usd||perBook;allocate(id,allowance);
-  const child=spawn(process.execPath,['scripts/live-book/run.mjs','--host',entry.host,'--out',out,'--minutes',tier==='prolific'?'180':'40','--budget',String(allowance)],{stdio:['ignore','pipe','pipe']});
+  const child=spawn(process.execPath,['scripts/live-book/run.mjs','--host',entry.host,'--out',out,'--minutes',String(entry.minutes||(tier==='prolific'?180:40)),'--budget',String(allowance)],{stdio:['ignore','pipe','pipe']});
   let tail='';child.stdout.on('data',b=>tail=(tail+b).slice(-4000));child.stderr.on('data',b=>tail=(tail+b).slice(-4000));
   child.on('close',()=>{
     let j=null;try{j=JSON.parse(readFileSync(join(out,'journey.json'),'utf8'));}catch{}
