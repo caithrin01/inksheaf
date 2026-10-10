@@ -1,5 +1,9 @@
 import { ruleCut, ruleFlag, inferredOwnDomains } from "../functions/lib/cuts.js";
 import { partition } from "../functions/lib/editor-input.js";
+import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const H = "www.example.com";
 ok(ruleCut({ type: "newsletter", slug: "an-essay", canonical_url: "https://www.example.com/p/an-essay" }, H) === null, "an ordinary essay is kept");
@@ -27,4 +31,13 @@ ok(ruleCut({ type: "newsletter", slug: "open-thread-449" }, H) === "an open thre
 ok(ruleCut({ type: "newsletter", slug: "hidden-open-thread-3021" }, H) === "an open thread", "hidden open thread slug");
 ok(ruleCut({ type: "newsletter", slug: "the-open-threads-of-history" }, H) === null, "a slug that merely contains the words is kept");
 ok(ruleCut({ type: "newsletter", is_published: false }, H) === "unpublished", "unpublished");
+const dir=mkdtempSync(join(tmpdir(),'inksheaf-cut-identity-'));
+try {
+  const original={id:10,slug:'same-slug',title:'The original essay',post_date:'2026-09-01',wordcount:300,publishedBylines:[{name:'Writer'}],body_html:'<p>'+ 'The original writing stays in the book. '.repeat(45)+'</p>'};
+  writeFileSync(join(dir,'posts.json'),JSON.stringify([original,{...original,id:11,type:'restack',restacked_post_id:10}]));
+  writeFileSync(join(dir,'selection.json'),JSON.stringify([10]));
+  execFileSync(process.execPath,['scripts/build-book.mjs','https://writer.substack.com','--fixture',join(dir,'posts.json'),'--posts',join(dir,'selection.json'),'--out',join(dir,'book.html'),'--no-brand','--direct-links'],{stdio:'pipe'});
+  const report=JSON.parse(readFileSync(join(dir,'book.report.json')));
+  ok(report.postOrder.length===1&&report.postOrder[0].id===10&&report.ruleCuts.length===1&&report.ruleCuts[0].id===11&&!report.planSelection.missing.length,'a cut restack cannot remove the selected original with the same slug');
+} finally {rmSync(dir,{recursive:true,force:true});}
 console.log(`${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

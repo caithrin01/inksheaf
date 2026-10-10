@@ -108,12 +108,15 @@ report.ruleCuts = [];
 const ownDomains = inferredOwnDomains(listing, host);
 if (ownDomains.length) report.ownDomains = ownDomains;
 for (const p of listing) { const why = ruleCut(p, host, ownDomains); if (why && p.audience === "everyone" && !INCLUDE.has(p.slug)) report.ruleCuts.push({ id: p.id, slug: p.slug, title: p.title, reason: why }); }
-const cutSlugs = new Set(report.ruleCuts.map(c => c.slug));
+// Restacks can reuse the original essay's slug. Excluding the restack must
+// never exclude the separately identified original selected by the writer.
+const sourceKey = p => p.id != null ? `id:${p.id}` : `slug:${p.slug}`;
+const cutKeys = new Set(report.ruleCuts.map(sourceKey));
 /* the accounting invariant's terms (Codex audit P1-4): public pieces in the window before any cut */
 report.eligiblePublic = listing.filter(p => p.audience === "everyone" && (p.type === "newsletter" || !p.type) && p.is_published !== false
   && (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER)) && (!BEFORE || Date.parse(p.post_date) < Date.parse(BEFORE))).length;
 const posts = listing
-  .filter(p => p.audience === "everyone" && !cutSlugs.has(p.slug))
+  .filter(p => p.audience === "everyone" && !cutKeys.has(sourceKey(p)))
   .filter(p => (!AFTER || Date.parse(p.post_date) >= Date.parse(AFTER))
             && (!BEFORE || Date.parse(p.post_date) <= Date.parse(BEFORE) + 86399000))
   .sort((a, b) => Date.parse(a.post_date) - Date.parse(b.post_date));
