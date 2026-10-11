@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Fixtures for the edition window, the checker, and the calendar fallback. No network, no model.
 import { strict as assert } from "node:assert";
+import {readFileSync} from 'node:fs';
 import { editionWindow } from "../functions/lib/edition-window.js";
 import { buildEditorInput, volumePages } from "../functions/lib/editor-input.js";
 import { checkPlan } from "../functions/lib/plan-check.js";
@@ -145,4 +146,28 @@ ok("rule: overlapping folded periods refused", (() => { const p = strip(good());
 /* a volume named by periods expands to the posts in them, minus exclusions */
 ok("rule: periods expand to post ids", (() => { const p = strip(good()); const q = p.routes.find(r => r.cadence === "quarterly"); for (const v of q.volumes) { v.periods = [v.label]; v.post_ids = []; } const r = checkPlan(p, input); const rq = r.plan && r.plan.routes.find(x => x.cadence === "quarterly"); return r.ok && rq && rq.volumes.every(v => v.post_ids.length === 18); })());
 ok("rule: an unknown period is refused", (() => { const p = strip(good()); const q = p.routes.find(r => r.cadence === "quarterly"); q.volumes[0].periods = ["Q9 2025"]; q.volumes[0].post_ids = []; const r = checkPlan(p, input); return !r.ok && r.errors.some(e => /not one of the window/.test(e)); })());
+/* The real ChinaTalk partition, without buying a fifteen-volume edition. The
+   fixture contains only eligible IDs, dates and word counts, never article prose. */
+{
+  const fixture=JSON.parse(readFileSync(new URL('./fixtures/chinatalk-partition-2026-10-10.json',import.meta.url)));
+  const posts=fixture.rows.map(([id,post_date,wordcount])=>({id,post_date,wordcount,title:String(id),type:'newsletter',audience:'everyone'}));
+  const nowMs=Date.parse(fixture.as_of),identity={publicationName:'ChinaTalk'},host=fixture.host;
+  const ci=buildEditorInput({posts,identity,host,nowMs}),raw=calendarFallback(ci),cp=checkPlan(raw,ci),route=cp.plan?.routes.find(r=>r.recommended);
+  ok('ChinaTalk metadata: all 210 eligible posts form fifteen checked volumes',cp.ok&&ci.posts.length===210&&route?.volumes.length===15,cp.errors.join('; '));
+  const chronological=[...posts].sort((a,b)=>Date.parse(a.post_date)-Date.parse(b.post_date)).map(p=>p.id);
+  const assigned=route.volumes.flatMap(v=>v.post_ids);
+  ok('ChinaTalk metadata: every post appears once in chronological order',new Set(assigned).size===210&&JSON.stringify(assigned)===JSON.stringify(chronological));
+  ok('ChinaTalk metadata: each estimate recomputes from source word counts within 32–300 pages',route.volumes.every(v=>v.est_pages>=32&&v.est_pages<=300&&v.est_pages===volumePages(posts.filter(p=>v.post_ids.includes(p.id)))));
+  ok('ChinaTalk metadata: no source is excluded to fit the volume ceiling',cp.plan.excluded.length===0);
+  const absent=structuredClone(raw);absent.routes[0].volumes[0].post_ids.shift();
+  ok('ChinaTalk metadata: dropping a selected post fails the checker',!checkPlan(absent,ci).ok);
+  const duplicate=structuredClone(raw);duplicate.routes[0].volumes[1].post_ids.push(duplicate.routes[0].volumes[0].post_ids[0]);
+  ok('ChinaTalk metadata: duplicating a selected post fails the checker',!checkPlan(duplicate,ci).ok);
+  const empty=structuredClone(raw);empty.routes=[];const nativeFetch=globalThis.fetch;let fixtureCalls=0;
+  globalThis.fetch=()=>{throw Error('ChinaTalk regression must never use the network or a paid model');};
+  try{
+    const recovered=await planEdition({posts,identity,host,nowMs,client:{messages:{parse:async()=>{fixtureCalls++;return{parsed_output:empty};}}}});
+    ok('ChinaTalk metadata: an empty model route recovers the complete set without paid inference',fixtureCalls>0&&recovered.planned_by==='calendar'&&JSON.stringify(recovered.plan.routes.find(r=>r.recommended).volumes.flatMap(v=>v.post_ids))===JSON.stringify(chronological));
+  }finally{globalThis.fetch=nativeFetch;}
+}
 console.log(`plan-check: ${n} checks, ${process.exitCode ? "FAIL" : "all pass"}`);
