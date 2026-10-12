@@ -20,6 +20,11 @@ t = run('<p>Essay ending.</p><div class="pullquote"><h1>Author’s closing thoug
 ok(!t.out.includes('Twitter') && t.out.includes('Author’s closing thought') && t.r.components.footer_navigation===1, 'only trailing navigation is removed, closing pull quote remains');
 ok(run(navigation+'<p>My essay continues.</p>').out.includes('Twitter'), 'navigation-shaped links inside writing remain');
 ok(run('<p>Learn more <a href="/about">About</a> | <a href="https://x.com/example">Twitter</a></p>').out.includes('Learn more'), 'closing prose with navigation links remains');
+const headingNavigation = '<h5><a href="https://chrislakin.blog/about">About</a> | <a href="https://x.com/chrislakin">Twitter</a></h5>';
+t=run('<p>Essay ending.</p>'+headingNavigation);
+ok(!t.out.includes('Twitter')&&t.out.includes('Essay ending.')&&t.r.components.footer_navigation===1,'actual Chris h5 footer navigation is removed before link extraction');
+ok(run(headingNavigation+'<p>Writing continues.</p>').out.includes('Twitter'),'navigation-shaped heading inside writing remains');
+ok(run('<h5>Read more <a href="/about">About</a> | <a href="https://x.com/example">Twitter</a></h5>').out.includes('Read more'),'prose in a closing heading remains');
 t = run(`<div class="embedded-post-wrap" data-attrs='{"id":1,"url":"https://other.substack.com/p/thing?utm_source=x","publication_name":"Other Letter","title":"The Thing","truncated_body_text":"..."}'><div class="embedded-post"><div class="embedded-post-title">The Thing</div></div></div>`);
 ok(/<div class="embedcard">Other Letter: The Thing · other\.substack\.com\/p\/thing<\/div>/.test(t.out), "embedded post becomes a citation line: " + t.out.slice(0, 160));
 t = run(`<div id="youtube2-abc123def45" class="youtube-wrap" data-component-name="Youtube2ToDOM" data-attrs='{"videoId":"abc123def45","startTime":null,"endTime":null}'><div class="youtube-inner"><iframe src="https://www.youtube-nocookie.com/embed/abc123def45"></iframe></div></div>`);
