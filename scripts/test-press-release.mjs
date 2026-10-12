@@ -20,7 +20,7 @@ await test('outage or a malformed manifest never selects a fallback',async()=>{
 });
 await test('artifact contains the exact commit and disables manifest caching',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'inksheaf-release-'));writeRelease(valid.sha,dir);
-  assert.deepEqual(JSON.parse(readFileSync(dir+'/inksheaf-press.json')),{...valid,operator_review:true,publisher_restart:true});
+  assert.deepEqual(JSON.parse(readFileSync(dir+'/inksheaf-press.json')),{...valid,operator_review:true,publisher_restart:true,publisher_review_correction:true});
   assert.match(readFileSync(dir+'/_headers','utf8'),/Cache-Control: no-store/);
   assert.throws(()=>writeRelease('main',dir));
 });
