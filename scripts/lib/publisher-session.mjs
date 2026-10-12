@@ -7,6 +7,7 @@ import {mapConcurrent,serialWrites} from './async-work.mjs';
 import {LayoutReviewDecisions,validateLayout,layoutBatches,restateMeasuredBoundaries} from './publisher-layout.mjs';
 import { openRouterPublisher,publishSelection,PUBLISHER_MODELS,PUBLISHER_CACHE_POLICY } from './publisher-agent.mjs';
 import {currentPublisherSelection,selectionChanged} from './publisher-selection.mjs';
+import {publisherTransport} from './publisher-transport.mjs';
 import {newRenderBudget,renderUsage,reserveRenderWork} from '../../functions/lib/publisher-render-budget.js';
 import {publisherAllowance,planVolumeCount} from '../../functions/lib/publisher-policy.js';
 import {saveRenderCheckpoint,restoreRenderCheckpoint} from './render-checkpoint.mjs';
@@ -52,10 +53,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
   const sign=m=>createHmac('sha256',secret).update(m).digest('hex');
   let state={journal:{calls:[],spent:0},cache:[],runs:{},renderBudget:newRenderBudget()}, revision=0, selection={revision:0,restored:[]};
   let localSnapshot=existsSync(file)?readFileSync(file,'utf8'):null;
-  async function request(path, options) {
-    const response=await fetchImpl(site+path,{...options,signal:AbortSignal.timeout(20000)});
-    const body=await response.json();if(!response.ok||!body.ok)throw Error('Publisher work could not be saved; the book is held for recovery');return body;
-  }
+  const request=publisherTransport({site,fetchImpl});
   if(remote){const saved=await request(`/api/publisher-state?id=${id}&sig=${sign(`publisher-state:${id}`)}`);state=saved.state||state;revision=saved.revision;selection=saved.selection;}
   else if(localSnapshot!=null)state=JSON.parse(localSnapshot);
   if(!Number.isSafeInteger(selection?.revision)||!Array.isArray(selection?.restored))throw Error('Your saved selection is unavailable.');
@@ -70,7 +68,7 @@ export async function publisherSession({directory, env=process.env, fetchImpl=fe
     if(remote){
       // Remote CAS is authoritative. Never start work on a reservation whose
       // acknowledgement was lost; its saved charge remains for reconciliation.
-      const saved=await request('/api/publisher-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signup_id:id,revision,state,sig:sign(`publisher-state:${id}:${revision}:${payload}`)})});revision=saved.revision;
+      const saved=await request('/api/publisher-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({signup_id:id,revision,state,sig:sign(`publisher-state:${id}:${revision}:${payload}`)})},{revision,payload,readPath:`/api/publisher-state?id=${id}&sig=${sign(`publisher-state:${id}`)}`});revision=saved.revision;
       try{writeFileSync(temporary,payload,{mode:0o600});renameSync(temporary,file);}finally{if(existsSync(temporary))unlinkSync(temporary);}
       return;
     }
