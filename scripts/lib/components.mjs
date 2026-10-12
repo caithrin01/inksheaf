@@ -92,12 +92,13 @@ export function transformComponents(html, report = {}) {
   // A final all-link About | Twitter | ... row is website navigation. Keep
   // prose, pull quotes and identical links used inside the essay untouched.
   const last = doc.children.findLast(n => n.type !== "text" || n.data.trim());
-  if (last?.name === "p") {
+  const navigationBlocks = ["p", "h5"];
+  if (navigationBlocks.includes(last?.name)) {
     const links = [], outside = [];
     const inspect = n => {
       if (n.type === "text") outside.push(n.data);
       else if (n.name === "a") links.push(textOf(n).trim());
-      else if (["p", "strong", "em", "span"].includes(n.name)) (n.children || []).forEach(inspect);
+      else if ([...navigationBlocks, "strong", "em", "span"].includes(n.name)) (n.children || []).forEach(inspect);
       else outside.push("non-navigation");
     };
     inspect(last);

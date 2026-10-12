@@ -31,7 +31,7 @@ export function attachRuntimeImage(image,directory='dist'){
 export function writeRelease(sha,directory='dist'){
   if(!shaPattern.test(sha))throw Error('A full commit SHA is required for the press release');
   mkdirSync(directory,{recursive:true});
-  writeFileSync(directory+'/inksheaf-press.json',JSON.stringify({repository:'caithrin01/inksheaf',sha,protocol:PRESS_PROTOCOL,operator_review:true,publisher_restart:true})+'\n');
+  writeFileSync(directory+'/inksheaf-press.json',JSON.stringify({repository:'caithrin01/inksheaf',sha,protocol:PRESS_PROTOCOL,operator_review:true,publisher_restart:true,publisher_review_correction:true})+'\n');
   appendFileSync(directory+'/_headers','\n/inksheaf-press.json\n  Cache-Control: no-store\n  X-Robots-Tag: noindex\n');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
